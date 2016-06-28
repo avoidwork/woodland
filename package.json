@@ -1,0 +1,28 @@
+{
+  "name": "woodland",
+  "version": "1.0.0",
+  "description": "Lightweight API framework",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/avoidwork/woodland.git"
+  },
+  "keywords": [
+    "api",
+    "framework",
+    "rest",
+    "coap",
+    "mqtt",
+    "iot",
+    "elastic"
+  ],
+  "author": "Jason Mulligan <jason.mulligan@avoidwork.com>",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/avoidwork/woodland/issues"
+  },
+  "homepage": "https://github.com/avoidwork/woodland#readme"
+}
