@@ -5,14 +5,15 @@ const path = require("path"),
 	merge = require("tiny-merge"),
 	Woodland = require(path.join(__dirname, "lib", "woodland.js"));
 
-function factory (cfg = {}, errHandler = null) {
+function factory (config = {}, onErrorFn = undefined) {
 	let server = new Woodland();
 
-	merge(server.config, cfg);
-
-	if (typeof errHandler === "function") {
-		server.error = errHandler;
+	if (typeof onErrorFn === "function") {
+		server.onerror = onErrorFn;
 	}
+
+	// Merging configurations
+	merge(server.config, config);
 
 	// Registering virtual hosts
 	server.router.setHost("all");
