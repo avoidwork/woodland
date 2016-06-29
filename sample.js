@@ -13,7 +13,9 @@ router.onfinish = (req, res) => {
 };
 
 router.onerror = (req, res, err) => {
-	console.error(err.stack);
+	if (err.message !== "Connection closed before response was flushed") {
+		console.error(err.stack);
+	}
 };
 
 http.createServer(router.route).listen(8000);
