@@ -12,7 +12,11 @@ router.use("/*", (req, res) => {
 });
 
 router.onfinish = (req, res) => {
-	console.log(res.statusCode);
+	console.log('Status code', res.statusCode);
+};
+
+router.onerror = (req, res, err) => {
+	console.error(err.stack);
 };
 
 http.createServer(router.route).listen(8000);

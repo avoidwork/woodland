@@ -14,7 +14,7 @@ function factory ({defaultHost = "localhost", cacheSize = max, hosts = [], seed 
 		router.setHost(host);
 	});
 
-	router.use("/*", router.decorate);
+	router.route = router.route.bind(router);
 
 	return router;
 }
