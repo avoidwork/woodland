@@ -1,7 +1,7 @@
 {
   "name": "woodland",
   "version": "1.0.0",
-  "description": "Lightweight API framework",
+  "description": "HTTP/HTTPS router with virtual hosts",
   "main": "index.js",
   "scripts": {
     "test": "grunt test"
@@ -31,7 +31,6 @@
   "dependencies": {
     "mimetype": "0.0.8",
     "murmurhash3js": "^3.0.1",
-    "precise": "^1.1.0",
     "retsu": "^2.0.3",
     "tiny-coerce": "^1.0.1",
     "tiny-defer": "^1.0.4",
