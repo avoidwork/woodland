@@ -1,18 +1,15 @@
 const http = require("http"),
-	path = require("path"),
-	woodland = require(path.join(__dirname, "index.js"));
+	path = require("path");
 
-let router = woodland({
-	defaultHost: "localhost"
-});
+let router = require(path.join(__dirname, "index.js"))();
 
 router.use("/*", (req, res) => {
-	res.writeHead(200, {'Content-Type': 'text/plain'});
-	res.end('Hello World!');
+	res.writeHead(200, {"Content-Type": "text/plain"});
+	res.end("Hello World!");
 });
 
 router.onfinish = (req, res) => {
-	console.log('Status code', res.statusCode);
+	console.log("Status code", res.statusCode);
 };
 
 router.onerror = (req, res, err) => {
