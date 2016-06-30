@@ -3,7 +3,7 @@
 const http = require("http"),
 	path = require("path");
 
-let router = require(path.join(__dirname, "..", "index.js"))({defaultHeaders: {"Cache-Control": "no-cache"}}),
+let router = require(path.join(__dirname, "..", "index.js"))({defaultHeaders: {"Cache-Control": "no-cache"}, defaultHost: "localhost", hosts: ["localhost", "noresponse"]}),
 	hippie = require("hippie");
 
 function request () {
@@ -14,6 +14,11 @@ router.use("/", (req, res) => {
 	res.writeHead(200, {"Content-Type": "text/plain"});
 	res.end("Hello World!");
 });
+
+router.use("/nothere.html", (req, res) => {
+	res.writeHead(204);
+	res.end("");
+}, "GET", "noresponse");
 
 http.createServer(router.route).listen(8001);
 
@@ -176,30 +181,6 @@ describe("Invalid Requests", function () {
 	it("DELETE /nothere.html (404 / 'Not Found')", function (done) {
 		request()
 			.del("/nothere.html")
-			.expectStatus(404)
-			.expectHeader("Cache-Control", "no-cache")
-			.expectBody(/Not Found/)
-			.end(function (err) {
-				if (err) throw err;
-				done();
-			});
-	});
-
-	it("GET /../README (404 / 'Not Found')", function (done) {
-		request()
-			.get("/../README")
-			.expectStatus(404)
-			.expectHeader("Cache-Control", "no-cache")
-			.expectBody(/Not Found/)
-			.end(function (err) {
-				if (err) throw err;
-				done();
-			});
-	});
-
-	it("GET /././../README (404 / 'Not Found')", function (done) {
-		request()
-			.get("/././../README")
 			.expectStatus(404)
 			.expectHeader("Cache-Control", "no-cache")
 			.expectBody(/Not Found/)
