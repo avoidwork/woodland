@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>woodland by avoidwork</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">woodland</h1>
+      <h2 class="project-tagline">Lightweight HTTP/HTTPS router with virtual hosts</h2>
+      <a href="https://github.com/avoidwork/woodland" class="btn">View on GitHub</a>
+      <a href="https://github.com/avoidwork/woodland/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/avoidwork/woodland/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="woodland" class="anchor" href="#woodland" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>woodland</h1>
+
+<p><a href="http://travis-ci.org/avoidwork/woodland"><img src="https://secure.travis-ci.org/avoidwork/woodland.svg" alt="build status"></a></p>
+
+<p>Lightweight HTTP/HTTPS router with virtual hosts. Sets an accurate <code>Allow</code> header based on routes.</p>
+
+<h2>
+<a id="example" class="anchor" href="#example" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Example</h2>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-s"><span class="pl-pds">"</span>use strict<span class="pl-pds">"</span></span>;
+
+<span class="pl-k">const</span> <span class="pl-c1">http</span> <span class="pl-k">=</span> <span class="pl-c1">require</span>(<span class="pl-s"><span class="pl-pds">"</span>http<span class="pl-pds">"</span></span>);
+<span class="pl-k">let</span> router <span class="pl-k">=</span> <span class="pl-c1">require</span>(<span class="pl-s"><span class="pl-pds">"</span>woodland<span class="pl-pds">"</span></span>)({defaultHeaders<span class="pl-k">:</span> {<span class="pl-s"><span class="pl-pds">"</span>Cache-Control<span class="pl-pds">"</span></span><span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">"</span>no-cache<span class="pl-pds">"</span></span>}});
+
+<span class="pl-smi">router</span>.<span class="pl-en">use</span>(<span class="pl-s"><span class="pl-pds">"</span>/<span class="pl-pds">"</span></span>, (<span class="pl-smi">req</span>, <span class="pl-smi">res</span>) <span class="pl-k">=&gt;</span> {
+    <span class="pl-smi">res</span>.<span class="pl-en">writeHead</span>(<span class="pl-c1">200</span>, {<span class="pl-s"><span class="pl-pds">"</span>Content-Type<span class="pl-pds">"</span></span><span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">"</span>text/plain<span class="pl-pds">"</span></span>});
+    <span class="pl-smi">res</span>.<span class="pl-en">end</span>(<span class="pl-s"><span class="pl-pds">"</span>Hello World!<span class="pl-pds">"</span></span>);
+});
+
+<span class="pl-smi">http</span>.<span class="pl-en">createServer</span>(<span class="pl-smi">router</span>.<span class="pl-smi">route</span>).<span class="pl-en">listen</span>(<span class="pl-c1">8000</span>);</pre></div>
+
+<h2>
+<a id="event-handlers" class="anchor" href="#event-handlers" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Event Handlers</h2>
+
+<h5>
+<a id="onclose-req-res" class="anchor" href="#onclose-req-res" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>onclose (req, res)</h5>
+
+<p>Executes if the connection was terminated before <code>res.end()</code> was called or able to flush.</p>
+
+<h5>
+<a id="onerror-req-res-err" class="anchor" href="#onerror-req-res-err" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>onerror (req, res, err)</h5>
+
+<p>Executes if the request cannot be routed, default handler sends a basic text response.</p>
+
+<h5>
+<a id="onfinish-req-res" class="anchor" href="#onfinish-req-res" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>onfinish (req, res)</h5>
+
+<p>Executes after the response has been sent.</p>
+
+<h2>
+<a id="api" class="anchor" href="#api" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>API</h2>
+
+<h5>
+<a id="woodland-cachesize-1000-defaultheaders--defaulthost-127001-hosts--seed-random" class="anchor" href="#woodland-cachesize-1000-defaultheaders--defaulthost-127001-hosts--seed-random" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>woodland ({cacheSize: 1000, defaultHeaders: {}, defaultHost: "127.0.0.1", hosts: [], seed: random})</h5>
+
+<p>Returns a woodland router.</p>
+
+<h5>
+<a id="allowed-method-uri-host-override--false" class="anchor" href="#allowed-method-uri-host-override--false" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>allowed (method, uri, host, override = false)</h5>
+
+<p>Calls <code>routes()</code> and returns a <code>Boolean</code> to indicate if <code>method</code> is allowed for <code>uri</code>.</p>
+
+<h5>
+<a id="allows-uri-host-override--false" class="anchor" href="#allows-uri-host-override--false" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>allows (uri, host, override = false)</h5>
+
+<p>Returns a <code>String</code> for the <code>Allow</code> header. Caches value, &amp; will update cache if <code>override</code> is <code>true</code>.</p>
+
+<h5>
+<a id="blacklist-fn" class="anchor" href="#blacklist-fn" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>blacklist (fn)</h5>
+
+<p>Blacklists <code>fn</code> for calculating the return of <code>allows()</code>.</p>
+
+<h5>
+<a id="decorate-req-res" class="anchor" href="#decorate-req-res" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>decorate (req, res)</h5>
+
+<p>Decorates <code>allow</code>, <code>body</code>, <code>ip</code>, <code>parsed</code>, <code>query</code>, &amp; <code>host</code> on <code>req</code> and <code>header()</code> &amp; <code>locals{}</code> on <code>res</code>.</p>
+
+<h5>
+<a id="hash-arg" class="anchor" href="#hash-arg" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>hash (arg)</h5>
+
+<p>Returns a murmur3hash of <code>arg</code>.</p>
+
+<h5>
+<a id="host-arg" class="anchor" href="#host-arg" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>host (arg)</h5>
+
+<p>Determines the <code>host</code> for <code>arg</code>.</p>
+
+<h5>
+<a id="route-req-res" class="anchor" href="#route-req-res" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>route (req, res)</h5>
+
+<p>Function for to <code>http.createServer()</code> or <code>https.createServer()</code>.</p>
+
+<h5>
+<a id="routes-uri-host-method-override--false" class="anchor" href="#routes-uri-host-method-override--false" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>routes (uri, host, method, override = false)</h5>
+
+<p>Returns an <code>Array</code> of middleware for the request. Caches value, &amp; will update cache if <code>override</code> is <code>true</code>.</p>
+
+<h5>
+<a id="sethost-arg" class="anchor" href="#sethost-arg" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>setHost (arg)</h5>
+
+<p>Registers a virtual host with the woodland.</p>
+
+<h5>
+<a id="use-path-fn-method--get-host--all" class="anchor" href="#use-path-fn-method--get-host--all" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>use (path, fn, method = "GET", host = "all")</h5>
+
+<p>Registers middleware for a route. If <code>path</code> is a regular expression, and if not passed it defaults to <code>/.*</code>.</p>
+
+<h5>
+<a id="url-req" class="anchor" href="#url-req" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>url (req)</h5>
+
+<p>Constructs a full URL from <code>req</code>.</p>
+
+<h2>
+<a id="license" class="anchor" href="#license" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>License</h2>
+
+<p>Copyright (c) 2016 Jason Mulligan
+Licensed under the BSD-3 license.</p>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/avoidwork/woodland">woodland</a> is maintained by <a href="https://github.com/avoidwork">avoidwork</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
