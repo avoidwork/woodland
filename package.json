@@ -26,7 +26,7 @@
   "engines": {
     "node": ">=6.0.0"
   },
-  "homepage": "https://github.com/avoidwork/woodland#readme",
+  "homepage": "http://avoidwork.github.io/woodland/",
   "dependencies": {
     "murmurhash3js": "~3.0.1",
     "retsu": "~2.0.3",
