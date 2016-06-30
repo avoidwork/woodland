@@ -45,7 +45,7 @@ Returns a `String` for the `Allow` header. Caches value, & will update cache if 
 Blacklists `fn` for calculating the return of `allows()`.
 
 ##### decorate (req, res)
-Decorates `x` on `req`, and `x` on `res`.
+Decorates `allow`, `body`, `ip`, `parsed`, `query`, & `host` on `req` and `header()` & `locals{}` on `res`.
 
 ##### hash (arg)
 Returns a murmur3hash of `arg`.
