@@ -1,62 +1,59 @@
 "use strict";
 
-var hippie = require("hippie"),
-	path = require("path"),
-	server = require(path.join("..", "index.js")),
-	etag = "";
+const http = require("http"),
+	path = require("path");
+
+let router = require(path.join(__dirname, "..", "index.js"))({defaultHeaders: {"Cache-Control": "no-cache"}}),
+	hippie = require("hippie");
 
 function request () {
-	return hippie().base("http://localhost:8002");
+	return hippie().base("http://localhost:8001");
 }
 
-server({
-	host: "test",
-	address: "127.0.0.1",
-	root: path.join(__dirname, "..", "sites"),
-	port: 8002,
-	logging: {
-		enabled: false
-	},
-	hosts: {
-		test: "test"
-	}
-}).start();
+router.use("/", (req, res) => {
+	res.writeHead(200, {"Content-Type": "text/plain"});
+	res.end("Hello World!");
+});
+
+http.createServer(router.route).listen(8001);
+
+describe("Valid Requests", function () {
+	it("GET / (200 / 'Success')", function (done) {
+		request()
+			.get("/")
+			.expectStatus(200)
+			.expectHeader("Allow", "GET, HEAD, OPTIONS")
+			.expectHeader("Cache-Control", "no-cache")
+			.expectHeader("Content-Type", "text/plain")
+			.expectBody(/^Hello World!$/)
+			.end(function (err) {
+				if (err) throw err;
+				done();
+			});
+	});
+
+	it("HEAD / (200 / 'Success')", function (done) {
+		request()
+			.head("/")
+			.expectStatus(200)
+			.expectHeader("Allow", "GET, HEAD, OPTIONS")
+			.expectHeader("Cache-Control", "no-cache")
+			.expectHeader("Content-Type", "text/plain")
+			.expectBody(/^$/)
+			.end(function (err) {
+				if (err) throw err;
+				done();
+			});
+	});
+});
 
 describe("Invalid Requests", function () {
-	it("GET / (416 / 'Partial response - invalid')", function (done) {
-		request()
-			.get("/")
-			.header("range", "a-b")
-			.expectStatus(416)
-			.expectHeader("cache-control", "no-cache")
-			.expectBody(/Range Not Satisfiable/)
-			.end(function (err, res) {
-				if (err) throw err;
-				etag = res.headers.etag;
-				done();
-			});
-	});
-
-	it("GET / (416 / 'Partial response - invalid #2')", function (done) {
-		request()
-			.get("/")
-			.header("range", "5-0")
-			.expectStatus(416)
-			.expectHeader("cache-control", "no-cache")
-			.expectBody(/Range Not Satisfiable/)
-			.end(function (err, res) {
-				if (err) throw err;
-				etag = res.headers.etag;
-				done();
-			});
-	});
-
 	it("POST / (405 / 'Method Not Allowed')", function (done) {
 		request()
 			.post("/")
 			.expectStatus(405)
-			.expectHeader("allow", "GET, HEAD, OPTIONS")
-			.expectHeader("cache-control", "no-cache")
+			.expectHeader("Allow", "GET, HEAD, OPTIONS")
+			.expectHeader("Cache-Control", "no-cache")
 			.expectBody(/Method Not Allowed/)
 			.end(function (err) {
 				if (err) throw err;
@@ -68,8 +65,8 @@ describe("Invalid Requests", function () {
 		request()
 			.put("/")
 			.expectStatus(405)
-			.expectHeader("allow", "GET, HEAD, OPTIONS")
-			.expectHeader("cache-control", "no-cache")
+			.expectHeader("Allow", "GET, HEAD, OPTIONS")
+			.expectHeader("Cache-Control", "no-cache")
 			.expectBody(/Method Not Allowed/)
 			.end(function (err) {
 				if (err) throw err;
@@ -81,8 +78,8 @@ describe("Invalid Requests", function () {
 		request()
 			.patch("/")
 			.expectStatus(405)
-			.expectHeader("allow", "GET, HEAD, OPTIONS")
-			.expectHeader("cache-control", "no-cache")
+			.expectHeader("Allow", "GET, HEAD, OPTIONS")
+			.expectHeader("Cache-Control", "no-cache")
 			.expectBody(/Method Not Allowed/)
 			.end(function (err) {
 				if (err) throw err;
@@ -94,8 +91,8 @@ describe("Invalid Requests", function () {
 		request()
 			.del("/")
 			.expectStatus(405)
-			.expectHeader("allow", "GET, HEAD, OPTIONS")
-			.expectHeader("cache-control", "no-cache")
+			.expectHeader("Allow", "GET, HEAD, OPTIONS")
+			.expectHeader("Cache-Control", "no-cache")
 			.expectBody(/Method Not Allowed/)
 			.end(function (err) {
 				if (err) throw err;
@@ -107,7 +104,7 @@ describe("Invalid Requests", function () {
 		request()
 			.get("/nothere.html")
 			.expectStatus(404)
-			.expectHeader("cache-control", "no-cache")
+			.expectHeader("Cache-Control", "no-cache")
 			.expectBody(/Not Found/)
 			.end(function (err) {
 				if (err) throw err;
@@ -119,7 +116,7 @@ describe("Invalid Requests", function () {
 		request()
 			.get("/nothere.html%3fa=b?=c")
 			.expectStatus(404)
-			.expectHeader("cache-control", "no-cache")
+			.expectHeader("Cache-Control", "no-cache")
 			.expectBody(/Not Found/)
 			.end(function (err) {
 				if (err) throw err;
@@ -131,7 +128,7 @@ describe("Invalid Requests", function () {
 		request()
 			.get("/nothere.x_%22%3E%3Cimg%20src=x%20onerror=prompt(1)%3E.html")
 			.expectStatus(404)
-			.expectHeader("cache-control", "no-cache")
+			.expectHeader("Cache-Control", "no-cache")
 			.expectBody(/Not Found/)
 			.end(function (err) {
 				if (err) throw err;
@@ -140,52 +137,48 @@ describe("Invalid Requests", function () {
 	});
 
 	// 405 is a result of a cached route that leads to a file system based 404 on GET
-	it("POST /nothere.html (405 / 'Method Not Allowed')", function (done) {
+	it("POST /nothere.html (404 / 'Not Found')", function (done) {
 		request()
 			.post("/nothere.html")
-			.expectStatus(405)
-			.expectHeader("allow", "GET, HEAD, OPTIONS")
-			.expectHeader("cache-control", "no-cache")
-			.expectBody(/Method Not Allowed/)
+			.expectStatus(404)
+			.expectHeader("Cache-Control", "no-cache")
+			.expectBody(/Not Found/)
 			.end(function (err) {
 				if (err) throw err;
 				done();
 			});
 	});
 
-	it("PUT /nothere.html (405 / 'Method Not Allowed')", function (done) {
+	it("PUT /nothere.html (404 / 'Not Found')", function (done) {
 		request()
 			.put("/nothere.html")
-			.expectStatus(405)
-			.expectHeader("allow", "GET, HEAD, OPTIONS")
-			.expectHeader("cache-control", "no-cache")
-			.expectBody(/Method Not Allowed/)
+			.expectStatus(404)
+			.expectHeader("Cache-Control", "no-cache")
+			.expectBody(/Not Found/)
 			.end(function (err) {
 				if (err) throw err;
 				done();
 			});
 	});
 
-	it("PATCH /nothere.html (405 / 'Method Not Allowed')", function (done) {
+	it("PATCH /nothere.html (404 / 'Not Found')", function (done) {
 		request()
 			.patch("/nothere.html")
-			.expectStatus(405)
-			.expectHeader("allow", "GET, HEAD, OPTIONS")
-			.expectHeader("cache-control", "no-cache")
-			.expectBody(/Method Not Allowed/)
+			.expectStatus(404)
+			.expectHeader("Cache-Control", "no-cache")
+			.expectBody(/Not Found/)
 			.end(function (err) {
 				if (err) throw err;
 				done();
 			});
 	});
 
-	it("DELETE /nothere.html (405 / 'Method Not Allowed')", function (done) {
+	it("DELETE /nothere.html (404 / 'Not Found')", function (done) {
 		request()
 			.del("/nothere.html")
-			.expectStatus(405)
-			.expectHeader("allow", "GET, HEAD, OPTIONS")
-			.expectHeader("cache-control", "no-cache")
-			.expectBody(/Method Not Allowed/)
+			.expectStatus(404)
+			.expectHeader("Cache-Control", "no-cache")
+			.expectBody(/Not Found/)
 			.end(function (err) {
 				if (err) throw err;
 				done();
@@ -196,7 +189,7 @@ describe("Invalid Requests", function () {
 		request()
 			.get("/../README")
 			.expectStatus(404)
-			.expectHeader("cache-control", "no-cache")
+			.expectHeader("Cache-Control", "no-cache")
 			.expectBody(/Not Found/)
 			.end(function (err) {
 				if (err) throw err;
@@ -208,7 +201,7 @@ describe("Invalid Requests", function () {
 		request()
 			.get("/././../README")
 			.expectStatus(404)
-			.expectHeader("cache-control", "no-cache")
+			.expectHeader("Cache-Control", "no-cache")
 			.expectBody(/Not Found/)
 			.end(function (err) {
 				if (err) throw err;

@@ -6,15 +6,14 @@ const path = require("path"),
 	max = 1000,
 	random = Math.floor(Math.random() * max) + 1;
 
-function factory ({defaultHost = "localhost", cacheSize = max, hosts = [], seed = random} = {}) {
-	let router = new Woodland(defaultHost, cacheSize, seed);
+function factory ({cacheSize = max, defaultHeaders = {}, defaultHost = "127.0.0.1", hosts = [], seed = random} = {}) {
+	let router = new Woodland(defaultHost, defaultHeaders, cacheSize, seed);
 
+	router.route = router.route.bind(router);
 	router.setHost(all);
 	hosts.forEach(host => {
 		router.setHost(host);
 	});
-
-	router.route = router.route.bind(router);
 
 	return router;
 }
