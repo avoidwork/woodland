@@ -28,20 +28,16 @@
   },
   "homepage": "https://github.com/avoidwork/woodland#readme",
   "dependencies": {
-    "mimetype": "0.0.8",
     "murmurhash3js": "^3.0.1",
     "retsu": "^2.0.3",
     "tiny-coerce": "^1.0.1",
     "tiny-defer": "^1.0.4",
     "tiny-lru": "^1.1.0",
-    "tiny-merge": "^1.0.0",
-    "tiny-observable": "^1.0.2"
+    "tiny-merge": "^1.0.0"
   },
   "devDependencies": {
     "grunt": "~1.0.1",
     "grunt-cli": "~1.2.0",
-    "grunt-contrib-concat": "~1.0.1",
-    "grunt-contrib-watch": "~1.0.0",
     "grunt-eslint": "~18.1.0",
     "grunt-mocha-test": "~0.12.7",
     "grunt-nsp": "~2.2.0",
