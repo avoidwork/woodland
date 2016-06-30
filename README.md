@@ -63,7 +63,7 @@ Returns an `Array` of middleware for the request. Caches value, & will update ca
 Registers a virtual host with the woodland.
 
 ##### use (path, fn, method = "GET", host = "all")
-Registers middleware for a route. If `path` is a regular expression, and if not passed it defaults to `/.*`.
+Registers middleware for a route; `path` is a regular expression, and if not passed it defaults to `/.*`.
 
 ##### url (req)
 Constructs a full URL from `req`.
