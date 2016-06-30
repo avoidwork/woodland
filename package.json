@@ -1,7 +1,7 @@
 {
   "name": "woodland",
   "version": "1.0.0",
-  "description": "HTTP/HTTPS router with virtual hosts",
+  "description": "Lightweight HTTP/HTTPS router with virtual hosts",
   "main": "index.js",
   "scripts": {
     "test": "grunt test"
@@ -11,13 +11,12 @@
     "url": "git+https://github.com/avoidwork/woodland.git"
   },
   "keywords": [
+    "router",
+    "http",
+    "https",
+    "routing",
     "api",
-    "framework",
-    "rest",
-    "coap",
-    "mqtt",
-    "iot",
-    "elastic"
+    "rest"
   ],
   "author": "Jason Mulligan <jason.mulligan@avoidwork.com>",
   "license": "BSD-3-Clause",

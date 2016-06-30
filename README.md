@@ -2,17 +2,15 @@
 
 [![build status](https://secure.travis-ci.org/avoidwork/woodland.svg)](http://travis-ci.org/avoidwork/woodland)
 
-Lightweight HTTP/HTTPS router with virtual hosts.
+Lightweight HTTP/HTTPS router with virtual hosts. Sets an accurate `Allow` header based on routes.
 
-### Example
+## Example
 
 ```javascript
 "use strict";
 
-const http = require("http"),
-	path = require("path");
-
-let router = require(path.join(__dirname, "..", "index.js"))({defaultHeaders: {"Cache-Control": "no-cache"}});
+const http = require("http");
+let router = require("woodland")({defaultHeaders: {"Cache-Control": "no-cache"}});
 
 router.use("/", (req, res) => {
 	res.writeHead(200, {"Content-Type": "text/plain"});
@@ -22,7 +20,7 @@ router.use("/", (req, res) => {
 http.createServer(router.route).listen(8000);
 ```
 
-### Event Handlers
+## Event Handlers
 ##### onclose (req, res)
 Executes if the connection was terminated before `res.end()` was called or able to flush.
 
@@ -32,7 +30,7 @@ Executes if the request cannot be routed, default handler sends a basic text res
 ##### onfinish (req, res)
 Executes after the response has been sent.
 
-### API
+## API
 
 ##### allowed (method, uri, host, override = false)
 
@@ -55,3 +53,7 @@ Executes after the response has been sent.
 ##### use (path, fn, method, host)
 
 ##### url (req)
+
+## License
+Copyright (c) 2016 Jason Mulligan
+Licensed under the BSD-3 license.
