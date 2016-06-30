@@ -32,6 +32,9 @@ Executes after the response has been sent.
 
 ## API
 
+##### woodland (cacheSize = 1000, defaultHeaders = {}, defaultHost = "127.0.0.1", hosts = [], seed = random)
+Returns a woodland router.
+
 ##### allowed (method, uri, host, override = false)
 Calls `routes()` and returns a `Boolean` to indicate if `method` is allowed for `uri`.
 
