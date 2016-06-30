@@ -54,7 +54,7 @@ Returns a murmur3hash of `arg`.
 Determines the `host` for `arg`.
 
 ##### route (req, res)
-Function for to `http.createServer()` or `https.createServer()`.
+Function for `http.createServer()` or `https.createServer()`.
 
 ##### routes (uri, host, method, override = false)
 Returns an `Array` of middleware for the request. Caches value, & will update cache if `override` is `true`.
