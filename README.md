@@ -1,3 +1,4 @@
+[![logo](https://avoidwork.github.io/woodland/logo.svg)](https://avoidwork.github.io/woodland/)
 # woodland
 
 [![build status](https://secure.travis-ci.org/avoidwork/woodland.svg)](http://travis-ci.org/avoidwork/woodland)
