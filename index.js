@@ -2,7 +2,7 @@
 
 const path = require("path"),
 	Woodland = require(path.join(__dirname, "lib", "woodland.js")),
-	all = "all",
+	all = require(path.join(__dirname, "lib", "all.js")),
 	max = 1000,
 	random = Math.floor(Math.random() * max) + 1;
 
