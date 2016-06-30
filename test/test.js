@@ -59,6 +59,7 @@ describe("Invalid Requests", function () {
 			.expectStatus(405)
 			.expectHeader("Allow", "GET, HEAD, OPTIONS")
 			.expectHeader("Cache-Control", "no-cache")
+			.expectHeader("Content-Type", "text/plain")
 			.expectBody(/Method Not Allowed/)
 			.end(function (err) {
 				if (err) throw err;
@@ -72,6 +73,7 @@ describe("Invalid Requests", function () {
 			.expectStatus(405)
 			.expectHeader("Allow", "GET, HEAD, OPTIONS")
 			.expectHeader("Cache-Control", "no-cache")
+			.expectHeader("Content-Type", "text/plain")
 			.expectBody(/Method Not Allowed/)
 			.end(function (err) {
 				if (err) throw err;
@@ -85,6 +87,7 @@ describe("Invalid Requests", function () {
 			.expectStatus(405)
 			.expectHeader("Allow", "GET, HEAD, OPTIONS")
 			.expectHeader("Cache-Control", "no-cache")
+			.expectHeader("Content-Type", "text/plain")
 			.expectBody(/Method Not Allowed/)
 			.end(function (err) {
 				if (err) throw err;
@@ -98,6 +101,7 @@ describe("Invalid Requests", function () {
 			.expectStatus(405)
 			.expectHeader("Allow", "GET, HEAD, OPTIONS")
 			.expectHeader("Cache-Control", "no-cache")
+			.expectHeader("Content-Type", "text/plain")
 			.expectBody(/Method Not Allowed/)
 			.end(function (err) {
 				if (err) throw err;
@@ -111,6 +115,7 @@ describe("Invalid Requests", function () {
 			.expectStatus(404)
 			.expectHeader("Allow", undefined)
 			.expectHeader("Cache-Control", "no-cache")
+			.expectHeader("Content-Type", "text/plain")
 			.expectBody(/Not Found/)
 			.end(function (err) {
 				if (err) throw err;
@@ -124,6 +129,7 @@ describe("Invalid Requests", function () {
 			.expectStatus(404)
 			.expectHeader("Allow", undefined)
 			.expectHeader("Cache-Control", "no-cache")
+			.expectHeader("Content-Type", "text/plain")
 			.expectBody(/Not Found/)
 			.end(function (err) {
 				if (err) throw err;
@@ -137,6 +143,7 @@ describe("Invalid Requests", function () {
 			.expectStatus(404)
 			.expectHeader("Allow", undefined)
 			.expectHeader("Cache-Control", "no-cache")
+			.expectHeader("Content-Type", "text/plain")
 			.expectBody(/Not Found/)
 			.end(function (err) {
 				if (err) throw err;
@@ -151,6 +158,7 @@ describe("Invalid Requests", function () {
 			.expectStatus(404)
 			.expectHeader("Allow", undefined)
 			.expectHeader("Cache-Control", "no-cache")
+			.expectHeader("Content-Type", "text/plain")
 			.expectBody(/Not Found/)
 			.end(function (err) {
 				if (err) throw err;
@@ -164,6 +172,7 @@ describe("Invalid Requests", function () {
 			.expectStatus(404)
 			.expectHeader("Allow", undefined)
 			.expectHeader("Cache-Control", "no-cache")
+			.expectHeader("Content-Type", "text/plain")
 			.expectBody(/Not Found/)
 			.end(function (err) {
 				if (err) throw err;
@@ -177,6 +186,7 @@ describe("Invalid Requests", function () {
 			.expectStatus(404)
 			.expectHeader("Allow", undefined)
 			.expectHeader("Cache-Control", "no-cache")
+			.expectHeader("Content-Type", "text/plain")
 			.expectBody(/Not Found/)
 			.end(function (err) {
 				if (err) throw err;
@@ -190,6 +200,7 @@ describe("Invalid Requests", function () {
 			.expectStatus(404)
 			.expectHeader("Allow", undefined)
 			.expectHeader("Cache-Control", "no-cache")
+			.expectHeader("Content-Type", "text/plain")
 			.expectBody(/Not Found/)
 			.end(function (err) {
 				if (err) throw err;
