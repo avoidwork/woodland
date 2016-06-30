@@ -109,6 +109,7 @@ describe("Invalid Requests", function () {
 		request()
 			.get("/nothere.html")
 			.expectStatus(404)
+			.expectHeader("Allow", undefined)
 			.expectHeader("Cache-Control", "no-cache")
 			.expectBody(/Not Found/)
 			.end(function (err) {
@@ -121,6 +122,7 @@ describe("Invalid Requests", function () {
 		request()
 			.get("/nothere.html%3fa=b?=c")
 			.expectStatus(404)
+			.expectHeader("Allow", undefined)
 			.expectHeader("Cache-Control", "no-cache")
 			.expectBody(/Not Found/)
 			.end(function (err) {
@@ -133,6 +135,7 @@ describe("Invalid Requests", function () {
 		request()
 			.get("/nothere.x_%22%3E%3Cimg%20src=x%20onerror=prompt(1)%3E.html")
 			.expectStatus(404)
+			.expectHeader("Allow", undefined)
 			.expectHeader("Cache-Control", "no-cache")
 			.expectBody(/Not Found/)
 			.end(function (err) {
@@ -146,6 +149,7 @@ describe("Invalid Requests", function () {
 		request()
 			.post("/nothere.html")
 			.expectStatus(404)
+			.expectHeader("Allow", undefined)
 			.expectHeader("Cache-Control", "no-cache")
 			.expectBody(/Not Found/)
 			.end(function (err) {
@@ -158,6 +162,7 @@ describe("Invalid Requests", function () {
 		request()
 			.put("/nothere.html")
 			.expectStatus(404)
+			.expectHeader("Allow", undefined)
 			.expectHeader("Cache-Control", "no-cache")
 			.expectBody(/Not Found/)
 			.end(function (err) {
@@ -170,6 +175,7 @@ describe("Invalid Requests", function () {
 		request()
 			.patch("/nothere.html")
 			.expectStatus(404)
+			.expectHeader("Allow", undefined)
 			.expectHeader("Cache-Control", "no-cache")
 			.expectBody(/Not Found/)
 			.end(function (err) {
@@ -182,6 +188,7 @@ describe("Invalid Requests", function () {
 		request()
 			.del("/nothere.html")
 			.expectStatus(404)
+			.expectHeader("Allow", undefined)
 			.expectHeader("Cache-Control", "no-cache")
 			.expectBody(/Not Found/)
 			.end(function (err) {
