@@ -32,7 +32,7 @@ Executes after the response has been sent.
 
 ## API
 
-##### woodland ({cacheSize: 1000, defaultHeaders: {}, defaultHost: "127.0.0.1", hosts: [], seed: random})
+##### woodland ({cacheSize: 1000, defaultHeaders: {}, defaultHost: "127.0.0.1", hosts: ["127.0.0.1"], seed: random})
 Returns a woodland router.
 
 ##### allowed (method, uri, host, override = false)
