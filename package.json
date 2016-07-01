@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "Lightweight HTTP/HTTPS router with virtual hosts",
   "main": "index.js",
   "scripts": {
