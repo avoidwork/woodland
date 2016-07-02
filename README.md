@@ -4,7 +4,7 @@
 
 [![build status](https://secure.travis-ci.org/avoidwork/woodland.svg)](http://travis-ci.org/avoidwork/woodland)
 
-Lightweight HTTP/HTTPS router with virtual hosts. Sets an accurate `Allow` header based on routes. Routes can use parameter syntax, i.e. `/users/:id`, or `RegExp` syntax. Route parameters are not sanitized.
+Lightweight HTTP/HTTPS router with virtual hosts. Sets an accurate `Allow` header based on routes. Routes can use parameter syntax, i.e. `/users/:id`, or `RegExp` syntax. Route parameters are not sanitized. If 2+ routes with parameters match a request the first route will be used to extract parameters.
 
 ## Example
 
