@@ -4,7 +4,7 @@
 
 [![build status](https://secure.travis-ci.org/avoidwork/woodland.svg)](http://travis-ci.org/avoidwork/woodland)
 
-Lightweight HTTP/HTTPS router with virtual hosts. Sets an accurate `Allow` header based on routes.
+Lightweight HTTP/HTTPS router with virtual hosts. Sets an accurate `Allow` header based on routes. Routes can use parameter syntax, i.e. `/users/:id`, or `RegExp` syntax. Route parameters are not sanitized.
 
 ## Example
 
@@ -17,6 +17,11 @@ let router = require("woodland")({defaultHeaders: {"Cache-Control": "no-cache"}}
 router.use("/", (req, res) => {
 	res.writeHead(200, {"Content-Type": "text/plain"});
 	res.end("Hello World!");
+});
+
+router.use("/:user", (req, res) => {
+	res.writeHead(200, {"Content-Type": "text/plain"});
+	res.end("Hello " + req.params.user + "!");
 });
 
 http.createServer(router.route).listen(8000);
@@ -47,7 +52,7 @@ Returns a `String` for the `Allow` header. Caches value, & will update cache if 
 Blacklists `fn` for calculating the return of `allows()`.
 
 ##### decorate (req, res)
-Decorates `allow`, `body`, `ip`, `parsed`, `query`, & `host` on `req` and `header()` & `locals{}` on `res`.
+Decorates `allow`, `body`, `ip`, `params`, `parsed`, `query`, & `host` on `req` and `header()` & `locals{}` on `res`.
 
 ##### hash (arg)
 Returns a murmur3hash of `arg`.
