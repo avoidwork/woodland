@@ -15,6 +15,11 @@ router.use("/", (req, res) => {
 	res.end("Hello World!");
 });
 
+router.use("/echo/:echo", (req, res) => {
+	res.writeHead(200, {"Content-Type": "text/plain"});
+	res.end(req.params.echo);
+});
+
 router.use("/nothere.html", (req, res) => {
 	res.writeHead(204);
 	res.end("");
@@ -45,6 +50,20 @@ describe("Valid Requests", function () {
 			.expectHeader("Cache-Control", "no-cache")
 			.expectHeader("Content-Type", "text/plain")
 			.expectBody(/^$/)
+			.end(function (err) {
+				if (err) throw err;
+				done();
+			});
+	});
+
+	it("GET /echo/hello (200 / 'Success')", function (done) {
+		request()
+			.get("/echo/hello")
+			.expectStatus(200)
+			.expectHeader("Allow", "GET, HEAD, OPTIONS")
+			.expectHeader("Cache-Control", "no-cache")
+			.expectHeader("Content-Type", "text/plain")
+			.expectBody(/^hello$/)
 			.end(function (err) {
 				if (err) throw err;
 				done();
