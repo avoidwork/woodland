@@ -10,6 +10,14 @@ function request () {
 	return hippie().base("http://localhost:8001");
 }
 
+function bound (req, res, next) {
+	next();
+}
+
+let boundd = bound.bind(bound);
+
+router.use(boundd).blacklist(boundd);
+
 router.use("/", (req, res) => {
 	res.writeHead(200, {"Content-Type": "text/plain"});
 	res.end("Hello World!");
