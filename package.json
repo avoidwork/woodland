@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Lightweight HTTP/HTTPS router with virtual hosts",
   "main": "index.js",
   "scripts": {
@@ -29,9 +29,9 @@
   "homepage": "http://avoidwork.github.io/woodland/",
   "dependencies": {
     "murmurhash3js": "~3.0.1",
-    "tiny-coerce": "~1.0.1",
     "tiny-defer": "~1.0.4",
-    "tiny-lru": "~1.1.0"
+    "tiny-lru": "~1.1.0",
+    "tiny-parse": "^1.0.1"
   },
   "devDependencies": {
     "grunt": "~1.0.1",
