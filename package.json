@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Lightweight HTTP/HTTPS router with virtual hosts",
   "main": "index.js",
   "scripts": {
@@ -31,7 +31,7 @@
     "murmurhash3js": "~3.0.1",
     "tiny-defer": "~1.0.4",
     "tiny-lru": "~1.1.0",
-    "tiny-parse": "^1.0.1"
+    "tiny-parse": "~1.0.2"
   },
   "devDependencies": {
     "grunt": "~1.0.1",
