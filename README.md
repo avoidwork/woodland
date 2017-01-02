@@ -11,8 +11,8 @@ Lightweight HTTP/HTTPS router with virtual hosts. Sets an accurate `Allow` heade
 ```javascript
 "use strict";
 
-const http = require("http");
-let router = require("woodland")({defaultHeaders: {"Cache-Control": "no-cache"}});
+const http = require("http"),
+    router = require("woodland")({defaultHeaders: {"Cache-Control": "no-cache"}});
 
 router.use("/", (req, res) => {
 	res.writeHead(200, {"Content-Type": "text/plain"});
@@ -73,5 +73,5 @@ Registers a virtual host with the woodland.
 Registers middleware for a route. `path` is a regular expression, and if not passed it defaults to `/.*`. `method` can be `all` if you want the middleware to be used for all HTTP methods.
 
 ## License
-Copyright (c) 2016 Jason Mulligan
+Copyright (c) 2017 Jason Mulligan
 Licensed under the BSD-3 license.
