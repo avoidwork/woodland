@@ -2,7 +2,6 @@
 
 const path = require("path"),
 	Woodland = require(path.join(__dirname, "lib", "woodland.js")),
-	all = require(path.join(__dirname, "lib", "all.js")),
 	max = 1000,
 	random = Math.floor(Math.random() * max) + 1;
 
@@ -10,7 +9,7 @@ function factory ({cacheSize = max, defaultHeaders = {}, defaultHost = "localhos
 	let router = new Woodland(defaultHost, defaultHeaders, cacheSize, seed);
 
 	router.route = router.route.bind(router);
-	router.setHost(all);
+	router.setHost("all");
 	hosts.forEach(host => {
 		router.setHost(host);
 	});
