@@ -39,9 +39,9 @@
     "grunt": "~1.0.1",
     "grunt-cli": "~1.2.0",
     "grunt-eslint": "~19.0.0",
-    "grunt-mocha-test": "~0.12.7",
-    "grunt-nsp": "~2.2.0",
-    "mocha": "~2.5.3",
+    "grunt-mocha-test": "~0.13.2",
+    "grunt-nsp": "~2.3.1",
+    "mocha": "~3.2.0",
     "tiny-httptest": "~1.0.1"
   }
 }
