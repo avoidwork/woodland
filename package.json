@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "1.1.21",
+  "version": "1.1.22",
   "description": "Lightweight HTTP/HTTPS router with virtual hosts & automatic Allow header",
   "main": "index.js",
   "scripts": {
@@ -40,8 +40,8 @@
     "grunt-cli": "~1.2.0",
     "grunt-eslint": "~19.0.0",
     "grunt-mocha-test": "~0.12.7",
-    "grunt-nsp": "^2.2.0",
-    "hippie": "~0.5.0",
-    "mocha": "~2.5.3"
+    "grunt-nsp": "~2.2.0",
+    "mocha": "~2.5.3",
+    "tiny-httptest": "~1.0.1"
   }
 }
