@@ -23,6 +23,11 @@ router.use("/echo/:echo", (req, res) => {
 	res.end(req.params.echo);
 });
 
+router.use("/echo/:echo", (req, res) => {
+	res.writeHead(200, {"Content-Type": "text/plain"});
+	res.end("The entity will be echoed back to you");
+}, "OPTIONS");
+
 router.use("/nothere.html", (req, res) => {
 	res.writeHead(204);
 	res.end("");
@@ -58,6 +63,16 @@ describe("Valid Requests", function () {
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
 			.expectBody(/^$/)
+			.end();
+	});
+
+	it("GET /echo/hello (200 / 'Success')", function () {
+		return tinyhttptest({url: "http://localhost:8001/echo/hello", method: "OPTIONS"})
+			.expectStatus(200)
+			.expectHeader("allow", "GET, HEAD, OPTIONS")
+			.expectHeader("cache-control", "no-cache")
+			.expectHeader("content-type", "text/plain")
+			.expectBody("The entity will be echoed back to you")
 			.end();
 	});
 
