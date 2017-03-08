@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Lightweight HTTP/HTTPS router with virtual hosts & automatic Allow header",
   "main": "index.js",
   "scripts": {
