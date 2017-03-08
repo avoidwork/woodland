@@ -5,14 +5,6 @@ const http = require("http"),
 	tinyhttptest = require("tiny-httptest"),
 	router = require(path.join(__dirname, "..", "index.js"))({defaultHeaders: {"Cache-Control": "no-cache"}, defaultHost: "localhost", hosts: ["localhost", "noresponse"]});
 
-function bound (req, res, next) {
-	next();
-}
-
-let boundd = bound.bind(bound);
-
-router.use(boundd).blacklist(boundd);
-
 router.use("/", (req, res) => {
 	res.writeHead(200, {"Content-Type": "text/plain"});
 	res.end(req.method !== "OPTIONS" ? "Hello World!" : "");
@@ -66,7 +58,7 @@ describe("Valid Requests", function () {
 			.end();
 	});
 
-	it("GET /echo/hello (200 / 'Success')", function () {
+	it("OPTIONS /echo/hello (200 / 'Success')", function () {
 		return tinyhttptest({url: "http://localhost:8001/echo/hello", method: "OPTIONS"})
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
