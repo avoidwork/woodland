@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "description": "Lightweight HTTP/HTTPS router with virtual hosts & automatic Allow header",
   "main": "index.js",
   "scripts": {
@@ -32,7 +32,7 @@
     "murmurhash3js": "~3.0.1",
     "retsu": "~2.0.3",
     "tiny-defer": "~2.0.2",
-    "tiny-lru": "~1.4.8",
+    "tiny-lru": "~1.4.9",
     "tiny-parse": "~2.0.0"
   },
   "devDependencies": {
