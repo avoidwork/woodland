@@ -7,7 +7,7 @@ const path = require("path"),
 	random = Math.floor(Math.random() * max) + 1;
 
 function factory ({cacheSize = max, defaultHeaders = {}, defaultHost = "localhost", hosts = ["localhost"], seed = random} = {}) {
-	let router = new Woodland(defaultHost, defaultHeaders, cacheSize, seed);
+	const router = new Woodland(defaultHost, defaultHeaders, cacheSize, seed);
 
 	router.route = router.route.bind(router);
 	router.setHost("all");
