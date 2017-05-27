@@ -44,6 +44,7 @@ describe("Valid Requests", function () {
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-length", undefined)
 			.expectBody(/^$/)
 			.end();
 	});
@@ -54,7 +55,28 @@ describe("Valid Requests", function () {
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-length", undefined)
 			.expectBody(/^$/)
+			.end();
+	});
+
+	it("GET / CORS Pre-flight (200 / 'Success')", function () {
+		return tinyhttptest({url: "http://localhost:8001/", method: "OPTIONS"})
+			.cors("http://not.localhost:8001")
+			.expectStatus(200)
+			.expectHeader("allow", "GET, HEAD, OPTIONS")
+			.expectHeader("content-length", undefined)
+			.end();
+	});
+
+	it("GET / CORS (200 / 'Success')", function () {
+		return tinyhttptest({url: "http://localhost:8001/"})
+			.cors("http://not.localhost:8001")
+			.expectStatus(200)
+			.expectHeader("allow", "GET, HEAD, OPTIONS")
+			.expectHeader("cache-control", "no-cache")
+			.expectHeader("content-type", "text/plain")
+			.expectBody(/^Hello World!$/)
 			.end();
 	});
 
@@ -73,7 +95,6 @@ describe("Valid Requests", function () {
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "text/plain")
 			.expectBody(/^hello$/)
 			.end();
 	});
@@ -146,6 +167,20 @@ describe("Invalid Requests", function () {
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
+			.expectBody(/Not Found/)
+			.end();
+	});
+
+	it("GET /../README (404 / 'Not Found')", function () {
+		return tinyhttptest({url: "http://localhost:8001/../README"})
+			.expectStatus(404)
+			.expectBody(/Not Found/)
+			.end();
+	});
+
+	it("GET /././../README (404 / 'Not Found')", function () {
+		return tinyhttptest({url: "http://localhost:8001/././../README"})
+			.expectStatus(404)
 			.expectBody(/Not Found/)
 			.end();
 	});
