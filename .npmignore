@@ -6,3 +6,4 @@
 .gitignore
 .travis.yml
 Gruntfile.js
+sample.js
