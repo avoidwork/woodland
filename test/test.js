@@ -107,6 +107,7 @@ describe("Invalid Requests", function () {
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-length", 18)
 			.expectBody(/Method Not Allowed/)
 			.end();
 	});
@@ -117,6 +118,7 @@ describe("Invalid Requests", function () {
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-length", 18)
 			.expectBody(/Method Not Allowed/)
 			.end();
 	});
@@ -127,6 +129,7 @@ describe("Invalid Requests", function () {
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-length", 18)
 			.expectBody(/Method Not Allowed/)
 			.end();
 	});
@@ -137,6 +140,7 @@ describe("Invalid Requests", function () {
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-length", 18)
 			.expectBody(/Method Not Allowed/)
 			.end();
 	});
@@ -147,6 +151,7 @@ describe("Invalid Requests", function () {
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
 	});
@@ -157,6 +162,7 @@ describe("Invalid Requests", function () {
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
 	});
@@ -167,6 +173,7 @@ describe("Invalid Requests", function () {
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
 	});
@@ -174,6 +181,10 @@ describe("Invalid Requests", function () {
 	it("GET /../README (404 / 'Not Found')", function () {
 		return tinyhttptest({url: "http://localhost:8001/../README"})
 			.expectStatus(404)
+			.expectHeader("allow", undefined)
+			.expectHeader("cache-control", "no-cache")
+			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
 	});
@@ -181,6 +192,10 @@ describe("Invalid Requests", function () {
 	it("GET /././../README (404 / 'Not Found')", function () {
 		return tinyhttptest({url: "http://localhost:8001/././../README"})
 			.expectStatus(404)
+			.expectHeader("allow", undefined)
+			.expectHeader("cache-control", "no-cache")
+			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
 	});
@@ -192,6 +207,7 @@ describe("Invalid Requests", function () {
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
 	});
@@ -202,6 +218,7 @@ describe("Invalid Requests", function () {
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
 	});
@@ -212,6 +229,7 @@ describe("Invalid Requests", function () {
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
 	});
@@ -222,6 +240,7 @@ describe("Invalid Requests", function () {
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
 	});
