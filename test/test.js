@@ -3,23 +3,11 @@
 const http = require("http"),
 	path = require("path"),
 	tinyhttptest = require("tiny-httptest"),
-	router = require(path.join(__dirname, "..", "index.js"))({defaultHeaders: {"Cache-Control": "no-cache"}, defaultHost: "localhost", hosts: ["localhost", "noresponse"]});
+	router = require(path.join(__dirname, "..", "index.js"))({defaultHeaders: {"Cache-Control": "no-cache", "Content-Type": "text/plain"}, defaultHost: "localhost", hosts: ["localhost", "noresponse"]});
 
-router.use("/", (req, res) => {
-	res.writeHead(200, {"Content-Type": "text/plain"});
-	res.end(req.method !== "OPTIONS" ? "Hello World!" : "");
-});
-
-router.use("/echo/:echo", (req, res) => {
-	res.writeHead(200, {"Content-Type": "text/plain"});
-	res.end(req.params.echo);
-});
-
-router.use("/echo/:echo", (req, res) => {
-	res.writeHead(200, {"Content-Type": "text/plain"});
-	res.end("The entity will be echoed back to you");
-}, "OPTIONS");
-
+router.use("/", (req, res) => res.end(req.method !== "OPTIONS" ? "Hello World!" : ""));
+router.use("/echo/:echo", (req, res) => res.end(req.params.echo));
+router.use("/echo/:echo", (req, res) => res.end("The entity will be echoed back to you"), "OPTIONS");
 router.use("/nothere.html", (req, res) => {
 	res.writeHead(204);
 	res.end("");
