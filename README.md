@@ -18,18 +18,10 @@ All HTTP methods are supported.
 "use strict";
 
 const http = require("http"),
-    router = require("woodland")({defaultHeaders: {"Cache-Control": "no-cache"}});
+	router = require("woodland")({defaultHeaders: {"Cache-Control": "no-cache", "Content-Type": "text/plain"}});
 
-router.use("/", (req, res) => {
-	res.writeHead(200, {"Content-Type": "text/plain"});
-	res.end("Hello World!");
-});
-
-router.use("/:user", (req, res) => {
-	res.writeHead(200, {"Content-Type": "text/plain"});
-	res.end("Hello " + req.params.user + "!");
-});
-
+router.use("/", (req, res) => res.end("Hello World!"));
+router.use("/:user", (req, res) => res.end("Hello " + req.params.user + "!"));
 http.createServer(router.route).listen(8000);
 ```
 
