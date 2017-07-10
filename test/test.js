@@ -5,6 +5,7 @@ const http = require("http"),
 	tinyhttptest = require("tiny-httptest"),
 	router = require(path.join(__dirname, "..", "index.js"))({defaultHeaders: {"Cache-Control": "no-cache", "Content-Type": "text/plain"}, defaultHost: "localhost", hosts: ["localhost", "noresponse"]});
 
+router.onconnect = (req, res) => res.setHeader("x-onconnect", "true");
 router.use("/", (req, res) => res.end(req.method !== "OPTIONS" ? "Hello World!" : ""));
 router.use("/echo/:echo", (req, res) => res.end(req.params.echo));
 router.use("/echo/:echo", (req, res) => res.end("The entity will be echoed back to you"), "OPTIONS");
@@ -22,6 +23,7 @@ describe("Valid Requests", function () {
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
+			.expectHeader("x-onconnect", "true")
 			.expectBody(/^Hello World!$/)
 			.end();
 	});

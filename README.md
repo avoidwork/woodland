@@ -29,6 +29,9 @@ http.createServer(router.route).listen(8000);
 ##### onclose (req, res)
 Executes if the connection was terminated before `res.end()` was called or able to flush.
 
+##### onconnect (req, res)
+Executes after the connection has been decorated, but before the middleware executes.
+
 ##### onerror (req, res, err)
 Executes if the request cannot be routed, default handler sends a basic text response.
 
