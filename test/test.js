@@ -235,3 +235,9 @@ describe("Invalid Requests", function () {
 			.end();
 	});
 });
+
+describe("Methods", function () {
+	it("Lists routes", function () {
+		return router.list().length > 0 ? Promise.resolve(true) : Promise.reject(new Error("No routes found"));
+	});
+});

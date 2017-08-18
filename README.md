@@ -61,6 +61,9 @@ Returns a murmur3hash of `arg`.
 ##### host (arg)
 Determines the `host` for `arg`.
 
+##### list (method = "get")
+Returns an `Array` of routes for the specified method.
+
 ##### route (req, res)
 Function for `http.createServer()` or `https.createServer()`.
 
