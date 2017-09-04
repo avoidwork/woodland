@@ -14,7 +14,7 @@ function valid (req, res, next) {
 			outDir = !invalid ? (pathname.match(/\.{2}\//g) || []).length : 0,
 			inDir = !invalid ? (pathname.match(/\w+?(\.\w+|\/)+/g) || []).length : 0;
 
-		if (invalid) {
+		if (invalid === true) {
 			next(new Error(404));
 		} else if (outDir > 0 && outDir >= inDir) {
 			next(new Error(404));
@@ -22,7 +22,7 @@ function valid (req, res, next) {
 			next();
 		}
 	} else {
-		next(new Error(req.allow.length > 0 ? 405 : 404));
+		next(new Error(req.allow !== "" ? 405 : 404));
 	}
 }
 
