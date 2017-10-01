@@ -40,7 +40,7 @@ Executes after the response has been sent.
 
 ## API
 
-##### woodland ({cacheSize: 1000, defaultHeaders: {}, defaultHost: "localhost", hosts: ["localhost"], seed: random})
+##### woodland ({cacheSize: 1000, coerce: true, defaultHeaders: {}, defaultHost: "localhost", hosts: ["localhost"], seed: random})
 Returns a woodland router.
 
 ##### allowed (method, uri, host, override = false)

@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "2.2.4",
+  "version": "2.3.0",
   "description": "Lightweight HTTP/HTTPS router with virtual hosts, and automatic `Allow` & `CORS` headers",
   "main": "index.js",
   "scripts": {
@@ -33,12 +33,12 @@
     "retsu": "~2.0.3",
     "tiny-defer": "~2.0.2",
     "tiny-lru": "~1.4.9",
-    "tiny-parse": "^2.0.2"
+    "tiny-parse": "^2.1.0"
   },
   "devDependencies": {
     "grunt": "~1.0.1",
     "grunt-cli": "~1.2.0",
-    "grunt-eslint": "~19.0.0",
+    "grunt-eslint": "^20.1.0",
     "grunt-mocha-test": "~0.13.2",
     "grunt-nsp": "~2.3.1",
     "mocha": "~3.2.0",

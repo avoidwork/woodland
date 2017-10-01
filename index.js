@@ -26,8 +26,8 @@ function valid (req, res, next) {
 	}
 }
 
-function factory ({cacheSize = max, defaultHeaders = {}, defaultHost = "localhost", hosts = ["localhost"], seed = random} = {}) {
-	const router = new Woodland(defaultHost, defaultHeaders, cacheSize, seed);
+function factory ({cacheSize = max, coerce = true, defaultHeaders = {}, defaultHost = "localhost", hosts = ["localhost"], seed = random} = {}) {
+	const router = new Woodland(defaultHost, defaultHeaders, cacheSize, seed, coerce);
 
 	router.route = router.route.bind(router);
 	router.setHost("all");
