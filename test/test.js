@@ -3,7 +3,12 @@
 const http = require("http"),
 	path = require("path"),
 	tinyhttptest = require("tiny-httptest"),
-	router = require(path.join(__dirname, "..", "index.js"))({defaultHeaders: {"Cache-Control": "no-cache", "Content-Type": "text/plain"}, defaultHost: "localhost", hosts: ["localhost", "noresponse"]});
+	router = require(path.join(__dirname, "..", "index.js"))({
+		defaultHeaders: {
+			"Cache-Control": "no-cache",
+			"Content-Type": "text/plain"
+		}
+	});
 
 router.onconnect = (req, res) => res.setHeader("x-onconnect", "true");
 router.use("/", (req, res) => res.end(req.method !== "OPTIONS" ? "Hello World!" : ""));

@@ -1,7 +1,7 @@
 "use strict";
 
 const path = require("path"),
-	each = require("retsu").each,
+	all = require(path.join(__dirname, "lib", "all.js")),
 	regex = require(path.join(__dirname, "lib", "regex.js")),
 	Woodland = require(path.join(__dirname, "lib", "woodland.js")),
 	max = 1000,
@@ -22,17 +22,15 @@ function valid (req, res, next) {
 			next();
 		}
 	} else {
-		next(new Error(req.allow !== "" ? 405 : 404));
+		next(new Error(regex.empty.test(req.allow) ? 404 : 405));
 	}
 }
 
-function factory ({cacheSize = max, coerce = true, defaultHeaders = {}, defaultHost = "localhost", hosts = ["localhost"], seed = random} = {}) {
-	const router = new Woodland(defaultHost, defaultHeaders, cacheSize, seed, coerce);
+function factory ({cacheSize = max, coerce = true, defaultHeaders = {}, seed = random} = {}) {
+	const router = new Woodland(defaultHeaders, cacheSize, seed, coerce);
 
 	router.route = router.route.bind(router);
-	router.setHost("all");
-	each(hosts, host => router.setHost(host));
-	router.use("/.*", valid, "all", "all").blacklist(valid);
+	router.use("/.*", valid, all, all).blacklist(valid);
 
 	return router;
 }
