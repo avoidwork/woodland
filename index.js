@@ -30,7 +30,7 @@ function factory ({cacheSize = max, coerce = true, defaultHeaders = {}, seed = r
 	const router = new Woodland(defaultHeaders, cacheSize, seed, coerce);
 
 	router.route = router.route.bind(router);
-	router.use("/.*", valid, all, all).blacklist(valid);
+	router.use("/*", valid, all, all).blacklist(valid);
 
 	return router;
 }
