@@ -1,38 +1,12 @@
 "use strict";
 
 const path = require("path"),
-	each = require("retsu").each,
-	regex = require(path.join(__dirname, "lib", "regex.js")),
-	Woodland = require(path.join(__dirname, "lib", "woodland.js")),
-	max = 1000,
-	random = Math.floor(Math.random() * max) + 1;
+	Woodland = require(path.join(__dirname, "lib", "woodland.js"));
 
-function valid (req, res, next) {
-	if (req.allow.indexOf(req.method) > -1) {
-		const pathname = req.parsed.pathname.replace(regex.root, ""),
-			invalid = (pathname.replace(regex.dir, "").split("/").filter(i => i !== ".")[0] || "") === "..",
-			outDir = !invalid ? (pathname.match(/\.{2}\//g) || []).length : 0,
-			inDir = !invalid ? (pathname.match(/\w+?(\.\w+|\/)+/g) || []).length : 0;
-
-		if (invalid === true) {
-			next(new Error(404));
-		} else if (outDir > 0 && outDir >= inDir) {
-			next(new Error(404));
-		} else {
-			next();
-		}
-	} else {
-		next(new Error(req.allow !== "" ? 405 : 404));
-	}
-}
-
-function factory ({cacheSize = max, coerce = true, defaultHeaders = {}, defaultHost = "localhost", hosts = ["localhost"], seed = random} = {}) {
-	const router = new Woodland(defaultHost, defaultHeaders, cacheSize, seed, coerce);
+function factory ({cacheSize = 1000, coerce = true, defaultHeaders = {}, seed = Math.floor(Math.random() * 1000) + 1} = {}) {
+	const router = new Woodland(defaultHeaders, cacheSize, seed, coerce);
 
 	router.route = router.route.bind(router);
-	router.setHost("all");
-	each(hosts, host => router.setHost(host));
-	router.use("/.*", valid, "all", "all").blacklist(valid);
 
 	return router;
 }

@@ -1,7 +1,7 @@
 {
   "name": "woodland",
-  "version": "2.3.3",
-  "description": "Lightweight HTTP/HTTPS router with virtual hosts, and automatic `Allow` & `CORS` headers",
+  "version": "3.0.0",
+  "description": "Lightweight HTTP/HTTPS router with automatic `Allow` & `CORS` headers",
   "main": "index.js",
   "scripts": {
     "test": "grunt test"
@@ -29,18 +29,17 @@
   },
   "homepage": "http://avoidwork.github.io/woodland/",
   "dependencies": {
-    "murmurhash3js": "~3.0.1",
-    "retsu": "~2.0.3",
-    "tiny-defer": "~2.0.2",
-    "tiny-lru": "~1.4.9",
+    "murmurhash3js": "^3.0.1",
+    "tiny-coerce": "^1.0.1",
+    "tiny-lru": "^1.4.10",
     "tiny-parse": "^2.1.1"
   },
   "devDependencies": {
     "grunt": "~1.0.1",
     "grunt-cli": "~1.2.0",
     "grunt-eslint": "^20.1.0",
-    "grunt-mocha-test": "~0.13.2",
-    "mocha": "~3.2.0",
-    "tiny-httptest": "~1.0.8"
+    "grunt-mocha-test": "^0.13.3",
+    "mocha": "^4.0.1",
+    "tiny-httptest": "^1.0.9"
   }
 }
