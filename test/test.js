@@ -14,10 +14,6 @@ router.onconnect = (req, res) => res.setHeader("x-onconnect", "true");
 router.use("/", (req, res) => res.end(req.method !== "OPTIONS" ? "Hello World!" : ""));
 router.use("/echo/:echo", (req, res) => res.end(req.params.echo));
 router.use("/echo/:echo", (req, res) => res.end("The entity will be echoed back to you"), "OPTIONS");
-router.use("/nothere.html", (req, res) => {
-	res.writeHead(204);
-	res.end("");
-}, "GET", "noresponse");
 
 http.createServer(router.route).listen(8001);
 
