@@ -4,13 +4,9 @@
 
 [![build status](https://secure.travis-ci.org/avoidwork/woodland.svg)](http://travis-ci.org/avoidwork/woodland)
 
-Lightweight HTTP/HTTPS router with virtual hosts. Sets an accurate `Allow` header based on routes. Routes can use parameter syntax, i.e. `/users/:id`, or `RegExp` syntax. Route parameters are not sanitized. If 2+ routes with parameters match a request the first route will be used to extract parameters.
+Lightweight HTTP/HTTPS router with automatic `Allow` & `CORS` headers. Routes can use parameter syntax, i.e. `/users/:id`, or `RegExp` syntax. Route parameters are not sanitized. If 2+ routes with parameters match a request the first route will be used to extract parameters. All HTTP methods are supported.
 
-`CORS` (Cross Origin Resource Sharing) is automatically handled, and indicated with `cors` Boolean on the `response` Object for middleware.
-
-Route validation is also built in! Requests that try to "bust out" of a website's folder is blocked.
-
-All HTTP methods are supported.
+`CORS` (Cross Origin Resource Sharing) is automatically handled, and indicated with `cors` Boolean on the `request` Object for middleware.
 
 ## Example
 
@@ -39,14 +35,13 @@ Executes if the request cannot be routed, default handler sends a basic text res
 Executes after the response has been sent.
 
 ## API
-
-##### woodland ({cacheSize: 1000, coerce: true, defaultHeaders: {}, defaultHost: "localhost", hosts: ["localhost"], seed: random})
+##### woodland ({cacheSize: 1000, coerce: true, defaultHeaders: {}, seed: random})
 Returns a woodland router.
 
-##### allowed (method, uri, host, override = false)
+##### allowed (method, uri, override = false)
 Calls `routes()` and returns a `Boolean` to indicate if `method` is allowed for `uri`.
 
-##### allows (uri, host, override = false)
+##### allows (uri, override = false)
 Returns a `String` for the `Allow` header. Caches value, & will update cache if `override` is `true`.
 
 ##### blacklist (fn)
@@ -58,22 +53,16 @@ Decorates `allow`, `body`, `ip`, `params`, `parsed`, `query`, & `host` on `req` 
 ##### hash (arg)
 Returns a murmur3hash of `arg`.
 
-##### host (arg)
-Determines the `host` for `arg`.
-
-##### list (host = "all", method = "get", type = "array")
+##### list (method = "get", type = "array")
 Returns an `Array` or `Object` of routes for the specified method.
 
 ##### route (req, res)
 Function for `http.createServer()` or `https.createServer()`.
 
-##### routes (uri, host, method, override = false)
+##### routes (uri, method, override = false)
 Returns an `Array` of middleware for the request. Caches value, & will update cache if `override` is `true`.
 
-##### setHost (arg)
-Registers a virtual host with the woodland.
-
-##### use (path, fn, method = "GET", host = "all")
+##### use (path, fn, method = "GET")
 Registers middleware for a route. `path` is a regular expression, and if not passed it defaults to `/.*`. `method` can be `all` if you want the middleware to be used for all HTTP methods.
 
 ## License
