@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "3.0.4",
+  "version": "3.0.5",
   "description": "Lightweight HTTP/HTTPS router with automatic `Allow` & `CORS` headers",
   "main": "index.js",
   "scripts": {
@@ -31,7 +31,7 @@
   "dependencies": {
     "murmurhash3js": "^3.0.1",
     "tiny-coerce": "^1.0.1",
-    "tiny-lru": "^1.4.10",
+    "tiny-lru": "^1.4.11",
     "tiny-parse": "^2.1.1"
   },
   "devDependencies": {
