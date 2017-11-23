@@ -1,5 +1,6 @@
 /.idea/
 /node_modules/
+/ssl/
 /test/
 .eslintrc
 .git
@@ -7,3 +8,4 @@
 .travis.yml
 Gruntfile.js
 sample.js
+sample2.js
