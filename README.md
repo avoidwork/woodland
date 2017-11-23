@@ -10,6 +10,7 @@ Lightweight HTTP/HTTPS/HTTP2 router with automatic `Allow` & `CORS` headers. Rou
 
 ## Example
 
+#### HTTP
 ```javascript
 "use strict";
 
@@ -19,6 +20,21 @@ const http = require("http"),
 router.use("/", (req, res) => res.end("Hello World!"));
 router.use("/:user", (req, res) => res.end("Hello " + req.params.user + "!"));
 http.createServer(router.route).listen(8000);
+```
+
+#### HTTP2
+```javascript
+"use strict";
+
+const http2 = require("http2"),
+	router = require("woodland")({defaultHeaders: {"Cache-Control": "no-cache", "Content-Type": "text/plain"}});
+
+router.use("/", (stream, headers) => stream.end("Hello World!"));
+router.use("/:user", (stream, headers) => stream.end("Hello " + req.params.user + "!"));
+http2.createSecureServer({
+  key: fs.readFileSync('localhost-privkey.pem'),
+  cert: fs.readFileSync('localhost-cert.pem')
+}).on("stream", router.route).listen(8443);
 ```
 
 ## Event Handlers
