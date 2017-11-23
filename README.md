@@ -22,8 +22,8 @@ const http = require("http"),
 		defaultHeaders: {"Cache-Control": "no-cache", "Content-Type": "text/plain"}
 	});
 
-router.use("/", (req, res) => res.end("Hello World!"));
-router.use("/:user", (req, res) => res.end("Hello " + req.params.user + "!"));
+router.use("/", (req, res) => res.send("Hello World!"));
+router.use("/:user", (req, res) => res.send("Hello " + req.params.user + "!"));
 
 http.createServer(router.route).listen(8000);
 ```
@@ -48,6 +48,18 @@ http2.createSecureServer({
 }).on("stream", router.route).listen(8443);
 
 ```
+
+## Helpers
+`res` is decorated with helper functions to simplify responding.
+
+##### res.error (status[, body, headers])
+Sends an error response.
+
+##### res.redirect (uri[, perm = false])
+Sends a redirection response.
+
+##### res.send (body, [status = 200, body, headers])
+Sends a response.
 
 ## Event Handlers
 ##### onclose (req, res)
