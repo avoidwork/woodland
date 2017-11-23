@@ -28,7 +28,10 @@ http.createServer(router.route).listen(8000);
 "use strict";
 
 const http2 = require("http2"),
-	router = require("woodland")({defaultHeaders: {"Cache-Control": "no-cache", "Content-Type": "text/plain"}});
+	router = require("woodland")({
+	    defaultHeaders: {"Cache-Control": "no-cache", "Content-Type": "text/plain"},
+	    http2: true
+	});
 
 router.use("/", (req, res) => res.send("Hello World!"));
 router.use("/:user", (req, res) => res.send("Hello " + req.params.user + "!"));
