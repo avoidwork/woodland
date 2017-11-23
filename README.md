@@ -32,8 +32,8 @@ const http2 = require("http2"),
 router.use("/", (stream, headers) => stream.end("Hello World!"));
 router.use("/:user", (stream, headers) => stream.end("Hello " + req.params.user + "!"));
 http2.createSecureServer({
-  key: fs.readFileSync('localhost-privkey.pem'),
-  cert: fs.readFileSync('localhost-cert.pem')
+  key: fs.readFileSync("localhost-privkey.pem"),
+  cert: fs.readFileSync("localhost-cert.pem")
 }).on("stream", router.route).listen(8443);
 ```
 
