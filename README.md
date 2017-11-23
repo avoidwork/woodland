@@ -11,6 +11,8 @@ Lightweight HTTP/HTTPS/HTTP2 router with automatic `Allow` & `CORS` headers. Rou
 ## Example
 HTTP1 & HTTP2 middleware have the same signature, such that `req` represents the request & `res` represents the response; with `http2` `res` is really `stream` with helper functions decorated for interop with older middleware & easy migration to `http2`.
 
+Switching between protocols is done with a boolean.
+
 #### HTTP
 ```javascript
 "use strict";
@@ -20,6 +22,7 @@ const http = require("http"),
 
 router.use("/", (req, res) => res.end("Hello World!"));
 router.use("/:user", (req, res) => res.end("Hello " + req.params.user + "!"));
+
 http.createServer(router.route).listen(8000);
 ```
 
@@ -28,17 +31,20 @@ http.createServer(router.route).listen(8000);
 "use strict";
 
 const http2 = require("http2"),
+	fs = require("fs"),
 	router = require("woodland")({
-	    defaultHeaders: {"Cache-Control": "no-cache", "Content-Type": "text/plain"},
-	    http2: true
+		defaultHeaders: {"Cache-Control": "no-cache", "Content-Type": "text/plain"},
+		http2: true
 	});
 
 router.use("/", (req, res) => res.send("Hello World!"));
 router.use("/:user", (req, res) => res.send("Hello " + req.params.user + "!"));
+
 http2.createSecureServer({
-  key: fs.readFileSync("localhost-privkey.pem"),
-  cert: fs.readFileSync("localhost-cert.pem")
+	key: fs.readFileSync("./ssl/localhost.key"),
+	cert: fs.readFileSync("./ssl/localhost.crt")
 }).on("stream", router.route).listen(8443);
+
 ```
 
 ## Event Handlers
