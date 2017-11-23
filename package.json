@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "3.0.9",
+  "version": "4.0.0",
   "description": "Lightweight HTTP/HTTPS router with automatic `Allow` & `CORS` headers",
   "main": "index.js",
   "scripts": {
@@ -25,7 +25,7 @@
   },
   "engineStrict": true,
   "engines": {
-    "node": ">=6.0.0"
+    "node": ">=8.4.0"
   },
   "homepage": "http://avoidwork.github.io/woodland/",
   "dependencies": {
