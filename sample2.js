@@ -9,7 +9,7 @@ const http2 = require("http2"),
 
 router.use("/", (req, res) => res.send("Hello World!"));
 router.use("/", (req, res) => res.send("Make a GET request to retrieve the representation"), "options");
-router.use("/:user", (req, res) => res.send("Hello " + stream.params.user + "!"));
+router.use("/:user", (req, res) => res.send("Hello " + req.params.user + "!"));
 
 http2.createSecureServer({
 	key: fs.readFileSync("./ssl/localhost.key"),
