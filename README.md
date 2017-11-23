@@ -18,7 +18,9 @@ Switching between protocols is done with a boolean.
 "use strict";
 
 const http = require("http"),
-	router = require("woodland")({defaultHeaders: {"Cache-Control": "no-cache", "Content-Type": "text/plain"}});
+	router = require("woodland")({
+		defaultHeaders: {"Cache-Control": "no-cache", "Content-Type": "text/plain"}
+	});
 
 router.use("/", (req, res) => res.end("Hello World!"));
 router.use("/:user", (req, res) => res.end("Hello " + req.params.user + "!"));
