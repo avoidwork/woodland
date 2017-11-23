@@ -35,7 +35,7 @@ Executes if the request cannot be routed, default handler sends a basic text res
 Executes after the response has been sent.
 
 ## API
-##### woodland ({cacheSize: 1000, coerce: true, defaultHeaders: {}, seed: random})
+##### woodland ({cacheSize: 1000, coerce: true, defaultHeaders: {}, http2: false, seed: random})
 Returns a woodland router.
 
 ##### allowed (method, uri, override = false)
