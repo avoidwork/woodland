@@ -7,6 +7,8 @@ const http2 = require("http2"),
 		http2: true
 	});
 
+router.onfinish = (req, res) => console.log(res.statusCode);
+
 router.use("/", (req, res) => res.send("Hello World!"));
 router.use("/", (req, res) => res.send("Make a GET request to retrieve the representation"), "options");
 router.use("/:user", (req, res) => res.send("Hello " + req.params.user + "!"));
