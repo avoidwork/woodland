@@ -9,6 +9,7 @@ Lightweight HTTP/HTTPS/HTTP2 router with automatic `Allow` & `CORS` headers. Rou
 `CORS` (Cross Origin Resource Sharing) is automatically handled, and indicated with `cors` Boolean on the `request` Object for middleware.
 
 ## Example
+HTTP1 & HTTP2 middleware have the same signature, such that `req` represents the request & `res` represents the response; with `http2` `res` is really `stream` with helper functions decorated for interop with older middleware & easy migration to `http2`.
 
 #### HTTP
 ```javascript
@@ -29,8 +30,8 @@ http.createServer(router.route).listen(8000);
 const http2 = require("http2"),
 	router = require("woodland")({defaultHeaders: {"Cache-Control": "no-cache", "Content-Type": "text/plain"}});
 
-router.use("/", (stream, headers) => stream.end("Hello World!"));
-router.use("/:user", (stream, headers) => stream.end("Hello " + req.params.user + "!"));
+router.use("/", (req, res) => res.send("Hello World!"));
+router.use("/:user", (req, res) => res.send("Hello " + req.params.user + "!"));
 http2.createSecureServer({
   key: fs.readFileSync("localhost-privkey.pem"),
   cert: fs.readFileSync("localhost-cert.pem")
