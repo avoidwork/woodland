@@ -10,10 +10,10 @@ const http = require("http"),
 		}
 	});
 
-router.onconnect = (req, res) => res.setHeader("x-onconnect", "true");
-router.use("/", (req, res) => res.end(req.method !== "OPTIONS" ? "Hello World!" : ""));
-router.use("/echo/:echo", (req, res) => res.end(req.params.echo));
-router.use("/echo/:echo", (req, res) => res.end("The entity will be echoed back to you"), "OPTIONS");
+router.onconnect = (req, res) => res.header("x-onconnect", "true");
+router.use("/", (req, res) => res.send(req.method !== "OPTIONS" ? "Hello World!" : ""));
+router.use("/echo/:echo", (req, res) => res.send(req.params.echo));
+router.use("/echo/:echo", (req, res) => res.send("The entity will be echoed back to you"), "OPTIONS");
 
 http.createServer(router.route).listen(8001);
 
