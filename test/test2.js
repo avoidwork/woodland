@@ -12,10 +12,10 @@ const http2 = require("http2"),
 		http2: true
 	});
 
-router.onconnect = (req, res) => res.setHeader("x-onconnect", "true");
-router.use("/", (req, res) => res.end(req.method !== "OPTIONS" ? "Hello World!" : ""));
-router.use("/echo/:echo", (req, res) => res.end(req.params.echo));
-router.use("/echo/:echo", (req, res) => res.end("The entity will be echoed back to you"), "OPTIONS");
+router.onconnect = (req, res) => res.header("x-onconnect", "true");
+router.use("/", (req, res) => res.send(req.method !== "OPTIONS" ? "Hello World!" : ""));
+router.use("/echo/:echo", (req, res) => res.send(req.params.echo));
+router.use("/echo/:echo", (req, res) => res.send("The entity will be echoed back to you"), "OPTIONS");
 
 http2.createSecureServer({
 	key: fs.readFileSync(path.join(__dirname, "..", "ssl", "localhost.key")),
@@ -24,7 +24,7 @@ http2.createSecureServer({
 
 describe("Valid Requests (HTTP2)", function () {
 	it("GET / (200 / 'Success')", function () {
-		return tinyhttptest({http2: true, url: "http://localhost:8002/"})
+		return tinyhttptest({http2: true, url: "https://localhost:8002/"})
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
@@ -35,7 +35,7 @@ describe("Valid Requests (HTTP2)", function () {
 	});
 
 	it("HEAD / (200 / 'Success')", function () {
-		return tinyhttptest({http2: true, url: "http://localhost:8002/", method: "head"})
+		return tinyhttptest({http2: true, url: "https://localhost:8002/", method: "head"})
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
@@ -46,7 +46,7 @@ describe("Valid Requests (HTTP2)", function () {
 	});
 
 	it("OPTIONS / (200 / 'Success')", function () {
-		return tinyhttptest({http2: true, url: "http://localhost:8002/", method: "options"})
+		return tinyhttptest({http2: true, url: "https://localhost:8002/", method: "options"})
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
@@ -57,8 +57,8 @@ describe("Valid Requests (HTTP2)", function () {
 	});
 
 	it("GET / CORS Pre-flight (200 / 'Success')", function () {
-		return tinyhttptest({http2: true, url: "http://localhost:8002/", method: "OPTIONS"})
-			.cors("http://not.localhost:8002")
+		return tinyhttptest({http2: true, url: "https://localhost:8002/", method: "OPTIONS"})
+			.cors("https://not.localhost:8002")
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("content-length", undefined)
@@ -66,8 +66,8 @@ describe("Valid Requests (HTTP2)", function () {
 	});
 
 	it("GET / CORS (200 / 'Success')", function () {
-		return tinyhttptest({http2: true, url: "http://localhost:8002/"})
-			.cors("http://not.localhost:8002")
+		return tinyhttptest({http2: true, url: "https://localhost:8002/"})
+			.cors("https://not.localhost:8002")
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
@@ -77,7 +77,7 @@ describe("Valid Requests (HTTP2)", function () {
 	});
 
 	it("OPTIONS /echo/hello (200 / 'Success')", function () {
-		return tinyhttptest({http2: true, url: "http://localhost:8002/echo/hello", method: "OPTIONS"})
+		return tinyhttptest({http2: true, url: "https://localhost:8002/echo/hello", method: "OPTIONS"})
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
@@ -87,7 +87,7 @@ describe("Valid Requests (HTTP2)", function () {
 	});
 
 	it("GET /echo/hello (200 / 'Success')", function () {
-		return tinyhttptest({http2: true, url: "http://localhost:8002/echo/hello"})
+		return tinyhttptest({http2: true, url: "https://localhost:8002/echo/hello"})
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
@@ -98,145 +98,132 @@ describe("Valid Requests (HTTP2)", function () {
 
 describe("Invalid Requests (HTTP2)", function () {
 	it("POST / (405 / 'Method Not Allowed')", function () {
-		return tinyhttptest({http2: true, url: "http://localhost:8002/", method: "post"})
+		return tinyhttptest({http2: true, url: "https://localhost:8002/", method: "post"})
 			.expectStatus(405)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
-			.expectHeader("content-length", 18)
 			.expectBody(/Method Not Allowed/)
 			.end();
 	});
 
 	it("PUT / (405 / 'Method Not Allowed')", function () {
-		return tinyhttptest({http2: true, url: "http://localhost:8002/", method: "put"})
+		return tinyhttptest({http2: true, url: "https://localhost:8002/", method: "put"})
 			.expectStatus(405)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
-			.expectHeader("content-length", 18)
 			.expectBody(/Method Not Allowed/)
 			.end();
 	});
 
 	it("PATCH / (405 / 'Method Not Allowed')", function () {
-		return tinyhttptest({http2: true, url: "http://localhost:8002/", method: "patch"})
+		return tinyhttptest({http2: true, url: "https://localhost:8002/", method: "patch"})
 			.expectStatus(405)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
-			.expectHeader("content-length", 18)
 			.expectBody(/Method Not Allowed/)
 			.end();
 	});
 
 	it("DELETE / (405 / 'Method Not Allowed')", function () {
-		return tinyhttptest({http2: true, url: "http://localhost:8002/", method: "delete"})
+		return tinyhttptest({http2: true, url: "https://localhost:8002/", method: "delete"})
 			.expectStatus(405)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
-			.expectHeader("content-length", 18)
 			.expectBody(/Method Not Allowed/)
 			.end();
 	});
 
 	it("GET /nothere.html (404 / 'Not Found')", function () {
-		return tinyhttptest({http2: true, url: "http://localhost:8002/nothere.html"})
+		return tinyhttptest({http2: true, url: "https://localhost:8002/nothere.html"})
 			.expectStatus(404)
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
-			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
 	});
 
 	it("GET /nothere.html%3fa=b?=c (404 / 'Not Found')", function () {
-		return tinyhttptest({http2: true, url: "http://localhost:8002/nothere.html%3fa=b?=c"})
+		return tinyhttptest({http2: true, url: "https://localhost:8002/nothere.html%3fa=b?=c"})
 			.expectStatus(404)
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
-			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
 	});
 
 	it("GET /nothere.x_%22%3E%3Cimg%20src=x%20onerror=prompt(1)%3E.html (404 / 'Not Found')", function () {
-		return tinyhttptest({http2: true, url: "http://localhost:8002/nothere.x_%22%3E%3Cimg%20src=x%20onerror=prompt(1)%3E.html"})
+		return tinyhttptest({http2: true, url: "https://localhost:8002/nothere.x_%22%3E%3Cimg%20src=x%20onerror=prompt(1)%3E.html"})
 			.expectStatus(404)
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
-			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
 	});
 
 	it("GET /../README (404 / 'Not Found')", function () {
-		return tinyhttptest({http2: true, url: "http://localhost:8002/../README"})
+		return tinyhttptest({http2: true, url: "https://localhost:8002/../README"})
 			.expectStatus(404)
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
-			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
 	});
 
 	it("GET /././../README (404 / 'Not Found')", function () {
-		return tinyhttptest({http2: true, url: "http://localhost:8002/././../README"})
+		return tinyhttptest({http2: true, url: "https://localhost:8002/././../README"})
 			.expectStatus(404)
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
-			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
 	});
 
 	// 405 is a result of a cached route that leads to a file system based 404 on GET
 	it("POST /nothere.html (404 / 'Not Found')", function () {
-		return tinyhttptest({http2: true, url: "http://localhost:8002/nothere.html", method: "post"})
+		return tinyhttptest({http2: true, url: "https://localhost:8002/nothere.html", method: "post"})
 			.expectStatus(404)
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
-			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
 	});
 
 	it("PUT /nothere.html (404 / 'Not Found')", function () {
-		return tinyhttptest({http2: true, url: "http://localhost:8002/nothere.html", method: "put"})
+		return tinyhttptest({http2: true, url: "https://localhost:8002/nothere.html", method: "put"})
 			.expectStatus(404)
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
-			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
 	});
 
 	it("PATCH /nothere.html (404 / 'Not Found')", function () {
-		return tinyhttptest({http2: true, url: "http://localhost:8002/nothere.html", method: "patch"})
+		return tinyhttptest({http2: true, url: "https://localhost:8002/nothere.html", method: "patch"})
 			.expectStatus(404)
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
-			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
 	});
 
 	it("DELETE /nothere.html (404 / 'Not Found')", function () {
-		return tinyhttptest({http2: true, url: "http://localhost:8002/nothere.html", method: "delete"})
+		return tinyhttptest({http2: true, url: "https://localhost:8002/nothere.html", method: "delete"})
 			.expectStatus(404)
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
-			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
 	});
