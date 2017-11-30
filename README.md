@@ -64,6 +64,9 @@ Sends a redirection response.
 ##### res.send (body, [status = 200, headers])
 Sends a response.
 
+##### res.status (arg)
+Sets the response `statusCode` property & status.
+
 ## Event Handlers
 ##### onclose (req, res)
 Executes if the connection was terminated before `res.end()` was called or able to flush.
