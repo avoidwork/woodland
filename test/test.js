@@ -54,36 +54,6 @@ describe("Valid Requests", function () {
 			.end();
 	});
 
-	it("GET /json1 (200 / 'Success')", function () {
-		return tinyhttptest({url: "http://localhost:8001/json1"})
-			.expectStatus(200)
-			.expectHeader("allow", "GET, HEAD, OPTIONS")
-			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "application/json")
-			.expectBody(arg => JSON.stringify(arg) !== void 0)
-			.end();
-	});
-
-	it("GET /json2 (200 / 'Success')", function () {
-		return tinyhttptest({url: "http://localhost:8001/json2"})
-			.expectStatus(200)
-			.expectHeader("allow", "GET, HEAD, OPTIONS")
-			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "application/json")
-			.expectBody(arg => JSON.stringify(arg) !== void 0)
-			.end();
-	});
-
-	it("GET /empty (204 / 'Success')", function () {
-		return tinyhttptest({url: "http://localhost:8001/empty"})
-			.expectStatus(204)
-			.expectHeader("allow", "GET, HEAD, OPTIONS")
-			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "text/plain")
-			.expectBody(/^$/)
-			.end();
-	});
-
 	it("GET / CORS Pre-flight (200 / 'Success')", function () {
 		return tinyhttptest({url: "http://localhost:8001/", method: "OPTIONS"})
 			.cors("http://not.localhost:8001")
@@ -120,6 +90,36 @@ describe("Valid Requests", function () {
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
 			.expectBody(/^hello$/)
+			.end();
+	});
+
+	it("GET /json1 (200 / 'Success')", function () {
+		return tinyhttptest({url: "http://localhost:8001/json1"})
+			.expectStatus(200)
+			.expectHeader("allow", "GET, HEAD, OPTIONS")
+			.expectHeader("cache-control", "no-cache")
+			.expectHeader("content-type", "application/json")
+			.expectBody(arg => JSON.stringify(arg) !== void 0)
+			.end();
+	});
+
+	it("GET /json2 (200 / 'Success')", function () {
+		return tinyhttptest({url: "http://localhost:8001/json2"})
+			.expectStatus(200)
+			.expectHeader("allow", "GET, HEAD, OPTIONS")
+			.expectHeader("cache-control", "no-cache")
+			.expectHeader("content-type", "application/json")
+			.expectBody(arg => JSON.stringify(arg) !== void 0)
+			.end();
+	});
+
+	it("GET /empty (204 / 'Success')", function () {
+		return tinyhttptest({url: "http://localhost:8001/empty"})
+			.expectStatus(204)
+			.expectHeader("allow", "GET, HEAD, OPTIONS")
+			.expectHeader("cache-control", "no-cache")
+			.expectHeader("content-type", "text/plain")
+			.expectBody(/^$/)
 			.end();
 	});
 });
