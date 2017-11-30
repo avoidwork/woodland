@@ -12,6 +12,8 @@ const http = require("http"),
 
 router.onconnect = (req, res) => res.header("x-onconnect", "true");
 router.use("/", (req, res) => res.send(req.method !== "OPTIONS" ? "Hello World!" : ""));
+router.use("/json1", (req, res) => res.json({text: "Hello World!"}));
+router.use("/json2", (req, res) => res.json("Hello World!"));
 router.use("/echo/:echo", (req, res) => res.send(req.params.echo));
 router.use("/echo/:echo", (req, res) => res.send("The entity will be echoed back to you"), "OPTIONS");
 
@@ -48,6 +50,26 @@ describe("Valid Requests", function () {
 			.expectHeader("content-type", "text/plain")
 			.expectHeader("content-length", undefined)
 			.expectBody(/^$/)
+			.end();
+	});
+
+	it("GET /json1 (200 / 'Success')", function () {
+		return tinyhttptest({url: "http://localhost:8001/json1"})
+			.expectStatus(200)
+			.expectHeader("allow", "GET, HEAD, OPTIONS")
+			.expectHeader("cache-control", "no-cache")
+			.expectHeader("content-type", "application/json")
+			.expectBody(arg => JSON.stringify(arg) !== void 0)
+			.end();
+	});
+
+	it("GET /json2 (200 / 'Success')", function () {
+		return tinyhttptest({url: "http://localhost:8001/json2"})
+			.expectStatus(200)
+			.expectHeader("allow", "GET, HEAD, OPTIONS")
+			.expectHeader("cache-control", "no-cache")
+			.expectHeader("content-type", "application/json")
+			.expectBody(arg => JSON.stringify(arg) !== void 0)
 			.end();
 	});
 
