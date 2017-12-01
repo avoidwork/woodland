@@ -104,7 +104,7 @@ describe("Valid Requests (HTTP2)", function () {
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "application/json")
-			.expectBody(arg => JSON.stringify(arg) !== void 0)
+			.expectBody({text: "Hello World!"})
 			.end();
 	});
 
@@ -114,7 +114,7 @@ describe("Valid Requests (HTTP2)", function () {
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "application/json")
-			.expectBody(arg => JSON.stringify(arg) !== void 0)
+			.expectBody("Hello World!")
 			.end();
 	});
 
