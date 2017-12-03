@@ -261,13 +261,3 @@ describe("Invalid Requests (HTTP2)", function () {
 			.end();
 	});
 });
-
-describe("Methods", function () {
-	it("Array of routes", function () {
-		return router.list().length > 0 ? Promise.resolve(true) : Promise.reject(new Error("No routes found"));
-	});
-
-	it("Object of routes", function () {
-		return Object.keys(router.list(undefined, undefined, "object")).length > 0 ? Promise.resolve(true) : Promise.reject(new Error("No routes found"));
-	});
-});

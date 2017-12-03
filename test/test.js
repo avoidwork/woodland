@@ -20,6 +20,16 @@ router.use("/echo/:echo", (req, res) => res.send("The entity will be echoed back
 
 http.createServer(router.route).listen(8001);
 
+describe("Methods", function () {
+	it("Array of routes", function () {
+		return router.list().length > 0 ? Promise.resolve(true) : Promise.reject(new Error("No routes found"));
+	});
+
+	it("Object of routes", function () {
+		return Object.keys(router.list(undefined, undefined, "object")).length > 0 ? Promise.resolve(true) : Promise.reject(new Error("No routes found"));
+	});
+});
+
 describe("Valid Requests", function () {
 	it("GET / (200 / 'Success')", function () {
 		return tinyhttptest({url: "http://localhost:8001/"})
@@ -267,15 +277,5 @@ describe("Invalid Requests", function () {
 			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
-	});
-});
-
-describe("Methods", function () {
-	it("Array of routes", function () {
-		return router.list().length > 0 ? Promise.resolve(true) : Promise.reject(new Error("No routes found"));
-	});
-
-	it("Object of routes", function () {
-		return Object.keys(router.list(undefined, undefined, "object")).length > 0 ? Promise.resolve(true) : Promise.reject(new Error("No routes found"));
 	});
 });
