@@ -90,6 +90,9 @@ Calls `routes()` and returns a `Boolean` to indicate if `method` is allowed for 
 ##### allows (uri, override = false)
 Returns a `String` for the `Allow` header. Caches value, & will update cache if `override` is `true`.
 
+##### args (...args)
+Returns an `Array` with the indices `[path, fn, method]`.
+
 ##### blacklist (fn)
 Blacklists `fn` for calculating the return of `allows()`.
 
