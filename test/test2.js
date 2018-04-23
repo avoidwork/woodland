@@ -13,7 +13,7 @@ const http2 = require("http2"),
 	});
 
 router.onconnect = (req, res) => res.header("x-onconnect", "true");
-router.use("/", (req, res) => res.send(req.method !== "OPTIONS" ? "Hello World!" : ""));
+router.use("/", (req, res) => res.send("Hello World!"));
 router.use("/json1", (req, res) => res.json({text: "Hello World!"}));
 router.use("/json2", (req, res) => res.json("Hello World!"));
 router.use("/empty", (req, res) => res.status(204).send(""));
@@ -55,7 +55,7 @@ describe("Valid Requests (HTTP2)", function () {
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
 			.expectHeader("content-length", undefined)
-			.expectBody(/^$/)
+			.expectBody(/^Hello World!$/)
 			.end();
 	});
 
