@@ -95,9 +95,6 @@ Registers middleware for a route for all HTTP methods; runs first. `path` is a r
 
 Execute `blacklist(fn)` if you do not want the middleware included for calculating the `Allow` header.
 
-##### args (...args)
-Returns an `Array` with the indices `[path, fn, method]`.
-
 ##### blacklist (fn)
 Blacklists `fn` for calculating the return of `allows()`.
 
