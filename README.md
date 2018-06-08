@@ -117,5 +117,5 @@ Returns an `Array` of middleware for the request. Caches value, & will update ca
 Registers middleware for a route. `path` is a regular expression (as a string), and if not passed it defaults to `/.*`. See `always()` if you want the middleware to be used for all HTTP methods.
 
 ## License
-Copyright (c) 2017 Jason Mulligan
+Copyright (c) 2018 Jason Mulligan
 Licensed under the BSD-3 license.
