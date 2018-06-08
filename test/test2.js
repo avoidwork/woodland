@@ -12,7 +12,13 @@ const http2 = require("http2"),
 		http2: true
 	});
 
+function always (req, res, next) {
+	res.header("x-always", "true");
+	next();
+}
+
 router.onconnect = (req, res) => res.header("x-onconnect", "true");
+router.always("/.*", always).blacklist(always);
 router.use("/", (req, res) => res.send("Hello World!"));
 router.use("/json1", (req, res) => res.json({text: "Hello World!"}));
 router.use("/json2", (req, res) => res.json("Hello World!"));
@@ -33,6 +39,7 @@ describe("Valid Requests (HTTP2)", function () {
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
 			.expectHeader("x-onconnect", "true")
+			.expectHeader("x-always", "true")
 			.expectBody(/^Hello World!$/)
 			.end();
 	});

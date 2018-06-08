@@ -90,6 +90,11 @@ Calls `routes()` and returns a `Boolean` to indicate if `method` is allowed for 
 ##### allows (uri, override = false)
 Returns a `String` for the `Allow` header. Caches value, & will update cache if `override` is `true`.
 
+##### always (path, fn)
+Registers middleware for a route for all HTTP methods; runs first. `path` is a regular expression (as a string), and if not passed it defaults to `/.*`.
+
+Execute `blacklist(fn)` if you do not want the middleware included for calculating the `Allow` header.
+
 ##### args (...args)
 Returns an `Array` with the indices `[path, fn, method]`.
 
@@ -112,7 +117,7 @@ Function for `http.createServer()` or `https.createServer()`.
 Returns an `Array` of middleware for the request. Caches value, & will update cache if `override` is `true`.
 
 ##### use (path, fn, method = "GET")
-Registers middleware for a route. `path` is a regular expression, and if not passed it defaults to `/.*`. `method` can be `all` if you want the middleware to be used for all HTTP methods.
+Registers middleware for a route. `path` is a regular expression (as a string), and if not passed it defaults to `/.*`. See `always()` if you want the middleware to be used for all HTTP methods.
 
 ## License
 Copyright (c) 2017 Jason Mulligan
