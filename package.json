@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "6.0.1",
+  "version": "6.0.2",
   "description": "Lightweight HTTP/HTTPS/HTTP2 router with automatic `Allow` & `CORS` headers",
   "main": "index.js",
   "scripts": {
@@ -33,12 +33,12 @@
   "dependencies": {
     "tiny-coerce": "^1.0.1",
     "tiny-lru": "^1.6.1",
-    "tiny-parse": "^2.1.4"
+    "tiny-parse": "^3.0.1"
   },
   "devDependencies": {
-    "grunt": "^1.0.1",
+    "grunt": "^1.0.3",
     "grunt-cli": "^1.2.0",
-    "grunt-eslint": "^20.1.0",
+    "grunt-eslint": "^20.2.0",
     "grunt-mocha-test": "^0.13.3",
     "mocha": "^4.0.1",
     "tiny-httptest": "^1.0.14"
