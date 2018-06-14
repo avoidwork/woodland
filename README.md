@@ -81,7 +81,7 @@ Executes if the request cannot be routed, default handler sends a basic text res
 Executes after the response has been sent.
 
 ## API
-##### woodland ({cacheSize: 1000, cacheTTL: 0, coerce: true, defaultHeaders: {}, http2: false, seed: random})
+##### woodland ({cacheSize: 1000, cacheTTL: 0, coerce: true, defaultHeaders: {}, http2: false})
 Returns a woodland router.
 
 ##### allowed (method, uri, override = false)
@@ -100,9 +100,6 @@ Blacklists `fn` for calculating the return of `allows()`.
 
 ##### decorate (req, res)
 Decorates `allow`, `body`, `ip`, `params`, `parsed`, `query`, & `host` on `req` and `header()` & `locals{}` on `res`.
-
-##### hash (arg)
-Returns a murmur3hash of `arg`.
 
 ##### list (method = "get", type = "array")
 Returns an `Array` or `Object` of routes for the specified method.
