@@ -61,7 +61,7 @@ Sends a JSON response.
 ##### res.redirect (uri[, perm = false])
 Sends a redirection response.
 
-##### res.send (body, [status = 200, headers])
+##### res.send (body, [status = 200, headers = {}])
 Sends a response.
 
 ##### res.status (arg)
