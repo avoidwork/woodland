@@ -22,8 +22,8 @@ const http = require("http"),
 		defaultHeaders: {"Cache-Control": "no-cache", "Content-Type": "text/plain"}
 	});
 
-router.use("/", (req, res) => res.send("Hello World!"));
-router.use("/:user", (req, res) => res.send("Hello " + req.params.user + "!"));
+router.get("/", (req, res) => res.send("Hello World!"));
+router.get("/:user", (req, res) => res.send(`Hello ${req.params.user}!`));
 
 http.createServer(router.route).listen(8000);
 ```
@@ -39,8 +39,8 @@ const http2 = require("http2"),
 		http2: true
 	});
 
-router.use("/", (req, res) => res.send("Hello World!"));
-router.use("/:user", (req, res) => res.send("Hello " + req.params.user + "!"));
+router.get("/", (req, res) => res.send("Hello World!"));
+router.get("/:user", (req, res) => res.send(`Hello ${req.params.user}!`));
 
 http2.createSecureServer({
 	key: fs.readFileSync("./ssl/localhost.key"),
