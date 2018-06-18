@@ -102,7 +102,7 @@ Execute `blacklist(fn)` if you do not want the middleware included for calculati
 Blacklists `fn` for calculating the return of `allows()`.
 
 ##### decorate (req, res)
-Decorates `allow`, `body`, `ip`, `params`, `parsed`, `query`, & `host` on `req` and `header()` & `locals{}` on `res`.
+Decorates `allow, body, cors, host, ip, params, parsed, & query` on `req` and `error(), header(), json(), locals{} & redirect()` on `res`.
 
 ##### list (method = "get", type = "array")
 Returns an `Array` or `Object` of routes for the specified method.
