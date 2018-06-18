@@ -78,7 +78,7 @@ Executes after the connection has been decorated, but before the middleware exec
 Executes if the request cannot be routed, default handler sends a basic text response.
 
 ##### onsend (req, res, body, status, headers)
-Executes before the response has been sent.
+Executes before the response has been sent; arguments are by reference such that they can be mutated.
 
 ##### onfinish (req, res)
 Executes after the response has been sent.
