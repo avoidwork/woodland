@@ -18,6 +18,9 @@ function always (req, res, next) {
 }
 
 router.onconnect = (req, res) => res.header("x-onconnect", "true");
+router.onsend = (req, res, body, status, headers) => {
+	headers["x-by-reference"] = "true";
+};
 router.always("/.*", always).blacklist(always);
 router.use("/", (req, res) => res.send("Hello World!"));
 router.use("/json1", (req, res) => res.json({text: "Hello World!"}));
@@ -38,8 +41,9 @@ describe("Valid Requests (HTTP2)", function () {
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
-			.expectHeader("x-onconnect", "true")
 			.expectHeader("x-always", "true")
+			.expectHeader("x-by-reference", "true")
+			.expectHeader("x-onconnect", "true")
 			.expectBody(/^Hello World!$/)
 			.end();
 	});
