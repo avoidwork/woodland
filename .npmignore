@@ -6,6 +6,7 @@
 .git
 .gitignore
 .travis.yml
+benchmark.js
 Gruntfile.js
 sample.js
 sample2.js
