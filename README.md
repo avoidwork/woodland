@@ -80,6 +80,9 @@ Executes if the request cannot be routed, default handler sends a basic text res
 ##### onfinish (req, res)
 Executes after the response has been sent.
 
+##### onsend (req, res, body, status, headers)
+Executes before the response has been sent.
+
 ## API
 ##### woodland ({cacheSize: 1000, cacheTTL: 0, coerce: true, defaultHeaders: {}, http2: false, seed: random})
 Returns a woodland router.
