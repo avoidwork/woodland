@@ -22,8 +22,8 @@ const http = require("http"),
 		defaultHeaders: {"Cache-Control": "no-cache", "Content-Type": "text/plain"}
 	});
 
-router.use("/", (req, res) => res.send("Hello World!"));
-router.use("/:user", (req, res) => res.send("Hello " + req.params.user + "!"));
+router.get("/", (req, res) => res.send("Hello World!"));
+router.get("/:user", (req, res) => res.send(`Hello ${req.params.user}!`));
 
 http.createServer(router.route).listen(8000);
 ```
@@ -39,8 +39,8 @@ const http2 = require("http2"),
 		http2: true
 	});
 
-router.use("/", (req, res) => res.send("Hello World!"));
-router.use("/:user", (req, res) => res.send("Hello " + req.params.user + "!"));
+router.get("/", (req, res) => res.send("Hello World!"));
+router.get("/:user", (req, res) => res.send(`Hello ${req.params.user}!`));
 
 http2.createSecureServer({
 	key: fs.readFileSync("./ssl/localhost.key"),
@@ -61,7 +61,7 @@ Sends a JSON response.
 ##### res.redirect (uri[, perm = false])
 Sends a redirection response.
 
-##### res.send (body, [status = 200, headers])
+##### res.send (body, [status = 200, headers = {}])
 Sends a response.
 
 ##### res.status (arg)
@@ -77,14 +77,14 @@ Executes after the connection has been decorated, but before the middleware exec
 ##### onerror (req, res, err)
 Executes if the request cannot be routed, default handler sends a basic text response.
 
+##### onsend (req, res, body, status, headers)
+Executes before the response has been sent; arguments are by reference such that they can be mutated.
+
 ##### onfinish (req, res)
 Executes after the response has been sent.
 
-##### onsend (req, res, body, status, headers)
-Executes before the response has been sent.
-
 ## API
-##### woodland ({cacheSize: 1000, cacheTTL: 0, coerce: true, defaultHeaders: {}, http2: false, seed: random})
+##### woodland ({cacheSize: 1000, cacheTTL: 0, defaultHeaders: {}, http2: false})
 Returns a woodland router.
 
 ##### allowed (method, uri, override = false)
@@ -102,10 +102,7 @@ Execute `blacklist(fn)` if you do not want the middleware included for calculati
 Blacklists `fn` for calculating the return of `allows()`.
 
 ##### decorate (req, res)
-Decorates `allow`, `body`, `ip`, `params`, `parsed`, `query`, & `host` on `req` and `header()` & `locals{}` on `res`.
-
-##### hash (arg)
-Returns a murmur3hash of `arg`.
+Decorates `allow, body, cors, host, ip, params, parsed, & query` on `req` and `error(status[, body, headers]), header(key, value), json(body[, status, headers]), locals{} & redirect(url[, perm = false])` on `res`.
 
 ##### list (method = "get", type = "array")
 Returns an `Array` or `Object` of routes for the specified method.
@@ -118,6 +115,8 @@ Returns an `Array` of middleware for the request. Caches value, & will update ca
 
 ##### use (path, fn, method = "GET")
 Registers middleware for a route. `path` is a regular expression (as a string), and if not passed it defaults to `/.*`. See `always()` if you want the middleware to be used for all HTTP methods.
+
+All HTTP methods are available on the prototype (partial application of the third argument), e.g. `get(path, fn)` & `options(path, fn)`.
 
 ## License
 Copyright (c) 2018 Jason Mulligan
