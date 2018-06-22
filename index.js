@@ -6,7 +6,7 @@ const path = require("path"),
 function factory ({cacheSize = 1000, cacheTTL = 0, defaultHeaders = {}, http2 = false} = {}) {
 	const router = new Woodland(defaultHeaders, cacheSize, http2, cacheTTL);
 
-	router.route = (...args) => router._route.apply(router, args);
+	router.route = router._route.bind(router);
 
 	return router;
 }
