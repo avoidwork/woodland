@@ -4,7 +4,7 @@
 
 [![build status](https://secure.travis-ci.org/avoidwork/woodland.svg)](http://travis-ci.org/avoidwork/woodland)
 
-Lightweight HTTP/HTTPS/HTTP2 router with automatic `Allow` & `CORS` headers. Routes can use parameter syntax, i.e. `/users/:id`, or `RegExp` syntax. Route parameters are not sanitized. If 2+ routes with parameters match a request the first route will be used to extract parameters. All HTTP methods are supported.
+Lightweight HTTP/HTTP2 router with automatic `Allow` & `CORS` headers. Routes can use parameter syntax, i.e. `/users/:id`, or `RegExp` syntax. Route parameters are not sanitized. If 2+ routes with parameters match a request the first route will be used to extract parameters. All HTTP methods are supported.
 
 `CORS` (Cross Origin Resource Sharing) is automatically handled, and indicated with `cors` Boolean on the `request` Object for middleware.
 
@@ -79,6 +79,8 @@ Executes if the request cannot be routed, default handler sends a basic text res
 
 ##### onsend (req, res, body, status, headers)
 Executes before the response has been sent; arguments are by reference such that they can be mutated.
+
+*Must* return **body**!
 
 ##### onfinish (req, res)
 Executes after the response has been sent.

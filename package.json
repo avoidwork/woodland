@@ -1,7 +1,7 @@
 {
   "name": "woodland",
-  "version": "7.0.3",
-  "description": "Lightweight HTTP/HTTPS/HTTP2 router with automatic `Allow` & `CORS` headers",
+  "version": "7.0.4",
+  "description": "Lightweight HTTP/HTTP2 router with automatic `Allow` & `CORS` headers",
   "main": "index.js",
   "scripts": {
     "test": "grunt test",
