@@ -18,7 +18,7 @@ function always (req, res, next) {
 }
 
 router.onconnect = (req, res) => res.header("x-onconnect", "true");
-router.onsend = (req, res, body, status, headers = {}) => {
+router.onsend = (req, res, body, status, headers) => {
 	headers["x-by-reference"] = "true";
 };
 router.always("/.*", always).blacklist(always);
