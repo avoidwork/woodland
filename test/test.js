@@ -145,6 +145,24 @@ describe("Valid Requests", function () {
 			.expectBody(/^$/)
 			.end();
 	});
+
+	it("GET / (206 / 'Partial response - bytes=0-5')", function () {
+		return tinyhttptest({url: "http://localhost:8001/", headers: {range: "bytes=0-5"}})
+			.expectStatus(206)
+			.expectHeader("content-range", /^bytes 0-5\/12$/)
+			.expectHeader("content-length", 6)
+			.expectBody(/^Hello\s$/)
+			.end();
+	});
+
+	it("GET / (206 / 'Partial response - bytes=-5')", function () {
+		return tinyhttptest({url: "http://localhost:8001/", headers: {range: "bytes=-5"}})
+			.expectStatus(206)
+			.expectHeader("content-range", /^bytes 7-12\/12$/)
+			.expectHeader("content-length", 6)
+			.expectBody(/^orld!$/)
+			.end();
+	});
 });
 
 describe("Invalid Requests", function () {

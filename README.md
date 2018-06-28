@@ -62,7 +62,7 @@ Sends a JSON response.
 Sends a redirection response.
 
 ##### res.send (body, [status = 200, headers = {}])
-Sends a response.
+Sends a response. `Range` header is ignored on `stream` responses.
 
 ##### res.status (arg)
 Sets the response `statusCode` property & status.
