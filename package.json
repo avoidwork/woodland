@@ -40,6 +40,6 @@
     "grunt-eslint": "^21.0.0",
     "grunt-mocha-test": "^0.13.3",
     "mocha": "^5.2.0",
-    "tiny-httptest": "^1.0.15"
+    "tiny-httptest": "^1.0.18"
   }
 }
