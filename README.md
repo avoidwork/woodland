@@ -8,6 +8,8 @@ Lightweight HTTP/HTTP2 router with automatic `Allow` & `CORS` headers. Routes ca
 
 `CORS` (Cross Origin Resource Sharing) is automatically handled, and indicated with `cors` Boolean on the `request` Object for middleware.
 
+Middleware arguments can be `req, res, next` or `error, req, res, next`. If no `Error` handling middleware is registered woodland will handle it.
+
 ## Example
 HTTP1 & HTTP2 middleware have the same signature, such that `req` represents the request & `res` represents the response; with `http2` `res` is really `stream` with helper functions decorated for interop with older middleware & easy migration to `http2`.
 
