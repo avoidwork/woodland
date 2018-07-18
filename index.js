@@ -11,4 +11,7 @@ function factory ({cacheSize = 1000, cacheTTL = 0, defaultHeaders = {}, http2 = 
 	return router;
 }
 
+process.on("unhandledRejection", () => void 0);
+process.on("uncaughtException", () => void 0);
+
 module.exports = factory;
