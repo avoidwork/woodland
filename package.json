@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "7.2.1",
+  "version": "7.2.2",
   "description": "Lightweight HTTP/HTTP2 router with automatic `Allow` & `CORS` headers",
   "main": "index.js",
   "scripts": {
@@ -40,6 +40,6 @@
     "grunt-eslint": "^21.0.0",
     "grunt-mocha-test": "^0.13.3",
     "mocha": "^5.2.0",
-    "tiny-httptest": "^1.0.20"
+    "tiny-httptest": "^1.0.21"
   }
 }
