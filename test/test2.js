@@ -1,5 +1,14 @@
 "use strict";
 
+
+function handler (err) {
+	console.error(err.stack || err.message);
+	process.exit(1);
+}
+
+process.on("unhandledRejection", handler);
+process.on("uncaughtException", handler);
+
 const http2 = require("http2"),
 	fs = require("fs"),
 	path = require("path"),

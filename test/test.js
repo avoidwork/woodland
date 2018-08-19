@@ -1,5 +1,13 @@
 "use strict";
 
+function handler (err) {
+	console.error(err.stack || err.message);
+	process.exit(1);
+}
+
+process.on("unhandledRejection", handler);
+process.on("uncaughtException", handler);
+
 const http = require("http"),
 	path = require("path"),
 	tinyhttptest = require("tiny-httptest"),
