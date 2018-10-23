@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "7.2.11",
+  "version": "7.2.12",
   "description": "Lightweight HTTP/HTTP2 router with automatic `Allow` & `CORS` headers",
   "main": "index.js",
   "scripts": {
