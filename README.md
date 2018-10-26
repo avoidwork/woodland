@@ -117,10 +117,10 @@ Function for `http.createServer()` or `https.createServer()`.
 ##### routes (uri, method, override = false)
 Returns an `Array` of middleware for the request. Caches value, & will update cache if `override` is `true`.
 
-##### use (path, fn, method = "GET")
+##### use ([path = "/.*",] ...fn[, method = "GET"])
 Registers middleware for a route. `path` is a regular expression (as a string), and if not passed it defaults to `/.*`. See `always()` if you want the middleware to be used for all HTTP methods.
 
-All HTTP methods are available on the prototype (partial application of the third argument), e.g. `get(path, fn)` & `options(path, fn)`.
+All HTTP methods are available on the prototype (partial application of the third argument), e.g. `get([path,] ...fn)` & `options([path,] ...fn)`.
 
 ## License
 Copyright (c) 2018 Jason Mulligan
