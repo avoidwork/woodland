@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "7.3.11",
+  "version": "7.3.12",
   "description": "Lightweight HTTP/HTTP2 router with automatic `Allow` & `CORS` headers",
   "main": "index.js",
   "scripts": {
@@ -32,7 +32,7 @@
   "homepage": "http://avoidwork.github.io/woodland/",
   "dependencies": {
     "tiny-coerce": "^1.1.1",
-    "tiny-lru": "^3.0.5"
+    "tiny-lru": "^3.0.6"
   },
   "devDependencies": {
     "grunt": "^1.0.3",
