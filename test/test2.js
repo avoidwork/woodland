@@ -40,9 +40,6 @@ router.use("/empty", (req, res) => res.status(204).send(""));
 router.use("/echo/:echo", (req, res) => res.send(req.params.echo));
 router.use("/echo/:echo", (req, res) => res.send("The entity will be echoed back to you"), "OPTIONS");
 router.use("/error", (req, res) => res.error(500));
-router.use("/unhandled-error", () => {
-	throw new Error("Unhandled Error");
-});
 
 http2.createSecureServer({
 	key: fs.readFileSync(path.join(__dirname, "..", "ssl", "localhost.key")),
@@ -266,17 +263,6 @@ describe("Invalid Requests (HTTP2)", function () {
 
 	it("GET /error (500 / 'Internal Server Error')", function () {
 		return tinyhttptest({http2: true, url: "https://localhost:8002/error"})
-			.expectStatus(500)
-			.expectHeader("allow", undefined)
-			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "text/plain")
-			.expectHeader("content-length", 21)
-			.expectBody(/^Internal Server Error$/)
-			.end();
-	});
-
-	it("GET /unhandled-error (500 / 'Internal Server Error')", function () {
-		return tinyhttptest({http2: true, url: "https://localhost:8002/unhandled-error"})
 			.expectStatus(500)
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
