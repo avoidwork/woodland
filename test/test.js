@@ -37,6 +37,9 @@ router.use("/empty", (req, res) => res.status(204).send(""));
 router.use("/echo/:echo", (req, res) => res.send(req.params.echo));
 router.use("/echo/:echo", (req, res) => res.send("The entity will be echoed back to you"), "OPTIONS");
 router.use("/error", (req, res) => res.error(500));
+router.use("/unhandled-error", () => {
+	throw new Error("Unhandled Error");
+});
 
 http.createServer(router.route).listen(8001);
 
@@ -276,6 +279,17 @@ describe("Invalid Requests", function () {
 
 	it("GET /error (500 / 'Internal Server Error')", function () {
 		return tinyhttptest({url: "http://localhost:8001/error"})
+			.expectStatus(500)
+			.expectHeader("allow", undefined)
+			.expectHeader("cache-control", "no-cache")
+			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-length", 21)
+			.expectBody(/^Internal Server Error$/)
+			.end();
+	});
+
+	it("GET /unhandled-error (500 / 'Internal Server Error')", function () {
+		return tinyhttptest({url: "http://localhost:8001/unhandled-error"})
 			.expectStatus(500)
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
