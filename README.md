@@ -123,5 +123,5 @@ Registers middleware for a route. `path` is a regular expression (as a string), 
 All HTTP methods are available on the prototype (partial application of the third argument), e.g. `get([path,] ...fn)` & `options([path,] ...fn)`.
 
 ## License
-Copyright (c) 2018 Jason Mulligan
+Copyright (c) 2019 Jason Mulligan
 Licensed under the BSD-3 license.
