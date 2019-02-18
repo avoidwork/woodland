@@ -6,7 +6,8 @@
 .git
 .gitignore
 .travis.yml
-Gruntfile.js
 benchmark.js
+dtrace.sh
+Gruntfile.js
 sample.js
 sample2.js
