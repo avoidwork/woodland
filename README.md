@@ -70,9 +70,6 @@ Sends a response. `Range` header is ignored on `stream` responses.
 Sets the response `statusCode` property & status.
 
 ## Event Handlers
-##### onclose (req, res)
-Executes if the connection was terminated before `res.end()` was called or able to flush.
-
 ##### onconnect (req, res)
 Executes after the connection has been decorated, but before the middleware executes.
 
@@ -88,7 +85,7 @@ Executes before the response has been sent; arguments are by reference such that
 Executes after the response has been sent.
 
 ## API
-##### woodland ({cacheSize: 1000, cacheTTL: 0, defaultHeaders: {}, http2: false})
+##### woodland ({cacheSize: 1000, cacheTTL: 0, defaultHeaders: {}, http2: false, dtrace: false})
 Returns a woodland router.
 
 ##### allowed (method, uri, override = false)
@@ -121,6 +118,9 @@ Returns an `Array` of middleware for the request. Caches value, & will update ca
 Registers middleware for a route. `path` is a regular expression (as a string), and if not passed it defaults to `/.*`. See `always()` if you want the middleware to be used for all HTTP methods.
 
 All HTTP methods are available on the prototype (partial application of the third argument), e.g. `get([path,] ...fn)` & `options([path,] ...fn)`.
+
+## DTrace
+DTrace probes are in a set of core functions, which can be enabled by setting `dtrace: true` for factory options, and watched with `dtrace.sh`; not recommended for production.
 
 ## License
 Copyright (c) 2019 Jason Mulligan

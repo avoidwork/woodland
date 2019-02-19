@@ -7,7 +7,6 @@
 .gitignore
 .travis.yml
 benchmark.js
-dtrace.sh
 Gruntfile.js
 sample.js
 sample2.js
