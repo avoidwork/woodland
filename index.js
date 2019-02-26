@@ -1,3 +1,5 @@
+"use strict";
+
 const path = require("path"),
 	Woodland = require(path.join(__dirname, "lib", "woodland.js"));
 

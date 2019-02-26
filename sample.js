@@ -1,3 +1,5 @@
+"use strict";
+
 const http = require("http"),
 	router = require("./index")({defaultHeaders: {"Cache-Control": "no-cache", "Content-Type": "text/plain"}, dtrace: true});
 
