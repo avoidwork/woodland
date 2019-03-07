@@ -18,6 +18,7 @@ const http2 = require("http2"),
 			"Cache-Control": "no-cache",
 			"Content-Type": "text/plain"
 		},
+		origins: ["https://not.localhost:8002"],
 		http2: true
 	});
 
@@ -99,6 +100,14 @@ describe("Valid Requests (HTTP2)", function () {
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
 			.expectBody(/^Hello World!$/)
+			.end();
+	});
+
+	it("GET / CORS Pre-flight (403 / 'Forbidden')", function () {
+		return tinyhttptest({http2: true, url: "https://localhost:8002/", method: "OPTIONS"})
+			.cors("https://nope.localhost:8002", false)
+			.expectStatus(403)
+			.expectBody(/Forbidden/)
 			.end();
 	});
 

@@ -15,7 +15,8 @@ const http = require("http"),
 		defaultHeaders: {
 			"Cache-Control": "no-cache",
 			"Content-Type": "text/plain"
-		}
+		},
+		origins: ["http://not.localhost:8001"]
 	});
 
 function always (req, res, next) {
@@ -103,6 +104,14 @@ describe("Valid Requests", function () {
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
 			.expectBody(/^Hello World!$/)
+			.end();
+	});
+
+	it("GET / CORS Pre-flight (403 / 'Forbidden')", function () {
+		return tinyhttptest({url: "http://localhost:8001/", method: "OPTIONS"})
+			.cors("http://nope.localhost:8001", false)
+			.expectStatus(403)
+			.expectBody(/Forbidden/)
 			.end();
 	});
 
