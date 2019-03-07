@@ -85,7 +85,7 @@ Executes before the response has been sent; arguments are by reference such that
 Executes after the response has been sent.
 
 ## API
-##### woodland ({cacheSize: 1000, cacheTTL: 0, defaultHeaders: {}, http2: false, dtrace: false})
+##### woodland ({cacheSize: 1000, cacheTTL: 0, defaultHeaders: {}, http2: false, dtrace: false, origins: ["*"]})
 Returns a woodland router.
 
 ##### allowed (method, uri, override = false)
