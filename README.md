@@ -52,7 +52,7 @@ http2.createSecureServer({
 ```
 
 ## Helpers
-`res` is decorated with helper functions to simplify responding.
+`req` & `res` are decorated with helper functions to simplify responding. Pipe responses over http1 via `res.raw`!
 
 ##### res.error (status[, body, headers])
 Sends an error response.
