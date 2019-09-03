@@ -18,7 +18,10 @@ const http2 = require("http2"),
 			"Cache-Control": "no-cache",
 			"Content-Type": "text/plain"
 		},
-		origins: ["https://not.localhost:8002"],
+		origins: [
+			"https://localhost:8002",
+			"https://not.localhost:8002"
+		],
 		http2: true
 	});
 
@@ -98,6 +101,14 @@ describe("Valid Requests (HTTP2)", function () {
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "text/plain")
 			.expectBody(/^Hello World!$/)
+			.end();
+	});
+
+	it("GET / Faux CORS (200 / 'Success')", function () {
+		return tinyhttptest({http2: true, url: "https://localhost:8002/", method: "OPTIONS", headers: {origin: "https://localhost:8002"}})
+			.expectStatus(200)
+			.expectHeader("allow", "GET, HEAD, OPTIONS")
+			.expectHeader("access-control-allow-origin", undefined)
 			.end();
 	});
 
