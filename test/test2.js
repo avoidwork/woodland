@@ -27,12 +27,10 @@ function always (req, res, next) {
 	next();
 }
 
-router.onconnect = (req, res) => res.header("x-onconnect", "true");
-router.onsend = (req, res, body, status, headers) => {
+router.on("connect", (req, res) => res.header("x-onconnect", "true"));
+router.on("send", (req, res, body, status, headers) => {
 	headers["x-by-reference"] = "true";
-
-	return body;
-};
+});
 router.always("/.*", always).blacklist(always);
 router.use("/", (req, res) => res.send("Hello World!"));
 router.use("/json1", (req, res) => res.json({text: "Hello World!"}));
