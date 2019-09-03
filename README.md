@@ -70,16 +70,20 @@ Sends a response. `Range` header is ignored on `stream` responses.
 Sets the response `statusCode` property & status.
 
 ## Event Handlers
-##### onconnect (req, res)
+Event Emitter syntax for the following events:
+
+```javascript
+router.on("connect", (req, res) => res.header("x-custom-header", "abc-def"));
+```
+
+##### connect (req, res)
 Executes after the connection has been decorated, but before the middleware executes.
 
-##### onerror (req, res, err)
+##### error (req, res, err)
 Executes if the request cannot be routed, default handler sends a basic text response.
 
-##### onsend (req, res, body, status, headers) [async]
+##### send (req, res, body, status, headers)
 Executes before the response has been sent; arguments are by reference such that they can be mutated.
-
-*Must* return **body**!
 
 ##### onfinish (req, res)
 Executes after the response has been sent.
