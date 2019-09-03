@@ -7,6 +7,8 @@ function factory ({cacheSize = 1e3, cacheTTL = 0, defaultHeaders = {}, http2 = f
 	const router = new Woodland(defaultHeaders, cacheSize, http2, cacheTTL, dtrace, origins);
 
 	router.route = router.route.bind(router);
+	router.on("connect", router.decorate);
+	router.on("error", router.error);
 
 	return router;
 }
