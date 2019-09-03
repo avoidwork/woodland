@@ -127,7 +127,15 @@ Registers middleware for a route. `path` is a regular expression (as a string), 
 All HTTP methods are available on the prototype (partial application of the third argument), e.g. `get([path,] ...fn)` & `options([path,] ...fn)`.
 
 ## DTrace
-DTrace probes are in a set of core functions, which can be enabled by setting `dtrace: true` for factory options, and watched with `dtrace.sh`; not recommended for production.
+DTrace probes are in a set of core functions, which can be enabled by setting `dtrace: true` for factory options, and watched with the following command; not recommended for production.
+
+```console
+sudo dtrace -Z -n 'woodland*:::allows{ trace(copyinstr(arg0)); trace(copyinstr(arg1)); trace(copyinstr(arg2)); }'  \
+               -n 'woodland*:::decorate{ trace(copyinstr(arg0)); trace(copyinstr(arg1)); }'  \
+               -n 'woodland*:::error{ trace(copyinstr(arg0)); trace(copyinstr(arg1)); trace(copyinstr(arg2)); }'  \
+               -n 'woodland*:::route{ trace(copyinstr(arg0)); trace(copyinstr(arg1)); trace(copyinstr(arg2)); }'  \
+               -n 'woodland*:::routes{ trace(copyinstr(arg0)); trace(copyinstr(arg1)); trace(copyinstr(arg2)); trace(copyinstr(arg3)); }'
+```
 
 ## License
 Copyright (c) 2019 Jason Mulligan
