@@ -57,6 +57,9 @@ http2.createSecureServer({
 ##### res.error (status[, body, headers])
 Sends an error response.
 
+##### res.header (key, value)
+Shorthand of `res.setHeader()`.
+
 ##### res.json (body, [status = 200, headers])
 Sends a JSON response.
 
