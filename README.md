@@ -82,11 +82,11 @@ Executes after the connection has been decorated, but before the middleware exec
 ##### error (req, res, err)
 Executes if the request cannot be routed, default handler sends a basic text response.
 
+##### finish (req, res)
+Executes after the response has been sent.
+
 ##### send (req, res, body, status, headers)
 Executes before the response has been sent; arguments are by reference such that they can be mutated.
-
-##### onfinish (req, res)
-Executes after the response has been sent.
 
 ## API
 ##### woodland ({cacheSize: 1000, cacheTTL: 0, defaultHeaders: {}, http2: false, dtrace: false, origins: ["*"]})
