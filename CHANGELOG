@@ -1,4 +1,5 @@
-[2019-09-05] 81698cf (HEAD -> master, tag: 8.0.3, origin/master, origin/HEAD) Fixing an authorization regression by creating `req.corsHost` to track if the origin & host are matches (not a CORS request - Chrome started putting an origin header on all requests) - Jason Mulligan (jamullig@adobe.com)
+[2019-10-08] 306e4f3 (HEAD -> master, tag: 8.0.4, origin/master, origin/HEAD) Removing an iteration from `http2send()`, adding `changelog` script & output `CHANGELOG` - Jason Mulligan (jason.mulligan@avoidwork.com)
+[2019-09-05] 81698cf (tag: 8.0.3) Fixing an authorization regression by creating `req.corsHost` to track if the origin & host are matches (not a CORS request - Chrome started putting an origin header on all requests) - Jason Mulligan (jamullig@adobe.com)
 [2019-09-02] a12e57e (tag: 8.0.2) Removing `async` from `res.send()` signature - Jason Mulligan (jason.mulligan@avoidwork.com)
 [2019-09-02] 4e037d1 (tag: 8.0.1) Decorating CORS headers when origin is not the host - Jason Mulligan (jason.mulligan@avoidwork.com)
 [2019-09-02] 3d824a5 (tag: 8.0.0, origin/multimap) Updating README - Jason Mulligan (jason.mulligan@avoidwork.com)
