@@ -1,3 +1,5 @@
+[2019-10-21] ca267ae (HEAD -> master, tag: 9.0.0, origin/master, origin/HEAD) Fixing assignment in `decorate()` - Jason Mulligan (jason.mulligan@avoidwork.com)
+[2019-10-21] 923d558 Updating CHANGELOG - Jason Mulligan (jason.mulligan@avoidwork.com)
 [2019-10-21] d147985 (origin/idea, idea) Tweaking `decorate()` assignments - Jason Mulligan (jason.mulligan@avoidwork.com)
 [2019-10-21] 7233767 Fixing assignment of `req.ip` - Jason Mulligan (jason.mulligan@avoidwork.com)
 [2019-10-21] ca6bd0a Reducing repetitive ops by storing prepared objects in router - Jason Mulligan (jason.mulligan@avoidwork.com)
