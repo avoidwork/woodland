@@ -61,7 +61,7 @@ Sends an error response.
 Shorthand of `res.setHeader()`.
 
 ##### res.next (req, res, next)
-First middleware of the HTTP method as a way to "skip" to the middleware which sends a response; will not work if the target middleware calls `next()`!.
+Last middleware of the route for the HTTP method as a way to "skip" to the middleware which sends a response.
 
 ##### res.json (body, [status = 200, headers])
 Sends a JSON response.
