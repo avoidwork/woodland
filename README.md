@@ -60,11 +60,11 @@ Sends an error response.
 ##### res.header (key, value)
 Shorthand of `res.setHeader()`.
 
-##### res.next (req, res, next)
-Last middleware of the route for the HTTP method as a way to "skip" to the middleware which sends a response.
-
 ##### res.json (body, [status = 200, headers])
 Sends a JSON response.
+
+##### res.last (req, res, next)
+Last middleware of the route for the HTTP method as a way to "skip" to the middleware which sends a response.
 
 ##### res.redirect (uri[, perm = false])
 Sends a redirection response.
