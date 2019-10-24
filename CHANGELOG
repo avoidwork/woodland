@@ -1,4 +1,4 @@
-[2019-10-23] 791622b (HEAD -> master, tag: 9.1.1, origin/master, origin/HEAD) Fixing tests and `content-range` header value on 206 with negative offset from end - Jason Mulligan (jason.mulligan@avoidwork.com)
+[2019-10-23] 791622b (tag: 9.1.1) Fixing tests and `content-range` header value on 206 with negative offset from end - Jason Mulligan (jason.mulligan@avoidwork.com)
 [2019-10-23] fbb44b3 Updating lock file - Jason Mulligan (jason.mulligan@avoidwork.com)
 [2019-10-23] 685f043 Fixing `content-length` response header value on 206 when specifying a negative offset from end - Jason Mulligan (jason.mulligan@avoidwork.com)
 [2019-10-23] 3d658f3 (tag: 9.1.0) Updating lock file - Jason Mulligan (jason.mulligan@avoidwork.com)
