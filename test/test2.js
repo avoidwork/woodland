@@ -182,7 +182,7 @@ describe("Valid Requests (HTTP2)", function () {
 		return tinyhttptest({http2: true, url: "https://localhost:8002/", headers: {range: "bytes=-5"}})
 			.expectStatus(206)
 			.expectHeader("content-range", /^bytes 7-12\/12$/)
-			.expectHeader("content-length", 6)
+			.expectHeader("content-length", 5)
 			.expectBody(/^orld!$/)
 			.end();
 	});

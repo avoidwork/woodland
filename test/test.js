@@ -186,7 +186,7 @@ describe("Valid Requests", function () {
 		return tinyhttptest({url: "http://localhost:8001/", headers: {range: "bytes=-5"}})
 			.expectStatus(206)
 			.expectHeader("content-range", /^bytes 7-12\/12$/)
-			.expectHeader("content-length", 6)
+			.expectHeader("content-length", 5)
 			.expectBody(/^orld!$/)
 			.end();
 	});
