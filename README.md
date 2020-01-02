@@ -24,7 +24,7 @@ const http = require("http"),
 		defaultHeaders: {"Cache-Control": "no-cache", "Content-Type": "text/plain"}
 	});
 
-router.get("/", (req, res) => res.send("Hello World!"));
+router.get("/", "Hello World!");
 router.get("/:user", (req, res) => res.send(`Hello ${req.params.user}!`));
 
 http.createServer(router.route).listen(8000);
@@ -41,7 +41,7 @@ const http2 = require("http2"),
 		http2: true
 	});
 
-router.get("/", (req, res) => res.send("Hello World!"));
+router.get("/", "Hello World!");
 router.get("/:user", (req, res) => res.send(`Hello ${req.params.user}!`));
 
 http2.createSecureServer({
@@ -141,5 +141,5 @@ sudo dtrace -Z -n 'woodland*:::allows{ trace(copyinstr(arg0)); trace(copyinstr(a
 ```
 
 ## License
-Copyright (c) 2019 Jason Mulligan
+Copyright (c) 2020 Jason Mulligan
 Licensed under the BSD-3 license.
