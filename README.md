@@ -11,7 +11,7 @@ Lightweight HTTP router with automatic headers. Routes can use parameter syntax,
 Middleware arguments can be `req, res, next` or `error, req, res, next`. If no `Error` handling middleware is registered woodland will handle it.
 
 ## Example
-HTTP1 & HTTP2 middleware have the same signature, such that `req` represents the request & `res` represents the response; with `http2` `res` is really `stream` with helper functions decorated for interop with older middleware & easy migration to `http2`.
+HTTP middleware have the same signature, such that `req` represents the request & `res` represents the response.
 
 Switching between protocols is done with a boolean.
 
@@ -74,7 +74,7 @@ Executes after the response has been sent.
 Executes before the response has been sent; arguments are by reference such that they can be mutated.
 
 ## API
-##### woodland ({cacheSize: 1000, cacheTTL: 0, defaultHeaders: {}, http2: false, dtrace: false, origins: ["*"]})
+##### woodland ({cacheSize: 1000, cacheTTL: 0, defaultHeaders: {}, dtrace: false, origins: ["*"]})
 Returns a woodland router.
 
 ##### allowed (method, uri, override = false)
