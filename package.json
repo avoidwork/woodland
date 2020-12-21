@@ -1,11 +1,11 @@
 {
   "name": "woodland",
-  "version": "9.1.8",
-  "description": "Lightweight HTTP/HTTP2 router with automatic `Allow` & `CORS` headers",
+  "version": "10.0.0",
+  "description": "Lightweight HTTP/HTTP2 router with automatic headers",
   "main": "index.js",
   "scripts": {
     "changelog": "auto-changelog -p",
-    "test": "grunt test",
+    "test": "eslint *.js lib/*.js test/*.js && mocha test/*.js",
     "ssl": "mkdir ssl && openssl req -new -newkey rsa:2048 -subj \"/C=CA/ST=Ontario/L=Ottawa/O=CHANGEME/CN=localhost\" -days 365 -nodes -x509 -keyout ssl/localhost.key -out ssl/localhost.crt"
   },
   "repository": {
@@ -28,22 +28,19 @@
   },
   "engineStrict": true,
   "engines": {
-    "node": ">=8.4.0"
+    "node": ">=12.0.0"
   },
   "homepage": "http://avoidwork.github.io/woodland/",
   "dependencies": {
     "dtrace-provider": "^0.8.8",
     "precise": "^1.1.0",
     "tiny-coerce": "^1.1.1",
-    "tiny-fifo": "^1.2.0"
+    "tiny-lru": "^7.0.6"
   },
   "devDependencies": {
-    "auto-changelog": "^1.16.2",
-    "grunt": "^1.0.4",
-    "grunt-cli": "^1.3.2",
-    "grunt-eslint": "^22.0.0",
-    "grunt-mocha-test": "^0.13.3",
-    "mocha": "^6.2.2",
+    "auto-changelog": "^2.2.1",
+    "eslint": "^7.16.0",
+    "mocha": "^8.2.1",
     "tiny-httptest": "^1.1.1"
   }
 }

@@ -4,7 +4,7 @@
 
 [![build status](https://secure.travis-ci.org/avoidwork/woodland.svg)](http://travis-ci.org/avoidwork/woodland)
 
-Lightweight HTTP/HTTP2 router with automatic `Allow` & `CORS` headers. Routes can use parameter syntax, i.e. `/users/:id`, or `RegExp` syntax. Route parameters are not sanitized. If 2+ routes with parameters match a request the first route will be used to extract parameters. All HTTP methods are supported.
+Lightweight HTTP router with automatic headers. Routes can use parameter syntax, i.e. `/users/:id`, or `RegExp` syntax. Route parameters are not sanitized. If 2+ routes with parameters match a request the first route will be used to extract parameters. All HTTP methods are supported.
 
 `CORS` (Cross Origin Resource Sharing) is automatically handled, and indicated with `cors` Boolean on the `request` Object for middleware.
 
@@ -28,27 +28,6 @@ router.get("/", "Hello World!");
 router.get("/:user", (req, res) => res.send(`Hello ${req.params.user}!`));
 
 http.createServer(router.route).listen(8000);
-```
-
-#### HTTP2
-```javascript
-"use strict";
-
-const http2 = require("http2"),
-	fs = require("fs"),
-	router = require("woodland")({
-		defaultHeaders: {"Cache-Control": "no-cache", "Content-Type": "text/plain"},
-		http2: true
-	});
-
-router.get("/", "Hello World!");
-router.get("/:user", (req, res) => res.send(`Hello ${req.params.user}!`));
-
-http2.createSecureServer({
-	key: fs.readFileSync("./ssl/localhost.key"),
-	cert: fs.readFileSync("./ssl/localhost.crt")
-}).on("stream", router.route).listen(8443);
-
 ```
 
 ## Helpers
