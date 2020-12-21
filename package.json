@@ -32,7 +32,6 @@
   },
   "homepage": "http://avoidwork.github.io/woodland/",
   "dependencies": {
-    "dtrace-provider": "^0.8.8",
     "precise": "^1.1.0",
     "tiny-coerce": "^1.1.1",
     "tiny-lru": "^7.0.6"

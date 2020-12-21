@@ -40,7 +40,7 @@ router.use("/echo/:echo", (req, res) => res.send(req.params.echo));
 router.use("/echo/:echo", (req, res) => res.send("The entity will be echoed back to you"), "OPTIONS");
 router.use("/error", (req, res) => res.error(500));
 
-http.createServer(router.route).listen(8001);
+const server = http.createServer(router.route).listen(8001);
 
 describe("Methods", function () {
 	it("Array of routes", function () {
@@ -345,6 +345,6 @@ describe("Invalid Requests", function () {
 			.expectHeader("content-type", "text/plain")
 			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
-			.end();
+			.end().then(() => server.close());
 	});
 });
