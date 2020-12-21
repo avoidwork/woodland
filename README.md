@@ -74,7 +74,7 @@ Executes after the response has been sent.
 Executes before the response has been sent; arguments are by reference such that they can be mutated.
 
 ## API
-##### woodland ({cacheSize: 1000, cacheTTL: 0, defaultHeaders: {}, dtrace: false, origins: ["*"]})
+##### woodland ({cacheSize: 1000, cacheTTL: 0, defaultHeaders: {}, origins: ["*"]})
 Returns a woodland router.
 
 ##### allowed (method, uri, override = false)
@@ -107,17 +107,6 @@ Returns an `Array` of middleware for the request. Caches value, & will update ca
 Registers middleware for a route. `path` is a regular expression (as a string), and if not passed it defaults to `/.*`. See `always()` if you want the middleware to be used for all HTTP methods.
 
 All HTTP methods are available on the prototype (partial application of the third argument), e.g. `get([path,] ...fn)` & `options([path,] ...fn)`.
-
-## DTrace
-DTrace probes are in a set of core functions, which can be enabled by setting `dtrace: true` for factory options, and watched with the following command; not recommended for production.
-
-```console
-sudo dtrace -Z -n 'woodland*:::allows{ trace(copyinstr(arg0)); trace(copyinstr(arg1)); trace(copyinstr(arg2)); }'  \
-               -n 'woodland*:::decorate{ trace(copyinstr(arg0)); trace(copyinstr(arg1)); }'  \
-               -n 'woodland*:::error{ trace(copyinstr(arg0)); trace(copyinstr(arg1)); trace(copyinstr(arg2)); }'  \
-               -n 'woodland*:::route{ trace(copyinstr(arg0)); trace(copyinstr(arg1)); trace(copyinstr(arg2)); }'  \
-               -n 'woodland*:::routes{ trace(copyinstr(arg0)); trace(copyinstr(arg1)); trace(copyinstr(arg2)); trace(copyinstr(arg3)); }'
-```
 
 ## License
 Copyright (c) 2020 Jason Mulligan
