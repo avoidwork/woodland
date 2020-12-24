@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "changelog": "auto-changelog -p",
-    "test": "eslint *.js lib/*.js test/*.js && mocha test/*.js",
-    "ssl": "mkdir ssl && openssl req -new -newkey rsa:2048 -subj \"/C=CA/ST=Ontario/L=Ottawa/O=CHANGEME/CN=localhost\" -days 365 -nodes -x509 -keyout ssl/localhost.key -out ssl/localhost.crt"
+    "test": "eslint *.js lib/*.js test/*.js && mocha test/*.js"
   },
   "repository": {
     "type": "git",

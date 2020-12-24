@@ -1,7 +1,7 @@
 "use strict";
 
 const http = require("http"),
-	router = require("./index")({defaultHeaders: {"cache-control": "no-cache", "content-type": "text/plain; charset=utf-8"}, dtrace: false});
+	router = require("./index")({defaultHeaders: {"cache-control": "no-cache", "content-type": "text/plain; charset=utf-8"}});
 
 router.use("/", (req, res) => res.send("Hello World!"));
 router.use("/", (req, res) => res.send("Make a GET request to retrieve the representation"), "options");
