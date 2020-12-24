@@ -4,14 +4,14 @@
 
 [![build status](https://secure.travis-ci.org/avoidwork/woodland.svg)](http://travis-ci.org/avoidwork/woodland)
 
-Lightweight HTTP/HTTP2 router with automatic `Allow` & `CORS` headers. Routes can use parameter syntax, i.e. `/users/:id`, or `RegExp` syntax. Route parameters are not sanitized. If 2+ routes with parameters match a request the first route will be used to extract parameters. All HTTP methods are supported.
+Lightweight HTTP router with automatic headers. Routes can use parameter syntax, i.e. `/users/:id`, or `RegExp` syntax. Route parameters are not sanitized. If 2+ routes with parameters match a request the first route will be used to extract parameters. All HTTP methods are supported.
 
 `CORS` (Cross Origin Resource Sharing) is automatically handled, and indicated with `cors` Boolean on the `request` Object for middleware.
 
 Middleware arguments can be `req, res, next` or `error, req, res, next`. If no `Error` handling middleware is registered woodland will handle it.
 
 ## Example
-HTTP1 & HTTP2 middleware have the same signature, such that `req` represents the request & `res` represents the response; with `http2` `res` is really `stream` with helper functions decorated for interop with older middleware & easy migration to `http2`.
+HTTP middleware have the same signature, such that `req` represents the request & `res` represents the response.
 
 Switching between protocols is done with a boolean.
 
@@ -28,27 +28,6 @@ router.get("/", "Hello World!");
 router.get("/:user", (req, res) => res.send(`Hello ${req.params.user}!`));
 
 http.createServer(router.route).listen(8000);
-```
-
-#### HTTP2
-```javascript
-"use strict";
-
-const http2 = require("http2"),
-	fs = require("fs"),
-	router = require("woodland")({
-		defaultHeaders: {"Cache-Control": "no-cache", "Content-Type": "text/plain"},
-		http2: true
-	});
-
-router.get("/", "Hello World!");
-router.get("/:user", (req, res) => res.send(`Hello ${req.params.user}!`));
-
-http2.createSecureServer({
-	key: fs.readFileSync("./ssl/localhost.key"),
-	cert: fs.readFileSync("./ssl/localhost.crt")
-}).on("stream", router.route).listen(8443);
-
 ```
 
 ## Helpers
@@ -95,7 +74,7 @@ Executes after the response has been sent.
 Executes before the response has been sent; arguments are by reference such that they can be mutated.
 
 ## API
-##### woodland ({cacheSize: 1000, cacheTTL: 0, defaultHeaders: {}, http2: false, dtrace: false, origins: ["*"]})
+##### woodland ({cacheSize: 1000, cacheTTL: 300000, defaultHeaders: {}, origins: ["*"]})
 Returns a woodland router.
 
 ##### allowed (method, uri, override = false)
@@ -128,17 +107,6 @@ Returns an `Array` of middleware for the request. Caches value, & will update ca
 Registers middleware for a route. `path` is a regular expression (as a string), and if not passed it defaults to `/.*`. See `always()` if you want the middleware to be used for all HTTP methods.
 
 All HTTP methods are available on the prototype (partial application of the third argument), e.g. `get([path,] ...fn)` & `options([path,] ...fn)`.
-
-## DTrace
-DTrace probes are in a set of core functions, which can be enabled by setting `dtrace: true` for factory options, and watched with the following command; not recommended for production.
-
-```console
-sudo dtrace -Z -n 'woodland*:::allows{ trace(copyinstr(arg0)); trace(copyinstr(arg1)); trace(copyinstr(arg2)); }'  \
-               -n 'woodland*:::decorate{ trace(copyinstr(arg0)); trace(copyinstr(arg1)); }'  \
-               -n 'woodland*:::error{ trace(copyinstr(arg0)); trace(copyinstr(arg1)); trace(copyinstr(arg2)); }'  \
-               -n 'woodland*:::route{ trace(copyinstr(arg0)); trace(copyinstr(arg1)); trace(copyinstr(arg2)); }'  \
-               -n 'woodland*:::routes{ trace(copyinstr(arg0)); trace(copyinstr(arg1)); trace(copyinstr(arg2)); trace(copyinstr(arg3)); }'
-```
 
 ## License
 Copyright (c) 2020 Jason Mulligan

@@ -1,13 +1,10 @@
 /.idea/
 /node_modules/
-/ssl/
 /test/
 .eslintrc
 .git
 .gitignore
 .travis.yml
 benchmark.js
-CHANGELOG
 Gruntfile.js
 sample.js
-sample2.js
