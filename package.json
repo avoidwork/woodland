@@ -15,7 +15,6 @@
     "router",
     "http",
     "https",
-    "http2",
     "routing",
     "api",
     "rest"
