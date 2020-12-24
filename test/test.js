@@ -14,7 +14,7 @@ const http = require("http"),
 	router = require(path.join(__dirname, "..", "index.js"))({
 		defaultHeaders: {
 			"Cache-Control": "no-cache",
-			"Content-Type": "text/plain"
+			"Content-Type": "text/plain; charset=utf-8"
 		},
 		origins: [
 			"http://localhost:8001",
@@ -58,7 +58,7 @@ describe("Valid Requests", function () {
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-type", "text/plain; charset=utf-8")
 			.expectHeader("x-always", "true")
 			.expectHeader("x-by-reference", "true")
 			.expectHeader("x-onconnect", "true")
@@ -71,7 +71,7 @@ describe("Valid Requests", function () {
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-type", "text/plain; charset=utf-8")
 			.expectHeader("content-length", undefined)
 			.expectBody(/^$/)
 			.end();
@@ -82,7 +82,7 @@ describe("Valid Requests", function () {
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-type", "text/plain; charset=utf-8")
 			.expectHeader("content-length", undefined)
 			.expectBody(/^$/)
 			.end();
@@ -103,7 +103,7 @@ describe("Valid Requests", function () {
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-type", "text/plain; charset=utf-8")
 			.expectBody(/^Hello World!$/)
 			.end();
 	});
@@ -129,7 +129,7 @@ describe("Valid Requests", function () {
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-type", "text/plain; charset=utf-8")
 			.expectBody("The entity will be echoed back to you")
 			.end();
 	});
@@ -148,7 +148,7 @@ describe("Valid Requests", function () {
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "application/json")
+			.expectHeader("content-type", "application/json; charset=utf-8")
 			.expectBody({text: "Hello World!"})
 			.end();
 	});
@@ -158,7 +158,7 @@ describe("Valid Requests", function () {
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "application/json")
+			.expectHeader("content-type", "application/json; charset=utf-8")
 			.expectBody("Hello World!")
 			.end();
 	});
@@ -168,7 +168,7 @@ describe("Valid Requests", function () {
 			.expectStatus(204)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-type", "text/plain; charset=utf-8")
 			.expectBody(/^$/)
 			.end();
 	});
@@ -198,7 +198,7 @@ describe("Invalid Requests", function () {
 			.expectStatus(405)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-type", "text/plain; charset=utf-8")
 			.expectHeader("content-length", 18)
 			.expectBody(/Method Not Allowed/)
 			.end();
@@ -209,7 +209,7 @@ describe("Invalid Requests", function () {
 			.expectStatus(405)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-type", "text/plain; charset=utf-8")
 			.expectHeader("content-length", 18)
 			.expectBody(/Method Not Allowed/)
 			.end();
@@ -220,7 +220,7 @@ describe("Invalid Requests", function () {
 			.expectStatus(405)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-type", "text/plain; charset=utf-8")
 			.expectHeader("content-length", 18)
 			.expectBody(/Method Not Allowed/)
 			.end();
@@ -231,7 +231,7 @@ describe("Invalid Requests", function () {
 			.expectStatus(405)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-type", "text/plain; charset=utf-8")
 			.expectHeader("content-length", 18)
 			.expectBody(/Method Not Allowed/)
 			.end();
@@ -242,7 +242,7 @@ describe("Invalid Requests", function () {
 			.expectStatus(404)
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-type", "text/plain; charset=utf-8")
 			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
@@ -253,7 +253,7 @@ describe("Invalid Requests", function () {
 			.expectStatus(404)
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-type", "text/plain; charset=utf-8")
 			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
@@ -264,7 +264,7 @@ describe("Invalid Requests", function () {
 			.expectStatus(404)
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-type", "text/plain; charset=utf-8")
 			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
@@ -275,7 +275,7 @@ describe("Invalid Requests", function () {
 			.expectStatus(404)
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-type", "text/plain; charset=utf-8")
 			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
@@ -286,7 +286,7 @@ describe("Invalid Requests", function () {
 			.expectStatus(404)
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-type", "text/plain; charset=utf-8")
 			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
@@ -297,7 +297,7 @@ describe("Invalid Requests", function () {
 			.expectStatus(500)
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-type", "text/plain; charset=utf-8")
 			.expectHeader("content-length", 21)
 			.expectBody(/^Internal Server Error$/)
 			.end();
@@ -309,7 +309,7 @@ describe("Invalid Requests", function () {
 			.expectStatus(404)
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-type", "text/plain; charset=utf-8")
 			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
@@ -320,7 +320,7 @@ describe("Invalid Requests", function () {
 			.expectStatus(404)
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-type", "text/plain; charset=utf-8")
 			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
@@ -331,7 +331,7 @@ describe("Invalid Requests", function () {
 			.expectStatus(404)
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-type", "text/plain; charset=utf-8")
 			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end();
@@ -342,7 +342,7 @@ describe("Invalid Requests", function () {
 			.expectStatus(404)
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")
-			.expectHeader("content-type", "text/plain")
+			.expectHeader("content-type", "text/plain; charset=utf-8")
 			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
 			.end().then(() => server.close());
