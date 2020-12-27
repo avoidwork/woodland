@@ -206,6 +206,14 @@ describe("Valid Requests", function () {
 			.end();
 	});
 
+	it("GET /test/test.js (206 / 'Partial response - bytes=0-5')", function () {
+		return tinyhttptest({url: "http://localhost:8001/test/test.js", headers: {range: "bytes=0-5"}})
+			.expectStatus(206)
+			.expectHeader("content-type", "application/javascript; charset=utf-8")
+			.expectHeader("content-length", 6)
+			.end();
+	});
+
 	it("HEAD /test/test.js (200 / 'Success')", function () {
 		return tinyhttptest({url: "http://localhost:8001/test/test.js", method: "HEAD"})
 			.expectStatus(200)
