@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "11.1.1",
+  "version": "11.1.2",
   "description": "Lightweight HTTP/HTTP2 router with automatic headers",
   "main": "index.js",
   "scripts": {
@@ -33,7 +33,7 @@
     "mime-db": "^1.45.0",
     "precise": "^1.1.0",
     "tiny-coerce": "^1.1.1",
-    "tiny-etag": "^2.0.16",
+    "tiny-etag": "^2.1.0",
     "tiny-lru": "^7.0.6"
   },
   "devDependencies": {
