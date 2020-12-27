@@ -392,7 +392,7 @@ describe("Invalid Requests", function () {
 			.end();
 	});
 
-	it("DELETE /test/test.js (404 / 'Not Found')", function () {
+	it("DELETE /test/test.js (405 / 'Method Not Allowed')", function () {
 		return tinyhttptest({url: "http://localhost:8001/test/test.js", method: "DELETE"})
 			.expectStatus(405)
 			.expectHeader("allow", undefined)
