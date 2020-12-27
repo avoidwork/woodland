@@ -201,6 +201,7 @@ describe("Valid Requests", function () {
 			.expectHeader("x-always", "true")
 			.expectHeader("x-by-reference", "true")
 			.expectHeader("x-onconnect", "true")
+			.expectHeader("etag", /^"\d+"$/)
 			.expectBody(/[\w]+/)
 			.end();
 	});
