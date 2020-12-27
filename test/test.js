@@ -39,6 +39,7 @@ router.use("/empty", (req, res) => res.status(204).send(""));
 router.use("/echo/:echo", (req, res) => res.send(req.params.echo));
 router.use("/echo/:echo", (req, res) => res.send("The entity will be echoed back to you"), "OPTIONS");
 router.use("/error", (req, res) => res.error(500));
+router.use("/test/:file", (req, res) => router.static(req, res, path.join(__dirname, "..", "test", req.params.file), path.join(__dirname, "..", "test")));
 
 const server = http.createServer(router.route).listen(8001);
 
@@ -190,6 +191,49 @@ describe("Valid Requests", function () {
 			.expectBody(/^orld!$/)
 			.end();
 	});
+
+	it("GET /test/test.js (200 / 'Success')", function () {
+		return tinyhttptest({url: "http://localhost:8001/test/test.js"})
+			.expectStatus(200)
+			.expectHeader("allow", "GET, HEAD, OPTIONS")
+			.expectHeader("cache-control", "no-cache")
+			.expectHeader("content-type", "application/javascript; charset=utf-8")
+			.expectHeader("x-always", "true")
+			.expectHeader("x-by-reference", "true")
+			.expectHeader("x-onconnect", "true")
+			.expectHeader("etag", /^"\d+"$/)
+			.expectBody(/[\w]+/)
+			.end();
+	});
+
+	it("GET /test/test.js (206 / 'Partial response - bytes=0-5')", function () {
+		return tinyhttptest({url: "http://localhost:8001/test/test.js", headers: {range: "bytes=0-5"}})
+			.expectStatus(206)
+			.expectHeader("content-type", "application/javascript; charset=utf-8")
+			.expectHeader("content-length", 6)
+			.end();
+	});
+
+	it("HEAD /test/test.js (200 / 'Success')", function () {
+		return tinyhttptest({url: "http://localhost:8001/test/test.js", method: "HEAD"})
+			.expectStatus(200)
+			.expectHeader("allow", "GET, HEAD, OPTIONS")
+			.expectHeader("cache-control", "no-cache")
+			.expectHeader("content-type", "application/javascript; charset=utf-8")
+			.expectBody(/^$/)
+			.end();
+	});
+
+	it("OPTIONS /test/test.js (200 / 'Success')", function () {
+		return tinyhttptest({url: "http://localhost:8001/test/test.js", method: "OPTIONS"})
+			.expectStatus(200)
+			.expectHeader("allow", "GET, HEAD, OPTIONS")
+			.expectHeader("cache-control", "no-cache")
+			.expectHeader("content-type", "application/javascript; charset=utf-8")
+			.expectHeader("content-length", undefined)
+			.expectBody(/^$/)
+			.end();
+	});
 });
 
 describe("Invalid Requests", function () {
@@ -339,6 +383,28 @@ describe("Invalid Requests", function () {
 
 	it("DELETE /nothere.html (404 / 'Not Found')", function () {
 		return tinyhttptest({url: "http://localhost:8001/nothere.html", method: "DELETE"})
+			.expectStatus(404)
+			.expectHeader("allow", undefined)
+			.expectHeader("cache-control", "no-cache")
+			.expectHeader("content-type", "text/plain; charset=utf-8")
+			.expectHeader("content-length", 9)
+			.expectBody(/Not Found/)
+			.end();
+	});
+
+	it("DELETE /test/test.js (405 / 'Method Not Allowed')", function () {
+		return tinyhttptest({url: "http://localhost:8001/test/test.js", method: "DELETE"})
+			.expectStatus(405)
+			.expectHeader("allow", undefined)
+			.expectHeader("cache-control", "no-cache")
+			.expectHeader("content-type", "text/plain; charset=utf-8")
+			.expectHeader("content-length", "18")
+			.expectBody(/Method Not Allowed/)
+			.end();
+	});
+
+	it("GET /test/nothere.html (404 / 'Not Found')", function () {
+		return tinyhttptest({url: "http://localhost:8001/test/nothere.html"})
 			.expectStatus(404)
 			.expectHeader("allow", undefined)
 			.expectHeader("cache-control", "no-cache")

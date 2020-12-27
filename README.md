@@ -74,7 +74,7 @@ Executes after the response has been sent.
 Executes before the response has been sent; arguments are by reference such that they can be mutated.
 
 ## API
-##### woodland ({cacheSize: 1000, cacheTTL: 300000, defaultHeaders: {}, origins: ["*"]})
+##### woodland ({cacheSize: 1000, cacheTTL: 300000, defaultHeaders: {}, origins: ["*"], indexes = ["index.htm", "index.html"], etags = true, seed = 42, charset = "utf-8"})
 Returns a woodland router.
 
 ##### allowed (method, uri, override = false)
@@ -94,6 +94,9 @@ Blacklists `fn` for calculating the return of `allows()`.
 ##### decorate (req, res)
 Decorates `allow, body, cors, host, ip, params, & parsed` on `req` and `error(status[, body, headers]), header(key, value), json(body[, status, headers]), locals{} & redirect(url[, perm = false])` on `res`.
 
+##### etag (...args)
+Returns a String to be used as an ETag response header value.
+
 ##### list (method = "get", type = "array")
 Returns an `Array` or `Object` of routes for the specified method.
 
@@ -102,6 +105,13 @@ Function for `http.createServer()` or `https.createServer()`.
 
 ##### routes (uri, method, override = false)
 Returns an `Array` of middleware for the request. Caches value, & will update cache if `override` is `true`.
+
+##### static (req, res, filePath, rootFolder, indexes = this.indexes)
+Serve static files on disk.
+
+```javascript
+router.use("/files/:file", (req, res) => router.static(req, res, path.join(__dirname, "files", req.params.file), path.join(__dirname, "files")));
+```
 
 ##### use ([path = "/.*",] ...fn[, method = "GET"])
 Registers middleware for a route. `path` is a regular expression (as a string), and if not passed it defaults to `/.*`. See `always()` if you want the middleware to be used for all HTTP methods.
