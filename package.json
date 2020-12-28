@@ -1,7 +1,7 @@
 {
   "name": "woodland",
   "version": "12.2.1",
-  "description": "Lightweight HTTP/HTTP2 router with automatic headers",
+  "description": "Lightweight HTTP router with automatic headers",
   "main": "index.js",
   "scripts": {
     "changelog": "auto-changelog -p",
