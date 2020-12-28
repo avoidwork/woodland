@@ -7,8 +7,6 @@ function factory (arg) {
 	const router = new Woodland(arg);
 
 	router.route = router.route.bind(router);
-	router.on("connect", router.decorate);
-	router.on("error", router.error);
 
 	return router;
 }
