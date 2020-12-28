@@ -230,8 +230,7 @@ describe("Valid Requests", function () {
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "application/javascript; charset=utf-8")
-			.expectHeader("content-length", undefined)
-			.expectBody(/^$/)
+			.expectBody("Make a GET request to retrieve the file")
 			.end();
 	});
 });
