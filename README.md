@@ -63,7 +63,7 @@ router.on("connect", (req, res) => res.header("x-custom-header", "abc-def"));
 Executes after the connection has been decorated, but before the middleware executes.
 
 ##### error (req, res, err)
-Executes if the request cannot be routed, default handler sends a basic text response.
+Executes after the response has been sent.
 
 ##### finish (req, res)
 Executes after the response has been sent.
