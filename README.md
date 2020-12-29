@@ -111,7 +111,7 @@ Serve static files on disk. Use a route parameter or remove `folderPath` from `r
 
 ###### Without `autoindex`
 ```javascript
-router.use("/files/:file", (req, res) => router.static(req, res, req.params.file, path.join(__dirname, "files")));
+router.use("/files/:file", (req, res) => router.serve(req, res, req.params.file, path.join(__dirname, "files")));
 ```
 
 ###### With `autoindex`
