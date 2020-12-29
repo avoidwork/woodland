@@ -2,7 +2,7 @@ title: woodland
 description: Lightweight HTTP/HTTPS router with virtual hosts
 google_analytics: 
 show_downloads: true
-theme: jekyll-theme-minimal
+theme: jekyll-theme-slate
 
 gems:
   - jekyll-mentions
