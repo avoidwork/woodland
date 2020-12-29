@@ -74,8 +74,8 @@ Executes after the response has been sent.
 Executes before the response has been sent; arguments are by reference such that they can be mutated.
 
 ## API
-##### woodland ({cacheSize: 1000, cacheTTL: 300000, defaultHeaders: {}, origins: ["*"], indexes = ["index.htm", "index.html"], etags = true, seed = 42, charset = "utf-8"})
-Returns a woodland router.
+##### woodland ({autoindex: false, cacheSize: 1000, cacheTTL: 300000, charset = "utf-8", defaultHeaders: {}, digit = 3, etags = true, indexes = ["index.htm", "index.html"], origins: ["*"], seed = 42, time = false})
+Returns a woodland router. Enable directory browsing & traversal with `autoindex`. Create an automatic `x-response-time` response header with `time` & `digit`. Customize `etag` response header with `seed`.
 
 ##### allowed (method, uri, override = false)
 Calls `routes()` and returns a `Boolean` to indicate if `method` is allowed for `uri`.
@@ -106,11 +106,17 @@ Function for `http.createServer()` or `https.createServer()`.
 ##### routes (uri, method, override = false)
 Returns an `Array` of middleware for the request. Caches value, & will update cache if `override` is `true`.
 
-##### static (req, res, filePath, rootFolder, indexes = this.indexes)
-Serve static files on disk.
+##### serve (req, res, localFilePath, folderPath, indexes = this.indexes)
+Serve static files on disk. Use a route parameter or remove `folderPath` from `req.parsed.pathname` to create `localFilePath`.
 
+###### Without `autoindex`
 ```javascript
-router.use("/files/:file", (req, res) => router.static(req, res, path.join(__dirname, "files", req.params.file), path.join(__dirname, "files")));
+router.use("/files/:file", (req, res) => router.static(req, res, req.params.file, path.join(__dirname, "files")));
+```
+
+###### With `autoindex`
+```javascript
+router.use("/files(/.*)?", (req, res) => router.serve(req, res, req.parsed.pathname.replace(/^\/files\/?/, ""), join(__dirname, "files")));
 ```
 
 ##### use ([path = "/.*",] ...fn[, method = "GET"])

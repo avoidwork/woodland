@@ -39,7 +39,7 @@ router.use("/empty", (req, res) => res.status(204).send(""));
 router.use("/echo/:echo", (req, res) => res.send(req.params.echo));
 router.use("/echo/:echo", (req, res) => res.send("The entity will be echoed back to you"), "OPTIONS");
 router.use("/error", (req, res) => res.error(500));
-router.use("/test/:file", (req, res) => router.static(req, res, path.join(__dirname, "..", "test", req.params.file), path.join(__dirname, "..", "test")));
+router.use("/test/:file", (req, res) => router.serve(req, res, path.join(__dirname, "..", "test", req.params.file), path.join(__dirname, "..", "test")));
 
 const server = http.createServer(router.route).listen(8001);
 
@@ -196,7 +196,6 @@ describe("Valid Requests", function () {
 		return tinyhttptest({url: "http://localhost:8001/test/test.js"})
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
-			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "application/javascript; charset=utf-8")
 			.expectHeader("x-always", "true")
 			.expectHeader("x-by-reference", "true")
@@ -218,7 +217,6 @@ describe("Valid Requests", function () {
 		return tinyhttptest({url: "http://localhost:8001/test/test.js", method: "HEAD"})
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
-			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "application/javascript; charset=utf-8")
 			.expectBody(/^$/)
 			.end();
@@ -228,7 +226,6 @@ describe("Valid Requests", function () {
 		return tinyhttptest({url: "http://localhost:8001/test/test.js", method: "OPTIONS"})
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
-			.expectHeader("cache-control", "no-cache")
 			.expectHeader("content-type", "application/javascript; charset=utf-8")
 			.expectBody("Make a GET request to retrieve the file")
 			.end();
