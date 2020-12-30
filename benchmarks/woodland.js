@@ -1,7 +1,8 @@
 "use strict";
 
-const http = require("http"),
-	router = require("./index")();
+const path = require("path"),
+	http = require("http"),
+	router = require(path.join(__dirname, "..", "index.js"))();
 
 router.use("/", (req, res) => res.json("Hello World!"));
 http.createServer(router.route).listen(8000);

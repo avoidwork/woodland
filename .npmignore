@@ -1,10 +1,9 @@
 /.idea/
+/benchmarks/
 /node_modules/
 /test/
 .eslintrc
 .git
 .gitignore
 .travis.yml
-benchmark.js
-benchmark-http.js
 sample.js
