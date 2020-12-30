@@ -16,5 +16,5 @@ const http = require("http"),
 	port = argv.port || 8000;
 
 router.get("/(.*)?", (req, res) => router.serve(req, res, req.parsed.pathname.replace(/^\//, ""), process.cwd()));
-http.createServer(router.route).listen(port);
+http.createServer(router.route).listen(port, ip);
 console.log(`id=woodland, type=local, ip=${ip}, port=${port}`);
