@@ -11,7 +11,7 @@ Lightweight HTTP router with automatic headers. Routes can use parameter syntax,
 Middleware arguments can be `req, res, next` or `error, req, res, next`. If no `Error` handling middleware is registered woodland will handle it.
 
 ## Benchmark
-Please benchmark `woodland` on your target hardware to understand the overhead; expected to be 15-20%, e.g. if `http` can send 50k req/s, then `woodland` should send >= 40k req/s.
+Please benchmark `woodland` on your target hardware to understand the overhead; expected to be 15-20%, e.g. if `http` can handle 50k req/s, then `woodland` should handle >= 40k req/s.
 
 1. Clone repository from [GitHub](https://github.com/avoidwork/woodland).
 1. Install dependencies with `npm` or `yarn`.
