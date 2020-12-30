@@ -1,10 +1,11 @@
 {
   "name": "woodland",
-  "version": "13.1.1",
+  "version": "13.1.2",
   "description": "Lightweight HTTP router with automatic headers",
   "main": "index.js",
   "scripts": {
     "benchmark": "concurrently --kill-others \"node benchmark.js\" \"autocannon -c 100 -d 40 -p 10 localhost:8000\"",
+    "benchmark-http": "concurrently --kill-others \"node benchmark-http.js\" \"autocannon -c 100 -d 40 -p 10 localhost:8001\"",
     "changelog": "auto-changelog -p",
     "test": "eslint *.js lib/*.js test/*.js && mocha test/*.js"
   },

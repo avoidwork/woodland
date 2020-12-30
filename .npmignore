@@ -6,4 +6,5 @@
 .gitignore
 .travis.yml
 benchmark.js
+benchmark-http.js
 sample.js
