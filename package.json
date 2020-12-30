@@ -1,9 +1,10 @@
 {
   "name": "woodland",
-  "version": "13.1.0",
+  "version": "13.1.1",
   "description": "Lightweight HTTP router with automatic headers",
   "main": "index.js",
   "scripts": {
+    "benchmark": "concurrently --kill-others \"node benchmark.js\" \"autocannon -c 100 -d 40 -p 10 localhost:8000\"",
     "changelog": "auto-changelog -p",
     "test": "eslint *.js lib/*.js test/*.js && mocha test/*.js"
   },
@@ -38,6 +39,8 @@
   },
   "devDependencies": {
     "auto-changelog": "^2.2.1",
+    "autocannon": "^7.0.1",
+    "concurrently": "^5.3.0",
     "eslint": "^7.16.0",
     "mocha": "^8.2.1",
     "tiny-httptest": "^1.1.1"
