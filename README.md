@@ -18,6 +18,9 @@ Please benchmark `woodland` on your target hardware to understand the overhead; 
 1. Execute `benchmark` script with `npm` or `yarn` to benchmark `woodland`.
 1. Execute `benchmark-http` script with `npm` or `yarn` to benchmark `http` without extras.
 
+## Command Line Interface (CLI)
+When woodland is installed as a global module you can serve the contents of a folder by executing `woodland` in a shell. Optional parameters are `--ip=0.0.0.0` & `--port=8000`.
+
 ## Example
 HTTP middleware have the same signature, such that `req` represents the request & `res` represents the response.
 
