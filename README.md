@@ -92,10 +92,10 @@ Returns a `String` for the `Allow` header. Caches value, & will update cache if 
 ##### always (path, fn)
 Registers middleware for a route for all HTTP methods; runs first. `path` is a regular expression (as a string), and if not passed it defaults to `/.*`.
 
-Execute `blacklist(fn)` if you do not want the middleware included for calculating the `Allow` header.
+Execute `ignore(fn)` if you do not want the middleware included for calculating the `Allow` header.
 
-##### blacklist (fn)
-Blacklists `fn` for calculating the return of `allows()`.
+##### ignore (fn)
+Ignores `fn` for calculating the return of `allows()`.
 
 ##### decorate (req, res)
 Decorates `allow, body, cors, host, ip, params, & parsed` on `req` and `error(status[, body, headers]), header(key, value), json(body[, status, headers]), locals{} & redirect(url[, perm = false])` on `res`.
