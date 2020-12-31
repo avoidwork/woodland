@@ -12,6 +12,7 @@ const http = require("http"),
 	path = require("path"),
 	tinyhttptest = require("tiny-httptest"),
 	router = require(path.join(__dirname, "..", "index.js"))({
+		autoindex: true,
 		defaultHeaders: {
 			"Cache-Control": "no-cache",
 			"Content-Type": "text/plain; charset=utf-8"
@@ -40,7 +41,7 @@ router.use("/empty", (req, res) => res.status(204).send(""));
 router.use("/echo/:echo", (req, res) => res.send(req.params.echo));
 router.use("/echo/:echo", (req, res) => res.send("The entity will be echoed back to you"), "OPTIONS");
 router.use("/error", (req, res) => res.error(500));
-router.use("/test/:file", (req, res) => router.serve(req, res, path.join(__dirname, "..", "test", req.params.file), path.join(__dirname, "..", "test")));
+router.use("/test(/.*)?", (req, res) => router.serve(req, res, req.parsed.pathname.replace(/^\/test\/?/, ""), path.join(__dirname, "..", "test")));
 router.use("/last", (req, res, next) => next());
 router.use("/last-error", (req, res, next) => next(new Error("Something went wrong")));
 router.use("/last-error", (err, req, res, next) => next(err));
@@ -203,6 +204,30 @@ describe("Valid Requests", function () {
 			.expectHeader("content-range", /^bytes 6-12\/12$/)
 			.expectHeader("content-length", 7)
 			.expectBody(/^ World!$/)
+			.end();
+	});
+
+	it("GET /test/ (206 / 'Partial response - bytes=0-5')", function () {
+		return tinyhttptest({url: "http://localhost:8001/test/", headers: {range: "bytes=0-5"}})
+			.expectStatus(206)
+			.expectHeader("content-range", /^bytes 0-5\/947$/)
+			.expectHeader("content-length", 6)
+			.end();
+	});
+
+	it("GET /test/ (206 / 'Partial response - bytes=-5')", function () {
+		return tinyhttptest({url: "http://localhost:8001/test/", headers: {range: "bytes=-5"}})
+			.expectStatus(206)
+			.expectHeader("content-range", /^bytes 943-947\/947$/)
+			.expectHeader("content-length", 5)
+			.end();
+	});
+
+	it("GET /test/ (206 / 'Partial response - bytes=5-')", function () {
+		return tinyhttptest({url: "http://localhost:8001/test/", headers: {range: "bytes=5-"}})
+			.expectStatus(206)
+			.expectHeader("content-range", /^bytes 6-947\/947$/)
+			.expectHeader("content-length", 942)
 			.end();
 	});
 
