@@ -133,6 +133,24 @@ Registers middleware for a route. `path` is a regular expression (as a string), 
 
 All HTTP methods are available on the prototype (partial application of the third argument), e.g. `get([path,] ...fn)` & `options([path,] ...fn)`.
 
+## Code Coverage
+Run the `nyc` script with `npm` or `yarn`. Coverage test gaps are mostly edge cases within `stream()` & `use()`.
+
+```console
+---------------|---------|----------|---------|---------|-----------------------------------------------------------------
+File           | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s
+---------------|---------|----------|---------|---------|-----------------------------------------------------------------
+All files      |   92.41 |    75.96 |   98.28 |   92.46 |                                                                
+ woodland      |     100 |      100 |     100 |     100 |                                                                
+  index.js     |     100 |      100 |     100 |     100 |                                                                
+ woodland/lib  |   92.29 |    75.96 |   98.25 |   92.33 |                                                                
+  autoindex.js |     100 |        0 |     100 |     100 | 7                                                              
+  mime.js      |     100 |    33.33 |     100 |     100 | 15-18                                                          
+  utility.js   |   91.35 |    76.32 |     100 |   91.26 | 22,139-141,156-157,159,163,181                                 
+  woodland.js  |   92.18 |     77.2 |   97.37 |   92.31 | 115,127-128,192-193,202,225-229,336,350,359-360,367,373,399,403
+---------------|---------|----------|---------|---------|-----------------------------------------------------------------
+```
+
 ## License
 Copyright (c) 2020 Jason Mulligan
 Licensed under the BSD-3 license.
