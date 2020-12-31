@@ -33,6 +33,7 @@ router.on("connect", (req, res) => res.header("x-onconnect", "true"));
 router.on("send", (req, res, body, status, headers) => {
 	headers["x-by-reference"] = "true";
 });
+router.on("finish", () => void 0);
 router.always("/.*", always).ignore(always);
 router.use("/", (req, res) => res.send(req.method !== "OPTIONS" ? "Hello World!" : ""));
 router.use("/json1", (req, res) => res.json({text: "Hello World!"}));
