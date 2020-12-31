@@ -1,4 +1,5 @@
 /.idea/
+/.nyc_output/
 /benchmarks/
 /node_modules/
 /test/
