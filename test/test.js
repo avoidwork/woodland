@@ -280,6 +280,13 @@ describe("Valid Requests", function () {
 			.expectBody("Make a GET request to retrieve the file")
 			.end();
 	});
+
+	it("GET /test/another (301 / 'Redirect')", function () {
+		return tinyhttptest({url: "http://localhost:8001/test/another"})
+			.expectStatus(301)
+			.expectHeader("location", "/test/another/")
+			.end();
+	});
 });
 
 describe("Invalid Requests", function () {
