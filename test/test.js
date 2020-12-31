@@ -47,6 +47,16 @@ router.use("/last-error", (req, res, next) => next(new Error("Something went wro
 router.use("/last-error", (err, req, res, next) => next(err));
 router.use("/last-error", (req, res) => res.send("Never sent"));
 
+// Methods
+router.connect("/methods", "connect handler");
+router.del("/methods", "");
+router.delete("/methods", "");
+router.get("/methods", "");
+router.patch("/methods", "");
+router.post("/methods", "");
+router.put("/methods", "");
+router.options("/methods", "");
+
 const server = http.createServer(router.route).listen(8001);
 
 describe("Methods", function () {
