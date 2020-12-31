@@ -19,7 +19,8 @@ const http = require("http"),
 		origins: [
 			"http://localhost:8001",
 			"http://not.localhost:8001"
-		]
+		],
+		time: true
 	});
 
 function always (req, res, next) {
@@ -40,6 +41,10 @@ router.use("/echo/:echo", (req, res) => res.send(req.params.echo));
 router.use("/echo/:echo", (req, res) => res.send("The entity will be echoed back to you"), "OPTIONS");
 router.use("/error", (req, res) => res.error(500));
 router.use("/test/:file", (req, res) => router.serve(req, res, path.join(__dirname, "..", "test", req.params.file), path.join(__dirname, "..", "test")));
+router.use("/last", (req, res, next) => next());
+router.use("/last-error", (req, res, next) => next(new Error("Something went wrong")));
+router.use("/last-error", (err, req, res, next) => next(err));
+router.use("/last-error", (req, res) => res.send("Never sent"));
 
 const server = http.createServer(router.route).listen(8001);
 
@@ -407,6 +412,28 @@ describe("Invalid Requests", function () {
 			.expectHeader("content-type", "text/plain; charset=utf-8")
 			.expectHeader("content-length", 9)
 			.expectBody(/Not Found/)
+			.end();
+	});
+
+	it("GET /last (500 / 'Internal Server Error')", function () {
+		return tinyhttptest({url: "http://localhost:8001/last"})
+			.expectStatus(500)
+			.expectHeader("allow", "GET, HEAD, OPTIONS")
+			.expectHeader("cache-control", "no-cache")
+			.expectHeader("content-type", "text/plain; charset=utf-8")
+			.expectHeader("content-length", 21)
+			.expectBody(/Internal Server Error/)
+			.end();
+	});
+
+	it("GET /last-error (500 / 'Internal Server Error')", function () {
+		return tinyhttptest({url: "http://localhost:8001/last-error"})
+			.expectStatus(500)
+			.expectHeader("allow", "GET, HEAD, OPTIONS")
+			.expectHeader("cache-control", "no-cache")
+			.expectHeader("content-type", "text/plain; charset=utf-8")
+			.expectHeader("content-length", 21)
+			.expectBody(/Internal Server Error/)
 			.end().then(() => server.close());
 	});
 });
