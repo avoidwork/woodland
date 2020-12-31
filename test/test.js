@@ -49,14 +49,15 @@ router.use("/last-error", (err, req, res, next) => next(err));
 router.use("/last-error", (req, res) => res.send("Never sent"));
 
 // Methods
-router.connect("/methods", "connect handler");
-router.del("/methods", "");
-router.delete("/methods", "");
-router.get("/methods", "");
-router.patch("/methods", "");
-router.post("/methods", "");
-router.put("/methods", "");
-router.options("/methods", "");
+router.connect("/methods", (req, res) => res.send("connect handler"));
+router.del("/methods", (req, res) => res.send(""));
+router.delete("/methods", (req, res) => res.send(""));
+router.get("/methods", (req, res) => res.send(""));
+router.patch("/methods", (req, res) => res.send(""));
+router.post("/methods", (req, res) => res.send(""));
+router.put("/methods", (req, res) => res.send(""));
+router.options("/methods", (req, res) => res.send(""));
+router.trace("/methods", (req, res) => res.send(""));
 
 const server = http.createServer(router.route).listen(8001);
 
@@ -245,7 +246,7 @@ describe("Valid Requests", function () {
 	it("GET /test/test.js (200 / 'Success')", function () {
 		return tinyhttptest({url: "http://localhost:8001/test/test.js"})
 			.expectStatus(200)
-			.expectHeader("allow", "CONNECT, DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT")
+			.expectHeader("allow", "ACL, BIND, CHECKOUT, CONNECT, COPY, DELETE, GET, HEAD, LINK, LOCK, M-SEARCH, MERGE, MKACTIVITY, MKCALENDAR, MKCOL, MOVE, NOTIFY, OPTIONS, PATCH, POST, PRI, PROPFIND, PROPPATCH, PURGE, PUT, REBIND, REPORT, SEARCH, SOURCE, SUBSCRIBE, TRACE, UNBIND, UNLINK, UNLOCK, UNSUBSCRIBE")
 			.expectHeader("content-type", "application/javascript; charset=utf-8")
 			.expectHeader("x-always", "true")
 			.expectHeader("x-by-reference", "true")
@@ -266,7 +267,7 @@ describe("Valid Requests", function () {
 	it("HEAD /test/test.js (200 / 'Success')", function () {
 		return tinyhttptest({url: "http://localhost:8001/test/test.js", method: "HEAD"})
 			.expectStatus(200)
-			.expectHeader("allow", "CONNECT, DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT")
+			.expectHeader("allow", "ACL, BIND, CHECKOUT, CONNECT, COPY, DELETE, GET, HEAD, LINK, LOCK, M-SEARCH, MERGE, MKACTIVITY, MKCALENDAR, MKCOL, MOVE, NOTIFY, OPTIONS, PATCH, POST, PRI, PROPFIND, PROPPATCH, PURGE, PUT, REBIND, REPORT, SEARCH, SOURCE, SUBSCRIBE, TRACE, UNBIND, UNLINK, UNLOCK, UNSUBSCRIBE")
 			.expectHeader("content-type", "application/javascript; charset=utf-8")
 			.expectBody(/^$/)
 			.end();
@@ -275,7 +276,7 @@ describe("Valid Requests", function () {
 	it("OPTIONS /test/test.js (200 / 'Success')", function () {
 		return tinyhttptest({url: "http://localhost:8001/test/test.js", method: "OPTIONS"})
 			.expectStatus(200)
-			.expectHeader("allow", "CONNECT, DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT")
+			.expectHeader("allow", "ACL, BIND, CHECKOUT, CONNECT, COPY, DELETE, GET, HEAD, LINK, LOCK, M-SEARCH, MERGE, MKACTIVITY, MKCALENDAR, MKCOL, MOVE, NOTIFY, OPTIONS, PATCH, POST, PRI, PROPFIND, PROPPATCH, PURGE, PUT, REBIND, REPORT, SEARCH, SOURCE, SUBSCRIBE, TRACE, UNBIND, UNLINK, UNLOCK, UNSUBSCRIBE")
 			.expectHeader("content-type", "application/javascript; charset=utf-8")
 			.expectBody("Make a GET request to retrieve the file")
 			.end();
@@ -285,6 +286,19 @@ describe("Valid Requests", function () {
 		return tinyhttptest({url: "http://localhost:8001/test/another"})
 			.expectStatus(301)
 			.expectHeader("location", "/test/another/")
+			.end();
+	});
+
+	it("GET /test/another/ (200 / 'Success')", function () {
+		return tinyhttptest({url: "http://localhost:8001/test/another/"})
+			.expectStatus(200)
+			.expectHeader("allow", "ACL, BIND, CHECKOUT, CONNECT, COPY, DELETE, GET, HEAD, LINK, LOCK, M-SEARCH, MERGE, MKACTIVITY, MKCALENDAR, MKCOL, MOVE, NOTIFY, OPTIONS, PATCH, POST, PRI, PROPFIND, PROPPATCH, PURGE, PUT, REBIND, REPORT, SEARCH, SOURCE, SUBSCRIBE, TRACE, UNBIND, UNLINK, UNLOCK, UNSUBSCRIBE")
+			.expectHeader("content-type", "text/html; charset=utf-8")
+			.expectHeader("x-always", "true")
+			.expectHeader("x-by-reference", "true")
+			.expectHeader("x-onconnect", "true")
+			.expectHeader("etag", /^"\d+"$/)
+			.expectBody(/[\w]+/)
 			.end();
 	});
 });
