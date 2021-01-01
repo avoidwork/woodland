@@ -381,8 +381,8 @@ describe("Invalid Requests", function () {
 			.end();
 	});
 
-	it("GET /../README (404 / 'Not Found')", function () {
-		return tinyhttptest({url: "http://localhost:8001/../README"})
+	it("GET /../README.md (404 / 'Not Found')", function () {
+		return tinyhttptest({url: "http://localhost:8001/../README.md"})
 			.expectStatus(404)
 			.expectHeader("allow", "")
 			.expectHeader("cache-control", "no-cache")
@@ -392,8 +392,8 @@ describe("Invalid Requests", function () {
 			.end();
 	});
 
-	it("GET /././../README (404 / 'Not Found')", function () {
-		return tinyhttptest({url: "http://localhost:8001/././../README"})
+	it("GET /././../README.md (404 / 'Not Found')", function () {
+		return tinyhttptest({url: "http://localhost:8001/././../README.md"})
 			.expectStatus(404)
 			.expectHeader("allow", "")
 			.expectHeader("cache-control", "no-cache")
