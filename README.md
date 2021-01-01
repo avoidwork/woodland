@@ -151,5 +151,6 @@ All files      |   92.41 |    75.96 |   98.28 |   92.46 |
 ```
 
 ## License
-Copyright (c) 2020 Jason Mulligan
+Copyright (c) 2021 Jason Mulligan
+
 Licensed under the BSD-3 license.
