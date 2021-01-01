@@ -7,6 +7,7 @@
     "benchmark": "node benchmark.js",
     "changelog": "auto-changelog -p",
     "coverage": "nyc npm run test",
+    "sample": "node sample.js",
     "test": "eslint *.js lib/*.js test/*.js && mocha test/*.js"
   },
   "repository": {
