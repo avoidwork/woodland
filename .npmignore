@@ -7,4 +7,5 @@
 .git
 .gitignore
 .travis.yml
+benchmarks.js
 sample.js

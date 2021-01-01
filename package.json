@@ -1,11 +1,10 @@
 {
   "name": "woodland",
-  "version": "15.0.3",
+  "version": "15.0.4",
   "description": "Lightweight HTTP router with automatic headers",
   "main": "index.js",
   "scripts": {
-    "benchmark": "concurrently -k --success first \"node benchmarks\\woodland.js\" \"autocannon -c 100 -d 40 -p 10 localhost:8000\"",
-    "benchmark-http": "concurrently -k --success first \"node benchmarks\\http.js\" \"autocannon -c 100 -d 40 -p 10 localhost:8001\"",
+    "benchmark": "node benchmark.js",
     "changelog": "auto-changelog -p",
     "coverage": "nyc npm run test",
     "test": "eslint *.js lib/*.js test/*.js && mocha test/*.js"

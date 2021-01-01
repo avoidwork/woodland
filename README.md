@@ -15,8 +15,7 @@ Please benchmark `woodland` on your target hardware to understand the overhead; 
 
 1. Clone repository from [GitHub](https://github.com/avoidwork/woodland).
 1. Install dependencies with `npm` or `yarn`.
-1. Execute `benchmark` script with `npm` or `yarn` to benchmark `woodland`.
-1. Execute `benchmark-http` script with `npm` or `yarn` to benchmark `http` without extras.
+1. Execute `benchmark` script with `npm` or `yarn`.
 
 ## Command Line Interface (CLI)
 When woodland is installed as a global module you can serve the contents of a folder by executing `woodland` in a shell. Optional parameters are `--ip=0.0.0.0` & `--port=8000`.
