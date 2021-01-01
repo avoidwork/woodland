@@ -17,7 +17,7 @@ function shell (arg = "") {
 		ps.stderr.on("data", data => eresult.push(data.toString()));
 		ps.on("close", code => {
 			if (code === 0) {
-				resolve(result.filter(i => i.includes("[90m")).map(i => i.replace("[1] ", "")).join("\n"));
+				resolve(result.join("\n").split("\n").filter(i => i.includes("[90m")).map(i => i.replace("[1] ", "")).join("\n"));
 			} else {
 				reject(new Error(eresult.join("\n")));
 			}
@@ -36,7 +36,7 @@ function shell (arg = "") {
 		try {
 			const stdout = await shell(`node ${cpath} -k --success first \"node benchmarks\\${file}\" \"node ${apath} -c 100 -d 40 -p 10 localhost:8000\"`);
 
-			result.push({file: file.replace(".js", ""), stdout: stdout});
+			result.push({file: file.replace(".js", ""), stdout});
 		} catch (err) {
 			console.error(err.stack);
 			process.exit(1);
