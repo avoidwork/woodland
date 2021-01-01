@@ -133,7 +133,7 @@ Registers middleware for a route. `path` is a regular expression (as a string), 
 All HTTP methods are available on the prototype (partial application of the third argument), e.g. `get([path,] ...fn)` & `options([path,] ...fn)`.
 
 ## Code Coverage
-Run the `nyc` script with `npm` or `yarn`. Coverage test gaps are mostly edge cases within `stream()` & `use()`.
+Run the `nyc` script with `npm` or `yarn`. Coverage test gaps are `Error` handling edge cases within `serve()` & `use()`.
 
 ```console
 ---------------|---------|----------|---------|---------|-----------------------------------------------------------------
