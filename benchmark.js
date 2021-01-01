@@ -39,7 +39,7 @@ function shell (arg = "") {
 			result.push({file: file.replace(".js", ""), stdout: stdout.split("\n").filter(i => i.includes("[90m")).map(i => i.replace("[1] ", "")).join("\n")});
 		} catch (err) {
 			console.error(err.stack);
-			process.exit(1)
+			process.exit(1);
 		}
 	}
 
