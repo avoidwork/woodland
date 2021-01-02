@@ -159,7 +159,7 @@ Sends a response. `Range` header is ignored on `stream` responses.
 Sets the response `statusCode` property & status.
 
 ## Logging
-Woodland uses the [Combined Log Format](https://httpd.apache.org/docs/trunk/logs.html#accesslog), an extension of [Common Log Format](https://en.wikipedia.org/wiki/Common_Log_Format), with an `info` level by default. You can change the `stdout` & `stderr` output by supplying a custom `logging.format` string with valid placeholders.
+Woodland uses the [Combined Log Format](https://httpd.apache.org/docs/trunk/logs.html#accesslog), an extension of [Common Log Format](https://en.wikipedia.org/wiki/Common_Log_Format), with an `info` level by default. You can change the `stdout` output by changing `logging.format` with valid placeholders.
 
 You can disable woodland's logging by configuration with `{logging: {enabled: false}}`. 
 
