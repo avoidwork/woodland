@@ -38,52 +38,11 @@ router.get("/:user", (req, res) => res.send(`Hello ${req.params.user}!`));
 http.createServer(router.route).listen(8000);
 ```
 
-## Helpers
-`req` & `res` are decorated with helper functions to simplify responding.
-
-##### res.error (status[, body, headers])
-Sends an error response.
-
-##### res.header (key, value)
-Shorthand of `res.setHeader()`.
-
-##### res.json (body, [status = 200, headers])
-Sends a JSON response.
-
-##### res.last (req, res, next)
-Last middleware of the route for the HTTP method as a way to "skip" to the middleware which sends a response.
-
-##### res.redirect (uri[, perm = false])
-Sends a redirection response.
-
-##### res.send (body, [status = 200, headers = {}])
-Sends a response. `Range` header is ignored on `stream` responses.
-
-##### res.status (arg)
-Sets the response `statusCode` property & status.
-
-## Event Handlers
-Event Emitter syntax for the following events:
-
-```javascript
-router.on("connect", (req, res) => res.header("x-custom-header", "abc-def"));
-```
-
-##### connect (req, res)
-Executes after the connection has been decorated, but before the middleware executes.
-
-##### error (req, res, err)
-Executes after the response has been sent.
-
-##### finish (req, res)
-Executes after the response has been sent.
-
-##### send (req, res, body, status, headers)
-Executes before the response has been sent; arguments are by reference such that they can be mutated.
-
 ## API
-##### woodland ({autoindex: false, cacheSize: 1000, cacheTTL: 300000, charset = "utf-8", defaultHeaders: {}, digit = 3, etags = true, indexes = ["index.htm", "index.html"], logging: {enabled: true, format: "%v %l %u %t "%r" %>s %b \"%{Referer}i\" \"%{User-agent}i\"", level: "info"}, origins: ["*"], seed = 42, time = false})
+##### woodland ([{...}])
 Returns a woodland router. Enable directory browsing & traversal with `autoindex`. Create an automatic `x-response-time` response header with `time` & `digit`. Customize `etag` response header with `seed`.
+
+See configuration options below.
 
 ##### allowed (method, uri, override = false)
 Calls `routes()` and returns a `Boolean` to indicate if `method` is allowed for `uri`.
@@ -108,8 +67,8 @@ Returns a String to be used as an ETag response header value.
 ##### list (method = "get", type = "array")
 Returns an `Array` or `Object` of routes for the specified method.
 
-##### log (msg = "", level = "info")
-Logs to `stdout` or `stderr` depending on the `level`.
+##### log (msg = "", level = "debug")
+Logs to `stdout` or `stderr` depending on the `level`, & what the minimum log level is set to.
 
 ##### route (req, res)
 Function for `http.createServer()` or `https.createServer()`.
@@ -135,12 +94,83 @@ Registers middleware for a route. `path` is a regular expression (as a string), 
 
 All HTTP methods are available on the prototype (partial application of the third argument), e.g. `get([path,] ...fn)` & `options([path,] ...fn)`.
 
+## Configuration
+
+```json
+{
+  "autoindex": false,
+  "cacheSize": 1000,
+  "cacheTTL": 300000,
+  "charset": "utf-8",
+  "defaultHeaders": {},
+  "digit": 3,
+  "etags": true,
+  "indexes": [
+    "index.htm",
+    "index.html"
+  ],
+  "logging": {
+    "enabled": true,
+    "format": "%v %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\"",
+    "level": "info"
+  },
+  "origins": [
+    "*"
+  ],
+  "seed": 42,
+  "time": false
+}
+```
+
+## Event Handlers
+Event Emitter syntax for the following events:
+
+```javascript
+router.on("connect", (req, res) => res.header("x-custom-header", "abc-def"));
+```
+
+##### connect (req, res)
+Executes after the connection has been decorated, but before the middleware executes.
+
+##### error (req, res, err)
+Executes after the response has been sent.
+
+##### finish (req, res)
+Executes after the response has been sent.
+
+##### send (req, res, body, status, headers)
+Executes before the response has been sent; arguments are by reference such that they can be mutated.
+
+## Helpers
+`req` & `res` are decorated with helper functions to simplify responding.
+
+##### res.error (status[, body, headers])
+Sends an error response.
+
+##### res.header (key, value)
+Shorthand of `res.setHeader()`.
+
+##### res.json (body, [status = 200, headers])
+Sends a JSON response.
+
+##### res.last (req, res, next)
+Last middleware of the route for the HTTP method as a way to "skip" to the middleware which sends a response.
+
+##### res.redirect (uri[, perm = false])
+Sends a redirection response.
+
+##### res.send (body, [status = 200, headers = {}])
+Sends a response. `Range` header is ignored on `stream` responses.
+
+##### res.status (arg)
+Sets the response `statusCode` property & status.
+
 ## Logging
 Woodland uses the [Combined Log Format](https://httpd.apache.org/docs/trunk/logs.html#accesslog), an extension of [Common Log Format](https://en.wikipedia.org/wiki/Common_Log_Format), with an `info` level by default. You can change the `stdout` & `stderr` output by supplying a custom `logging.format` string with valid placeholders.
 
 You can disable woodland's logging by configuration with `{logging: {enabled: false}}`. 
 
-## Code Coverage
+## Testing Code Coverage
 Run the `nyc` script with `npm` or `yarn`. Coverage test gaps are `Error` handling edge cases within `serve()` & `use()`.
 
 ```console

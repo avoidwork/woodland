@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "15.1.5",
+  "version": "15.1.6",
   "description": "Lightweight HTTP router with automatic headers",
   "main": "index.js",
   "scripts": {
