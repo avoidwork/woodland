@@ -21,8 +21,7 @@ const http = require("http"),
 			"http://localhost:8001",
 			"http://not.localhost:8001"
 		],
-		time: true,
-		logging: {enabled: false}
+		time: true
 	});
 
 function always (req, res, next) {
@@ -59,6 +58,9 @@ router.post("/methods", (req, res) => res.send(""));
 router.put("/methods", (req, res) => res.send(""));
 router.options("/methods", (req, res) => res.send(""));
 router.trace("/methods", (req, res) => res.send(""));
+
+// Overriding log() to minimize coverage reduction
+router.log = () => void 0;
 
 const server = http.createServer(router.route).listen(8001);
 
