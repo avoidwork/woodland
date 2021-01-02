@@ -2,7 +2,7 @@
 
 const http = require("http"),
 	{join} = require("path"),
-	router = require("./index")({autoindex: true, defaultHeaders: {"cache-control": "no-cache", "content-type": "text/plain; charset=utf-8"}, time: true});
+	router = require("./index")({autoindex: true, defaultHeaders: {"cache-control": "no-cache", "content-type": "text/plain; charset=utf-8"}, logging: {level: "debug"}, time: true});
 
 router.get("/", (req, res) => res.send("Hello World!"));
 router.options("/", (req, res) => res.send("Make a GET request to retrieve the representation"));
