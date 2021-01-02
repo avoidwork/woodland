@@ -22,7 +22,7 @@ http.createServer(router.route).listen(8000);
 ```
 
 ## API
-##### woodland ([{...}])
+##### woodland ({...})
 Returns a woodland router. Enable directory browsing & traversal with `autoindex`. Create an automatic `x-response-time` response header with `time` & `digit`. Customize `etag` response header with `seed`.
 
 See configuration options below.
