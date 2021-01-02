@@ -21,7 +21,8 @@ const http = require("http"),
 			"http://localhost:8001",
 			"http://not.localhost:8001"
 		],
-		time: true
+		time: true,
+		logging: {enabled: false}
 	});
 
 function always (req, res, next) {

@@ -82,7 +82,7 @@ Executes after the response has been sent.
 Executes before the response has been sent; arguments are by reference such that they can be mutated.
 
 ## API
-##### woodland ({autoindex: false, cacheSize: 1000, cacheTTL: 300000, charset = "utf-8", defaultHeaders: {}, digit = 3, etags = true, indexes = ["index.htm", "index.html"], origins: ["*"], seed = 42, time = false})
+##### woodland ({autoindex: false, cacheSize: 1000, cacheTTL: 300000, charset = "utf-8", defaultHeaders: {}, digit = 3, etags = true, indexes = ["index.htm", "index.html"], logging: {enabled: true, format: "%v %l %u %t "%r" %>s %b \"%{Referer}i\" \"%{User-agent}i\"", level: "info"}, origins: ["*"], seed = 42, time = false})
 Returns a woodland router. Enable directory browsing & traversal with `autoindex`. Create an automatic `x-response-time` response header with `time` & `digit`. Customize `etag` response header with `seed`.
 
 ##### allowed (method, uri, override = false)
@@ -108,6 +108,9 @@ Returns a String to be used as an ETag response header value.
 ##### list (method = "get", type = "array")
 Returns an `Array` or `Object` of routes for the specified method.
 
+##### log (msg = "", level = "info")
+Logs to `stdout` or `stderr` depending on the `level`.
+
 ##### route (req, res)
 Function for `http.createServer()` or `https.createServer()`.
 
@@ -131,6 +134,11 @@ router.use("/files(/.*)?", (req, res) => router.serve(req, res, req.parsed.pathn
 Registers middleware for a route. `path` is a regular expression (as a string), and if not passed it defaults to `/.*`. See `always()` if you want the middleware to be used for all HTTP methods.
 
 All HTTP methods are available on the prototype (partial application of the third argument), e.g. `get([path,] ...fn)` & `options([path,] ...fn)`.
+
+## Logging
+Woodland uses the [Common Log Format](https://en.wikipedia.org/wiki/Common_Log_Format), with an `info` level by default. You can change the `stdout` & `stderr` output by supplying a custom `logging.format` string with valid placeholders.
+
+You can disable woodland's logging by configuration with `{logging: {enabled: false}}`. 
 
 ## Code Coverage
 Run the `nyc` script with `npm` or `yarn`. Coverage test gaps are `Error` handling edge cases within `serve()` & `use()`.
