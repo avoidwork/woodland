@@ -10,22 +10,6 @@ Lightweight HTTP router with automatic headers. Routes can use parameter syntax,
 
 Middleware arguments can be `req, res, next` or `error, req, res, next`. If no `Error` handling middleware is registered woodland will handle it.
 
-## Benchmark
-Please benchmark `woodland` on your target hardware to understand the overhead; expected to be 15-20%, e.g. if `http` can handle 50k req/s, then `woodland` should handle >= 40k req/s.
-
-1. Clone repository from [GitHub](https://github.com/avoidwork/woodland).
-1. Install dependencies with `npm` or `yarn`.
-1. Execute `benchmark` script with `npm` or `yarn`.
-
-## Command Line Interface (CLI)
-When woodland is installed as a global module you can serve the contents of a folder by executing `woodland` in a shell. Optional parameters are `--ip=0.0.0.0` & `--port=8000`.
-
-## Example
-HTTP middleware have the same signature, such that `req` represents the request & `res` represents the response.
-
-Switching between protocols is done with a boolean.
-
-#### HTTP
 ```javascript
 "use strict";
 
@@ -34,7 +18,6 @@ const http = require("http"),
 
 router.get("/", (req, res) => res.send("Custom greeting at '/:user', try it out!"));
 router.get("/:user", (req, res) => res.send(`Hello ${req.params.user}!`));
-
 http.createServer(router.route).listen(8000);
 ```
 
@@ -93,6 +76,16 @@ router.use("/files(/.*)?", (req, res) => router.serve(req, res, req.parsed.pathn
 Registers middleware for a route. `path` is a regular expression (as a string), and if not passed it defaults to `/.*`. See `always()` if you want the middleware to be used for all HTTP methods.
 
 All HTTP methods are available on the prototype (partial application of the third argument), e.g. `get([path,] ...fn)` & `options([path,] ...fn)`.
+
+## Benchmark
+Please benchmark `woodland` on your target hardware to understand the overhead; expected to be 15-20%, e.g. if `http` can handle 50k req/s, then `woodland` should handle >= 40k req/s.
+
+1. Clone repository from [GitHub](https://github.com/avoidwork/woodland).
+1. Install dependencies with `npm` or `yarn`.
+1. Execute `benchmark` script with `npm` or `yarn`.
+
+## Command Line Interface (CLI)
+When woodland is installed as a global module you can serve the contents of a folder by executing `woodland` in a shell. Optional parameters are `--ip=0.0.0.0` & `--port=8000`.
 
 ## Configuration
 
