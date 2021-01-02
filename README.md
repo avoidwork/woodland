@@ -104,7 +104,7 @@ When woodland is installed as a global module you can serve the contents of a fo
   ],
   "logging": {
     "enabled": true,
-    "format": "%v %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\"",
+    "format": "%v %h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\"",
     "level": "info"
   },
   "origins": [
@@ -159,7 +159,7 @@ Sends a response. `Range` header is ignored on `stream` responses.
 Sets the response `statusCode` property & status.
 
 ## Logging
-Woodland uses the [NCSA extended/combined log format](https://httpd.apache.org/docs/trunk/mod/mod_log_config.html) (see [Common Log Format](https://en.wikipedia.org/wiki/Common_Log_Format)), with an `info` level by default. You can change the `stdout` output by changing `logging.format` with valid placeholders.
+Woodland blends [Common Log Format with Virtual Host](https://en.wikipedia.org/wiki/Common_Log_Format) & [NCSA extended/combined log format](https://httpd.apache.org/docs/trunk/mod/mod_log_config.html) with an `info` level by default. You can change the `stdout` output by changing `logging.format` with valid placeholders.
 
 You can disable woodland's logging by configuration with `{logging: {enabled: false}}`. 
 
