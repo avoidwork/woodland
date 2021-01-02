@@ -136,7 +136,7 @@ Registers middleware for a route. `path` is a regular expression (as a string), 
 All HTTP methods are available on the prototype (partial application of the third argument), e.g. `get([path,] ...fn)` & `options([path,] ...fn)`.
 
 ## Logging
-Woodland uses the [Common Log Format](https://en.wikipedia.org/wiki/Common_Log_Format), with an `info` level by default. You can change the `stdout` & `stderr` output by supplying a custom `logging.format` string with valid placeholders.
+Woodland uses the [Combined Log Format](https://httpd.apache.org/docs/trunk/logs.html#accesslog), an extension of [Common Log Format](https://en.wikipedia.org/wiki/Common_Log_Format), with an `info` level by default. You can change the `stdout` & `stderr` output by supplying a custom `logging.format` string with valid placeholders.
 
 You can disable woodland's logging by configuration with `{logging: {enabled: false}}`. 
 
