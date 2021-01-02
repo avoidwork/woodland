@@ -164,21 +164,21 @@ Woodland uses the [NCSA extended/combined log format](https://httpd.apache.org/d
 You can disable woodland's logging by configuration with `{logging: {enabled: false}}`. 
 
 ## Testing Code Coverage
-Run the `nyc` script with `npm` or `yarn`. Coverage test gaps are `Error` handling edge cases within `serve()` & `use()`.
+Run the `coverage` script with `npm` or `yarn`. Coverage test gaps are `Error` handling edge cases within `serve()` & `use()`.
 
 ```console
 ---------------|---------|----------|---------|---------|-----------------------------------------------------------------------------
 File           | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s
 ---------------|---------|----------|---------|---------|-----------------------------------------------------------------------------
-All files      |   92.27 |    72.68 |   96.88 |   92.52 |                                                                            
+All files      |   92.23 |    72.68 |   96.88 |    92.5 |                                                                            
  woodland      |     100 |      100 |     100 |     100 |                                                                            
   index.js     |     100 |      100 |     100 |     100 |                                                                            
- woodland/lib  |   92.16 |    72.68 |   96.83 |   92.41 |                                                                            
+ woodland/lib  |   92.12 |    72.68 |   96.83 |   92.39 |                                                                            
   autoindex.js |     100 |        0 |     100 |     100 | 7                                                                          
   constants.js |     100 |      100 |     100 |     100 |                                                                            
   mime.js      |     100 |    33.33 |     100 |     100 | 15-18                                                                      
-  utility.js   |   91.35 |    76.32 |     100 |   91.26 | 22,139-141,156-157,159,163,181                                             
-  woodland.js  |   91.93 |    72.06 |   95.45 |   92.34 | 159,171-172,190-191,247-248,257,288-292,307,420,434,443-444,451,457,487,491
+  utility.js   |   91.89 |    73.39 |     100 |   91.82 | 22,143-145,160-161,163,167,185                                             
+  woodland.js  |   91.67 |    73.42 |   95.12 |   92.11 | 145,157-158,176-177,233-234,243,274-278,293,406,420,429-430,437,443,473,477
 ---------------|---------|----------|---------|---------|-----------------------------------------------------------------------------
 ```
 
