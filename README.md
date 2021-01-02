@@ -85,7 +85,7 @@ Please benchmark `woodland` on your target hardware to understand the overhead; 
 1. Execute `benchmark` script with `npm` or `yarn`.
 
 ## Command Line Interface (CLI)
-When woodland is installed as a global module you can serve the contents of a folder by executing `woodland` in a shell. Optional parameters are `--ip=0.0.0.0` & `--port=8000`.
+When woodland is installed as a global module you can serve the contents of a folder by executing `woodland` in a shell. Optional parameters are `--ip=127.0.0.1` & `--port=8000`.
 
 ## Configuration
 

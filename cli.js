@@ -12,9 +12,9 @@ const http = require("http"),
 
 		return a;
 	}, {}),
-	ip = argv.ip || "0.0.0.0",
+	ip = argv.ip || "127.0.0.1",
 	port = argv.port || 8000;
 
 router.get("/(.*)?", (req, res) => router.serve(req, res, req.parsed.pathname.substring(1)));
 http.createServer(router.route).listen(port, ip);
-console.log(`id=woodland, type=local, ip=${ip}, port=${port}`);
+console.log(`id=woodland, hostname=localhost, ip=${ip}, port=${port}`);
