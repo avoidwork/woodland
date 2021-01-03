@@ -98,6 +98,7 @@ When woodland is installed as a global module you can serve the contents of a fo
   "cacheSize": 1000,
   "cacheTTL": 300000,
   "charset": "utf-8",
+  "corsExpose": "",
   "defaultHeaders": {},
   "digit": 3,
   "etags": true,
