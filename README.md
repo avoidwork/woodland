@@ -114,6 +114,7 @@ When woodland is installed as a global module you can serve the contents of a fo
     "*"
   ],
   "seed": 42,
+  "sendError": false,
   "time": false
 }
 ```
