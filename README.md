@@ -53,6 +53,9 @@ Returns an `Array` or `Object` of routes for the specified method.
 ##### log (msg = "", level = "debug")
 Logs to `stdout` or `stderr` depending on the `level`, & what the minimum log level is set to.
 
+##### onsend (req, res, body, status, headers)
+**Override** to customize response `body`, `status`, or `headers`. Must return `[body, status, headers]`!
+
 ##### route (req, res)
 Function for `http.createServer()` or `https.createServer()`.
 
@@ -130,9 +133,6 @@ Executes after the response has been sent.
 
 ##### finish (req, res)
 Executes after the response has been sent.
-
-##### send (req, res, body, status, headers)
-Executes before the response has been sent; arguments are by reference such that they can be mutated.
 
 ## Helpers
 `req` & `res` are decorated with helper functions to simplify responding.

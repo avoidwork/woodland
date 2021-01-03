@@ -30,9 +30,11 @@ function always (req, res, next) {
 }
 
 router.on("connect", (req, res) => res.header("x-onconnect", "true"));
-router.on("send", (req, res, body, status, headers) => {
+router.onsend = (req, res, body, status, headers) => {
 	headers["x-by-reference"] = "true";
-});
+
+	return [body, status, headers];
+};
 router.on("finish", () => void 0);
 router.always("/.*", always).ignore(always);
 router.use("/", (req, res) => res.send(req.method !== "OPTIONS" ? "Hello World!" : ""));
