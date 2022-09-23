@@ -1,16 +1,16 @@
 "use strict";
 
-const path = require("path"),
-	http = require("http"),
-	{METHODS} = http,
-	EventEmitter = require("events"),
-	fs = require("fs"),
-	etag = require("tiny-etag"),
-	precise = require("precise"),
-	lru = require("tiny-lru"),
-	{all, delimiter, levels, months} = require(path.join(__dirname, "constants.js")),
-	{clone, last, ms, next, pad, params, parse, partial, pipeable, reduce, stream, timeOffset, writeHead} = require(path.join(__dirname, "utility.js")),
-	aindex = require(path.join(__dirname, "utility.js")).autoindex;
+import {METHODS, STATUS_CODES} from "node:http";
+import {path} from "node:path";
+import {EventEmitter} from "node:events";
+import {fs} from "node:fs";
+import {etag} from "tiny-etag";
+import {precise} from "precise";
+import {lru} from "tiny-lru";
+import {all, delimiter, levels, months} from "./constants.js";
+import {autoindex, clone, last, ms, next, pad, params, parse, partial, pipeable, reduce, stream, timeOffset, writeHead} from "./utility.js";
+
+const aindex = require(path.join(__dirname, "utility.js")).autoindex;
 
 class Woodland extends EventEmitter {
 	constructor ({autoindex = false, cacheSize = 1e3, cacheTTL = 3e5, charset = "utf-8", defaultHeaders = {}, digit = 3, etags = true, indexes = ["index.htm", "index.html"], logging = {}, origins = ["*"], seed = 42, sendError = false, time = false} = {}) {
@@ -113,7 +113,7 @@ class Woodland extends EventEmitter {
 		res.locals = {};
 		req.params = {};
 		res.error = (status = 500, body) => {
-			const err = body !== void 0 ? body instanceof Error ? body : new Error(body) : new Error(http.STATUS_CODES[status]);
+			const err = body !== void 0 ? body instanceof Error ? body : new Error(body) : new Error(STATUS_CODES[status]);
 
 			res.statusCode = status;
 
@@ -219,7 +219,7 @@ class Woodland extends EventEmitter {
 		if (res.headersSent === false) {
 			const numeric = isNaN(err.message) === false,
 				status = isNaN(res.statusCode) === false && res.statusCode >= 400 ? res.statusCode : numeric ? Number(err.message) : 500,
-				output = this.sendError === false ? numeric ? http.STATUS_CODES[status] : err.message : err;
+				output = this.sendError === false ? numeric ? STATUS_CODES[status] : err.message : err;
 
 			if (status === 404) {
 				res.removeHeader("allow");
@@ -232,7 +232,7 @@ class Woodland extends EventEmitter {
 			}
 
 			if (numeric && this.sendError) {
-				output.message = http.STATUS_CODES[status];
+				output.message = STATUS_CODES[status];
 			}
 
 			res.statusCode = status;
@@ -524,4 +524,10 @@ class Woodland extends EventEmitter {
 	}
 }
 
-module.exports = Woodland;
+export function woodland (arg) {
+	const router = new Woodland(arg);
+
+	router.route = router.route.bind(router);
+
+	return router;
+}

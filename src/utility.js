@@ -1,12 +1,14 @@
-"use strict";
+import {join} from "node:path";
+import {createRequire} from 'node:module';
+import {readFileSync} from "node:fs";
+import {STATUS_CODES} from "node:http";
+import {URL} from "node:url";
+import {default as coerce} from "tiny-coerce";
+import {default as mimeDb} from "mime-db";
 
-const path = require("path"),
-	fs = require("fs"),
-	{STATUS_CODES} = require("http"),
-	{URL} = require("url"),
-	coerce = require("tiny-coerce"),
-	html = fs.readFileSync(path.join(__dirname, "..", "tpl", "autoindex.html"), {encoding: "utf8"}),
-	valid = Object.entries(require("mime-db")).filter(i => "extensions" in i[1]),
+const require = createRequire(import.meta.url),
+	html = readFileSync(join(__dirname, "..", "tpl", "autoindex.html"), {encoding: "utf8"}),
+	valid = Object.entries(mimeDb).filter(i => "extensions" in i[1]),
 	extensions = valid.reduce((a, v) => {
 		const result = Object.assign({type: v[0]}, v[1]);
 
@@ -21,11 +23,11 @@ function autoindex (title = "", files = []) { // eslint-disable-line no-unused-v
 	return eval("`" + html + "`"); // eslint-disable-line no-eval
 }
 
-function clone (arg) {
+export function clone (arg) {
 	return JSON.parse(JSON.stringify(arg));
 }
 
-function last (req, res, e, err) {
+export function last (req, res, e, err) {
 	const status = res.statusCode || 0;
 
 	if (err === void 0) {
@@ -40,16 +42,16 @@ function last (req, res, e, err) {
 }
 
 function mime (arg = "") {
-	const ext = path.extname(arg);
+	const ext = extname(arg);
 
 	return ext in extensions ? extensions[ext].type : "application/octet-stream";
 }
 
-function ms (arg = 0, digits = 3) {
+export function ms (arg = 0, digits = 3) {
 	return `${Number(arg / 1e6).toFixed(digits)} ms`;
 }
 
-function next (req, res, e, middleware) {
+export function next (req, res, e, middleware) {
 	const fn = err => process.nextTick(() => {
 		let obj = middleware.next();
 
@@ -75,13 +77,13 @@ function next (req, res, e, middleware) {
 	return fn;
 }
 
-function pad (arg = 0) {
+export function pad (arg = 0) {
 	return String(arg).padStart(2, "0");
 }
 
-function params (req, pos = []) {
+export function params (req, pos = []) {
 	if (pos.length > 0) {
-		const uri = req.parsed.pathname.split("/");
+		const uri = req.parsed.ame.split("/");
 
 		for (const i of pos) {
 			req.params[i[1]] = coerce(decodeURIComponent(uri[i[0]]));
@@ -89,11 +91,11 @@ function params (req, pos = []) {
 	}
 }
 
-function parse (arg) {
+export function parse (arg) {
 	return new URL(typeof arg === "string" ? arg : `http://${arg.headers.host || `localhost:${arg.socket.server._connectionKey.replace(/.*::/, "")}`}${arg.url}`);
 }
 
-function partial (req, res, buffered, status, headers) {
+export function partial (req, res, buffered, status, headers) {
 	if ((req.headers.range || "").indexOf("bytes=") === 0) {
 		const options = {},
 			size = Buffer.byteLength(buffered);
@@ -121,11 +123,11 @@ function partial (req, res, buffered, status, headers) {
 	}
 }
 
-function pipeable (method, arg) {
+export function pipeable (method, arg) {
 	return method !== "HEAD" && arg !== null && typeof arg.on === "function";
 }
 
-function reduce (uri, map = new Map(), arg = {}, end = false, ignore = new Set()) {
+export function reduce (uri, map = new Map(), arg = {}, end = false, ignore = new Set()) {
 	Array.from(map.entries()).filter(i => {
 		i[0].lastIndex = 0;
 
@@ -146,9 +148,9 @@ function reduce (uri, map = new Map(), arg = {}, end = false, ignore = new Set()
 	});
 }
 
-function stream (req, res, file = {charset: "", etag: "", path: "", stats: {mtime: new Date(), size: 0}}) {
+export function stream (req, res, file = {charset: "", etag: "",  "", stats: {mtime: new Date(), size: 0}}) {
 	res.header("content-length", file.stats.size);
-	res.header("content-type", file.charset.length > 0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path));
+	res.header("content-type", file.charset.length > 0 ? `${mime(file.}; charset=${file.charset}` : mime(file.);
 	res.header("last-modified", file.stats.mtime.toUTCString());
 
 	if (file.etag.length > 0) {
@@ -192,7 +194,7 @@ function stream (req, res, file = {charset: "", etag: "", path: "", stats: {mtim
 				res.header("content-length", options.end - options.start + 1);
 			}
 
-			res.send(fs.createReadStream(file.path, options), status);
+			res.send(fs.createReadStream(file. options), status);
 		}
 	} else if (req.method === "HEAD") {
 		res.send("");
@@ -206,7 +208,7 @@ function stream (req, res, file = {charset: "", etag: "", path: "", stats: {mtim
 	return void 0;
 }
 
-function timeOffset (arg = 0) {
+export function timeOffset (arg = 0) {
 	const neg = arg < 0;
 
 	return `${neg ? "" : "-"}${String((neg ? -arg : arg) / 60).split(".").reduce((a, v, idx, arr) => {
@@ -220,27 +222,10 @@ function timeOffset (arg = 0) {
 	}, []).join("")}`;
 }
 
-function writeHead (res, status, headers) {
+export function writeHead (res, status, headers) {
 	if (res.statusCode < status) {
 		res.statusCode = status;
 	}
 
 	res.writeHead(res.statusCode, STATUS_CODES[res.statusCode], headers);
 }
-
-module.exports = {
-	autoindex,
-	clone,
-	last,
-	ms,
-	next,
-	pad,
-	params,
-	parse,
-	partial,
-	pipeable,
-	reduce,
-	stream,
-	timeOffset,
-	writeHead
-};

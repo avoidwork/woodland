@@ -11,8 +11,6 @@ Lightweight HTTP router with automatic headers. Routes can use parameter syntax,
 Middleware arguments can be `req, res, next` or `error, req, res, next`. If no `Error` handling middleware is registered woodland will handle it.
 
 ```javascript
-"use strict";
-
 const http = require("http"),
 	router = require("woodland")({defaultHeaders: {"cache-control": "public, max-age=3600", "content-type": "text/plain"}, time: true});
 
