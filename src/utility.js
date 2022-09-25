@@ -82,7 +82,7 @@ export function pad (arg = 0) {
 
 export function params (req, pos = []) {
 	if (pos.length > 0) {
-		const uri = req.parsed.ame.split("/");
+		const uri = req.parsed.pathname.split("/");
 
 		for (const i of pos) {
 			req.params[i[1]] = coerce(decodeURIComponent(uri[i[0]]));
