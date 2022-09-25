@@ -276,7 +276,24 @@ function writeHead (res, status, headers) {
 }
 
 class Woodland extends node_events.EventEmitter {
-	constructor ({autoindex = false, cacheSize = 1e3, cacheTTL = 3e5, charset = "utf-8", defaultHeaders = {}, digit = 3, etags = true, indexes = ["index.htm", "index.html"], logging = {}, origins = ["*"], seed = 42, sendError = false, time = false} = {}) {
+	constructor ({
+		autoindex = false,
+		cacheSize = 1e3,
+		cacheTTL = 3e5,
+		charset = "utf-8",
+		defaultHeaders = {},
+		digit = 3,
+		etags = true,
+		indexes = [
+			"index.htm",
+			"index.html"
+		],
+		logging = {},
+		origins = ["*"],
+		seed = 42,
+		sendError = false,
+		time = false
+	} = {}) {
 		super();
 		this.autoindex = autoindex;
 		this.ignored = new Set();
@@ -664,7 +681,12 @@ class Woodland extends node_events.EventEmitter {
 				if (e !== null) {
 					res.error(404);
 				} else if (stats.isDirectory() === false) {
-					stream(req, res, {charset: this.charset, etag: this.etag(req.method, stats.ino, stats.size, stats.mtimeMs), path: fp, stats: stats});
+					stream(req, res, {
+						charset: this.charset,
+						etag: this.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
+						path: fp,
+						stats: stats
+					});
 				} else if (req.parsed.pathname.endsWith("/") === false) {
 					res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
 				} else {
@@ -708,7 +730,12 @@ class Woodland extends node_events.EventEmitter {
 									if (e3 !== null) {
 										res.error(500, e3);
 									} else {
-										stream(req, res, {charset: this.charset, etag: this.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs), path: result, stats: rstats});
+										stream(req, res, {
+											charset: this.charset,
+											etag: this.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
+											path: result,
+											stats: rstats
+										});
 									}
 								});
 							}

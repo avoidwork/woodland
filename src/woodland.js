@@ -8,10 +8,42 @@ import {etag} from "tiny-etag";
 import {precise} from "precise";
 import {lru} from "tiny-lru";
 import {all, delimiter, levels, months} from "./constants.js";
-import {autoindex as aindex, clone, last, ms, next, pad, params, parse, partial, pipeable, reduce, stream, timeOffset, writeHead} from "./utility.js";
+import {
+	autoindex as aindex,
+	clone,
+	last,
+	ms,
+	next,
+	pad,
+	params,
+	parse,
+	partial,
+	pipeable,
+	reduce,
+	stream,
+	timeOffset,
+	writeHead
+} from "./utility.js";
 
 class Woodland extends EventEmitter {
-	constructor ({autoindex = false, cacheSize = 1e3, cacheTTL = 3e5, charset = "utf-8", defaultHeaders = {}, digit = 3, etags = true, indexes = ["index.htm", "index.html"], logging = {}, origins = ["*"], seed = 42, sendError = false, time = false} = {}) {
+	constructor ({
+		autoindex = false,
+		cacheSize = 1e3,
+		cacheTTL = 3e5,
+		charset = "utf-8",
+		defaultHeaders = {},
+		digit = 3,
+		etags = true,
+		indexes = [
+			"index.htm",
+			"index.html"
+		],
+		logging = {},
+		origins = ["*"],
+		seed = 42,
+		sendError = false,
+		time = false
+	} = {}) {
 		super();
 		this.autoindex = autoindex;
 		this.ignored = new Set();
@@ -399,7 +431,12 @@ class Woodland extends EventEmitter {
 				if (e !== null) {
 					res.error(404);
 				} else if (stats.isDirectory() === false) {
-					stream(req, res, {charset: this.charset, etag: this.etag(req.method, stats.ino, stats.size, stats.mtimeMs), path: fp, stats: stats});
+					stream(req, res, {
+						charset: this.charset,
+						etag: this.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
+						path: fp,
+						stats: stats
+					});
 				} else if (req.parsed.pathname.endsWith("/") === false) {
 					res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
 				} else {
@@ -443,7 +480,12 @@ class Woodland extends EventEmitter {
 									if (e3 !== null) {
 										res.error(500, e3);
 									} else {
-										stream(req, res, {charset: this.charset, etag: this.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs), path: result, stats: rstats});
+										stream(req, res, {
+											charset: this.charset,
+											etag: this.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
+											path: result,
+											stats: rstats
+										});
 									}
 								});
 							}
