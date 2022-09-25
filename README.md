@@ -12,7 +12,13 @@ Middleware arguments can be `req, res, next` or `error, req, res, next`. If no `
 import {createServer} from "node:http";
 import {woodland} from "woodland";
 
-const router = woodland({defaultHeaders: {"cache-control": "public, max-age=3600", "content-type": "text/plain"}, time: true});
+const router = woodland({
+  defaultHeaders: {
+    "cache-control": "public, max-age=3600",
+    "content-type": "text/plain"
+  },
+  time: true
+});
 
 router.get("/", (req, res) => res.send("Custom greeting at '/:user', try it out!"));
 router.get("/:user", (req, res) => res.send(`Hello ${req.params.user}!`));
