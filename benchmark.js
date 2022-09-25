@@ -2,6 +2,9 @@ import {join} from "node:path";
 import {platform} from "node:os";
 import {readdir} from "node:fs/promises";
 import {spawn} from "node:child_process";
+import {fileURLToPath, URL} from "node:url";
+
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 function shell (arg = "") {
 	return new Promise((resolve, reject) => {
@@ -26,7 +29,7 @@ function shell (arg = "") {
 
 (async function () {
 	const apath = join("node_modules", "autocannon", "autocannon.js"),
-		cpath = join("node_modules", "concurrently", "bin", "concurrently.js"),
+		cpath = join("node_modules", "concurrently", "dist", "bin", "concurrently.js"),
 		fpath = join(__dirname, "benchmarks"),
 		files = await readdir(fpath),
 		sep = platform() === "win32" ? "\\" : "/",
