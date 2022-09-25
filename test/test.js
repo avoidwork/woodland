@@ -1,4 +1,10 @@
-"use strict";
+import {join} from "node:path";
+import {createServer} from "node:http";
+import {fileURLToPath, URL} from "node:url";
+import {httptest} from "tiny-httptest";
+import {woodland} from "../dist/woodland.esm.js";
+
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 function handler (err) {
 	console.error(err.stack || err.message);
@@ -8,21 +14,18 @@ function handler (err) {
 process.on("unhandledRejection", handler);
 process.on("uncaughtException", handler);
 
-const http = require("http"),
-	path = require("path"),
-	tinyhttptest = require("tiny-httptest"),
-	router = require(path.join(__dirname, "..", "index.js"))({
-		autoindex: true,
-		defaultHeaders: {
-			"Cache-Control": "no-cache",
-			"Content-Type": "text/plain; charset=utf-8"
-		},
-		origins: [
-			"http://localhost:8001",
-			"http://not.localhost:8001"
-		],
-		time: true
-	});
+const router = woodland({
+	autoindex: true,
+	defaultHeaders: {
+		"Cache-Control": "no-cache",
+		"Content-Type": "text/plain; charset=utf-8"
+	},
+	origins: [
+		"http://localhost:8001",
+		"http://not.localhost:8001"
+	],
+	time: true
+});
 
 function always (req, res, next) {
 	res.header("x-always", "true");
@@ -35,6 +38,7 @@ router.onsend = (req, res, body, status, headers) => {
 
 	return [body, status, headers];
 };
+
 router.on("finish", () => void 0);
 router.always("/.*", always).ignore(always);
 router.use("/", (req, res) => res.send(req.method !== "OPTIONS" ? "Hello World!" : ""));
@@ -44,7 +48,7 @@ router.use("/empty", (req, res) => res.status(204).send(""));
 router.use("/echo/:echo", (req, res) => res.send(req.params.echo));
 router.use("/echo/:echo", (req, res) => res.send("The entity will be echoed back to you"), "OPTIONS");
 router.use("/error", (req, res) => res.error(500));
-router.use("/test(/.*)?", (req, res) => router.serve(req, res, req.parsed.pathname.replace(/^\/test\/?/, ""), path.join(__dirname, "..", "test")), "*");
+router.use("/test(/.*)?", (req, res) => router.serve(req, res, req.parsed.pathname.replace(/^\/test\/?/, ""), join(__dirname, "..", "test")), "*");
 router.use("/last", (req, res, next) => next());
 router.use("/last-error", (req, res, next) => next(new Error("Something went wrong")));
 router.use("/last-error", (err, req, res, next) => next(err));
@@ -64,7 +68,7 @@ router.trace("/methods", (req, res) => res.send(""));
 // Overriding log() to minimize coverage reduction
 router.log = () => void 0;
 
-const server = http.createServer(router.route).listen(8001);
+const server = createServer(router.route).listen(8001);
 
 describe("Methods", function () {
 	it("Array of routes", function () {
@@ -78,7 +82,7 @@ describe("Methods", function () {
 
 describe("Valid Requests", function () {
 	it("GET / (200 / 'Success')", function () {
-		return tinyhttptest({url: "http://localhost:8001/"})
+		return httptest({url: "http://localhost:8001/"})
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
@@ -91,7 +95,7 @@ describe("Valid Requests", function () {
 	});
 
 	it("HEAD / (200 / 'Success')", function () {
-		return tinyhttptest({url: "http://localhost:8001/", method: "HEAD"})
+		return httptest({url: "http://localhost:8001/", method: "HEAD"})
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
@@ -102,7 +106,7 @@ describe("Valid Requests", function () {
 	});
 
 	it("OPTIONS / (200 / 'Success')", function () {
-		return tinyhttptest({url: "http://localhost:8001/", method: "OPTIONS"})
+		return httptest({url: "http://localhost:8001/", method: "OPTIONS"})
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
@@ -113,7 +117,7 @@ describe("Valid Requests", function () {
 	});
 
 	it("GET / CORS Pre-flight (200 / 'Success')", function () {
-		return tinyhttptest({url: "http://localhost:8001/", method: "OPTIONS"})
+		return httptest({url: "http://localhost:8001/", method: "OPTIONS"})
 			.cors("http://not.localhost:8001")
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
@@ -122,7 +126,7 @@ describe("Valid Requests", function () {
 	});
 
 	it("GET / CORS (200 / 'Success')", function () {
-		return tinyhttptest({url: "http://localhost:8001/"})
+		return httptest({url: "http://localhost:8001/"})
 			.cors("http://not.localhost:8001")
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
@@ -133,7 +137,7 @@ describe("Valid Requests", function () {
 	});
 
 	it("GET / Faux CORS (200 / 'Success')", function () {
-		return tinyhttptest({url: "http://localhost:8001/", method: "OPTIONS", headers: {origin: "http://localhost:8001"}})
+		return httptest({url: "http://localhost:8001/", method: "OPTIONS", headers: {origin: "http://localhost:8001"}})
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("access-control-allow-origin", undefined)
@@ -141,7 +145,7 @@ describe("Valid Requests", function () {
 	});
 
 	it("GET / CORS Pre-flight (403 / 'Forbidden')", function () {
-		return tinyhttptest({url: "http://localhost:8001/", method: "OPTIONS"})
+		return httptest({url: "http://localhost:8001/", method: "OPTIONS"})
 			.cors("http://nope.localhost:8001", false)
 			.expectStatus(403)
 			.expectBody(/Forbidden/)
@@ -149,7 +153,7 @@ describe("Valid Requests", function () {
 	});
 
 	it("OPTIONS /echo/hello (200 / 'Success')", function () {
-		return tinyhttptest({url: "http://localhost:8001/echo/hello", method: "OPTIONS"})
+		return httptest({url: "http://localhost:8001/echo/hello", method: "OPTIONS"})
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
@@ -159,7 +163,7 @@ describe("Valid Requests", function () {
 	});
 
 	it("GET /echo/hello (200 / 'Success')", function () {
-		return tinyhttptest({url: "http://localhost:8001/echo/hello"})
+		return httptest({url: "http://localhost:8001/echo/hello"})
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
@@ -168,7 +172,7 @@ describe("Valid Requests", function () {
 	});
 
 	it("GET /json1 (200 / 'Success')", function () {
-		return tinyhttptest({url: "http://localhost:8001/json1"})
+		return httptest({url: "http://localhost:8001/json1"})
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
@@ -178,7 +182,7 @@ describe("Valid Requests", function () {
 	});
 
 	it("GET /json2 (200 / 'Success')", function () {
-		return tinyhttptest({url: "http://localhost:8001/json2"})
+		return httptest({url: "http://localhost:8001/json2"})
 			.expectStatus(200)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
@@ -188,7 +192,7 @@ describe("Valid Requests", function () {
 	});
 
 	it("GET /empty (204 / 'Success')", function () {
-		return tinyhttptest({url: "http://localhost:8001/empty"})
+		return httptest({url: "http://localhost:8001/empty"})
 			.expectStatus(204)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
@@ -198,7 +202,7 @@ describe("Valid Requests", function () {
 	});
 
 	it("GET / (206 / 'Partial response - bytes=0-5')", function () {
-		return tinyhttptest({url: "http://localhost:8001/", headers: {range: "bytes=0-5"}})
+		return httptest({url: "http://localhost:8001/", headers: {range: "bytes=0-5"}})
 			.expectStatus(206)
 			.expectHeader("content-range", /^bytes 0-5\/12$/)
 			.expectHeader("content-length", 6)
@@ -207,7 +211,7 @@ describe("Valid Requests", function () {
 	});
 
 	it("GET / (206 / 'Partial response - bytes=-5')", function () {
-		return tinyhttptest({url: "http://localhost:8001/", headers: {range: "bytes=-5"}})
+		return httptest({url: "http://localhost:8001/", headers: {range: "bytes=-5"}})
 			.expectStatus(206)
 			.expectHeader("content-range", /^bytes 8-12\/12$/)
 			.expectHeader("content-length", 5)
@@ -216,7 +220,7 @@ describe("Valid Requests", function () {
 	});
 
 	it("GET / (206 / 'Partial response - bytes=5-')", function () {
-		return tinyhttptest({url: "http://localhost:8001/", headers: {range: "bytes=5-"}})
+		return httptest({url: "http://localhost:8001/", headers: {range: "bytes=5-"}})
 			.expectStatus(206)
 			.expectHeader("content-range", /^bytes 6-12\/12$/)
 			.expectHeader("content-length", 7)
@@ -225,7 +229,7 @@ describe("Valid Requests", function () {
 	});
 
 	it("GET /test/ (206 / 'Partial response - bytes=0-5')", function () {
-		return tinyhttptest({url: "http://localhost:8001/test/", headers: {range: "bytes=0-5"}})
+		return httptest({url: "http://localhost:8001/test/", headers: {range: "bytes=0-5"}})
 			.expectStatus(206)
 			.expectHeader("content-range", /^bytes 0-5\/947$/)
 			.expectHeader("content-length", 6)
@@ -233,7 +237,7 @@ describe("Valid Requests", function () {
 	});
 
 	it("GET /test/ (206 / 'Partial response - bytes=-5')", function () {
-		return tinyhttptest({url: "http://localhost:8001/test/", headers: {range: "bytes=-5"}})
+		return httptest({url: "http://localhost:8001/test/", headers: {range: "bytes=-5"}})
 			.expectStatus(206)
 			.expectHeader("content-range", /^bytes 943-947\/947$/)
 			.expectHeader("content-length", 5)
@@ -241,7 +245,7 @@ describe("Valid Requests", function () {
 	});
 
 	it("GET /test/ (206 / 'Partial response - bytes=5-')", function () {
-		return tinyhttptest({url: "http://localhost:8001/test/", headers: {range: "bytes=5-"}})
+		return httptest({url: "http://localhost:8001/test/", headers: {range: "bytes=5-"}})
 			.expectStatus(206)
 			.expectHeader("content-range", /^bytes 6-947\/947$/)
 			.expectHeader("content-length", 942)
@@ -249,7 +253,7 @@ describe("Valid Requests", function () {
 	});
 
 	it("GET /test/test.js (200 / 'Success')", function () {
-		return tinyhttptest({url: "http://localhost:8001/test/test.js"})
+		return httptest({url: "http://localhost:8001/test/test.js"})
 			.expectStatus(200)
 			.expectHeader("allow", "ACL, BIND, CHECKOUT, CONNECT, COPY, DELETE, GET, HEAD, LINK, LOCK, M-SEARCH, MERGE, MKACTIVITY, MKCALENDAR, MKCOL, MOVE, NOTIFY, OPTIONS, PATCH, POST, PRI, PROPFIND, PROPPATCH, PURGE, PUT, REBIND, REPORT, SEARCH, SOURCE, SUBSCRIBE, TRACE, UNBIND, UNLINK, UNLOCK, UNSUBSCRIBE")
 			.expectHeader("content-type", "application/javascript; charset=utf-8")
@@ -262,7 +266,7 @@ describe("Valid Requests", function () {
 	});
 
 	it("GET /test/test.js (206 / 'Partial response - bytes=0-5')", function () {
-		return tinyhttptest({url: "http://localhost:8001/test/test.js", headers: {range: "bytes=0-5"}})
+		return httptest({url: "http://localhost:8001/test/test.js", headers: {range: "bytes=0-5"}})
 			.expectStatus(206)
 			.expectHeader("content-type", "application/javascript; charset=utf-8")
 			.expectHeader("content-length", 6)
@@ -270,7 +274,7 @@ describe("Valid Requests", function () {
 	});
 
 	it("HEAD /test/test.js (200 / 'Success')", function () {
-		return tinyhttptest({url: "http://localhost:8001/test/test.js", method: "HEAD"})
+		return httptest({url: "http://localhost:8001/test/test.js", method: "HEAD"})
 			.expectStatus(200)
 			.expectHeader("allow", "ACL, BIND, CHECKOUT, CONNECT, COPY, DELETE, GET, HEAD, LINK, LOCK, M-SEARCH, MERGE, MKACTIVITY, MKCALENDAR, MKCOL, MOVE, NOTIFY, OPTIONS, PATCH, POST, PRI, PROPFIND, PROPPATCH, PURGE, PUT, REBIND, REPORT, SEARCH, SOURCE, SUBSCRIBE, TRACE, UNBIND, UNLINK, UNLOCK, UNSUBSCRIBE")
 			.expectHeader("content-type", "application/javascript; charset=utf-8")
@@ -279,7 +283,7 @@ describe("Valid Requests", function () {
 	});
 
 	it("OPTIONS /test/test.js (200 / 'Success')", function () {
-		return tinyhttptest({url: "http://localhost:8001/test/test.js", method: "OPTIONS"})
+		return httptest({url: "http://localhost:8001/test/test.js", method: "OPTIONS"})
 			.expectStatus(200)
 			.expectHeader("allow", "ACL, BIND, CHECKOUT, CONNECT, COPY, DELETE, GET, HEAD, LINK, LOCK, M-SEARCH, MERGE, MKACTIVITY, MKCALENDAR, MKCOL, MOVE, NOTIFY, OPTIONS, PATCH, POST, PRI, PROPFIND, PROPPATCH, PURGE, PUT, REBIND, REPORT, SEARCH, SOURCE, SUBSCRIBE, TRACE, UNBIND, UNLINK, UNLOCK, UNSUBSCRIBE")
 			.expectHeader("content-type", "application/javascript; charset=utf-8")
@@ -288,14 +292,14 @@ describe("Valid Requests", function () {
 	});
 
 	it("GET /test/another (301 / 'Redirect')", function () {
-		return tinyhttptest({url: "http://localhost:8001/test/another"})
+		return httptest({url: "http://localhost:8001/test/another"})
 			.expectStatus(301)
 			.expectHeader("location", "/test/another/")
 			.end();
 	});
 
 	it("GET /test/another/ (200 / 'Success')", function () {
-		return tinyhttptest({url: "http://localhost:8001/test/another/"})
+		return httptest({url: "http://localhost:8001/test/another/"})
 			.expectStatus(200)
 			.expectHeader("allow", "ACL, BIND, CHECKOUT, CONNECT, COPY, DELETE, GET, HEAD, LINK, LOCK, M-SEARCH, MERGE, MKACTIVITY, MKCALENDAR, MKCOL, MOVE, NOTIFY, OPTIONS, PATCH, POST, PRI, PROPFIND, PROPPATCH, PURGE, PUT, REBIND, REPORT, SEARCH, SOURCE, SUBSCRIBE, TRACE, UNBIND, UNLINK, UNLOCK, UNSUBSCRIBE")
 			.expectHeader("content-type", "text/html; charset=utf-8")
@@ -310,7 +314,7 @@ describe("Valid Requests", function () {
 
 describe("Invalid Requests", function () {
 	it("POST / (405 / 'Method Not Allowed')", function () {
-		return tinyhttptest({url: "http://localhost:8001/", method: "POST"})
+		return httptest({url: "http://localhost:8001/", method: "POST"})
 			.expectStatus(405)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
@@ -321,7 +325,7 @@ describe("Invalid Requests", function () {
 	});
 
 	it("PUT / (405 / 'Method Not Allowed')", function () {
-		return tinyhttptest({url: "http://localhost:8001/", method: "PUT"})
+		return httptest({url: "http://localhost:8001/", method: "PUT"})
 			.expectStatus(405)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
@@ -332,7 +336,7 @@ describe("Invalid Requests", function () {
 	});
 
 	it("PATCH / (405 / 'Method Not Allowed')", function () {
-		return tinyhttptest({url: "http://localhost:8001/", method: "PATCH"})
+		return httptest({url: "http://localhost:8001/", method: "PATCH"})
 			.expectStatus(405)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
@@ -343,7 +347,7 @@ describe("Invalid Requests", function () {
 	});
 
 	it("DELETE / (405 / 'Method Not Allowed')", function () {
-		return tinyhttptest({url: "http://localhost:8001/", method: "DELETE"})
+		return httptest({url: "http://localhost:8001/", method: "DELETE"})
 			.expectStatus(405)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
@@ -354,7 +358,7 @@ describe("Invalid Requests", function () {
 	});
 
 	it("GET /nothere.html (404 / 'Not Found')", function () {
-		return tinyhttptest({url: "http://localhost:8001/nothere.html"})
+		return httptest({url: "http://localhost:8001/nothere.html"})
 			.expectStatus(404)
 			.expectHeader("allow", "")
 			.expectHeader("cache-control", "no-cache")
@@ -365,7 +369,7 @@ describe("Invalid Requests", function () {
 	});
 
 	it("GET /nothere.html%3fa=b?=c (404 / 'Not Found')", function () {
-		return tinyhttptest({url: "http://localhost:8001/nothere.html%3fa=b?=c"})
+		return httptest({url: "http://localhost:8001/nothere.html%3fa=b?=c"})
 			.expectStatus(404)
 			.expectHeader("allow", "")
 			.expectHeader("cache-control", "no-cache")
@@ -376,7 +380,7 @@ describe("Invalid Requests", function () {
 	});
 
 	it("GET /nothere.x_%22%3E%3Cimg%20src=x%20onerror=prompt(1)%3E.html (404 / 'Not Found')", function () {
-		return tinyhttptest({url: "http://localhost:8001/nothere.x_%22%3E%3Cimg%20src=x%20onerror=prompt(1)%3E.html"})
+		return httptest({url: "http://localhost:8001/nothere.x_%22%3E%3Cimg%20src=x%20onerror=prompt(1)%3E.html"})
 			.expectStatus(404)
 			.expectHeader("allow", "")
 			.expectHeader("cache-control", "no-cache")
@@ -387,7 +391,7 @@ describe("Invalid Requests", function () {
 	});
 
 	it("GET /../README.md (404 / 'Not Found')", function () {
-		return tinyhttptest({url: "http://localhost:8001/../README.md"})
+		return httptest({url: "http://localhost:8001/../README.md"})
 			.expectStatus(404)
 			.expectHeader("allow", "")
 			.expectHeader("cache-control", "no-cache")
@@ -398,7 +402,7 @@ describe("Invalid Requests", function () {
 	});
 
 	it("GET /././../README.md (404 / 'Not Found')", function () {
-		return tinyhttptest({url: "http://localhost:8001/././../README.md"})
+		return httptest({url: "http://localhost:8001/././../README.md"})
 			.expectStatus(404)
 			.expectHeader("allow", "")
 			.expectHeader("cache-control", "no-cache")
@@ -409,7 +413,7 @@ describe("Invalid Requests", function () {
 	});
 
 	it("GET /error (500 / 'Internal Server Error')", function () {
-		return tinyhttptest({url: "http://localhost:8001/error"})
+		return httptest({url: "http://localhost:8001/error"})
 			.expectStatus(500)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
@@ -421,7 +425,7 @@ describe("Invalid Requests", function () {
 
 	// 405 is a result of a cached route that leads to a file system based 404 on GET
 	it("POST /nothere.html (404 / 'Not Found')", function () {
-		return tinyhttptest({url: "http://localhost:8001/nothere.html", method: "POST"})
+		return httptest({url: "http://localhost:8001/nothere.html", method: "POST"})
 			.expectStatus(404)
 			.expectHeader("allow", "")
 			.expectHeader("cache-control", "no-cache")
@@ -432,7 +436,7 @@ describe("Invalid Requests", function () {
 	});
 
 	it("PUT /nothere.html (404 / 'Not Found')", function () {
-		return tinyhttptest({url: "http://localhost:8001/nothere.html", method: "PUT"})
+		return httptest({url: "http://localhost:8001/nothere.html", method: "PUT"})
 			.expectStatus(404)
 			.expectHeader("allow", "")
 			.expectHeader("cache-control", "no-cache")
@@ -443,7 +447,7 @@ describe("Invalid Requests", function () {
 	});
 
 	it("PATCH /nothere.html (404 / 'Not Found')", function () {
-		return tinyhttptest({url: "http://localhost:8001/nothere.html", method: "PATCH"})
+		return httptest({url: "http://localhost:8001/nothere.html", method: "PATCH"})
 			.expectStatus(404)
 			.expectHeader("allow", "")
 			.expectHeader("cache-control", "no-cache")
@@ -454,7 +458,7 @@ describe("Invalid Requests", function () {
 	});
 
 	it("DELETE /nothere.html (404 / 'Not Found')", function () {
-		return tinyhttptest({url: "http://localhost:8001/nothere.html", method: "DELETE"})
+		return httptest({url: "http://localhost:8001/nothere.html", method: "DELETE"})
 			.expectStatus(404)
 			.expectHeader("allow", "")
 			.expectHeader("cache-control", "no-cache")
@@ -465,7 +469,7 @@ describe("Invalid Requests", function () {
 	});
 
 	it("DELETE /test/ (405 / 'Method Not Allowed')", function () {
-		return tinyhttptest({url: "http://localhost:8001/test/", method: "DELETE"})
+		return httptest({url: "http://localhost:8001/test/", method: "DELETE"})
 			.expectStatus(405)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
@@ -476,7 +480,7 @@ describe("Invalid Requests", function () {
 	});
 
 	it("DELETE /test/test.js (405 / 'Method Not Allowed')", function () {
-		return tinyhttptest({url: "http://localhost:8001/test/test.js", method: "DELETE"})
+		return httptest({url: "http://localhost:8001/test/test.js", method: "DELETE"})
 			.expectStatus(405)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
@@ -487,13 +491,13 @@ describe("Invalid Requests", function () {
 	});
 
 	it("GET /test/test.js (417 / 'Method Not Allowed')", function () {
-		return tinyhttptest({url: "http://localhost:8001/test/test.js", headers: {expect: "x"}})
+		return httptest({url: "http://localhost:8001/test/test.js", headers: {expect: "x"}})
 			.expectStatus(417)
 			.end();
 	});
 
 	it("GET /test/nothere.html (404 / 'Not Found')", function () {
-		return tinyhttptest({url: "http://localhost:8001/test/nothere.html"})
+		return httptest({url: "http://localhost:8001/test/nothere.html"})
 			.expectStatus(404)
 			.expectHeader("allow", "")
 			.expectHeader("cache-control", "no-cache")
@@ -504,7 +508,7 @@ describe("Invalid Requests", function () {
 	});
 
 	it("GET /last (500 / 'Internal Server Error')", function () {
-		return tinyhttptest({url: "http://localhost:8001/last"})
+		return httptest({url: "http://localhost:8001/last"})
 			.expectStatus(500)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
@@ -515,7 +519,7 @@ describe("Invalid Requests", function () {
 	});
 
 	it("GET /last-error (500 / 'Internal Server Error')", function () {
-		return tinyhttptest({url: "http://localhost:8001/last-error"})
+		return httptest({url: "http://localhost:8001/last-error"})
 			.expectStatus(500)
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")

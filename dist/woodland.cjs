@@ -1,28 +1,293 @@
-"use strict";
+/**
+ * woodland
+ *
+ * @copyright 2022 Jason Mulligan <jason.mulligan@avoidwork.com>
+ * @license BSD-3-Clause
+ * @version 17.0.0
+ */
+'use strict';
 
-import {METHODS, STATUS_CODES} from "node:http";
-import {join, resolve} from "node:path";
-import {EventEmitter} from "node:events";
-import {readdir, stat} from "node:fs";
-import {etag} from "tiny-etag";
-import {precise} from "precise";
-import {lru} from "tiny-lru";
-import {all, delimiter, levels, months} from "./constants.js";
-import {autoindex as aindex, clone, last, ms, next, pad, params, parse, partial, pipeable, reduce, stream, timeOffset, writeHead} from "./utility.js";
+Object.defineProperty(exports, '__esModule', { value: true });
 
-class Woodland extends EventEmitter {
+var node_http = require('node:http');
+var node_path = require('node:path');
+var node_events = require('node:events');
+var node_fs = require('node:fs');
+var tinyEtag = require('tiny-etag');
+var precise = require('precise');
+var tinyLru = require('tiny-lru');
+var node_url = require('node:url');
+var tinyCoerce = require('tiny-coerce');
+var mimeDb = require('mime-db');
+
+function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
+
+var mimeDb__default = /*#__PURE__*/_interopDefaultLegacy(mimeDb);
+
+const all = "*";
+const delimiter = "|";
+const levels = {
+	emerg: 0,
+	alert: 1,
+	crit: 2,
+	error: 3,
+	warn: 4,
+	notice: 5,
+	info: 6,
+	debug: 7
+};
+const months = [
+	"Jan",
+	"Feb",
+	"Mar",
+	"Apr",
+	"May",
+	"Jun",
+	"Jul",
+	"Aug",
+	"Sep",
+	"Oct",
+	"Nov",
+	"Dec"
+];
+
+const __dirname$1 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? new (require('u' + 'rl').URL)('file:' + __filename).href : (document.currentScript && document.currentScript.src || new URL('woodland.cjs', document.baseURI).href)))),
+	html = node_fs.readFileSync(node_path.join(__dirname$1, "..", "tpl", "autoindex.html"), {encoding: "utf8"}),
+	valid = Object.entries(mimeDb__default["default"]).filter(i => "extensions" in i[1]),
+	extensions = valid.reduce((a, v) => {
+		const result = Object.assign({type: v[0]}, v[1]);
+
+		for (const key of result.extensions) {
+			a[`.${key}`] = result;
+		}
+
+		return a;
+	}, {});
+
+function autoindex (title = "", files = []) { // eslint-disable-line no-unused-vars
+	return eval("`" + html + "`"); // eslint-disable-line no-eval
+}
+
+function clone (arg) {
+	return JSON.parse(JSON.stringify(arg));
+}
+
+function last (req, res, e, err) {
+	const status = res.statusCode || 0;
+
+	if (err === void 0) {
+		e(new Error(req.allow.length > 0 ? req.method !== "GET" ? 405 : req.allow.includes("GET") ? 500 : 404 : 404));
+	} else if (isNaN(status) === false && status >= 400) {
+		e(err);
+	} else {
+		e(new Error(status >= 400 ? status : isNaN(err.message) === false ? err.message : node_http.STATUS_CODES[err.message || err] || 500));
+	}
+
+	return true;
+}
+
+function mime (arg = "") {
+	const ext = node_path.extname(arg);
+
+	return ext in extensions ? extensions[ext].type : "application/octet-stream";
+}
+
+function ms (arg = 0, digits = 3) {
+	return `${Number(arg / 1e6).toFixed(digits)} ms`;
+}
+
+function next (req, res, e, middleware) {
+	const fn = err => process.nextTick(() => {
+		let obj = middleware.next();
+
+		if (obj.done === false) {
+			if (err !== void 0) {
+				while (obj.done === false && obj.value.length < 4) {
+					obj = middleware.next();
+				}
+
+				if (obj.done === false) {
+					obj.value(err, req, res, fn);
+				} else {
+					last(req, res, e, err);
+				}
+			} else {
+				obj.value(req, res, fn);
+			}
+		} else {
+			last(req, res, e, err);
+		}
+	});
+
+	return fn;
+}
+
+function pad (arg = 0) {
+	return String(arg).padStart(2, "0");
+}
+
+function params (req, pos = []) {
+	if (pos.length > 0) {
+		const uri = req.parsed.ame.split("/");
+
+		for (const i of pos) {
+			req.params[i[1]] = tinyCoerce.coerce(decodeURIComponent(uri[i[0]]));
+		}
+	}
+}
+
+function parse (arg) {
+	return new node_url.URL(typeof arg === "string" ? arg : `http://${arg.headers.host || `localhost:${arg.socket.server._connectionKey.replace(/.*::/, "")}`}${arg.url}`);
+}
+
+function partial (req, res, buffered, status, headers) {
+	if ((req.headers.range || "").indexOf("bytes=") === 0) {
+		const options = {},
+			size = Buffer.byteLength(buffered);
+
+		for (const [idx, i] of req.headers.range.replace("bytes=", "").split(",")[0].split("-").entries()) {
+			options[idx === 0 ? "start" : "end"] = i ? parseInt(i, 10) : void 0;
+		}
+
+		// Byte offsets
+		if (isNaN(options.start) && isNaN(options.end) === false) {
+			options.start = size - options.end;
+			options.end = size;
+		} else if (isNaN(options.end)) {
+			options.end = size;
+		}
+
+		if ((options.start >= options.end || isNaN(options.start) || isNaN(options.end)) === false) {
+			req.range = options;
+			headers["content-range"] = `bytes ${options.start + (options.end === size ? 1 : 0)}-${options.end}/${size}`;
+			headers["content-length"] = `${options.end - options.start + (options.end === size ? 0 : 1)}`;
+			res.statusCode = 206;
+			res.removeHeader("etag"); // Removing etag since this rep is incomplete
+			delete headers.etag;
+		}
+	}
+}
+
+function pipeable (method, arg) {
+	return method !== "HEAD" && arg !== null && typeof arg.on === "function";
+}
+
+function reduce (uri, map = new Map(), arg = {}, end = false, ignore = new Set()) {
+	Array.from(map.entries()).filter(i => {
+		i[0].lastIndex = 0;
+
+		return i[0].test(uri);
+	}).forEach(i => {
+		for (const fn of i[1].handlers) {
+			arg.middleware.push(fn);
+
+			if (end && arg.last === null && ignore.has(fn) === false) {
+				arg.last = fn;
+			}
+		}
+
+		if (i[1].pos.length > 0 && arg.pos.length === 0) {
+			arg.pos = i[1].pos;
+			arg.params = i[1].params;
+		}
+	});
+}
+
+function stream (req, res, file = {charset: "", etag: "", path: "", stats: {mtime: new Date(), size: 0}}) {
+	res.header("content-length", file.stats.size);
+	res.header("content-type", file.charset.length > 0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path));
+	res.header("last-modified", file.stats.mtime.toUTCString());
+
+	if (file.etag.length > 0) {
+		res.header("etag", file.etag);
+		res.removeHeader("cache-control");
+	}
+
+	if (req.method === "GET") {
+		if ((file.etag.length > 0 && req.headers["if-none-match"] === file.etag) || (req.headers["if-none-match"] === void 0 && Date.parse(req.headers["if-modified-since"]) >= file.stats.mtime)) { // eslint-disable-line no-extra-parens
+			res.removeHeader("content-type");
+			res.removeHeader("content-length");
+			res.send("", 304);
+		} else {
+			const options = {};
+			let status = 200;
+
+			// Setting the partial content headers
+			if ("range" in req.headers) {
+				const range = req.headers.range.replace(/^.*=/, "").split(",")[0].split("-");
+
+				for (const [idx, i] of range.entries()) {
+					options[idx === 0 ? "start" : "end"] = i !== void 0 ? parseInt(i, 10) : void 0;
+				}
+
+				// Byte offsets
+				if (isNaN(options.start) && isNaN(options.end) === false) {
+					options.start = file.stats.size - options.end;
+					options.end = file.stats.size;
+				} else if (isNaN(options.end)) {
+					options.end = file.stats.size;
+				}
+
+				if (options.start >= options.end || isNaN(options.start) || isNaN(options.end)) {
+					res.error(416);
+				}
+
+				status = 206;
+				res.removeHeader("content-length");
+				res.removeHeader("etag"); // Removing etag since this rep is incomplete
+				res.header("content-range", `bytes ${options.start}-${options.end}/${file.stats.size}`);
+				res.header("content-length", options.end - options.start + 1);
+			}
+
+			res.send(node_fs.createReadStream(file.path, options), status);
+		}
+	} else if (req.method === "HEAD") {
+		res.send("");
+	} else if (req.method === "OPTIONS") {
+		res.removeHeader("content-length");
+		res.send("Make a GET request to retrieve the file");
+	} else {
+		res.error(405);
+	}
+
+	return void 0;
+}
+
+function timeOffset (arg = 0) {
+	const neg = arg < 0;
+
+	return `${neg ? "" : "-"}${String((neg ? -arg : arg) / 60).split(".").reduce((a, v, idx, arr) => {
+		a.push(idx === 0 ? pad(v) : "30");
+
+		if (arr.length === 1) {
+			a.push("00");
+		}
+
+		return a;
+	}, []).join("")}`;
+}
+
+function writeHead (res, status, headers) {
+	if (res.statusCode < status) {
+		res.statusCode = status;
+	}
+
+	res.writeHead(res.statusCode, node_http.STATUS_CODES[res.statusCode], headers);
+}
+
+class Woodland extends node_events.EventEmitter {
 	constructor ({autoindex = false, cacheSize = 1e3, cacheTTL = 3e5, charset = "utf-8", defaultHeaders = {}, digit = 3, etags = true, indexes = ["index.htm", "index.html"], logging = {}, origins = ["*"], seed = 42, sendError = false, time = false} = {}) {
 		super();
 		this.autoindex = autoindex;
 		this.ignored = new Set();
-		this.cache = lru(cacheSize, cacheTTL);
+		this.cache = tinyLru.lru(cacheSize, cacheTTL);
 		this.charset = charset;
 		this.corsExpose = "";
 		this.defaultHeaders = Object.keys(defaultHeaders).map(key => [key.toLowerCase(), defaultHeaders[key]]);
 		this.digit = digit;
-		this.etags = etags ? etag({cacheSize, cacheTTL, seed}) : null;
+		this.etags = etags ? tinyEtag.etag({cacheSize, cacheTTL, seed}) : null;
 		this.indexes = JSON.parse(JSON.stringify(indexes));
-		this.permissions = lru(cacheSize, cacheTTL);
+		this.permissions = tinyLru.lru(cacheSize, cacheTTL);
 		this.logging = {
 			enabled: logging.enabled !== false,
 			format: logging.format || "%h %l %u %t \"%r\" %>s %b",
@@ -48,7 +313,7 @@ class Woodland extends EventEmitter {
 
 		if (override || result === void 0) {
 			const allMethods = this.routes(uri, all, override).visible > 0,
-				list = allMethods ? clone(METHODS) : this.methods.filter(i => this.allowed(i, uri, override));
+				list = allMethods ? clone(node_http.METHODS) : this.methods.filter(i => this.allowed(i, uri, override));
 
 			if (list.includes("GET")) {
 				if (list.includes("HEAD") === false) {
@@ -96,7 +361,7 @@ class Woodland extends EventEmitter {
 
 	decorate (req, res) {
 		if (this.time) {
-			req.precise = precise().start();
+			req.precise = precise.precise().start();
 		}
 
 		const parsed = parse(req);
@@ -111,7 +376,7 @@ class Woodland extends EventEmitter {
 		res.locals = {};
 		req.params = {};
 		res.error = (status = 500, body) => {
-			const err = body !== void 0 ? body instanceof Error ? body : new Error(body) : new Error(STATUS_CODES[status]);
+			const err = body !== void 0 ? body instanceof Error ? body : new Error(body) : new Error(node_http.STATUS_CODES[status]);
 
 			res.statusCode = status;
 
@@ -217,7 +482,7 @@ class Woodland extends EventEmitter {
 		if (res.headersSent === false) {
 			const numeric = isNaN(err.message) === false,
 				status = isNaN(res.statusCode) === false && res.statusCode >= 400 ? res.statusCode : numeric ? Number(err.message) : 500,
-				output = this.sendError === false ? numeric ? STATUS_CODES[status] : err.message : err;
+				output = this.sendError === false ? numeric ? node_http.STATUS_CODES[status] : err.message : err;
 
 			if (status === 404) {
 				res.removeHeader("allow");
@@ -230,7 +495,7 @@ class Woodland extends EventEmitter {
 			}
 
 			if (numeric && this.sendError) {
-				output.message = STATUS_CODES[status];
+				output.message = node_http.STATUS_CODES[status];
 			}
 
 			res.statusCode = status;
@@ -385,7 +650,7 @@ class Woodland extends EventEmitter {
 	}
 
 	serve (req, res, arg = "", folder = process.cwd(), index = this.indexes) {
-		const fp = resolve(folder, decodeURIComponent(arg));
+		const fp = node_path.resolve(folder, decodeURIComponent(arg));
 
 		if (req.method !== "GET" && req.method !== "HEAD" && req.method !== "OPTIONS") {
 			if (req.allow.length > 0) {
@@ -395,7 +660,7 @@ class Woodland extends EventEmitter {
 
 			res.error(405);
 		} else {
-			stat(fp, {bigint: false}, (e, stats) => {
+			node_fs.stat(fp, {bigint: false}, (e, stats) => {
 				if (e !== null) {
 					res.error(404);
 				} else if (stats.isDirectory() === false) {
@@ -403,7 +668,7 @@ class Woodland extends EventEmitter {
 				} else if (req.parsed.pathname.endsWith("/") === false) {
 					res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
 				} else {
-					readdir(fp, {encoding: "utf8", withFileTypes: true}, (e2, files) => {
+					node_fs.readdir(fp, {encoding: "utf8", withFileTypes: true}, (e2, files) => {
 						if (e2 !== null) {
 							res.error(500, e2);
 						} else {
@@ -411,7 +676,7 @@ class Woodland extends EventEmitter {
 
 							for (const file of files) {
 								if (index.includes(file.name)) {
-									result = join(fp, file.name);
+									result = node_path.join(fp, file.name);
 									break;
 								}
 							}
@@ -425,7 +690,7 @@ class Woodland extends EventEmitter {
 										lerr;
 
 									try {
-										body = aindex(decodeURIComponent(req.parsed.pathname), files);
+										body = autoindex(decodeURIComponent(req.parsed.pathname), files);
 									} catch (err) {
 										valid = false;
 										lerr = err;
@@ -439,7 +704,7 @@ class Woodland extends EventEmitter {
 									}
 								}
 							} else {
-								stat(result, {bigint: false}, (e3, rstats) => {
+								node_fs.stat(result, {bigint: false}, (e3, rstats) => {
 									if (e3 !== null) {
 										res.error(500, e3);
 									} else {
@@ -470,7 +735,7 @@ class Woodland extends EventEmitter {
 
 		const method = typeof fn[fn.length - 1] === "string" ? fn.pop().toUpperCase() : "GET";
 
-		if (method !== all && METHODS.includes(method) === false) {
+		if (method !== all && node_http.METHODS.includes(method) === false) {
 			throw new TypeError("Invalid HTTP method");
 		}
 
@@ -521,10 +786,12 @@ class Woodland extends EventEmitter {
 	}
 }
 
-export function woodland (arg) {
+function woodland (arg) {
 	const router = new Woodland(arg);
 
 	router.route = router.route.bind(router);
 
 	return router;
 }
+
+exports.woodland = woodland;

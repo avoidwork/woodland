@@ -1,12 +1,11 @@
-import {join} from "node:path";
-import {createRequire} from 'node:module';
-import {readFileSync} from "node:fs";
+import {extname, join} from "node:path";
+import {createReadStream, readFileSync} from "node:fs";
 import {STATUS_CODES} from "node:http";
-import {URL} from "node:url";
-import {default as coerce} from "tiny-coerce";
-import {default as mimeDb} from "mime-db";
+import {fileURLToPath, URL} from "node:url";
+import {coerce} from "tiny-coerce";
+import mimeDb from "mime-db";
 
-const require = createRequire(import.meta.url),
+const __dirname = fileURLToPath(new URL(".", import.meta.url)),
 	html = readFileSync(join(__dirname, "..", "tpl", "autoindex.html"), {encoding: "utf8"}),
 	valid = Object.entries(mimeDb).filter(i => "extensions" in i[1]),
 	extensions = valid.reduce((a, v) => {
@@ -19,7 +18,7 @@ const require = createRequire(import.meta.url),
 		return a;
 	}, {});
 
-function autoindex (title = "", files = []) { // eslint-disable-line no-unused-vars
+export function autoindex (title = "", files = []) { // eslint-disable-line no-unused-vars
 	return eval("`" + html + "`"); // eslint-disable-line no-eval
 }
 
@@ -148,9 +147,9 @@ export function reduce (uri, map = new Map(), arg = {}, end = false, ignore = ne
 	});
 }
 
-export function stream (req, res, file = {charset: "", etag: "",  "", stats: {mtime: new Date(), size: 0}}) {
+export function stream (req, res, file = {charset: "", etag: "", path: "", stats: {mtime: new Date(), size: 0}}) {
 	res.header("content-length", file.stats.size);
-	res.header("content-type", file.charset.length > 0 ? `${mime(file.}; charset=${file.charset}` : mime(file.);
+	res.header("content-type", file.charset.length > 0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path));
 	res.header("last-modified", file.stats.mtime.toUTCString());
 
 	if (file.etag.length > 0) {
@@ -194,7 +193,7 @@ export function stream (req, res, file = {charset: "", etag: "",  "", stats: {mt
 				res.header("content-length", options.end - options.start + 1);
 			}
 
-			res.send(fs.createReadStream(file. options), status);
+			res.send(createReadStream(file.path, options), status);
 		}
 	} else if (req.method === "HEAD") {
 		res.send("");
