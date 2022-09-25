@@ -19,6 +19,7 @@
     "lint": "eslint *.js src/*.js test/*.js",
     "mocha": "mocha test/*.js",
     "rollup": "rollup --config",
+    "sample": "node sample.js",
     "test": "npm run lint && npm run mocha",
     "types": "npx -p typescript tsc src/*.js --declaration --allowJs --emitDeclarationOnly --outDir types"
   },
