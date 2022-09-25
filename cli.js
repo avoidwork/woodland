@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 
-"use strict";
+import {createServer} from "node:http";
+import {woodland} from "./dist/woodland.esm.js";
 
-const http = require("http"),
-	path = require("path"),
-	router = require(path.join(__dirname, "index.js"))({autoindex: true, defaultHeaders: {"cache-control": "no-cache", "content-type": "text/plain; charset=utf-8"}, time: true}),
+const router = woodland({
+		autoindex: true,
+		defaultHeaders: {"cache-control": "no-cache", "content-type": "text/plain; charset=utf-8"},
+		time: true
+	}),
 	argv = process.argv.filter(i => i.charAt(0) === "-" && i.charAt(1) === "-").reduce((a, v) => {
 		const x = v.split("--")[1].split("=");
 
@@ -16,5 +19,5 @@ const http = require("http"),
 	port = argv.port || 8000;
 
 router.get("/(.*)?", (req, res) => router.serve(req, res, req.parsed.pathname.substring(1)));
-http.createServer(router.route).listen(port, ip);
+createServer(router.route).listen(port, ip);
 console.log(`id=woodland, hostname=localhost, ip=${ip}, port=${port}`);
