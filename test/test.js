@@ -1,8 +1,9 @@
 import {join} from "node:path";
-import {createServer} from "node:http";
+import {createServer, METHODS} from "node:http";
 import {fileURLToPath, URL} from "node:url";
 import {httptest} from "tiny-httptest";
 import {woodland} from "../dist/woodland.esm.js";
+const methods = METHODS.join(", ");
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
@@ -255,7 +256,7 @@ describe("Valid Requests", function () {
 	it("GET /test/test.js (200 / 'Success')", function () {
 		return httptest({url: "http://localhost:8001/test/test.js"})
 			.expectStatus(200)
-			.expectHeader("allow", "ACL, BIND, CHECKOUT, CONNECT, COPY, DELETE, GET, HEAD, LINK, LOCK, M-SEARCH, MERGE, MKACTIVITY, MKCALENDAR, MKCOL, MOVE, NOTIFY, OPTIONS, PATCH, POST, PRI, PROPFIND, PROPPATCH, PURGE, PUT, REBIND, REPORT, SEARCH, SOURCE, SUBSCRIBE, TRACE, UNBIND, UNLINK, UNLOCK, UNSUBSCRIBE")
+			.expectHeader("allow", methods)
 			.expectHeader("content-type", "application/javascript; charset=utf-8")
 			.expectHeader("x-always", "true")
 			.expectHeader("x-by-reference", "true")
@@ -276,7 +277,7 @@ describe("Valid Requests", function () {
 	it("HEAD /test/test.js (200 / 'Success')", function () {
 		return httptest({url: "http://localhost:8001/test/test.js", method: "HEAD"})
 			.expectStatus(200)
-			.expectHeader("allow", "ACL, BIND, CHECKOUT, CONNECT, COPY, DELETE, GET, HEAD, LINK, LOCK, M-SEARCH, MERGE, MKACTIVITY, MKCALENDAR, MKCOL, MOVE, NOTIFY, OPTIONS, PATCH, POST, PRI, PROPFIND, PROPPATCH, PURGE, PUT, REBIND, REPORT, SEARCH, SOURCE, SUBSCRIBE, TRACE, UNBIND, UNLINK, UNLOCK, UNSUBSCRIBE")
+			.expectHeader("allow", methods)
 			.expectHeader("content-type", "application/javascript; charset=utf-8")
 			.expectBody(/^$/)
 			.end();
@@ -285,7 +286,7 @@ describe("Valid Requests", function () {
 	it("OPTIONS /test/test.js (200 / 'Success')", function () {
 		return httptest({url: "http://localhost:8001/test/test.js", method: "OPTIONS"})
 			.expectStatus(200)
-			.expectHeader("allow", "ACL, BIND, CHECKOUT, CONNECT, COPY, DELETE, GET, HEAD, LINK, LOCK, M-SEARCH, MERGE, MKACTIVITY, MKCALENDAR, MKCOL, MOVE, NOTIFY, OPTIONS, PATCH, POST, PRI, PROPFIND, PROPPATCH, PURGE, PUT, REBIND, REPORT, SEARCH, SOURCE, SUBSCRIBE, TRACE, UNBIND, UNLINK, UNLOCK, UNSUBSCRIBE")
+			.expectHeader("allow", methods)
 			.expectHeader("content-type", "application/javascript; charset=utf-8")
 			.expectBody("Make a GET request to retrieve the file")
 			.end();
@@ -301,7 +302,7 @@ describe("Valid Requests", function () {
 	it("GET /test/another/ (200 / 'Success')", function () {
 		return httptest({url: "http://localhost:8001/test/another/"})
 			.expectStatus(200)
-			.expectHeader("allow", "ACL, BIND, CHECKOUT, CONNECT, COPY, DELETE, GET, HEAD, LINK, LOCK, M-SEARCH, MERGE, MKACTIVITY, MKCALENDAR, MKCOL, MOVE, NOTIFY, OPTIONS, PATCH, POST, PRI, PROPFIND, PROPPATCH, PURGE, PUT, REBIND, REPORT, SEARCH, SOURCE, SUBSCRIBE, TRACE, UNBIND, UNLINK, UNLOCK, UNSUBSCRIBE")
+			.expectHeader("allow", methods)
 			.expectHeader("content-type", "text/html; charset=utf-8")
 			.expectHeader("x-always", "true")
 			.expectHeader("x-by-reference", "true")
