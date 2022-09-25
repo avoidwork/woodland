@@ -2,8 +2,6 @@
 
 # woodland
 
-[![build status](https://secure.travis-ci.org/avoidwork/woodland.svg)](http://travis-ci.org/avoidwork/woodland)
-
 Lightweight HTTP router with automatic headers. Routes can use parameter syntax, i.e. `/users/:id`, or `RegExp` syntax. Route parameters are not sanitized. If 2+ routes with parameters match a request the first route will be used to extract parameters. All HTTP methods are supported.
 
 `CORS` (Cross Origin Resource Sharing) is automatically handled, and indicated with `cors` Boolean on the `request` Object for middleware.
@@ -11,12 +9,13 @@ Lightweight HTTP router with automatic headers. Routes can use parameter syntax,
 Middleware arguments can be `req, res, next` or `error, req, res, next`. If no `Error` handling middleware is registered woodland will handle it.
 
 ```javascript
-const http = require("http"),
-	router = require("woodland")({defaultHeaders: {"cache-control": "public, max-age=3600", "content-type": "text/plain"}, time: true});
+import {createServer} from "node:http";
+import {woodland} from "woodland";
+const router = woodland({defaultHeaders: {"cache-control": "public, max-age=3600", "content-type": "text/plain"}, time: true});
 
 router.get("/", (req, res) => res.send("Custom greeting at '/:user', try it out!"));
 router.get("/:user", (req, res) => res.send(`Hello ${req.params.user}!`));
-http.createServer(router.route).listen(8000);
+createServer(router.route).listen(8000);
 ```
 
 ## API
