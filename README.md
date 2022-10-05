@@ -85,11 +85,47 @@ Registers middleware for a route. `path` is a regular expression (as a string), 
 All HTTP methods are available on the prototype (partial application of the third argument), e.g. `get([path,] ...fn)` & `options([path,] ...fn)`.
 
 ## Benchmark
-Please benchmark `woodland` on your target hardware to understand the overhead; expected to be 15-20%, e.g. if `http` can handle 50k req/s, then `woodland` should handle >= 40k req/s.
+Please benchmark `woodland` on your target hardware to understand the overhead which is expected to be 25%, e.g. if `http` can handle 50k req/s, then `woodland` should handle 40k req/s.
+
+The performance delta is primarily caused by the native [URL](https://nodejs.org/dist/latest-v18.x/docs/api/url.html) class.
 
 1. Clone repository from [GitHub](https://github.com/avoidwork/woodland).
 1. Install dependencies with `npm` or `yarn`.
 1. Execute `benchmark` script with `npm` or `yarn`.
+
+Results with node.js 18.8.0 & an Apple Mac mini M1:
+
+```console
+> node benchmark.js
+
+http
+┌─────────┬──────┬──────┬───────┬───────┬─────────┬─────────┬───────┐
+│ Stat    │ 2.5% │ 50%  │ 97.5% │ 99%   │ Avg     │ Stdev   │ Max   │
+├─────────┼──────┼──────┼───────┼───────┼─────────┼─────────┼───────┤
+│ Latency │ 4 ms │ 8 ms │ 12 ms │ 13 ms │ 7.24 ms │ 2.62 ms │ 67 ms │
+└─────────┴──────┴──────┴───────┴───────┴─────────┴─────────┴───────┘
+┌───────────┬─────────┬─────────┬────────┬────────┬──────────┬─────────┬─────────┐
+│ Stat      │ 1%      │ 2.5%    │ 50%    │ 97.5%  │ Avg      │ Stdev   │ Min     │
+├───────────┼─────────┼─────────┼────────┼────────┼──────────┼─────────┼─────────┤
+│ Req/Sec   │ 105471  │ 105471  │ 133119 │ 137855 │ 129167.2 │ 9321.57 │ 105414  │
+├───────────┼─────────┼─────────┼────────┼────────┼──────────┼─────────┼─────────┤
+│ Bytes/Sec │ 21.4 MB │ 21.4 MB │ 27 MB  │ 28 MB  │ 26.2 MB  │ 1.89 MB │ 21.4 MB │
+└───────────┴─────────┴─────────┴────────┴────────┴──────────┴─────────┴─────────┘
+
+woodland
+┌─────────┬──────┬───────┬───────┬───────┬──────────┬─────────┬────────┐
+│ Stat    │ 2.5% │ 50%   │ 97.5% │ 99%   │ Avg      │ Stdev   │ Max    │
+├─────────┼──────┼───────┼───────┼───────┼──────────┼─────────┼────────┤
+│ Latency │ 7 ms │ 14 ms │ 16 ms │ 18 ms │ 11.28 ms │ 4.28 ms │ 103 ms │
+└─────────┴──────┴───────┴───────┴───────┴──────────┴─────────┴────────┘
+┌───────────┬─────────┬─────────┬─────────┬─────────┬─────────┬─────────┬─────────┐
+│ Stat      │ 1%      │ 2.5%    │ 50%     │ 97.5%   │ Avg     │ Stdev   │ Min     │
+├───────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
+│ Req/Sec   │ 74623   │ 74623   │ 85951   │ 87167   │ 84836.8 │ 2908.08 │ 74593   │
+├───────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
+│ Bytes/Sec │ 15.7 MB │ 15.7 MB │ 18.1 MB │ 18.4 MB │ 17.9 MB │ 613 kB  │ 15.7 MB │
+└───────────┴─────────┴─────────┴─────────┴─────────┴─────────┴─────────┴─────────┘
+```
 
 ## Command Line Interface (CLI)
 When woodland is installed as a global module you can serve the contents of a folder by executing `woodland` in a shell. Optional parameters are `--ip=127.0.0.1` & `--port=8000`.
@@ -167,7 +203,7 @@ Sets the response `statusCode` property & status.
 ## Logging
 Woodland defaults to [Common Log Format](https://en.wikipedia.org/wiki/Common_Log_Format) but supports [Common Log Format with Virtual Host](https://httpd.apache.org/docs/trunk/mod/mod_log_config.html), & [NCSA extended/combined log format](https://httpd.apache.org/docs/trunk/mod/mod_log_config.html) with an `info` level by default. You can change the `stdout` output by changing `logging.format` with valid placeholders.
 
-You can disable woodland's logging by configuration with `{logging: {enabled: false}}`. 
+You can disable woodland's logging by configuration with `{logging: {enabled: false}}`.
 
 ## Testing Code Coverage
 Run the `coverage` script with `npm` or `yarn`. Coverage test gaps are `Error` handling edge cases within `serve()` & `use()`.
