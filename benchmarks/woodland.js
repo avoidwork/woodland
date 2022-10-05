@@ -1,8 +1,7 @@
-"use strict";
+import {createServer} from "node:http";
+import {woodland} from "../dist/woodland.esm.js";
 
-const path = require("path"),
-	http = require("http"),
-	router = require(path.join(__dirname, "..", "index.js"))({logging:{enabled: false}});
+const router = woodland({logging: {enabled: false}});
 
 router.use("/", (req, res) => res.json("Hello World!"));
-http.createServer(router.route).listen(8000);
+createServer(router.route).listen(8000);
