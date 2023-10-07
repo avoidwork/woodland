@@ -369,7 +369,6 @@ class Woodland extends node_events.EventEmitter {
 		],
 		logging = {},
 		origins = [WILDCARD],
-		sendError = false,
 		time = false
 	} = {}) {
 		super();
@@ -391,7 +390,6 @@ class Woodland extends node_events.EventEmitter {
 		this.methods = [];
 		this.middleware = new Map();
 		this.origins = structuredClone(origins);
-		this.sendError = sendError;
 		this.time = time;
 
 		if (this.etags !== null) {
@@ -620,7 +618,7 @@ class Woodland extends node_events.EventEmitter {
 		if (res.headersSent === false) {
 			const numeric = isNaN(err.message) === false,
 				status = isNaN(res.statusCode) === false && res.statusCode >= 400 ? res.statusCode : numeric ? Number(err.message) : 500,
-				output = this.sendError === false ? numeric ? node_http.STATUS_CODES[status] : err.message : err;
+				output = numeric ? node_http.STATUS_CODES[status] : err.message;
 
 			if (status === 404) {
 				res.removeHeader(ALLOW);
@@ -630,10 +628,6 @@ class Woodland extends node_events.EventEmitter {
 					res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
 					res.header(ACCESS_CONTROL_ALLOW_METHODS, EMPTY);
 				}
-			}
-
-			if (numeric && this.sendError) {
-				output.message = node_http.STATUS_CODES[status];
 			}
 
 			res.statusCode = status;

@@ -350,7 +350,6 @@ function writeHead (res, status, headers) {
 		],
 		logging = {},
 		origins = [WILDCARD],
-		sendError = false,
 		time = false
 	} = {}) {
 		super();
@@ -372,7 +371,6 @@ function writeHead (res, status, headers) {
 		this.methods = [];
 		this.middleware = new Map();
 		this.origins = structuredClone(origins);
-		this.sendError = sendError;
 		this.time = time;
 
 		if (this.etags !== null) {
@@ -601,7 +599,7 @@ function writeHead (res, status, headers) {
 		if (res.headersSent === false) {
 			const numeric = isNaN(err.message) === false,
 				status = isNaN(res.statusCode) === false && res.statusCode >= 400 ? res.statusCode : numeric ? Number(err.message) : 500,
-				output = this.sendError === false ? numeric ? STATUS_CODES[status] : err.message : err;
+				output = numeric ? STATUS_CODES[status] : err.message;
 
 			if (status === 404) {
 				res.removeHeader(ALLOW);
@@ -611,10 +609,6 @@ function writeHead (res, status, headers) {
 					res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
 					res.header(ACCESS_CONTROL_ALLOW_METHODS, EMPTY);
 				}
-			}
-
-			if (numeric && this.sendError) {
-				output.message = STATUS_CODES[status];
 			}
 
 			res.statusCode = status;

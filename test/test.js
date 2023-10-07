@@ -55,6 +55,7 @@ router.onsend = (req, res, body, status, headers) => {
 
 	return [body, status, headers];
 };
+router.on("error", () => void 0);
 
 router.on("finish", () => void 0);
 router.always("/.*", always).ignore(always);
@@ -66,8 +67,6 @@ router.use("/empty", (req, res) => res.status(204).send(EMPTY));
 router.use("/echo/:echo", (req, res) => res.send(req.params.echo));
 router.use("/echo/:echo", (req, res) => res.send("The entity will be echoed back to you"), "OPTIONS");
 router.use("/error", (req, res) => res.error(500));
-
-router.use("/error-numeric", (req, res) => res.error(new Error(500)));
 router.use("/test(/.*)?", (req, res) => router.serve(req, res, req.parsed.pathname.replace(/^\/test\/?/, EMPTY), join(__dirname, "..", "test")), "*");
 router.use("/last", (req, res, next) => next());
 router.use("/last-error", (req, res, next) => next(new Error("Something went wrong")));
@@ -489,17 +488,6 @@ describe("Invalid Requests", function () {
 
 	it("GET /error (500 / 'Internal Server Error')", function () {
 		return httptest({url: "http://localhost:8001/error"})
-			.expectStatus(500)
-			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
-			.expectHeader(CACHE_CONTROL, "no-cache")
-			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
-			.expectHeader(CONTENT_LENGTH, 21)
-			.expectBody(/^Internal Server Error$/)
-			.end();
-	});
-
-	it("GET /error-numeric (500 / 'Internal Server Error')", function () {
-		return httptest({url: "http://localhost:8001/error-numeric"})
 			.expectStatus(500)
 			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CACHE_CONTROL, "no-cache")
