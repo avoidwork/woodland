@@ -280,7 +280,17 @@ describe("Valid Requests", function () {
 			.end();
 	});
 
+	it("GET /test/test.js (200 / 'Success')", function () {
+		router.autoindex = false;
+
+		return httptest({url: "http://localhost:8001/test/"})
+			.expectStatus(404)
+			.end();
+	});
+
 	it("GET /test/ (206 / 'Partial response - bytes=0-5')", function () {
+		router.autoindex = true;
+
 		return httptest({url: "http://localhost:8001/test/", headers: {range: "bytes=0-5"}})
 			.expectStatus(206)
 			.expectHeader(CONTENT_RANGE, /^bytes 0-5\/947$/)
