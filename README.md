@@ -153,6 +153,22 @@ woodland
 ## Command Line Interface (CLI)
 When woodland is installed as a global module you can serve the contents of a folder by executing `woodland` in a shell. Optional parameters are `--ip=127.0.0.1` & `--port=8000`.
 
+```console
+Node.js v20.8.0
+PS C:\Users\jason\Projects> npm install -g woodland
+
+changed 6 packages in 1s
+PS C:\Users\jason\Projects> woodland
+id=woodland, hostname=localhost, ip=127.0.0.1, port=8000
+127.0.0.1 -  [7/Oct/2023:15:18:18 -0400] "GET / HTTP/1.1" 200 1327
+127.0.0.1 -  [7/Oct/2023:15:18:26 -0400] "GET /woodland/ HTTP/1.1" 200 2167
+127.0.0.1 -  [7/Oct/2023:15:18:29 -0400] "GET /woodland/dist/ HTTP/1.1" 200 913
+127.0.0.1 -  [7/Oct/2023:15:18:32 -0400] "GET /woodland/dist/woodland.js HTTP/1.1" 200 26385
+127.0.0.1 -  [7/Oct/2023:15:18:47 -0400] "GET /woodland/benchmark.js HTTP/1.1" 200 1657
+127.0.0.1 -  [7/Oct/2023:15:18:58 -0400] "GET /woodland/sample.js HTTP/1.1" 200 845
+127.0.0.1 -  [7/Oct/2023:15:19:07 -0400] "GET /woodland/sample.js HTTP/1.1" 304 0
+```
+
 ## Configuration
 
 ```json
