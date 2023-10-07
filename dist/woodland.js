@@ -668,14 +668,12 @@ function writeHead (res, status = 200, headers = {}) {
 
 	onready (req, res, body, status, headers) {
 		if (res.headersSent === false) {
-			[body, status, headers] = this.onsend(req, res, body, status, headers);
-
 			if (this.time && res.getHeader(X_RESPONSE_TIME) === void 0) {
 				res.header(X_RESPONSE_TIME, `${ms(req.precise.stop().diff(), this.digit)}`);
 			}
 		}
 
-		return [body, status, headers];
+		return this.onsend(req, res, body, status, headers);
 	}
 
 	onsend (req, res, body, status, headers) {
