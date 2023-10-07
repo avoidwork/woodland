@@ -54,3 +54,5 @@ export const HEAD = "HEAD";
 export const FUNCTION = "function";
 export const OPTIONS = "OPTIONS";
 export const OPTIONS_BODY = "Make a GET request to retrieve the file";
+export const TITLE = "title";
+export const FILES = "files";

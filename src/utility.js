@@ -5,36 +5,38 @@ import {fileURLToPath, URL} from "node:url";
 import {coerce} from "tiny-coerce";
 import mimeDb from "mime-db";
 import {
-	EXTENSIONS,
-	UTF8,
-	EMPTY,
-	GET,
 	APPLICATION_OCTET_STREAM,
-	TIME_MS,
-	TOKEN_N,
-	STRING_0,
-	SLASH,
-	STRING,
-	KEY_BYTES,
-	COMMA,
-	HYPHEN,
-	START,
-	END,
-	CONTENT_RANGE,
-	CONTENT_LENGTH,
-	ETAG,
-	HEAD,
-	FUNCTION,
-	CONTENT_TYPE,
-	LAST_MODIFIED,
 	CACHE_CONTROL,
-	IF_NONE_MATCH,
+	COMMA,
+	CONTENT_LENGTH,
+	CONTENT_RANGE,
+	CONTENT_TYPE,
+	EMPTY,
+	END,
+	ETAG,
+	EXTENSIONS,
+	FILES,
+	FUNCTION,
+	GET,
+	HEAD,
+	HYPHEN,
 	IF_MODIFIED_SINCE,
-	RANGE,
+	IF_NONE_MATCH,
+	KEY_BYTES,
+	LAST_MODIFIED,
 	OPTIONS,
 	OPTIONS_BODY,
 	PERIOD,
-	STRING_30, STRING_00
+	RANGE,
+	SLASH,
+	START,
+	STRING,
+	STRING_0,
+	STRING_00,
+	STRING_30,
+	TIME_MS,
+	TOKEN_N,
+	UTF8
 } from "./constants.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url)),
@@ -50,11 +52,11 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url)),
 		return a;
 	}, {});
 
-export function autoindex (title = EMPTY, files = []) {
-	return new Function("title", "files", `return \`${html}\`;`)(title, files);
+export function autoindex(title = EMPTY, files = []) {
+	return new Function(TITLE, FILES, `return \`${html}\`;`)(title, files);
 }
 
-export function last (req, res, e, err) {
+export function last(req, res, e, err) {
 	const status = res.statusCode || 0;
 
 	if (err === void 0) {
@@ -68,17 +70,17 @@ export function last (req, res, e, err) {
 	return true;
 }
 
-function mime (arg = EMPTY) {
+function mime(arg = EMPTY) {
 	const ext = extname(arg);
 
 	return ext in extensions ? extensions[ext].type : APPLICATION_OCTET_STREAM;
 }
 
-export function ms (arg = 0, digits = 3) {
+export function ms(arg = 0, digits = 3) {
 	return TIME_MS.replace(TOKEN_N, Number(arg / 1e6).toFixed(digits));
 }
 
-export function next (req, res, e, middleware) {
+export function next(req, res, e, middleware) {
 	const fn = err => process.nextTick(() => {
 		let obj = middleware.next();
 
@@ -104,11 +106,11 @@ export function next (req, res, e, middleware) {
 	return fn;
 }
 
-export function pad (arg = 0) {
+export function pad(arg = 0) {
 	return String(arg).padStart(2, STRING_0);
 }
 
-export function params (req, pos = []) {
+export function params(req, pos = []) {
 	if (pos.length > 0) {
 		const uri = req.parsed.pathname.split(SLASH);
 
@@ -118,11 +120,11 @@ export function params (req, pos = []) {
 	}
 }
 
-export function parse (arg) {
+export function parse(arg) {
 	return new URL(typeof arg === STRING ? arg : `http://${arg.headers.host || `localhost:${arg.socket.server._connectionKey.replace(/.*::/, EMPTY)}`}${arg.url}`);
 }
 
-export function partial (req, res, buffered, status, headers) {
+export function partial(req, res, buffered, status, headers) {
 	if ((req.headers.range || EMPTY).indexOf(KEY_BYTES) === 0) {
 		const options = {},
 			size = Buffer.byteLength(buffered);
@@ -144,17 +146,17 @@ export function partial (req, res, buffered, status, headers) {
 			headers[CONTENT_RANGE] = `bytes ${options.start + (options.end === size ? 1 : 0)}-${options.end}/${size}`;
 			headers[CONTENT_LENGTH] = `${options.end - options.start + (options.end === size ? 0 : 1)}`;
 			status = res.statusCode = 206;
-			res.removeHeader(ETAG); // Removing etag since this rep is incomplete
+			res.removeHeader(ETAG);
 			delete headers.etag;
 		}
 	}
 }
 
-export function pipeable (method, arg) {
+export function pipeable(method, arg) {
 	return method !== HEAD && arg !== null && typeof arg.on === FUNCTION;
 }
 
-export function reduce (uri, map = new Map(), arg = {}, end = false, ignore = new Set()) {
+export function reduce(uri, map = new Map(), arg = {}, end = false, ignore = new Set()) {
 	Array.from(map.entries()).filter(i => {
 		i[0].lastIndex = 0;
 
@@ -175,7 +177,12 @@ export function reduce (uri, map = new Map(), arg = {}, end = false, ignore = ne
 	});
 }
 
-export function stream (req, res, file = {charset: EMPTY, etag: EMPTY, path: EMPTY, stats: {mtime: new Date(), size: 0}}) {
+export function stream(req, res, file = {
+	charset: EMPTY,
+	etag: EMPTY,
+	path: EMPTY,
+	stats: {mtime: new Date(), size: 0}
+}) {
 	res.header(CONTENT_LENGTH, file.stats.size);
 	res.header(CONTENT_TYPE, file.charset.length > 0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path));
 	res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
@@ -216,7 +223,7 @@ export function stream (req, res, file = {charset: EMPTY, etag: EMPTY, path: EMP
 
 				status = 206;
 				res.removeHeader(CONTENT_LENGTH);
-				res.removeHeader(ETAG); // Removing etag since this rep is incomplete
+				res.removeHeader(ETAG);
 				res.header(CONTENT_RANGE, `bytes ${options.start}-${options.end}/${file.stats.size}`);
 				res.header(CONTENT_LENGTH, options.end - options.start + 1);
 			}
@@ -235,7 +242,7 @@ export function stream (req, res, file = {charset: EMPTY, etag: EMPTY, path: EMP
 	return void 0;
 }
 
-export function timeOffset (arg = 0) {
+export function timeOffset(arg = 0) {
 	const neg = arg < 0;
 
 	return `${neg ? EMPTY : HYPHEN}${String((neg ? -arg : arg) / 60).split(PERIOD).reduce((a, v, idx, arr) => {
@@ -249,7 +256,7 @@ export function timeOffset (arg = 0) {
 	}, []).join(EMPTY)}`;
 }
 
-export function writeHead (res, status, headers) {
+export function writeHead(res, status, headers) {
 	if (res.statusCode < status) {
 		res.statusCode = status;
 	}
