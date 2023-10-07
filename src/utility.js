@@ -4,10 +4,45 @@ import {STATUS_CODES} from "node:http";
 import {fileURLToPath, URL} from "node:url";
 import {coerce} from "tiny-coerce";
 import mimeDb from "mime-db";
+import {
+	APPLICATION_OCTET_STREAM,
+	CACHE_CONTROL,
+	COMMA,
+	CONTENT_LENGTH,
+	CONTENT_RANGE,
+	CONTENT_TYPE,
+	EMPTY,
+	END,
+	ETAG,
+	EXTENSIONS,
+	FILES,
+	FUNCTION,
+	GET,
+	HEAD,
+	HYPHEN,
+	IF_MODIFIED_SINCE,
+	IF_NONE_MATCH,
+	KEY_BYTES,
+	LAST_MODIFIED,
+	OPTIONS,
+	OPTIONS_BODY,
+	PERIOD,
+	RANGE,
+	SLASH,
+	START,
+	STRING,
+	STRING_0,
+	STRING_00,
+	STRING_30,
+	TIME_MS,
+	TITLE,
+	TOKEN_N,
+	UTF8
+} from "./constants.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url)),
-	html = readFileSync(join(__dirname, "..", "tpl", "autoindex.html"), {encoding: "utf8"}),
-	valid = Object.entries(mimeDb).filter(i => "extensions" in i[1]),
+	html = readFileSync(join(__dirname, "..", "tpl", "autoindex.html"), {encoding: UTF8}),
+	valid = Object.entries(mimeDb).filter(i => EXTENSIONS in i[1]),
 	extensions = valid.reduce((a, v) => {
 		const result = Object.assign({type: v[0]}, v[1]);
 
@@ -18,19 +53,15 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url)),
 		return a;
 	}, {});
 
-export function autoindex (title = "", files = []) { // eslint-disable-line no-unused-vars
-	return eval("`" + html + "`"); // eslint-disable-line no-eval
-}
-
-export function clone (arg) {
-	return JSON.parse(JSON.stringify(arg));
+export function autoindex (title = EMPTY, files = []) {
+	return new Function(TITLE, FILES, `return \`${html}\`;`)(title, files);
 }
 
 export function last (req, res, e, err) {
 	const status = res.statusCode || 0;
 
 	if (err === void 0) {
-		e(new Error(req.allow.length > 0 ? req.method !== "GET" ? 405 : req.allow.includes("GET") ? 500 : 404 : 404));
+		e(new Error(req.allow.length > 0 ? req.method !== GET ? 405 : req.allow.includes(GET) ? 500 : 404 : 404));
 	} else if (isNaN(status) === false && status >= 400) {
 		e(err);
 	} else {
@@ -40,14 +71,14 @@ export function last (req, res, e, err) {
 	return true;
 }
 
-function mime (arg = "") {
+function mime (arg = EMPTY) {
 	const ext = extname(arg);
 
-	return ext in extensions ? extensions[ext].type : "application/octet-stream";
+	return ext in extensions ? extensions[ext].type : APPLICATION_OCTET_STREAM;
 }
 
 export function ms (arg = 0, digits = 3) {
-	return `${Number(arg / 1e6).toFixed(digits)} ms`;
+	return TIME_MS.replace(TOKEN_N, Number(arg / 1e6).toFixed(digits));
 }
 
 export function next (req, res, e, middleware) {
@@ -77,12 +108,12 @@ export function next (req, res, e, middleware) {
 }
 
 export function pad (arg = 0) {
-	return String(arg).padStart(2, "0");
+	return String(arg).padStart(2, STRING_0);
 }
 
 export function params (req, pos = []) {
 	if (pos.length > 0) {
-		const uri = req.parsed.pathname.split("/");
+		const uri = req.parsed.pathname.split(SLASH);
 
 		for (const i of pos) {
 			req.params[i[1]] = coerce(decodeURIComponent(uri[i[0]]));
@@ -91,16 +122,15 @@ export function params (req, pos = []) {
 }
 
 export function parse (arg) {
-	return new URL(typeof arg === "string" ? arg : `http://${arg.headers.host || `localhost:${arg.socket.server._connectionKey.replace(/.*::/, "")}`}${arg.url}`);
+	return new URL(typeof arg === STRING ? arg : `http://${arg.headers.host || `localhost:${arg.socket.server._connectionKey.replace(/.*::/, EMPTY)}`}${arg.url}`);
 }
 
-export function partial (req, res, buffered, status, headers) {
-	if ((req.headers.range || "").indexOf("bytes=") === 0) {
-		const options = {},
-			size = Buffer.byteLength(buffered);
+export function partialHeaders (req, res, size, status, headers = {}, options = {}) {
+	if ((req.headers.range || EMPTY).indexOf(KEY_BYTES) === 0) {
+		options = {};
 
-		for (const [idx, i] of req.headers.range.replace("bytes=", "").split(",")[0].split("-").entries()) {
-			options[idx === 0 ? "start" : "end"] = i ? parseInt(i, 10) : void 0;
+		for (const [idx, i] of req.headers.range.replace(KEY_BYTES, EMPTY).split(COMMA)[0].split(HYPHEN).entries()) {
+			options[idx === 0 ? START : END] = i ? parseInt(i, 10) : void 0;
 		}
 
 		// Byte offsets
@@ -111,19 +141,29 @@ export function partial (req, res, buffered, status, headers) {
 			options.end = size;
 		}
 
-		if ((options.start >= options.end || isNaN(options.start) || isNaN(options.end)) === false) {
+		res.removeHeader(CONTENT_RANGE);
+		res.removeHeader(CONTENT_LENGTH);
+		res.removeHeader(ETAG);
+		delete headers.etag;
+
+		if (isNaN(options.start) === false && isNaN(options.end) === false && options.start < options.end && options.end <= size) {
 			req.range = options;
-			headers["content-range"] = `bytes ${options.start + (options.end === size ? 1 : 0)}-${options.end}/${size}`;
-			headers["content-length"] = `${options.end - options.start + (options.end === size ? 0 : 1)}`;
+			headers[CONTENT_RANGE] = `bytes ${options.start}-${options.end}/${size}`;
+			headers[CONTENT_LENGTH] = options.end - options.start;
+			res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
+			res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
 			status = res.statusCode = 206;
-			res.removeHeader("etag"); // Removing etag since this rep is incomplete
-			delete headers.etag;
+		} else {
+			headers[CONTENT_RANGE] = `bytes */${size}`;
+			res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
 		}
 	}
+
+	return [headers, options];
 }
 
 export function pipeable (method, arg) {
-	return method !== "HEAD" && arg !== null && typeof arg.on === "function";
+	return method !== HEAD && arg !== null && typeof arg.on === FUNCTION;
 }
 
 export function reduce (uri, map = new Map(), arg = {}, end = false, ignore = new Set()) {
@@ -147,61 +187,48 @@ export function reduce (uri, map = new Map(), arg = {}, end = false, ignore = ne
 	});
 }
 
-export function stream (req, res, file = {charset: "", etag: "", path: "", stats: {mtime: new Date(), size: 0}}) {
-	res.header("content-length", file.stats.size);
-	res.header("content-type", file.charset.length > 0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path));
-	res.header("last-modified", file.stats.mtime.toUTCString());
+export function stream (req, res, file = {
+	charset: EMPTY,
+	etag: EMPTY,
+	path: EMPTY,
+	stats: {mtime: new Date(), size: 0}
+}) {
+	res.header(CONTENT_LENGTH, file.stats.size);
+	res.header(CONTENT_TYPE, file.charset.length > 0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path));
+	res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
 
 	if (file.etag.length > 0) {
-		res.header("etag", file.etag);
-		res.removeHeader("cache-control");
+		res.header(ETAG, file.etag);
+		res.removeHeader(CACHE_CONTROL);
 	}
 
-	if (req.method === "GET") {
-		if ((file.etag.length > 0 && req.headers["if-none-match"] === file.etag) || (req.headers["if-none-match"] === void 0 && Date.parse(req.headers["if-modified-since"]) >= file.stats.mtime)) { // eslint-disable-line no-extra-parens
-			res.removeHeader("content-type");
-			res.removeHeader("content-length");
-			res.send("", 304);
+	if (req.method === GET) {
+		if ((file.etag.length > 0 && req.headers[IF_NONE_MATCH] === file.etag) || (req.headers[IF_NONE_MATCH] === void 0 && Date.parse(req.headers[IF_MODIFIED_SINCE]) >= file.stats.mtime)) { // eslint-disable-line no-extra-parens
+			res.removeHeader(CONTENT_TYPE);
+			res.removeHeader(CONTENT_LENGTH);
+			res.send(EMPTY, 304);
 		} else {
-			const options = {};
 			let status = 200;
+			let options, headers;
 
-			// Setting the partial content headers
-			if ("range" in req.headers) {
-				const range = req.headers.range.replace(/^.*=/, "").split(",")[0].split("-");
+			if (RANGE in req.headers) {
+				[headers, options] = partialHeaders(req, res, file.stats.size, status);
+				res.removeHeader(CONTENT_LENGTH);
+				res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
+				options.end--; // last byte offset
 
-				for (const [idx, i] of range.entries()) {
-					options[idx === 0 ? "start" : "end"] = i !== void 0 ? parseInt(i, 10) : void 0;
+				if (CONTENT_LENGTH in headers) {
+					res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
 				}
-
-				// Byte offsets
-				if (isNaN(options.start) && isNaN(options.end) === false) {
-					options.start = file.stats.size - options.end;
-					options.end = file.stats.size;
-				} else if (isNaN(options.end)) {
-					options.end = file.stats.size;
-				}
-
-				if (options.start >= options.end || isNaN(options.start) || isNaN(options.end)) {
-					res.error(416);
-				}
-
-				status = 206;
-				res.removeHeader("content-length");
-				res.removeHeader("etag"); // Removing etag since this rep is incomplete
-				res.header("content-range", `bytes ${options.start}-${options.end}/${file.stats.size}`);
-				res.header("content-length", options.end - options.start + 1);
 			}
 
 			res.send(createReadStream(file.path, options), status);
 		}
-	} else if (req.method === "HEAD") {
-		res.send("");
-	} else if (req.method === "OPTIONS") {
-		res.removeHeader("content-length");
-		res.send("Make a GET request to retrieve the file");
-	} else {
-		res.error(405);
+	} else if (req.method === HEAD) {
+		res.send(EMPTY);
+	} else if (req.method === OPTIONS) {
+		res.removeHeader(CONTENT_LENGTH);
+		res.send(OPTIONS_BODY);
 	}
 
 	return void 0;
@@ -210,18 +237,18 @@ export function stream (req, res, file = {charset: "", etag: "", path: "", stats
 export function timeOffset (arg = 0) {
 	const neg = arg < 0;
 
-	return `${neg ? "" : "-"}${String((neg ? -arg : arg) / 60).split(".").reduce((a, v, idx, arr) => {
-		a.push(idx === 0 ? pad(v) : "30");
+	return `${neg ? EMPTY : HYPHEN}${String((neg ? -arg : arg) / 60).split(PERIOD).reduce((a, v, idx, arr) => {
+		a.push(idx === 0 ? pad(v) : STRING_30);
 
 		if (arr.length === 1) {
-			a.push("00");
+			a.push(STRING_00);
 		}
 
 		return a;
-	}, []).join("")}`;
+	}, []).join(EMPTY)}`;
 }
 
-export function writeHead (res, status, headers) {
+export function writeHead (res, status = 200, headers = {}) {
 	if (res.statusCode < status) {
 		res.statusCode = status;
 	}

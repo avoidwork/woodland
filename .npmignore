@@ -1,4 +1,6 @@
+.github
 .idea
+.husky
 .nyc_output
 benchmarks
 node_modules

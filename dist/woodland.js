@@ -1,108 +1,341 @@
-import {METHODS, STATUS_CODES} from "node:http";
-import {join, resolve} from "node:path";
-import {EventEmitter} from "node:events";
-import {readdir, stat} from "node:fs";
-import {etag} from "tiny-etag";
-import {precise} from "precise";
-import {lru} from "tiny-lru";
-import {
-	ACCESS_CONTROL_ALLOW_CREDENTIALS,
-	ACCESS_CONTROL_ALLOW_HEADERS,
-	ACCESS_CONTROL_ALLOW_METHODS,
-	ACCESS_CONTROL_ALLOW_ORIGIN,
-	ACCESS_CONTROL_EXPOSE_HEADERS,
-	ACCESS_CONTROL_REQUEST_HEADERS,
-	ALL,
-	ALLOW,
-	APPLICATION_JSON,
-	ARRAY,
-	COLON,
-	COMMA,
-	COMMA_SPACE,
-	CONNECT,
-	CONTENT_LENGTH,
-	CONTENT_TYPE,
-	DEBUG,
-	DELETE,
-	DELIMITER,
-	EMPTY,
-	ERROR,
-	ERROR_MSG_HEAD_ROUTE,
-	ERROR_MSG_INVALID_METHOD,
-	FINISH,
-	FUNCTION,
-	GET,
-	HEAD,
-	HYPHEN,
-	INDEX_HTM,
-	INDEX_HTML,
-	INFO,
-	IP_TOKEN,
-	LEFT_PAREN,
-	LEVELS,
-	LOCATION,
-	LOG,
-	LOG_B,
-	LOG_FORMAT,
-	LOG_H,
-	LOG_L,
-	LOG_R,
-	LOG_REFERRER,
-	LOG_S,
-	LOG_T,
-	LOG_U,
-	LOG_USER_AGENT,
-	LOG_V,
-	MONTHS,
-	MSG_DECORATED_IP,
-	MSG_DETERMINED_ALLOW,
-	MSG_ERROR_IP,
-	MSG_ERROR_ROUTING,
-	MSG_HEADERS_SENT,
-	MSG_IGNORED_FN,
-	MSG_REGISTERING_MIDDLEWARE,
-	MSG_RETRIEVED_MIDDLEWARE,
-	MSG_ROUTING,
-	MSG_ROUTING_FILE,
-	MSG_SENDING_BODY,
-	OBJECT,
-	OPTIONS,
-	ORIGIN,
-	PARAMS_GROUP,
-	PATCH,
-	POST,
-	PUT,
-	READ_HEADERS,
-	SLASH,
-	STRING,
-	TIMING_ALLOW_ORIGIN,
-	TO_STRING,
-	TRACE,
-	TRUE,
-	USER_AGENT,
-	UTF8,
-	UTF_8,
-	WILDCARD,
-	X_FORWARDED_FOR,
-	X_RESPONSE_TIME
-} from "./constants.js";
-import {
-	autoindex as aindex,
-	last,
-	ms,
-	next,
-	pad,
-	params,
-	parse,
-	partialHeaders,
-	pipeable,
-	reduce,
-	stream,
-	timeOffset,
-	writeHead
-} from "./utility.js";
+/**
+ * woodland
+ *
+ * @copyright 2023 Jason Mulligan <jason.mulligan@avoidwork.com>
+ * @license BSD-3-Clause
+ * @version 18.0.0
+ */
+import {STATUS_CODES,METHODS}from'node:http';import {join,extname,resolve}from'node:path';import {EventEmitter}from'node:events';import {readFileSync,createReadStream,stat,readdir}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import deepFreeze from'deep-freeze';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const ALL = "*";
+const DELIMITER = "|";
+const LEVELS = deepFreeze({
+	emerg: 0,
+	alert: 1,
+	crit: 2,
+	error: 3,
+	warn: 4,
+	notice: 5,
+	info: 6,
+	debug: 7
+});
 
-export class Woodland extends EventEmitter {
+const EN_US = "en-US";
+const SHORT = "short";
+const MONTHS = deepFreeze(Array.from(Array(12).values()).map((i, idx) => {
+	const d = new Date();
+	d.setMonth(idx);
+
+	return d.toLocaleString(EN_US, {month: SHORT});
+}));
+const UTF8 = "utf8";
+const UTF_8 = "utf-8";
+const INDEX_HTM = "index.htm";
+const INDEX_HTML = "index.html";
+const EXTENSIONS = "extensions";
+const EMPTY = "";
+const WILDCARD = "*";
+const GET = "GET";
+const POST = "POST";
+const PUT = "PUT";
+const DELETE = "DELETE";
+const PATCH = "PATCH";
+const CONNECT = "CONNECT";
+const APPLICATION_JSON = "application/json";
+const APPLICATION_OCTET_STREAM = "application/octet-stream";
+const TIME_MS = "%N ms";
+const TOKEN_N = "%N";
+const STRING_0 = "0";
+const STRING_00 = "00";
+const STRING_30 = "30";
+const SLASH = "/";
+const STRING = "string";
+const TO_STRING = "toString";
+const KEY_BYTES = "bytes=";
+const COMMA = ",";
+const COMMA_SPACE = ", ";
+const HYPHEN = "-";
+const PERIOD = ".";
+const START = "start";
+const END = "end";
+const CACHE_CONTROL = "cache-control";
+const CONTENT_RANGE = "content-range";
+const CONTENT_LENGTH = "content-length";
+const CONTENT_TYPE = "content-type";
+const LAST_MODIFIED = "last-modified";
+const IF_NONE_MATCH = "if-none-match";
+const IF_MODIFIED_SINCE = "if-modified-since";
+const X_FORWARDED_FOR = "x-forwarded-for";
+const X_RESPONSE_TIME = "x-response-time";
+const ACCESS_CONTROL_ALLOW_ORIGIN = "access-control-allow-origin";
+const ACCESS_CONTROL_ALLOW_METHODS = "access-control-allow-methods";
+const ACCESS_CONTROL_ALLOW_HEADERS = "access-control-allow-headers";
+const ACCESS_CONTROL_EXPOSE_HEADERS = "access-control-expose-headers";
+const ACCESS_CONTROL_REQUEST_HEADERS = "access-control-request-headers";
+const ACCESS_CONTROL_ALLOW_CREDENTIALS = "access-control-allow-credentials";
+const TIMING_ALLOW_ORIGIN = "timing-allow-origin";
+const LOCATION = "location";
+const USER_AGENT = "user-agent";
+const RANGE = "range";
+const ETAG = "etag";
+const HEAD = "HEAD";
+const FUNCTION = "function";
+const OPTIONS = "OPTIONS";
+const OPTIONS_BODY = "Make a GET request to retrieve the file";
+const TITLE = "title";
+const FILES = "files";
+const LOG_FORMAT = "%h %l %u %t \"%r\" %>s %b";
+const LOG_V = "%v";
+const LOG_H = "%h";
+const LOG_L = "%l";
+const LOG_U = "%u";
+const LOG_T = "%t";
+const LOG_R = "%r";
+const LOG_S = "%>s";
+const LOG_B = "%b";
+const LOG_REFERRER = "%{Referer}i";
+const LOG_USER_AGENT = "%{User-agent}i";
+const INFO = "info";
+const DEBUG = "debug";
+const ORIGIN = "origin";
+const MSG_ERROR_ROUTING = "Routing to error handler";
+const MSG_DETERMINED_ALLOW = "Determined 'allow' header value";
+const MSG_SENDING_BODY = "Sending response body";
+const MSG_DECORATED_IP = "Decorated request from %IP";
+const MSG_ERROR_IP = "Handled error response for %IP";
+const MSG_IGNORED_FN = "Added function to ignored Set";
+const MSG_ROUTING = "Routing request";
+const MSG_ROUTING_FILE = "Routing request to file system";
+const MSG_RETRIEVED_MIDDLEWARE = "Retrieved middleware for request";
+const MSG_REGISTERING_MIDDLEWARE = "Registering middleware";
+const MSG_HEADERS_SENT = "Headers already sent";
+const IP_TOKEN = "%IP";
+const ALLOW = "allow";
+const TRUE = "true";
+const ERROR = "error";
+const ARRAY = "array";
+const OBJECT = "object";
+const LOG = "log";
+const PARAMS_GROUP = "/([^/]+)";
+const FINISH = "finish";
+const READ_HEADERS = "GET, HEAD, OPTIONS";
+const TRACE = "TRACE";
+const ERROR_MSG_INVALID_METHOD = "Invalid HTTP method";
+const ERROR_MSG_HEAD_ROUTE = "Cannot set HEAD route, use GET";
+const COLON = ":";
+const LEFT_PAREN = "(";const __dirname = fileURLToPath(new URL(".", import.meta.url)),
+	html = readFileSync(join(__dirname, "..", "tpl", "autoindex.html"), {encoding: UTF8}),
+	valid = Object.entries(mimeDb).filter(i => EXTENSIONS in i[1]),
+	extensions = valid.reduce((a, v) => {
+		const result = Object.assign({type: v[0]}, v[1]);
+
+		for (const key of result.extensions) {
+			a[`.${key}`] = result;
+		}
+
+		return a;
+	}, {});
+
+function autoindex (title = EMPTY, files = []) {
+	return new Function(TITLE, FILES, `return \`${html}\`;`)(title, files);
+}
+
+function last (req, res, e, err) {
+	const status = res.statusCode || 0;
+
+	if (err === void 0) {
+		e(new Error(req.allow.length > 0 ? req.method !== GET ? 405 : req.allow.includes(GET) ? 500 : 404 : 404));
+	} else if (isNaN(status) === false && status >= 400) {
+		e(err);
+	} else {
+		e(new Error(status >= 400 ? status : isNaN(err.message) === false ? err.message : STATUS_CODES[err.message || err] || 500));
+	}
+
+	return true;
+}
+
+function mime (arg = EMPTY) {
+	const ext = extname(arg);
+
+	return ext in extensions ? extensions[ext].type : APPLICATION_OCTET_STREAM;
+}
+
+function ms (arg = 0, digits = 3) {
+	return TIME_MS.replace(TOKEN_N, Number(arg / 1e6).toFixed(digits));
+}
+
+function next (req, res, e, middleware) {
+	const fn = err => process.nextTick(() => {
+		let obj = middleware.next();
+
+		if (obj.done === false) {
+			if (err !== void 0) {
+				while (obj.done === false && obj.value.length < 4) {
+					obj = middleware.next();
+				}
+
+				if (obj.done === false) {
+					obj.value(err, req, res, fn);
+				} else {
+					last(req, res, e, err);
+				}
+			} else {
+				obj.value(req, res, fn);
+			}
+		} else {
+			last(req, res, e, err);
+		}
+	});
+
+	return fn;
+}
+
+function pad (arg = 0) {
+	return String(arg).padStart(2, STRING_0);
+}
+
+function params (req, pos = []) {
+	if (pos.length > 0) {
+		const uri = req.parsed.pathname.split(SLASH);
+
+		for (const i of pos) {
+			req.params[i[1]] = coerce(decodeURIComponent(uri[i[0]]));
+		}
+	}
+}
+
+function parse (arg) {
+	return new URL(typeof arg === STRING ? arg : `http://${arg.headers.host || `localhost:${arg.socket.server._connectionKey.replace(/.*::/, EMPTY)}`}${arg.url}`);
+}
+
+function partialHeaders (req, res, size, status, headers = {}, options = {}) {
+	if ((req.headers.range || EMPTY).indexOf(KEY_BYTES) === 0) {
+		options = {};
+
+		for (const [idx, i] of req.headers.range.replace(KEY_BYTES, EMPTY).split(COMMA)[0].split(HYPHEN).entries()) {
+			options[idx === 0 ? START : END] = i ? parseInt(i, 10) : void 0;
+		}
+
+		// Byte offsets
+		if (isNaN(options.start) && isNaN(options.end) === false) {
+			options.start = size - options.end;
+			options.end = size;
+		} else if (isNaN(options.end)) {
+			options.end = size;
+		}
+
+		res.removeHeader(CONTENT_RANGE);
+		res.removeHeader(CONTENT_LENGTH);
+		res.removeHeader(ETAG);
+		delete headers.etag;
+
+		if (isNaN(options.start) === false && isNaN(options.end) === false && options.start < options.end && options.end <= size) {
+			req.range = options;
+			headers[CONTENT_RANGE] = `bytes ${options.start}-${options.end}/${size}`;
+			headers[CONTENT_LENGTH] = options.end - options.start;
+			res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
+			res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
+			res.statusCode = 206;
+		} else {
+			headers[CONTENT_RANGE] = `bytes */${size}`;
+			res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
+		}
+	}
+
+	return [headers, options];
+}
+
+function pipeable (method, arg) {
+	return method !== HEAD && arg !== null && typeof arg.on === FUNCTION;
+}
+
+function reduce (uri, map = new Map(), arg = {}, end = false, ignore = new Set()) {
+	Array.from(map.entries()).filter(i => {
+		i[0].lastIndex = 0;
+
+		return i[0].test(uri);
+	}).forEach(i => {
+		for (const fn of i[1].handlers) {
+			arg.middleware.push(fn);
+
+			if (end && arg.last === null && ignore.has(fn) === false) {
+				arg.last = fn;
+			}
+		}
+
+		if (i[1].pos.length > 0 && arg.pos.length === 0) {
+			arg.pos = i[1].pos;
+			arg.params = i[1].params;
+		}
+	});
+}
+
+function stream (req, res, file = {
+	charset: EMPTY,
+	etag: EMPTY,
+	path: EMPTY,
+	stats: {mtime: new Date(), size: 0}
+}) {
+	res.header(CONTENT_LENGTH, file.stats.size);
+	res.header(CONTENT_TYPE, file.charset.length > 0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path));
+	res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
+
+	if (file.etag.length > 0) {
+		res.header(ETAG, file.etag);
+		res.removeHeader(CACHE_CONTROL);
+	}
+
+	if (req.method === GET) {
+		if ((file.etag.length > 0 && req.headers[IF_NONE_MATCH] === file.etag) || (req.headers[IF_NONE_MATCH] === void 0 && Date.parse(req.headers[IF_MODIFIED_SINCE]) >= file.stats.mtime)) { // eslint-disable-line no-extra-parens
+			res.removeHeader(CONTENT_TYPE);
+			res.removeHeader(CONTENT_LENGTH);
+			res.send(EMPTY, 304);
+		} else {
+			let status = 200;
+			let options, headers;
+
+			if (RANGE in req.headers) {
+				[headers, options] = partialHeaders(req, res, file.stats.size);
+				res.removeHeader(CONTENT_LENGTH);
+				res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
+				options.end--; // last byte offset
+
+				if (CONTENT_LENGTH in headers) {
+					res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
+				}
+			}
+
+			res.send(createReadStream(file.path, options), status);
+		}
+	} else if (req.method === HEAD) {
+		res.send(EMPTY);
+	} else if (req.method === OPTIONS) {
+		res.removeHeader(CONTENT_LENGTH);
+		res.send(OPTIONS_BODY);
+	}
+
+	return void 0;
+}
+
+function timeOffset (arg = 0) {
+	const neg = arg < 0;
+
+	return `${neg ? EMPTY : HYPHEN}${String((neg ? -arg : arg) / 60).split(PERIOD).reduce((a, v, idx, arr) => {
+		a.push(idx === 0 ? pad(v) : STRING_30);
+
+		if (arr.length === 1) {
+			a.push(STRING_00);
+		}
+
+		return a;
+	}, []).join(EMPTY)}`;
+}
+
+function writeHead (res, status = 200, headers = {}) {
+	if (res.statusCode < status) {
+		res.statusCode = status;
+	}
+
+	res.writeHead(res.statusCode, STATUS_CODES[res.statusCode], headers);
+}class Woodland extends EventEmitter {
 	constructor ({
 		autoindex = false,
 		cacheSize = 1e3,
@@ -576,7 +809,7 @@ export class Woodland extends EventEmitter {
 								if (this.autoindex === false) {
 									res.error(404);
 								} else {
-									const body = aindex(decodeURIComponent(req.parsed.pathname), files);
+									const body = autoindex(decodeURIComponent(req.parsed.pathname), files);
 
 									res.header(CONTENT_TYPE, `text/html; charset=${this.charset}`);
 									res.send(body);
@@ -670,10 +903,10 @@ export class Woodland extends EventEmitter {
 	}
 }
 
-export function woodland (arg) {
+function woodland (arg) {
 	const router = new Woodland(arg);
 
 	router.route = router.route.bind(router);
 
 	return router;
-}
+}export{Woodland,woodland};
