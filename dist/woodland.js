@@ -3,7 +3,7 @@
  *
  * @copyright 2023 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 18.0.2
+ * @version 18.0.3
  */
 import {STATUS_CODES,METHODS}from'node:http';import {join,extname,resolve}from'node:path';import {EventEmitter}from'node:events';import {readFileSync,createReadStream,stat,readdir}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import deepFreeze from'deep-freeze';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const ALL = "*";
 const DELIMITER = "|";
