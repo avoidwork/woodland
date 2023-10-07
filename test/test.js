@@ -64,6 +64,10 @@ router.use("/last-error-invalid", (err, req, res, next) => {
 	res.statusCode = 502;
 	next(err);
 });
+router.use("/double-send", (req, res) => {
+	res.send("Hello World!");
+	process.nextTick(() => res.send("Hello World!"));
+});
 
 // Methods
 router.connect("/methods", (req, res) => res.send("connect handler"));
@@ -179,6 +183,13 @@ describe("Valid Requests", function () {
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
 			.expectBody(/^hello$/)
+			.end();
+	});
+
+	it("GET /double-send (200 / 'Success')", function () {
+		return httptest({url: "http://localhost:8001/double-send"})
+			.expectStatus(200)
+			.expectBody(/^Hello World!/)
 			.end();
 	});
 
