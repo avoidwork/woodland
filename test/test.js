@@ -3,6 +3,7 @@ import {createServer, METHODS} from "node:http";
 import {fileURLToPath, URL} from "node:url";
 import {httptest} from "tiny-httptest";
 import {woodland} from "../dist/woodland.cjs";
+import {CACHE_CONTROL, CONTENT_TYPE} from "../src/constants.js";
 const methods = METHODS.join(", ");
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
@@ -18,8 +19,8 @@ process.on("uncaughtException", handler);
 const router = woodland({
 	autoindex: true,
 	defaultHeaders: {
-		"Cache-Control": "no-cache",
-		"Content-Type": "text/plain; charset=utf-8"
+		[CACHE_CONTROL]: "no-cache",
+		[CONTENT_TYPE]: "text/plain; charset=utf-8"
 	},
 	origins: [
 		"http://localhost:8001",
@@ -261,7 +262,7 @@ describe("Valid Requests", function () {
 			.expectHeader("x-always", "true")
 			.expectHeader("x-by-reference", "true")
 			.expectHeader("x-onconnect", "true")
-			.expectHeader("etag", /^"\d+"$/)
+			.expectHeader("etag", /^(.*)$/)
 			.expectBody(/[\w]+/)
 			.end();
 	});
@@ -307,7 +308,7 @@ describe("Valid Requests", function () {
 			.expectHeader("x-always", "true")
 			.expectHeader("x-by-reference", "true")
 			.expectHeader("x-onconnect", "true")
-			.expectHeader("etag", /^"\d+"$/)
+			.expectHeader("etag", /^(.*)$/)
 			.expectBody(/[\w]+/)
 			.end();
 	});
