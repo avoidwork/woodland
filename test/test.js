@@ -44,6 +44,7 @@ router.onsend = (req, res, body, status, headers) => {
 router.on("finish", () => void 0);
 router.always("/.*", always).ignore(always);
 router.use("/", (req, res) => res.send(req.method !== "OPTIONS" ? "Hello World!" : ""));
+router.use("/int", (req, res) => res.send(123));
 router.use("/json1", (req, res) => res.json({text: "Hello World!"}));
 router.use("/json2", (req, res) => res.json("Hello World!"));
 router.use("/empty", (req, res) => res.status(204).send(""));
@@ -175,6 +176,15 @@ describe("Valid Requests", function () {
 			.expectHeader("allow", "GET, HEAD, OPTIONS")
 			.expectHeader("cache-control", "no-cache")
 			.expectBody(/^hello$/)
+			.end();
+	});
+
+	it("GET /int (200 / 'Success')", function () {
+		return httptest({url: "http://localhost:8001/int"})
+			.expectStatus(200)
+			.expectHeader("allow", "GET, HEAD, OPTIONS")
+			.expectHeader("cache-control", "no-cache")
+			.expectBody(/^123$/)
 			.end();
 	});
 

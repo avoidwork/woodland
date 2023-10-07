@@ -253,7 +253,7 @@ class Woodland extends EventEmitter {
 					writeHead(res, status, headers);
 					body.on(ERROR, () => void 0).pipe(res);
 				} else {
-					if (typeof body !== STRING && TO_STRING in body) {
+					if (typeof body !== STRING && typeof body[TO_STRING] === FUNCTION) {
 						body = body.toString();
 					}
 
