@@ -695,6 +695,7 @@ class Woodland extends node_events.EventEmitter {
 		return this.onsend(req, res, body, status, headers);
 	}
 
+	/* istanbul ignore next */
 	onsend (req, res, body, status, headers) {
 		return [body, status, headers];
 	}

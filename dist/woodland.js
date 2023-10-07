@@ -676,6 +676,7 @@ function writeHead (res, status = 200, headers = {}) {
 		return this.onsend(req, res, body, status, headers);
 	}
 
+	/* istanbul ignore next */
 	onsend (req, res, body, status, headers) {
 		return [body, status, headers];
 	}
