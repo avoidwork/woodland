@@ -49,7 +49,7 @@ All files     |   99.79 |    75.67 |   98.63 |     100 |
 
 ## API
 ### constructor ({...})
-Returns a woodland router. Enable directory browsing & traversal with `autoindex`. Create an automatic `x-response-time` response header with `time` & `digit`. Customize `etag` response header with `seed`.
+Returns a woodland instance. Enable directory browsing & traversal with `autoindex`. Create an automatic `x-response-time` response header with `time` & `digit`. Customize `etag` response header with `seed`.
 
 See configuration options below.
 
@@ -93,12 +93,12 @@ Serve static files on disk. Use a route parameter or remove `folderPath` from `r
 
 #### Without `autoindex`
 ```javascript
-router.use("/files/:file", (req, res) => router.serve(req, res, req.params.file, path.join(__dirname, "files")));
+app.use("/files/:file", (req, res) => app.serve(req, res, req.params.file, path.join(__dirname, "files")));
 ```
 
 #### With `autoindex`
 ```javascript
-router.use("/files(/.*)?", (req, res) => router.serve(req, res, req.parsed.pathname.replace(/^\/files\/?/, ""), join(__dirname, "files")));
+app.use("/files(/.*)?", (req, res) => app.serve(req, res, req.parsed.pathname.replace(/^\/files\/?/, ""), join(__dirname, "files")));
 ```
 
 ### use ([path = "/.*",] ...fn[, method = "GET"])
@@ -185,7 +185,7 @@ When woodland is installed as a global module you can serve the contents of a fo
 Event Emitter syntax for the following events:
 
 ```javascript
-router.on("connect", (req, res) => res.header("x-custom-header", "abc-def"));
+app.on("connect", (req, res) => res.header("x-custom-header", "abc-def"));
 ```
 
 ### connect (req, res)
