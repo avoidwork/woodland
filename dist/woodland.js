@@ -817,6 +817,7 @@ function writeHead (res, status = 200, headers = {}) {
 							} else {
 								stat(result, {bigint: false}, (e3, rstats) => {
 									if (e3 !== null) {
+										/* istanbul ignore next */
 										res.error(500, e3);
 									} else {
 										stream(req, res, {

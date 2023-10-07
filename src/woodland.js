@@ -584,6 +584,7 @@ class Woodland extends EventEmitter {
 							} else {
 								stat(result, {bigint: false}, (e3, rstats) => {
 									if (e3 !== null) {
+										/* istanbul ignore next */
 										res.error(500, e3);
 									} else {
 										stream(req, res, {
