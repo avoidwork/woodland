@@ -206,10 +206,9 @@ function parse (arg) {
 	return new URL(typeof arg === STRING ? arg : `http://${arg.headers.host || `localhost:${arg.socket.server._connectionKey.replace(/.*::/, EMPTY)}`}${arg.url}`);
 }
 
-function partial (req, res, buffered, status, headers) {
+function partialHeaders (req, res, size, status, headers = {}, options = {}) {
 	if ((req.headers.range || EMPTY).indexOf(KEY_BYTES) === 0) {
-		const options = {},
-			size = Buffer.byteLength(buffered);
+		options = {};
 
 		for (const [idx, i] of req.headers.range.replace(KEY_BYTES, EMPTY).split(COMMA)[0].split(HYPHEN).entries()) {
 			options[idx === 0 ? START : END] = i ? parseInt(i, 10) : void 0;
@@ -223,7 +222,7 @@ function partial (req, res, buffered, status, headers) {
 			options.end = size;
 		}
 
-		if ((options.start >= options.end || isNaN(options.start) || isNaN(options.end)) === false) {
+		if (options.start < options.end && isNaN(options.start) === false && isNaN(options.end) === false) {
 			req.range = options;
 			headers[CONTENT_RANGE] = `bytes ${options.start + (options.end === size ? 1 : 0)}-${options.end}/${size}`;
 			headers[CONTENT_LENGTH] = `${options.end - options.start + (options.end === size ? 0 : 1)}`;
@@ -283,31 +282,12 @@ function stream (req, res, file = {
 			const options = {};
 			let status = 200;
 
-			// Setting the partial content headers
 			if (RANGE in req.headers) {
-				const range = req.headers.range.replace(/^.*=/, EMPTY).split(COMMA)[0].split(HYPHEN);
-
-				for (const [idx, i] of range.entries()) {
-					options[idx === 0 ? START : END] = i !== void 0 ? parseInt(i, 10) : void 0;
-				}
-
-				// Byte offsets
-				if (isNaN(options.start) && isNaN(options.end) === false) {
-					options.start = file.stats.size - options.end;
-					options.end = file.stats.size;
-				} else if (isNaN(options.end)) {
-					options.end = file.stats.size;
-				}
-
-				if (options.start >= options.end || isNaN(options.start) || isNaN(options.end)) {
-					res.error(416);
-				}
-
-				status = 206;
+				const headers = {};
+				partialHeaders(req, res, file.stats.size, status, headers);
 				res.removeHeader(CONTENT_LENGTH);
 				res.removeHeader(ETAG);
-				res.header(CONTENT_RANGE, `bytes ${options.start}-${options.end}/${file.stats.size}`);
-				res.header(CONTENT_LENGTH, options.end - options.start + 1);
+				res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
 			}
 
 			res.send(createReadStream(file.path, options), status);
@@ -502,7 +482,7 @@ function writeHead (res, status, headers) {
 					if (req.headers.range !== void 0) {
 						const buffered = Buffer.from(body);
 
-						partial(req, res, buffered, status, headers);
+						partialHeaders(req, res, Buffer.byteLength(buffered), status, headers);
 
 						if (req.range !== void 0) {
 							writeHead(res, status, headers);

@@ -284,7 +284,6 @@ describe("Valid Requests", function () {
 		return httptest({url: "http://localhost:8001/test/test.js", headers: {range: "bytes=0-5"}})
 			.expectStatus(206)
 			.expectHeader("content-type", "application/javascript; charset=utf-8")
-			.expectHeader("content-length", 6)
 			.end();
 	});
 

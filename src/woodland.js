@@ -94,7 +94,7 @@ import {
 	pad,
 	params,
 	parse,
-	partial,
+	partialHeaders,
 	pipeable,
 	reduce,
 	stream,
@@ -260,7 +260,7 @@ class Woodland extends EventEmitter {
 					if (req.headers.range !== void 0) {
 						const buffered = Buffer.from(body);
 
-						partial(req, res, buffered, status, headers);
+						partialHeaders(req, res, Buffer.byteLength(buffered), status, headers);
 
 						if (req.range !== void 0) {
 							writeHead(res, status, headers);
