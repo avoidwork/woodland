@@ -55,6 +55,11 @@ router.use("/last", (req, res, next) => next());
 router.use("/last-error", (req, res, next) => next(new Error("Something went wrong")));
 router.use("/last-error", (err, req, res, next) => next(err));
 router.use("/last-error", (req, res) => res.send("Never sent"));
+router.use("/last-error-invalid", (req, res, next) => next(new Error("Something went wrong")));
+router.use("/last-error-invalid", (err, req, res, next) => {
+	res.statusCode = 502;
+	next(err);
+});
 
 // Methods
 router.connect("/methods", (req, res) => res.send("connect handler"));
@@ -528,6 +533,12 @@ describe("Invalid Requests", function () {
 			.expectHeader("content-type", "text/plain; charset=utf-8")
 			.expectHeader("content-length", 21)
 			.expectBody(/Internal Server Error/)
+			.end();
+	});
+
+	it("GET /last-error-invalid (502 / 'Faux Bad Gateway')", function () {
+		return httptest({url: "http://localhost:8001/last-error-invalid"})
+			.expectStatus(502)
 			.end().then(() => server.close());
 	});
 });
