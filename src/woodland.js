@@ -429,10 +429,6 @@ class Woodland extends EventEmitter {
 			res.header(CONTENT_LENGTH, Buffer.byteLength(body));
 		}
 
-		if (res.statusCode < status) {
-			res.statusCode = status;
-		}
-
 		writeHead(res, status, headers);
 		res.end(body, this.charset);
 	}

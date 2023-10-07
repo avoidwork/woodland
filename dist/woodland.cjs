@@ -346,7 +346,7 @@ function timeOffset (arg = 0) {
 	}, []).join(EMPTY)}`;
 }
 
-function writeHead (res, status, headers) {
+function writeHead (res, status = 200, headers = {}) {
 	if (res.statusCode < status) {
 		res.statusCode = status;
 	}
@@ -679,10 +679,6 @@ class Woodland extends node_events.EventEmitter {
 	ondone (req, res, body, status, headers) {
 		if (res.getHeader(CONTENT_LENGTH) === void 0) {
 			res.header(CONTENT_LENGTH, Buffer.byteLength(body));
-		}
-
-		if (res.statusCode < status) {
-			res.statusCode = status;
 		}
 
 		writeHead(res, status, headers);

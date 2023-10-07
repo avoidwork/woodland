@@ -248,7 +248,7 @@ export function timeOffset (arg = 0) {
 	}, []).join(EMPTY)}`;
 }
 
-export function writeHead (res, status, headers) {
+export function writeHead (res, status = 200, headers = {}) {
 	if (res.statusCode < status) {
 		res.statusCode = status;
 	}
