@@ -113,6 +113,10 @@ describe("Invalid Routes", function () {
 	it("Will throw for invalid HTTP methods", function () {
 		assert.throws(() => router.use("/invalid", () => void 0, "INVALID"));
 	});
+
+	it("Will throw for HEAD routes", function () {
+		assert.throws(() => router.use("/invalid", () => void 0, "HEAD"));
+	});
 });
 
 describe("Valid Requests", function () {
