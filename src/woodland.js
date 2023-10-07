@@ -1,5 +1,3 @@
-"use strict";
-
 import {METHODS, STATUS_CODES} from "node:http";
 import {join, resolve} from "node:path";
 import {EventEmitter} from "node:events";
@@ -7,7 +5,7 @@ import {readdir, stat} from "node:fs";
 import {etag} from "tiny-etag";
 import {precise} from "precise";
 import {lru} from "tiny-lru";
-import {all, delimiter, levels, months} from "./constants.js";
+import {ALL, DELIMITER, LEVELS, MONTHS} from "./constants.js";
 import {
 	autoindex as aindex,
 	clone,
@@ -79,8 +77,8 @@ class Woodland extends EventEmitter {
 		let result = override === false ? this.permissions.get(uri) : void 0;
 
 		if (override || result === void 0) {
-			const allMethods = this.routes(uri, all, override).visible > 0,
-				list = allMethods ? clone(METHODS) : this.methods.filter(i => this.allowed(i, uri, override));
+			const ALLMethods = this.routes(uri, ALL, override).visible > 0,
+				list = ALLMethods ? clone(METHODS) : this.methods.filter(i => this.allowed(i, uri, override));
 
 			if (list.includes("GET")) {
 				if (list.includes("HEAD") === false) {
@@ -97,14 +95,14 @@ class Woodland extends EventEmitter {
 		}
 
 		if (this.logging.enabled) {
-			this.log(`type=allows, uri=${uri}, override=${override}, message="Determined 'allow' header value"`, "debug");
+			this.log(`type=allows, uri=${uri}, override=${override}, message="Determined 'ALLow' header value"`, "debug");
 		}
 
 		return result;
 	}
 
 	always (...args) {
-		return this.use(...args, all);
+		return this.use(...args, ALL);
 	}
 
 	connect (...args) {
@@ -118,7 +116,7 @@ class Woodland extends EventEmitter {
 			.replace("%h", req.ip || "-")
 			.replace("%l", "-")
 			.replace("%u", req.parsed.username || "-")
-			.replace("%t", `[${date.getDate()}/${months[date.getMonth()]}/${date.getFullYear()}:${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${timeOffset(date.getTimezoneOffset())}]`)
+			.replace("%t", `[${date.getDate()}/${MONTHS[date.getMonth()]}/${date.getFullYear()}:${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${timeOffset(date.getTimezoneOffset())}]`)
 			.replace("%r", `${req.method} ${req.parsed.pathname}${req.parsed.search} HTTP/1.1`)
 			.replace("%>s", res.statusCode)
 			.replace("%b", res.getHeader("content-length") || "-")
@@ -134,10 +132,10 @@ class Woodland extends EventEmitter {
 		const parsed = parse(req);
 
 		req.parsed = parsed;
-		req.allow = this.allows(parsed.pathname);
+		req.ALLow = this.allows(parsed.pathname);
 		req.body = "";
 		req.corsHost = "origin" in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host;
-		req.cors = req.corsHost && (this.origins.includes(all) || this.origins.includes(req.headers.origin));
+		req.cors = req.corsHost && (this.origins.includes(ALL) || this.origins.includes(req.headers.origin));
 		req.host = parsed.hostname;
 		req.ip = "x-forwarded-for" in req.headers ? req.headers["x-forwarded-for"].split(",").pop().trim() : req.connection.remoteAddress;
 		res.locals = {};
@@ -214,20 +212,20 @@ class Woodland extends EventEmitter {
 			res.header(i[0], i[1]);
 		}
 
-		res.header("allow", req.allow);
+		res.header("ALLow", req.ALLow);
 
 		if (req.cors) {
 			const headers = req.headers["access-control-request-headers"] || this.corsExpose;
 
-			res.header("access-control-allow-origin", req.headers.origin);
-			res.header("timing-allow-origin", req.headers.origin);
-			res.header("access-control-allow-credentials", "true");
+			res.header("access-control-ALLow-origin", req.headers.origin);
+			res.header("timing-ALLow-origin", req.headers.origin);
+			res.header("access-control-ALLow-credentials", "true");
 
 			if (headers !== void 0) {
-				res.header(`access-control-${req.method === "OPTIONS" ? "allow" : "expose"}-headers`, headers);
+				res.header(`access-control-${req.method === "OPTIONS" ? "ALLow" : "expose"}-headers`, headers);
 			}
 
-			res.header("access-control-allow-methods", req.allow);
+			res.header("access-control-ALLow-methods", req.ALLow);
 		}
 
 		if (this.logging.enabled) {
@@ -252,12 +250,12 @@ class Woodland extends EventEmitter {
 				output = this.sendError === false ? numeric ? STATUS_CODES[status] : err.message : err;
 
 			if (status === 404) {
-				res.removeHeader("allow");
-				res.header("allow", "");
+				res.removeHeader("ALLow");
+				res.header("ALLow", "");
 
 				if (req.cors) {
-					res.removeHeader("access-control-allow-methods");
-					res.header("access-control-allow-methods", req.allow);
+					res.removeHeader("access-control-ALLow-methods");
+					res.header("access-control-ALLow-methods", req.ALLow);
 				}
 			}
 
@@ -317,9 +315,9 @@ class Woodland extends EventEmitter {
 	}
 
 	log (msg, level = "debug") {
-		const idx = levels[level];
+		const idx = LEVELS[level];
 
-		if (idx <= levels[this.logging.level]) {
+		if (idx <= LEVELS[this.logging.level]) {
 			process.nextTick(() => console[idx > 4 ? "log" : "error"](msg));
 		}
 
@@ -372,7 +370,7 @@ class Woodland extends EventEmitter {
 
 		if (req.cors === false && "origin" in req.headers && req.corsHost && this.origins.includes(req.headers.origin) === false) {
 			res.error(403);
-		} else if (req.allow.includes(method)) {
+		} else if (req.ALLow.includes(method)) {
 			const result = this.routes(req.parsed.pathname, method);
 
 			if (result.params) {
@@ -391,7 +389,7 @@ class Woodland extends EventEmitter {
 	}
 
 	routes (uri, method, override = false) {
-		const key = `${method}${delimiter}${uri}`,
+		const key = `${method}${DELIMITER}${uri}`,
 			cached = override === false ? this.cache.get(key) : void 0;
 		let result;
 
@@ -399,9 +397,9 @@ class Woodland extends EventEmitter {
 			result = cached;
 		} else {
 			result = {middleware: [], params: false, pos: [], visible: 0, last: null};
-			reduce(uri, this.middleware.get(all), result);
+			reduce(uri, this.middleware.get(ALL), result);
 
-			if (method !== all) {
+			if (method !== ALL) {
 				reduce(uri, this.middleware.get(method), result, true, this.ignored);
 			}
 
@@ -420,9 +418,9 @@ class Woodland extends EventEmitter {
 		const fp = resolve(folder, decodeURIComponent(arg));
 
 		if (req.method !== "GET" && req.method !== "HEAD" && req.method !== "OPTIONS") {
-			if (req.allow.length > 0) {
-				req.allow = "GET, HEAD, OPTIONS";
-				res.header("allow", req.allow);
+			if (req.ALLow.length > 0) {
+				req.ALLow = "GET, HEAD, OPTIONS";
+				res.header("ALLow", req.ALLow);
 			}
 
 			res.error(405);
@@ -507,12 +505,12 @@ class Woodland extends EventEmitter {
 	use (rpath, ...fn) {
 		if (typeof rpath === "function") {
 			fn = [rpath, ...fn];
-			rpath = `/.${all}`;
+			rpath = `/.${ALL}`;
 		}
 
 		const method = typeof fn[fn.length - 1] === "string" ? fn.pop().toUpperCase() : "GET";
 
-		if (method !== all && METHODS.includes(method) === false) {
+		if (method !== ALL && METHODS.includes(method) === false) {
 			throw new TypeError("Invalid HTTP method");
 		}
 
@@ -521,7 +519,7 @@ class Woodland extends EventEmitter {
 		}
 
 		if (this.middleware.has(method) === false) {
-			if (method !== all) {
+			if (method !== ALL) {
 				this.methods.push(method);
 			}
 
