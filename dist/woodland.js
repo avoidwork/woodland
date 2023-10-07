@@ -472,26 +472,11 @@ function writeHead (res, status, headers) {
 	}
 
 	decoratorSend (req, res) {
-		return (body = EMPTY, status = 200, headers = {}, errorPass = false) => {
-			const done = () => {
-				if (res.getHeader(CONTENT_LENGTH) === void 0) {
-					res.header(CONTENT_LENGTH, Buffer.byteLength(body));
-				}
-
-				writeHead(res, status, headers);
-				res.end(body, this.charset);
-			};
-
+		return (body = EMPTY, status = 200, headers = {}) => {
 			if (res.headersSent === false) {
-				[body, status, headers] = this.onsend(req, res, body, status, headers);
+				[body, status, headers] = this.onready(req, res, body, status, headers);
 
-				if (errorPass === false && this.time && res.getHeader(X_RESPONSE_TIME) === void 0) {
-					res.header(X_RESPONSE_TIME, `${ms(req.precise.stop().diff(), this.digit)}`);
-				}
-
-				if (errorPass) {
-					done();
-				} else if (pipeable(req.method, body)) {
+				if (pipeable(req.method, body)) {
 					if (req.headers.range === void 0 || req.range !== void 0) {
 						writeHead(res, status, headers);
 						body.on(ERROR, err => res.error(500, err)).pipe(res);
@@ -509,13 +494,12 @@ function writeHead (res, status, headers) {
 						[headers] = partialHeaders(req, res, Buffer.byteLength(buffered), status, headers);
 
 						if (req.range !== void 0) {
-							writeHead(res, status, headers);
-							res.end(buffered.slice(req.range.start, req.range.end).toString(), this.charset);
+							this.ondone(req, res, buffered.slice(req.range.start, req.range.end).toString(), status, headers);
 						} else {
 							res.error(416);
 						}
 					} else {
-						done();
+						this.ondone(req, res, body, status, headers);
 					}
 				}
 
@@ -611,8 +595,8 @@ function writeHead (res, status, headers) {
 				}
 			}
 
-			res.statusCode = status;
-			res.send(output, status, {}, true);
+			res.removeHeader(CONTENT_LENGTH);
+			this.ondone(req, res, output, status);
 		}
 
 		if (this.listenerCount(ev) > 0) {
@@ -671,6 +655,31 @@ function writeHead (res, status, headers) {
 		}
 
 		return this;
+	}
+
+	ondone (req, res, body, status, headers) {
+		if (res.getHeader(CONTENT_LENGTH) === void 0) {
+			res.header(CONTENT_LENGTH, Buffer.byteLength(body));
+		}
+
+		if (res.statusCode < status) {
+			res.statusCode = status;
+		}
+
+		writeHead(res, status, headers);
+		res.end(body, this.charset);
+	}
+
+	onready (req, res, body, status, headers) {
+		if (res.headersSent === false) {
+			[body, status, headers] = this.onsend(req, res, body, status, headers);
+
+			if (this.time && res.getHeader(X_RESPONSE_TIME) === void 0) {
+				res.header(X_RESPONSE_TIME, `${ms(req.precise.stop().diff(), this.digit)}`);
+			}
+		}
+
+		return [body, status, headers];
 	}
 
 	onsend (req, res, body, status, headers) {
