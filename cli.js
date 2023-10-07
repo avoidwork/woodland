@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import {createServer} from "node:http";
-import {woodland} from "./dist/woodland.esm.js";
+import {woodland} from "./dist/woodland.js";
 
 const router = woodland({
 		autoindex: true,
