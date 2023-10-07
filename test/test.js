@@ -261,6 +261,7 @@ describe("Valid Requests", function () {
 
 	it("GET /test/test.js (200 / 'Success')", function () {
 		return httptest({url: "http://localhost:8001/test/test.js"})
+			.etags()
 			.expectStatus(200)
 			.expectHeader("allow", methods)
 			.expectHeader("content-type", "application/javascript; charset=utf-8")
@@ -269,6 +270,13 @@ describe("Valid Requests", function () {
 			.expectHeader("x-onconnect", "true")
 			.expectHeader("etag", /^(.*)$/)
 			.expectBody(/[\w]+/)
+			.end();
+	});
+
+	it("GET /test/test.js (304 / 'Not Modified')", function () {
+		return httptest({url: "http://localhost:8001/test/test.js"})
+			.etags()
+			.expectStatus(304)
 			.end();
 	});
 
