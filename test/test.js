@@ -104,7 +104,7 @@ describe("Methods", function () {
 	});
 
 	it("Object of routes", function () {
-		return Object.keys(router.list(undefined, undefined, "object")).length > 0 ? Promise.resolve(true) : Promise.reject(new Error("No routes found"));
+		return Object.keys(router.list(undefined, "object")).length > 0 ? Promise.resolve(true) : Promise.reject(new Error("No routes found"));
 	});
 });
 
