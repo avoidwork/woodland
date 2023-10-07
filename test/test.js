@@ -65,8 +65,8 @@ router.use("/last-error-invalid", (err, req, res, next) => {
 	next(err);
 });
 router.use("/double-send", (req, res) => {
-	res.send("Hello World!");
-	process.nextTick(() => res.send("Hello World!"));
+	res.send("Hello World 1!");
+	process.nextTick(() => res.send("Hello World 2!"));
 });
 
 // Methods
@@ -189,7 +189,7 @@ describe("Valid Requests", function () {
 	it("GET /double-send (200 / 'Success')", function () {
 		return httptest({url: "http://localhost:8001/double-send"})
 			.expectStatus(200)
-			.expectBody(/^Hello World!/)
+			.expectBody(/^Hello World 1!/)
 			.end();
 	});
 
