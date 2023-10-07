@@ -433,6 +433,7 @@ class Woodland extends EventEmitter {
 		const idx = LEVELS[level];
 
 		if (idx <= LEVELS[this.logging.level]) {
+			/* istanbul ignore next */
 			process.nextTick(() => console[idx > 4 ? LOG : ERROR](msg));
 		}
 
