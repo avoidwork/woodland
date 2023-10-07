@@ -2,6 +2,7 @@ import {join} from "node:path";
 import {createServer, METHODS} from "node:http";
 import {fileURLToPath, URL} from "node:url";
 import {lstatSync} from "node:fs";
+import assert from "node:assert/strict";
 import {httptest} from "tiny-httptest";
 import {woodland} from "../dist/woodland.cjs";
 import {
@@ -105,6 +106,12 @@ describe("Methods", function () {
 
 	it("Object of routes", function () {
 		return Object.keys(router.list(undefined, "object")).length > 0 ? Promise.resolve(true) : Promise.reject(new Error("No routes found"));
+	});
+});
+
+describe("Invalid Routes", function () {
+	it("Will throw for invalid HTTP methods", function () {
+		assert.throws(() => router.use("/invalid", () => void 0, "INVALID"));
 	});
 });
 
