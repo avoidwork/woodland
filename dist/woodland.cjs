@@ -248,6 +248,8 @@ function partialHeaders (req, res, size, status, headers = {}, options = {}) {
 			delete headers.etag;
 		}
 	}
+
+	return [headers, options];
 }
 
 function pipeable (method, arg) {
@@ -296,16 +298,16 @@ function stream (req, res, file = {
 			res.removeHeader(CONTENT_LENGTH);
 			res.send(EMPTY, 304);
 		} else {
-			const options = {};
 			let status = 200;
+			let options, headers;
 
 			if (RANGE in req.headers) {
-				const headers = {};
-				partialHeaders(req, res, file.stats.size, status, headers, options);
+				[headers, options] = partialHeaders(req, res, file.stats.size);
 				res.removeHeader(CONTENT_LENGTH);
 				res.removeHeader(ETAG);
 				res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
 				res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
+				options.end--; // last byte offset
 			}
 
 			res.send(node_fs.createReadStream(file.path, options), status);
@@ -500,7 +502,7 @@ class Woodland extends node_events.EventEmitter {
 					if (req.headers.range !== void 0) {
 						const buffered = Buffer.from(body);
 
-						partialHeaders(req, res, Buffer.byteLength(buffered), status, headers);
+						[headers] = partialHeaders(req, res, Buffer.byteLength(buffered), status, headers);
 
 						if (req.range !== void 0) {
 							writeHead(res, status, headers);

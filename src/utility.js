@@ -150,6 +150,8 @@ export function partialHeaders (req, res, size, status, headers = {}, options = 
 			delete headers.etag;
 		}
 	}
+
+	return [headers, options];
 }
 
 export function pipeable (method, arg) {
@@ -198,16 +200,16 @@ export function stream (req, res, file = {
 			res.removeHeader(CONTENT_LENGTH);
 			res.send(EMPTY, 304);
 		} else {
-			const options = {};
 			let status = 200;
+			let options, headers;
 
 			if (RANGE in req.headers) {
-				const headers = {};
-				partialHeaders(req, res, file.stats.size, status, headers, options);
+				[headers, options] = partialHeaders(req, res, file.stats.size, status);
 				res.removeHeader(CONTENT_LENGTH);
 				res.removeHeader(ETAG);
 				res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
 				res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
+				options.end--; // last byte offset
 			}
 
 			res.send(createReadStream(file.path, options), status);

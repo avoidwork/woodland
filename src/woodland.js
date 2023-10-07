@@ -260,7 +260,7 @@ class Woodland extends EventEmitter {
 					if (req.headers.range !== void 0) {
 						const buffered = Buffer.from(body);
 
-						partialHeaders(req, res, Buffer.byteLength(buffered), status, headers);
+						[headers] = partialHeaders(req, res, Buffer.byteLength(buffered), status, headers);
 
 						if (req.range !== void 0) {
 							writeHead(res, status, headers);
