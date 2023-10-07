@@ -828,23 +828,10 @@ class Woodland extends node_events.EventEmitter {
 								if (this.autoindex === false) {
 									res.error(404);
 								} else {
-									let valid = true,
-										body = EMPTY,
-										lerr;
+									const body = autoindex(decodeURIComponent(req.parsed.pathname), files);
 
-									try {
-										body = autoindex(decodeURIComponent(req.parsed.pathname), files);
-									} catch (err) {
-										valid = false;
-										lerr = err;
-									}
-
-									if (valid) {
-										res.header(CONTENT_TYPE, `text/html; charset=${this.charset}`);
-										res.send(body);
-									} else {
-										res.error(500, lerr);
-									}
+									res.header(CONTENT_TYPE, `text/html; charset=${this.charset}`);
+									res.send(body);
 								}
 							} else {
 								node_fs.stat(result, {bigint: false}, (e3, rstats) => {

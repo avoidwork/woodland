@@ -280,7 +280,7 @@ describe("Valid Requests", function () {
 			.end();
 	});
 
-	it("GET /test/test.js (200 / 'Success')", function () {
+	it("GET /test/ (404 / 'Success')", function () {
 		router.autoindex = false;
 
 		return httptest({url: "http://localhost:8001/test/"})

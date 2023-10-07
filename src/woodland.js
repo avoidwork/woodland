@@ -576,23 +576,10 @@ class Woodland extends EventEmitter {
 								if (this.autoindex === false) {
 									res.error(404);
 								} else {
-									let valid = true,
-										body = EMPTY,
-										lerr;
+									const body = aindex(decodeURIComponent(req.parsed.pathname), files);
 
-									try {
-										body = aindex(decodeURIComponent(req.parsed.pathname), files);
-									} catch (err) {
-										valid = false;
-										lerr = err;
-									}
-
-									if (valid) {
-										res.header(CONTENT_TYPE, `text/html; charset=${this.charset}`);
-										res.send(body);
-									} else {
-										res.error(500, lerr);
-									}
+									res.header(CONTENT_TYPE, `text/html; charset=${this.charset}`);
+									res.send(body);
 								}
 							} else {
 								stat(result, {bigint: false}, (e3, rstats) => {
