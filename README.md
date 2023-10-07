@@ -1,18 +1,20 @@
 <img src="https://avoidwork.github.io/woodland/logo.svg" width="108" />
 
-# woodland
+# Woodland
 
-Lightweight HTTP router with automatic headers. Routes can use parameter syntax, i.e. `/users/:id`, or `RegExp` syntax. Route parameters are not sanitized. If 2+ routes with parameters match a request the first route will be used to extract parameters. All HTTP methods are supported.
+Lightweight HTTP framework with automatic headers. Routes can use parameter syntax, i.e. `/users/:id`, or `RegExp` syntax. Route parameters are not sanitized. If 2+ routes with parameters match a request the first route will be used to extract parameters. All HTTP methods are supported.
 
 `CORS` (Cross Origin Resource Sharing) is automatically handled, and indicated with `cors` Boolean on the `request` Object for middleware.
 
 Middleware arguments can be `req, res, next` or `error, req, res, next`. If no `Error` handling middleware is registered woodland will handle it.
 
+## Using the factory
+
 ```javascript
 import {createServer} from "node:http";
 import {woodland} from "woodland";
 
-const router = woodland({
+const app = woodland({
   defaultHeaders: {
     "cache-control": "public, max-age=3600",
     "content-type": "text/plain"
@@ -20,66 +22,86 @@ const router = woodland({
   time: true
 });
 
-router.get("/", (req, res) => res.send("Custom greeting at '/:user', try it out!"));
-router.get("/:user", (req, res) => res.send(`Hello ${req.params.user}!`));
-createServer(router.route).listen(8000);
+app.get("/", (req, res) => res.send("Custom greeting at '/:user', try it out!"));
+app.get("/:user", (req, res) => res.send(`Hello ${req.params.user}!`));
+createServer(app.route).listen(8000);
+```
+
+## Using the Class
+
+```javascript
+import {Woodland} from "woodland";
+class MyFramework extends Woodland {};
+```
+
+## Testing
+
+Woodland has 100% code coverage with its tests; the missing 0.21% is ignored file system error handlers that aren't worth testing - they're present!
+
+```console
+--------------|---------|----------|---------|---------|-------------------------------
+File          | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s
+--------------|---------|----------|---------|---------|-------------------------------
+All files     |   99.79 |    75.67 |   98.63 |     100 |                                                                                                                                                                                
+ woodland.cjs |   99.79 |    75.67 |   98.63 |     100 | ...288-298,327-349,358-359,...
+--------------|---------|----------|---------|---------|-------------------------------
 ```
 
 ## API
-##### woodland ({...})
+### constructor ({...})
 Returns a woodland router. Enable directory browsing & traversal with `autoindex`. Create an automatic `x-response-time` response header with `time` & `digit`. Customize `etag` response header with `seed`.
 
 See configuration options below.
 
-##### allowed (method, uri, override = false)
+### allowed (method, uri, override = false)
 Calls `routes()` and returns a `Boolean` to indicate if `method` is allowed for `uri`.
 
-##### allows (uri, override = false)
+### allows (uri, override = false)
 Returns a `String` for the `Allow` header. Caches value, & will update cache if `override` is `true`.
 
-##### always (path, fn)
+### always (path, fn)
 Registers middleware for a route for all HTTP methods; runs first. `path` is a regular expression (as a string), and if not passed it defaults to `/.*`.
 
 Execute `ignore(fn)` if you do not want the middleware included for calculating the `Allow` header.
 
-##### ignore (fn)
+### ignore (fn)
 Ignores `fn` for calculating the return of `allows()`.
 
-##### decorate (req, res)
+### decorate (req, res)
 Decorates `allow, body, cors, host, ip, params, & parsed` on `req` and `error(status[, body, headers]), header(key, value), json(body[, status, headers]), locals{} & redirect(url[, perm = false])` on `res`.
 
-##### etag (...args)
+### etag (...args)
 Returns a String to be used as an ETag response header value.
 
-##### list (method = "get", type = "array")
+### list (method = "get", type = "array")
 Returns an `Array` or `Object` of routes for the specified method.
 
-##### log (msg = "", level = "debug")
+### log (msg = "", level = "debug")
 Logs to `stdout` or `stderr` depending on the `level`, & what the minimum log level is set to.
 
-##### onsend (req, res, body, status, headers)
+### onsend (req, res, body, status, headers)
 **Override** to customize response `body`, `status`, or `headers`. Must return `[body, status, headers]`!
 
-##### route (req, res)
+### route (req, res)
 Function for `http.createServer()` or `https.createServer()`.
 
-##### routes (uri, method, override = false)
+### routes (uri, method, override = false)
 Returns an `Array` of middleware for the request. Caches value, & will update cache if `override` is `true`.
 
-##### serve (req, res, localFilePath, folderPath, indexes = this.indexes)
+### serve (req, res, localFilePath, folderPath, indexes = this.indexes)
 Serve static files on disk. Use a route parameter or remove `folderPath` from `req.parsed.pathname` to create `localFilePath`.
 
-###### Without `autoindex`
+#### Without `autoindex`
 ```javascript
 router.use("/files/:file", (req, res) => router.serve(req, res, req.params.file, path.join(__dirname, "files")));
 ```
 
-###### With `autoindex`
+#### With `autoindex`
 ```javascript
 router.use("/files(/.*)?", (req, res) => router.serve(req, res, req.parsed.pathname.replace(/^\/files\/?/, ""), join(__dirname, "files")));
 ```
 
-##### use ([path = "/.*",] ...fn[, method = "GET"])
+### use ([path = "/.*",] ...fn[, method = "GET"])
 Registers middleware for a route. `path` is a regular expression (as a string), and if not passed it defaults to `/.*`. See `always()` if you want the middleware to be used for all HTTP methods.
 
 All HTTP methods are available on the prototype (partial application of the third argument), e.g. `get([path,] ...fn)` & `options([path,] ...fn)`.
@@ -155,8 +177,6 @@ When woodland is installed as a global module you can serve the contents of a fo
   "origins": [
     "*"
   ],
-  "seed": 42,
-  "sendError": false,
   "time": false
 }
 ```
@@ -168,62 +188,45 @@ Event Emitter syntax for the following events:
 router.on("connect", (req, res) => res.header("x-custom-header", "abc-def"));
 ```
 
-##### connect (req, res)
+### connect (req, res)
 Executes after the connection has been decorated, but before the middleware executes.
 
-##### error (req, res, err)
+### error (req, res, err)
 Executes after the response has been sent.
 
-##### finish (req, res)
+### finish (req, res)
 Executes after the response has been sent.
 
 ## Helpers
 `req` & `res` are decorated with helper functions to simplify responding.
 
-##### res.error (status[, body, headers])
+### res.error(status[, body, headers])
 Sends an error response.
 
-##### res.header (key, value)
+### res.header(key, value)
 Shorthand of `res.setHeader()`.
 
-##### res.json (body, [status = 200, headers])
+### res.json(body, [status = 200, headers])
 Sends a JSON response.
 
-##### res.last (req, res, next)
+### res.last(req, res, next)
 Last middleware of the route for the HTTP method as a way to "skip" to the middleware which sends a response.
 
-##### res.redirect (uri[, perm = false])
+### res.redirect(uri[, perm = false])
 Sends a redirection response.
 
-##### res.send (body, [status = 200, headers = {}])
+### res.send(body, [status = 200, headers = {}])
 Sends a response. `Range` header is ignored on `stream` responses.
 
-##### res.status (arg)
-Sets the response `statusCode` property & status.
+### res.status(arg)
+Sets the response `statusCode` property.
 
 ## Logging
 Woodland defaults to [Common Log Format](https://en.wikipedia.org/wiki/Common_Log_Format) but supports [Common Log Format with Virtual Host](https://httpd.apache.org/docs/trunk/mod/mod_log_config.html), & [NCSA extended/combined log format](https://httpd.apache.org/docs/trunk/mod/mod_log_config.html) with an `info` level by default. You can change the `stdout` output by changing `logging.format` with valid placeholders.
 
 You can disable woodland's logging by configuration with `{logging: {enabled: false}}`.
 
-## Testing Code Coverage
-Run the `coverage` script with `npm` or `yarn`. Coverage test gaps are `Error` handling edge cases within `serve()` & `use()`.
-
-```console
----------------|---------|----------|---------|---------|-------------------------------------------------------------------------------------
-File           | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s
----------------|---------|----------|---------|---------|-------------------------------------------------------------------------------------
-All files      |   91.67 |    72.61 |   95.38 |   91.92 |                                                                                    
- woodland      |     100 |      100 |     100 |     100 |                                                                                    
-  index.js     |     100 |      100 |     100 |     100 |                                                                                    
- woodland/lib  |   91.54 |    72.61 |   95.31 |   91.79 |                                                                                    
-  constants.js |     100 |      100 |     100 |     100 |                                                                                    
-  utility.js   |   92.44 |    71.32 |     100 |   92.31 | 34,161-163,178-179,181,185,203                                                     
-  woodland.js  |   91.01 |    73.28 |   92.86 |   91.42 | 142,154-155,173-174,229-230,235,244,275-279,294,301,411,425,434-435,442,448,478,482
----------------|---------|----------|---------|---------|-------------------------------------------------------------------------------------
-```
-
 ## License
-Copyright (c) 2021 Jason Mulligan
+Copyright (c) 2023 Jason Mulligan
 
 Licensed under the BSD-3 license.

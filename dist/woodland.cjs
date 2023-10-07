@@ -930,4 +930,5 @@ function woodland (arg) {
 	return router;
 }
 
+exports.Woodland = Woodland;
 exports.woodland = woodland;

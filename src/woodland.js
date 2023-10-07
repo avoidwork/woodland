@@ -102,7 +102,7 @@ import {
 	writeHead
 } from "./utility.js";
 
-class Woodland extends EventEmitter {
+export class Woodland extends EventEmitter {
 	constructor ({
 		autoindex = false,
 		cacheSize = 1e3,

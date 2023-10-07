@@ -1,7 +1,7 @@
 {
   "name": "woodland",
   "version": "18.0.0",
-  "description": "Lightweight HTTP router with automatic headers",
+  "description": "Lightweight HTTP framework with automatic headers",
   "type": "module",
   "types": "types/woodland.d.ts",
   "source": "src/woodland.js",
