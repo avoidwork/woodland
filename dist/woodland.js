@@ -533,10 +533,12 @@ function writeHead (res, status, headers) {
 		};
 	}
 
-	statusHandler (res, arg = 200) {
-		res.statusCode = arg;
+	decorateStatus (req, res) {
+		return (arg = 200) => {
+			res.statusCode = arg;
 
-		return res;
+			return res;
+		};
 	}
 
 	decorate (req, res) {
@@ -560,7 +562,7 @@ function writeHead (res, status, headers) {
 		res.json = this.decoratorJson(req, res);
 		res.redirect = this.decoratorRedirect(req, res);
 		res.send = this.decoratorSend(req, res);
-		res.status = this.statusHandler;
+		res.status = this.decorateStatus(req, res);
 
 		for (const i of this.defaultHeaders) {
 			res.header(i[0], i[1]);
