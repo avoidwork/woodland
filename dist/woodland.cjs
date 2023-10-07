@@ -812,6 +812,7 @@ class Woodland extends node_events.EventEmitter {
 				} else {
 					node_fs.readdir(fp, {encoding: UTF8, withFileTypes: true}, (e2, files) => {
 						if (e2 !== null) {
+							/* istanbul ignore next */
 							res.error(500, e2);
 						} else {
 							let result = EMPTY;

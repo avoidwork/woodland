@@ -560,6 +560,7 @@ class Woodland extends EventEmitter {
 				} else {
 					readdir(fp, {encoding: UTF8, withFileTypes: true}, (e2, files) => {
 						if (e2 !== null) {
+							/* istanbul ignore next */
 							res.error(500, e2);
 						} else {
 							let result = EMPTY;
