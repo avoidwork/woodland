@@ -222,14 +222,17 @@ function partialHeaders (req, res, size, status, headers = {}, options = {}) {
 			options.end = size;
 		}
 
-		if (options.start < options.end && isNaN(options.start) === false && isNaN(options.end) === false) {
+		if (isNaN(options.start) === false && isNaN(options.end) === false && options.start < options.end && options.end <= size) {
 			req.range = options;
 			headers[CONTENT_RANGE] = `bytes ${options.start}-${options.end}/${size}`;
 			headers[CONTENT_LENGTH] = options.end - options.start;
 			res.statusCode = 206;
-			res.removeHeader(ETAG);
-			delete headers.etag;
+		} else {
+			headers[CONTENT_RANGE] = `bytes */${size}`;
 		}
+
+		res.removeHeader(ETAG);
+		delete headers.etag;
 	}
 
 	return [headers, options];
@@ -287,10 +290,12 @@ function stream (req, res, file = {
 			if (RANGE in req.headers) {
 				[headers, options] = partialHeaders(req, res, file.stats.size);
 				res.removeHeader(CONTENT_LENGTH);
-				res.removeHeader(ETAG);
 				res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
-				res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
 				options.end--; // last byte offset
+
+				if (CONTENT_LENGTH in headers) {
+					res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
+				}
 			}
 
 			res.send(createReadStream(file.path, options), status);
@@ -473,8 +478,13 @@ function writeHead (res, status, headers) {
 				}
 
 				if (pipeable(req.method, body)) {
-					writeHead(res, status, headers);
-					body.on(ERROR, () => void 0).pipe(res);
+					if (req.headers.range === void 0 || req.range !== void 0) {
+						writeHead(res, status, headers);
+						body.on(ERROR, err => res.error(500, err)).pipe(res);
+					} else {
+						delete req.headers.range;
+						res.error(416);
+					}
 				} else {
 					if (typeof body !== STRING && typeof body[TO_STRING] === FUNCTION) {
 						body = body.toString();

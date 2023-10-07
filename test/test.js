@@ -298,6 +298,13 @@ describe("Valid Requests", function () {
 			.end();
 	});
 
+	it("GET /test/test.js (416 / 'Partial response error - bytes=50000-50001')", function () {
+		return httptest({url: "http://localhost:8001/test/test.js", headers: {range: "bytes=50000-50001"}})
+			.expectStatus(416)
+			.expectHeader("content-range", "bytes */20630")
+			.end();
+	});
+
 	it("HEAD /test/test.js (200 / 'Success')", function () {
 		return httptest({url: "http://localhost:8001/test/test.js", method: "HEAD"})
 			.expectStatus(200)

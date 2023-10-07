@@ -250,8 +250,13 @@ class Woodland extends EventEmitter {
 				}
 
 				if (pipeable(req.method, body)) {
-					writeHead(res, status, headers);
-					body.on(ERROR, () => void 0).pipe(res);
+					if (req.headers.range === void 0 || req.range !== void 0) {
+						writeHead(res, status, headers);
+						body.on(ERROR, err => res.error(500, err)).pipe(res);
+					} else {
+						delete req.headers.range;
+						res.error(416);
+					}
 				} else {
 					if (typeof body !== STRING && typeof body[TO_STRING] === FUNCTION) {
 						body = body.toString();
