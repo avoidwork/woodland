@@ -3,7 +3,7 @@
  *
  * @copyright 2023 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 18.0.1
+ * @version 18.0.2
  */
 'use strict';
 
@@ -923,11 +923,11 @@ class Woodland extends node_events.EventEmitter {
 }
 
 function woodland (arg) {
-	const router = new Woodland(arg);
+	const app = new Woodland(arg);
 
-	router.route = router.route.bind(router);
+	app.route = app.route.bind(app);
 
-	return router;
+	return app;
 }
 
 exports.Woodland = Woodland;

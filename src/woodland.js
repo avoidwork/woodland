@@ -671,9 +671,9 @@ export class Woodland extends EventEmitter {
 }
 
 export function woodland (arg) {
-	const router = new Woodland(arg);
+	const app = new Woodland(arg);
 
-	router.route = router.route.bind(router);
+	app.route = app.route.bind(app);
 
-	return router;
+	return app;
 }

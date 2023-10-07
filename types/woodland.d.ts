@@ -1,6 +1,6 @@
 export function woodland(arg: any): Woodland;
 declare class Woodland extends EventEmitter {
-    constructor({ autoindex, cacheSize, cacheTTL, charset, defaultHeaders, digit, etags, indexes, logging, origins, seed, sendError, time }?: {
+    constructor({ autoindex, cacheSize, cacheTTL, charset, defaultHeaders, digit, etags, indexes, logging, origins, time }?: {
         autoindex?: boolean;
         cacheSize?: number;
         cacheTTL?: number;
@@ -11,8 +11,6 @@ declare class Woodland extends EventEmitter {
         indexes?: string[];
         logging?: {};
         origins?: string[];
-        seed?: number;
-        sendError?: boolean;
         time?: boolean;
     });
     autoindex: boolean;
@@ -39,7 +37,6 @@ declare class Woodland extends EventEmitter {
             set(key: any, value: any, bypass?: boolean): any;
         };
         mimetype: any;
-        seed: any;
         create(arg: any): string;
         middleware(req: any, res: any, next: any): void;
         hash(arg?: string, mimetype?: string): string;
@@ -57,7 +54,6 @@ declare class Woodland extends EventEmitter {
     methods: any[];
     middleware: Map<any, any>;
     origins: any;
-    sendError: boolean;
     time: boolean;
     allowed(method: any, uri: any, override?: boolean): boolean;
     allows(uri: any, override?: boolean): any;
@@ -73,6 +69,8 @@ declare class Woodland extends EventEmitter {
     ignore(fn: any): Woodland;
     list(method?: string, type?: string): {};
     log(msg: any, level?: string): Woodland;
+    ondone(req: any, res: any, body: any, status: any, headers: any): any[];
+    onready(req: any, res: any, body: any, status: any, headers: any): any[];
     onsend(req: any, res: any, body: any, status: any, headers: any): any[];
     options(...args: any[]): Woodland;
     patch(...args: any[]): Woodland;
