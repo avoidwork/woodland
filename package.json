@@ -1,25 +1,27 @@
 {
   "name": "woodland",
-  "version": "17.0.2",
+  "version": "18.0.0",
   "description": "Lightweight HTTP router with automatic headers",
-  "main": "dist/woodland.cjs",
-  "module": "dist/woodland.esm.js",
   "type": "module",
-  "sourceType": "module",
   "types": "types/woodland.d.ts",
+  "source": "src/woodland.js",
+  "main": "dist/woodland",
+  "exports": {
+    "types": "./types/woodland.d.ts",
+    "import": "./dist/woodland.js",
+    "require": "./dist/woodland.cjs"
+  },
   "files": [
     "dist",
-    "tpl",
     "types"
   ],
   "scripts": {
     "benchmark": "node benchmark.js",
-    "build": "mkdir -p dist && rm -rf dist/* && npm run rollup",
+    "build": "rm -rf dist && npm run rollup && npm run test",
     "changelog": "auto-changelog -p",
-    "coverage": "nyc npm run test",
     "fix": "eslint --fix *.js src/*.js test/*.js",
     "lint": "eslint *.js src/*.js test/*.js",
-    "mocha": "mocha test/*.js",
+    "mocha": "nyc mocha test/*.js",
     "rollup": "rollup --config",
     "sample": "node sample.js",
     "test": "npm run lint && npm run mocha",
@@ -45,7 +47,7 @@
   },
   "engineStrict": true,
   "engines": {
-    "node": ">=12.0.0"
+    "node": ">=17.0.0"
   },
   "homepage": "https://github.com/avoidwork/woodland",
   "bin": {
@@ -53,7 +55,7 @@
   },
   "dependencies": {
     "mime-db": "^1.52.0",
-    "precise": "^4.0.1",
+    "precise": "^4.0.2",
     "tiny-coerce": "^3.0.0",
     "tiny-etag": "^4.0.1",
     "tiny-lru": "^11.2.2"
@@ -63,12 +65,12 @@
     "autocannon": "^7.12.0",
     "concurrently": "^8.2.1",
     "deep-freeze": "^0.0.1",
-    "eslint": "^8.50.0",
+    "eslint": "^8.51.0",
     "husky": "^8.0.3",
     "mocha": "^10.2.0",
     "nyc": "^15.1.0",
-    "rollup": "^4.0.0",
-    "tiny-httptest": "^4.0.5",
+    "rollup": "^4.0.2",
+    "tiny-httptest": "^4.0.6",
     "typescript": "^5.2.2"
   }
 }

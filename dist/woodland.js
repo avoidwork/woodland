@@ -5,22 +5,7 @@
  * @license BSD-3-Clause
  * @version 18.0.0
  */
-'use strict';
-
-var node_http = require('node:http');
-var node_path = require('node:path');
-var node_events = require('node:events');
-var node_fs = require('node:fs');
-var tinyEtag = require('tiny-etag');
-var precise = require('precise');
-var tinyLru = require('tiny-lru');
-var deepFreeze = require('deep-freeze');
-var node_url = require('node:url');
-var tinyCoerce = require('tiny-coerce');
-var mimeDb = require('mime-db');
-
-var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
-const ALL = "*";
+import {STATUS_CODES,METHODS}from'node:http';import {join,extname,resolve}from'node:path';import {EventEmitter}from'node:events';import {readFileSync,createReadStream,stat,readdir}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import deepFreeze from'deep-freeze';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const ALL = "*";
 const DELIMITER = "|";
 const LEVELS = deepFreeze({
 	emerg: 0,
@@ -136,10 +121,8 @@ const TRACE = "TRACE";
 const ERROR_MSG_INVALID_METHOD = "Invalid HTTP method";
 const ERROR_MSG_HEAD_ROUTE = "Cannot set HEAD route, use GET";
 const COLON = ":";
-const LEFT_PAREN = "(";
-
-const __dirname$1 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href)))),
-	html = node_fs.readFileSync(node_path.join(__dirname$1, "..", "tpl", "autoindex.html"), {encoding: UTF8}),
+const LEFT_PAREN = "(";const __dirname = fileURLToPath(new URL(".", import.meta.url)),
+	html = readFileSync(join(__dirname, "..", "tpl", "autoindex.html"), {encoding: UTF8}),
 	valid = Object.entries(mimeDb).filter(i => EXTENSIONS in i[1]),
 	extensions = valid.reduce((a, v) => {
 		const result = Object.assign({type: v[0]}, v[1]);
@@ -163,14 +146,14 @@ function last (req, res, e, err) {
 	} else if (isNaN(status) === false && status >= 400) {
 		e(err);
 	} else {
-		e(new Error(status >= 400 ? status : isNaN(err.message) === false ? err.message : node_http.STATUS_CODES[err.message || err] || 500));
+		e(new Error(status >= 400 ? status : isNaN(err.message) === false ? err.message : STATUS_CODES[err.message || err] || 500));
 	}
 
 	return true;
 }
 
 function mime (arg = EMPTY) {
-	const ext = node_path.extname(arg);
+	const ext = extname(arg);
 
 	return ext in extensions ? extensions[ext].type : APPLICATION_OCTET_STREAM;
 }
@@ -214,13 +197,13 @@ function params (req, pos = []) {
 		const uri = req.parsed.pathname.split(SLASH);
 
 		for (const i of pos) {
-			req.params[i[1]] = tinyCoerce.coerce(decodeURIComponent(uri[i[0]]));
+			req.params[i[1]] = coerce(decodeURIComponent(uri[i[0]]));
 		}
 	}
 }
 
 function parse (arg) {
-	return new node_url.URL(typeof arg === STRING ? arg : `http://${arg.headers.host || `localhost:${arg.socket.server._connectionKey.replace(/.*::/, EMPTY)}`}${arg.url}`);
+	return new URL(typeof arg === STRING ? arg : `http://${arg.headers.host || `localhost:${arg.socket.server._connectionKey.replace(/.*::/, EMPTY)}`}${arg.url}`);
 }
 
 function partial (req, res, buffered, status, headers) {
@@ -327,7 +310,7 @@ function stream (req, res, file = {
 				res.header(CONTENT_LENGTH, options.end - options.start + 1);
 			}
 
-			res.send(node_fs.createReadStream(file.path, options), status);
+			res.send(createReadStream(file.path, options), status);
 		}
 	} else if (req.method === HEAD) {
 		res.send(EMPTY);
@@ -360,10 +343,8 @@ function writeHead (res, status, headers) {
 		res.statusCode = status;
 	}
 
-	res.writeHead(res.statusCode, node_http.STATUS_CODES[res.statusCode], headers);
-}
-
-class Woodland extends node_events.EventEmitter {
+	res.writeHead(res.statusCode, STATUS_CODES[res.statusCode], headers);
+}class Woodland extends EventEmitter {
 	constructor ({
 		autoindex = false,
 		cacheSize = 1e3,
@@ -384,14 +365,14 @@ class Woodland extends node_events.EventEmitter {
 		super();
 		this.autoindex = autoindex;
 		this.ignored = new Set();
-		this.cache = tinyLru.lru(cacheSize, cacheTTL);
+		this.cache = lru(cacheSize, cacheTTL);
 		this.charset = charset;
 		this.corsExpose = EMPTY;
 		this.defaultHeaders = Object.keys(defaultHeaders).map(key => [key.toLowerCase(), defaultHeaders[key]]);
 		this.digit = digit;
-		this.etags = etags ? tinyEtag.etag({cacheSize, cacheTTL}) : null;
+		this.etags = etags ? etag({cacheSize, cacheTTL}) : null;
 		this.indexes = structuredClone(indexes);
-		this.permissions = tinyLru.lru(cacheSize, cacheTTL);
+		this.permissions = lru(cacheSize, cacheTTL);
 		this.logging = {
 			enabled: logging?.enabled !== false ?? true,
 			format: logging?.format ?? LOG_FORMAT,
@@ -417,7 +398,7 @@ class Woodland extends node_events.EventEmitter {
 
 		if (override || result === void 0) {
 			const allMethods = this.routes(uri, ALL, override).visible > 0,
-				list = allMethods ? structuredClone(node_http.METHODS) : this.methods.filter(i => this.allowed(i, uri, override));
+				list = allMethods ? structuredClone(METHODS) : this.methods.filter(i => this.allowed(i, uri, override));
 
 			if (list.includes(GET)) {
 				if (list.includes(HEAD) === false) {
@@ -477,7 +458,7 @@ class Woodland extends node_events.EventEmitter {
 
 	decoratorError (req, res) {
 		return (status = 500, body) => {
-			const err = body !== void 0 ? body instanceof Error ? body : new Error(body) : new Error(node_http.STATUS_CODES[status]);
+			const err = body !== void 0 ? body instanceof Error ? body : new Error(body) : new Error(STATUS_CODES[status]);
 
 			res.statusCode = status;
 
@@ -560,7 +541,7 @@ class Woodland extends node_events.EventEmitter {
 
 	decorate (req, res) {
 		if (this.time) {
-			req.precise = precise.precise().start();
+			req.precise = precise().start();
 		}
 
 		const parsed = parse(req);
@@ -620,7 +601,7 @@ class Woodland extends node_events.EventEmitter {
 		if (res.headersSent === false) {
 			const numeric = isNaN(err.message) === false,
 				status = isNaN(res.statusCode) === false && res.statusCode >= 400 ? res.statusCode : numeric ? Number(err.message) : 500,
-				output = this.sendError === false ? numeric ? node_http.STATUS_CODES[status] : err.message : err;
+				output = this.sendError === false ? numeric ? STATUS_CODES[status] : err.message : err;
 
 			if (status === 404) {
 				res.removeHeader(ALLOW);
@@ -633,7 +614,7 @@ class Woodland extends node_events.EventEmitter {
 			}
 
 			if (numeric && this.sendError) {
-				output.message = node_http.STATUS_CODES[status];
+				output.message = STATUS_CODES[status];
 			}
 
 			res.statusCode = status;
@@ -788,7 +769,7 @@ class Woodland extends node_events.EventEmitter {
 	}
 
 	serve (req, res, arg = "", folder = process.cwd(), index = this.indexes) {
-		const fp = node_path.resolve(folder, decodeURIComponent(arg));
+		const fp = resolve(folder, decodeURIComponent(arg));
 
 		if (req.method !== GET && req.method !== HEAD && req.method !== OPTIONS) {
 			if (req.allow.length > 0) {
@@ -798,7 +779,7 @@ class Woodland extends node_events.EventEmitter {
 
 			res.error(405);
 		} else {
-			node_fs.stat(fp, {bigint: false}, (e, stats) => {
+			stat(fp, {bigint: false}, (e, stats) => {
 				if (e !== null) {
 					res.error(404);
 				} else if (stats.isDirectory() === false) {
@@ -811,7 +792,7 @@ class Woodland extends node_events.EventEmitter {
 				} else if (req.parsed.pathname.endsWith(SLASH) === false) {
 					res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
 				} else {
-					node_fs.readdir(fp, {encoding: UTF8, withFileTypes: true}, (e2, files) => {
+					readdir(fp, {encoding: UTF8, withFileTypes: true}, (e2, files) => {
 						if (e2 !== null) {
 							res.error(500, e2);
 						} else {
@@ -819,7 +800,7 @@ class Woodland extends node_events.EventEmitter {
 
 							for (const file of files) {
 								if (index.includes(file.name)) {
-									result = node_path.join(fp, file.name);
+									result = join(fp, file.name);
 									break;
 								}
 							}
@@ -847,7 +828,7 @@ class Woodland extends node_events.EventEmitter {
 									}
 								}
 							} else {
-								node_fs.stat(result, {bigint: false}, (e3, rstats) => {
+								stat(result, {bigint: false}, (e3, rstats) => {
 									if (e3 !== null) {
 										res.error(500, e3);
 									} else {
@@ -883,7 +864,7 @@ class Woodland extends node_events.EventEmitter {
 
 		const method = typeof fn[fn.length - 1] === STRING ? fn.pop().toUpperCase() : GET;
 
-		if (method !== ALL && node_http.METHODS.includes(method) === false) {
+		if (method !== ALL && METHODS.includes(method) === false) {
 			throw new TypeError(ERROR_MSG_INVALID_METHOD);
 		}
 
@@ -940,6 +921,4 @@ function woodland (arg) {
 	router.route = router.route.bind(router);
 
 	return router;
-}
-
-exports.woodland = woodland;
+}export{woodland};

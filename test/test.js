@@ -2,7 +2,7 @@ import {join} from "node:path";
 import {createServer, METHODS} from "node:http";
 import {fileURLToPath, URL} from "node:url";
 import {httptest} from "tiny-httptest";
-import {woodland} from "../dist/woodland.esm.js";
+import {woodland} from "../dist/woodland.cjs";
 const methods = METHODS.join(", ");
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));

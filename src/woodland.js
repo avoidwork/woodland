@@ -5,10 +5,89 @@ import {readdir, stat} from "node:fs";
 import {etag} from "tiny-etag";
 import {precise} from "precise";
 import {lru} from "tiny-lru";
-import {ALL, DELIMITER, LEVELS, MONTHS} from "./constants.js";
+import {
+	ACCESS_CONTROL_ALLOW_CREDENTIALS,
+	ACCESS_CONTROL_ALLOW_HEADERS,
+	ACCESS_CONTROL_ALLOW_METHODS,
+	ACCESS_CONTROL_ALLOW_ORIGIN,
+	ACCESS_CONTROL_EXPOSE_HEADERS,
+	ACCESS_CONTROL_REQUEST_HEADERS,
+	ALL,
+	ALLOW,
+	APPLICATION_JSON,
+	ARRAY,
+	COLON,
+	COMMA,
+	COMMA_SPACE,
+	CONNECT,
+	CONTENT_LENGTH,
+	CONTENT_TYPE,
+	DEBUG,
+	DELETE,
+	DELIMITER,
+	EMPTY,
+	ERROR,
+	ERROR_MSG_HEAD_ROUTE,
+	ERROR_MSG_INVALID_METHOD,
+	FINISH,
+	FUNCTION,
+	GET,
+	HEAD,
+	HYPHEN,
+	INDEX_HTM,
+	INDEX_HTML,
+	INFO,
+	IP_TOKEN,
+	LEFT_PAREN,
+	LEVELS,
+	LOCATION,
+	LOG,
+	LOG_B,
+	LOG_FORMAT,
+	LOG_H,
+	LOG_L,
+	LOG_R,
+	LOG_REFERRER,
+	LOG_S,
+	LOG_T,
+	LOG_U,
+	LOG_USER_AGENT,
+	LOG_V,
+	MONTHS,
+	MSG_DECORATED_IP,
+	MSG_DETERMINED_ALLOW,
+	MSG_ERROR_IP,
+	MSG_ERROR_ROUTING,
+	MSG_HEADERS_SENT,
+	MSG_IGNORED_FN,
+	MSG_REGISTERING_MIDDLEWARE,
+	MSG_RETRIEVED_MIDDLEWARE,
+	MSG_ROUTING,
+	MSG_ROUTING_FILE,
+	MSG_SENDING_BODY,
+	OBJECT,
+	OPTIONS,
+	ORIGIN,
+	PARAMS_GROUP,
+	PATCH,
+	POST,
+	PUT,
+	READ_HEADERS,
+	SLASH,
+	STRING,
+	TIMING_ALLOW_ORIGIN,
+	TO_STRING,
+	TRACE,
+	TRUE,
+	USER_AGENT,
+	UTF8,
+	UTF_8,
+	WILDCARD,
+	X_FORWARDED_FOR,
+	X_RESPONSE_TIME
+} from "./constants.js";
 import {
 	autoindex as aindex,
-	clone,
 	last,
 	ms,
 	next,
@@ -28,17 +107,16 @@ class Woodland extends EventEmitter {
 		autoindex = false,
 		cacheSize = 1e3,
 		cacheTTL = 3e5,
-		charset = "utf-8",
+		charset = UTF_8,
 		defaultHeaders = {},
 		digit = 3,
 		etags = true,
 		indexes = [
-			"index.htm",
-			"index.html"
+			INDEX_HTM,
+			INDEX_HTML
 		],
 		logging = {},
-		origins = ["*"],
-		seed = 42,
+		origins = [WILDCARD],
 		sendError = false,
 		time = false
 	} = {}) {
@@ -47,20 +125,20 @@ class Woodland extends EventEmitter {
 		this.ignored = new Set();
 		this.cache = lru(cacheSize, cacheTTL);
 		this.charset = charset;
-		this.corsExpose = "";
+		this.corsExpose = EMPTY;
 		this.defaultHeaders = Object.keys(defaultHeaders).map(key => [key.toLowerCase(), defaultHeaders[key]]);
 		this.digit = digit;
-		this.etags = etags ? etag({cacheSize, cacheTTL, seed}) : null;
-		this.indexes = JSON.parse(JSON.stringify(indexes));
+		this.etags = etags ? etag({cacheSize, cacheTTL}) : null;
+		this.indexes = structuredClone(indexes);
 		this.permissions = lru(cacheSize, cacheTTL);
 		this.logging = {
-			enabled: logging.enabled !== false,
-			format: logging.format || "%h %l %u %t \"%r\" %>s %b",
-			level: logging.level || "info"
+			enabled: logging?.enabled !== false ?? true,
+			format: logging?.format ?? LOG_FORMAT,
+			level: logging?.level ?? INFO
 		};
 		this.methods = [];
 		this.middleware = new Map();
-		this.origins = JSON.parse(JSON.stringify(origins));
+		this.origins = structuredClone(origins);
 		this.sendError = sendError;
 		this.time = time;
 
@@ -77,25 +155,25 @@ class Woodland extends EventEmitter {
 		let result = override === false ? this.permissions.get(uri) : void 0;
 
 		if (override || result === void 0) {
-			const ALLMethods = this.routes(uri, ALL, override).visible > 0,
-				list = ALLMethods ? clone(METHODS) : this.methods.filter(i => this.allowed(i, uri, override));
+			const allMethods = this.routes(uri, ALL, override).visible > 0,
+				list = allMethods ? structuredClone(METHODS) : this.methods.filter(i => this.allowed(i, uri, override));
 
-			if (list.includes("GET")) {
-				if (list.includes("HEAD") === false) {
-					list.push("HEAD");
+			if (list.includes(GET)) {
+				if (list.includes(HEAD) === false) {
+					list.push(HEAD);
 				}
 
-				if (list.includes("OPTIONS") === false) {
-					list.push("OPTIONS");
+				if (list.includes(OPTIONS) === false) {
+					list.push(OPTIONS);
 				}
 			}
 
-			result = list.sort().join(", ");
+			result = list.sort().join(COMMA_SPACE);
 			this.permissions.set(uri, result);
 		}
 
 		if (this.logging.enabled) {
-			this.log(`type=allows, uri=${uri}, override=${override}, message="Determined 'ALLow' header value"`, "debug");
+			this.log(`type=allows, uri=${uri}, override=${override}, message="${MSG_DETERMINED_ALLOW}"`);
 		}
 
 		return result;
@@ -106,67 +184,76 @@ class Woodland extends EventEmitter {
 	}
 
 	connect (...args) {
-		return this.use(...args, "CONNECT");
+		return this.use(...args, CONNECT);
 	}
 
 	clf (req, res) {
 		const date = new Date();
 
-		return this.logging.format.replace("%v", req.headers.host)
-			.replace("%h", req.ip || "-")
-			.replace("%l", "-")
-			.replace("%u", req.parsed.username || "-")
-			.replace("%t", `[${date.getDate()}/${MONTHS[date.getMonth()]}/${date.getFullYear()}:${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${timeOffset(date.getTimezoneOffset())}]`)
-			.replace("%r", `${req.method} ${req.parsed.pathname}${req.parsed.search} HTTP/1.1`)
-			.replace("%>s", res.statusCode)
-			.replace("%b", res.getHeader("content-length") || "-")
-			.replace("%{Referer}i", req.headers.referer || "-")
-			.replace("%{User-agent}i", req.headers["user-agent"] || "-");
+		return this.logging.format.replace(LOG_V, req.headers?.host ?? HYPHEN)
+			.replace(LOG_H, req?.ip ?? HYPHEN)
+			.replace(LOG_L, HYPHEN)
+			.replace(LOG_U, req?.parsed?.username ?? HYPHEN)
+			.replace(LOG_T, `[${date.getDate()}/${MONTHS[date.getMonth()]}/${date.getFullYear()}:${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${timeOffset(date.getTimezoneOffset())}]`)
+			.replace(LOG_R, `${req.method} ${req.parsed.pathname}${req.parsed.search} HTTP/1.1`)
+			.replace(LOG_S, res.statusCode)
+			.replace(LOG_B, res?.getHeader(CONTENT_LENGTH) ?? HYPHEN)
+			.replace(LOG_REFERRER, req.headers?.referer ?? HYPHEN)
+			.replace(LOG_USER_AGENT, req.headers?.[USER_AGENT] ?? HYPHEN);
 	}
 
-	decorate (req, res) {
-		if (this.time) {
-			req.precise = precise().start();
-		}
+	cors (req) {
+		return req.corsHost && (this.origins.includes(ALL) || this.origins.includes(req.headers.origin));
+	}
 
-		const parsed = parse(req);
+	corsHost (req) {
+		return ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host;
+	}
 
-		req.parsed = parsed;
-		req.ALLow = this.allows(parsed.pathname);
-		req.body = "";
-		req.corsHost = "origin" in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host;
-		req.cors = req.corsHost && (this.origins.includes(ALL) || this.origins.includes(req.headers.origin));
-		req.host = parsed.hostname;
-		req.ip = "x-forwarded-for" in req.headers ? req.headers["x-forwarded-for"].split(",").pop().trim() : req.connection.remoteAddress;
-		res.locals = {};
-		req.params = {};
-		res.error = (status = 500, body) => {
+	ip (req) {
+		return X_FORWARDED_FOR in req.headers ? req.headers[X_FORWARDED_FOR].split(COMMA).pop().trim() : req.connection.remoteAddress;
+	}
+
+	decoratorError (req, res) {
+		return (status = 500, body) => {
 			const err = body !== void 0 ? body instanceof Error ? body : new Error(body) : new Error(STATUS_CODES[status]);
 
 			res.statusCode = status;
 
 			if (this.logging.enabled) {
-				this.log(`type=res.error, status=${status}, ip=${req.ip}, uri=${req.parsed.pathname}, message="Routing to error handler"`, "debug");
+				this.log(`type=res.error, status=${status}, ip=${req.ip}, uri=${req.parsed.pathname}, message="${MSG_ERROR_ROUTING}"`);
 			}
 
 			this.error(req, res, err);
 		};
-		res.header = res.setHeader;
-		res.json = (arg, status = 200, headers = {"content-type": "application/json; charset=utf-8"}) => res.send(JSON.stringify(arg), status, headers);
-		res.redirect = (uri, perm = true) => res.send("", perm ? 301 : 302, {"location": uri});
-		res.send = (body = "", status = 200, headers = {}) => {
+	}
+
+	decoratorJson (req, res) {
+		return (arg, status = 200, headers = {[CONTENT_TYPE]: `${APPLICATION_JSON}; charset=${UTF_8}`}) => {
+			res.send(JSON.stringify(arg), status, headers);
+		};
+	}
+
+	decoratorRedirect (req, res) {
+		return (uri, perm = true) => {
+			res.send(EMPTY, perm ? 301 : 302, {[LOCATION]: uri});
+		};
+	}
+
+	decoratorSend (req, res) {
+		return (body = EMPTY, status = 200, headers = {}) => {
 			if (res.headersSent === false) {
 				[body, status, headers] = this.onsend(req, res, body, status, headers);
 
-				if (this.time && res.getHeader("x-response-time") === void 0) {
-					res.header("x-response-time", `${ms(req.precise.stop().diff(), this.digit)}`);
+				if (this.time && res.getHeader(X_RESPONSE_TIME) === void 0) {
+					res.header(X_RESPONSE_TIME, `${ms(req.precise.stop().diff(), this.digit)}`);
 				}
 
 				if (pipeable(req.method, body)) {
 					writeHead(res, status, headers);
-					body.on("error", () => void 0).pipe(res);
+					body.on(ERROR, () => void 0).pipe(res);
 				} else {
-					if (typeof body !== "string" && "toString" in body) {
+					if (typeof body !== STRING && TO_STRING in body) {
 						body = body.toString();
 					}
 
@@ -183,7 +270,7 @@ class Woodland extends EventEmitter {
 							res.error(416);
 						}
 					} else {
-						const cl = "content-length";
+						const cl = CONTENT_LENGTH;
 
 						if (res.getHeader(cl) === void 0) {
 							res.header(cl, Buffer.byteLength(body));
@@ -195,54 +282,79 @@ class Woodland extends EventEmitter {
 				}
 
 				if (this.logging.enabled) {
-					this.log(`type=res.send, uri=${req.parsed.pathname}, ip=${req.ip}, valid=true, message="Sending response body"`, "debug");
-					this.log(this.clf(req, res), "info");
+					this.log(`type=res.send, uri=${req.parsed.pathname}, ip=${req.ip}, valid=true, message="${MSG_SENDING_BODY}"`);
+					this.log(this.clf(req, res), INFO);
 				}
 			} else if (this.logging.enabled) {
-				this.log(`type=res.send, uri=${req.parsed.pathname}, ip=${req.ip}, valid=false, message="Headers already sent"`, "debug");
+				this.log(`type=res.send, uri=${req.parsed.pathname}, ip=${req.ip}, valid=false, message="${MSG_HEADERS_SENT}"`);
 			}
 		};
-		res.status = arg => {
-			res.statusCode = arg;
+	}
 
-			return res;
-		};
+	statusHandler (res, arg = 200) {
+		res.statusCode = arg;
+
+		return res;
+	}
+
+	decorate (req, res) {
+		if (this.time) {
+			req.precise = precise().start();
+		}
+
+		const parsed = parse(req);
+
+		req.parsed = parsed;
+		req.allow = this.allows(parsed.pathname);
+		req.body = EMPTY;
+		req.corsHost = this.corsHost(req);
+		req.cors = this.cors(req);
+		req.host = parsed.hostname;
+		req.ip = this.ip(req);
+		res.locals = {};
+		req.params = {};
+		res.error = this.decoratorError(req, res);
+		res.header = res.setHeader;
+		res.json = this.decoratorJson(req, res);
+		res.redirect = this.decoratorRedirect(req, res);
+		res.send = this.decoratorSend(req, res);
+		res.status = this.statusHandler;
 
 		for (const i of this.defaultHeaders) {
 			res.header(i[0], i[1]);
 		}
 
-		res.header("ALLow", req.ALLow);
+		res.header(ALLOW, req.allow);
 
 		if (req.cors) {
-			const headers = req.headers["access-control-request-headers"] || this.corsExpose;
+			const headers = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] || this.corsExpose;
 
-			res.header("access-control-ALLow-origin", req.headers.origin);
-			res.header("timing-ALLow-origin", req.headers.origin);
-			res.header("access-control-ALLow-credentials", "true");
+			res.header(ACCESS_CONTROL_ALLOW_ORIGIN, req.headers.origin);
+			res.header(TIMING_ALLOW_ORIGIN, req.headers.origin);
+			res.header(ACCESS_CONTROL_ALLOW_CREDENTIALS, TRUE);
 
 			if (headers !== void 0) {
-				res.header(`access-control-${req.method === "OPTIONS" ? "ALLow" : "expose"}-headers`, headers);
+				res.header(req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS, headers);
 			}
 
-			res.header("access-control-ALLow-methods", req.ALLow);
+			res.header(ACCESS_CONTROL_ALLOW_METHODS, req.allow);
 		}
 
 		if (this.logging.enabled) {
-			this.log(`type=decorate, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Decorated request from ${req.ip}"`, "debug");
+			this.log(`type=decorate, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_DECORATED_IP.replace(IP_TOKEN, req.ip)}"`);
 		}
 	}
 
 	del (...args) {
-		return this.use(...args, "DELETE");
+		return this.use(...args, DELETE);
 	}
 
 	delete (...args) {
-		return this.use(...args, "DELETE");
+		return this.use(...args, DELETE);
 	}
 
 	error (req, res, err) {
-		const ev = "error";
+		const ev = ERROR;
 
 		if (res.headersSent === false) {
 			const numeric = isNaN(err.message) === false,
@@ -250,12 +362,12 @@ class Woodland extends EventEmitter {
 				output = this.sendError === false ? numeric ? STATUS_CODES[status] : err.message : err;
 
 			if (status === 404) {
-				res.removeHeader("ALLow");
-				res.header("ALLow", "");
+				res.removeHeader(ALLOW);
+				res.header(ALLOW, EMPTY);
 
 				if (req.cors) {
-					res.removeHeader("access-control-ALLow-methods");
-					res.header("access-control-ALLow-methods", req.ALLow);
+					res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
+					res.header(ACCESS_CONTROL_ALLOW_METHODS, EMPTY);
 				}
 			}
 
@@ -272,34 +384,34 @@ class Woodland extends EventEmitter {
 		}
 
 		if (this.logging.enabled) {
-			this.log(`type=error, message="Handled error response for ${req.ip}"`, "debug");
+			this.log(`type=error, message="${MSG_ERROR_IP.replace(IP_TOKEN, req.ip)}"`);
 		}
 	}
 
 	etag (method, ...args) {
-		return (method === "GET" || method === "HEAD" || method === "OPTIONS") && this.etags !== null ? this.etags.create(args.map(i => typeof i !== "string" ? JSON.stringify(i).replace(/^"|"$/g, "") : i).join("-")) : "";
+		return (method === GET || method === HEAD || method === OPTIONS) && this.etags !== null ? this.etags.create(args.map(i => typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i).join(HYPHEN)) : EMPTY;
 	}
 
 	get (...args) {
-		return this.use(...args, "GET");
+		return this.use(...args, GET);
 	}
 
 	ignore (fn) {
 		this.ignored.add(fn);
 
 		if (this.logging.enabled) {
-			this.log(`type=ignore, message="Added function to ignored Set", code="${fn.toString()}"`, "debug");
+			this.log(`type=ignore, message="${MSG_IGNORED_FN}", code="${fn.toString()}"`);
 		}
 
 		return this;
 	}
 
-	list (method = "get", type = "array") {
+	list (method = GET.toLowerCase(), type = ARRAY) {
 		let result;
 
-		if (type === "array") {
+		if (type === ARRAY) {
 			result = Array.from(this.middleware.get(method.toUpperCase()).keys());
-		} else if (type === "object") {
+		} else if (type === OBJECT) {
 			result = {};
 
 			for (const [key, value] of this.middleware.get(method.toUpperCase()).entries()) {
@@ -308,17 +420,17 @@ class Woodland extends EventEmitter {
 		}
 
 		if (this.logging.enabled) {
-			this.log(`type=list, method=${method}, type=${type}`, "debug");
+			this.log(`type=list, method=${method}, type=${type}`);
 		}
 
 		return result;
 	}
 
-	log (msg, level = "debug") {
+	log (msg, level = DEBUG) {
 		const idx = LEVELS[level];
 
 		if (idx <= LEVELS[this.logging.level]) {
-			process.nextTick(() => console[idx > 4 ? "log" : "error"](msg));
+			process.nextTick(() => console[idx > 4 ? LOG : ERROR](msg));
 		}
 
 		return this;
@@ -329,30 +441,30 @@ class Woodland extends EventEmitter {
 	}
 
 	options (...args) {
-		return this.use(...args, "OPTIONS");
+		return this.use(...args, OPTIONS);
 	}
 
 	patch (...args) {
-		return this.use(...args, "PATCH");
+		return this.use(...args, PATCH);
 	}
 
-	path (arg = "") {
-		return arg.replace(/\/:([^/]+)/g, "/([^/]+)");
+	path (arg = EMPTY) {
+		return arg.replace(/\/:([^/]+)/g, PARAMS_GROUP);
 	}
 
 	post (...args) {
-		return this.use(...args, "POST");
+		return this.use(...args, POST);
 	}
 
 	put (...args) {
-		return this.use(...args, "PUT");
+		return this.use(...args, PUT);
 	}
 
 	route (req, res) {
 		const e = err => res.error(res.statusCode, err),
-			evc = "connect",
-			evf = "finish";
-		let method = req.method === "HEAD" ? "GET" : req.method;
+			evc = CONNECT.toLowerCase(),
+			evf = FINISH;
+		let method = req.method === HEAD ? GET : req.method;
 
 		this.decorate(req, res);
 
@@ -364,13 +476,13 @@ class Woodland extends EventEmitter {
 			res.on(evf, () => this.emit(evf, req, res));
 		}
 
-		if (method === "OPTIONS" && this.allowed(method, req.parsed.pathname) === false) {
-			method = "GET"; // Changing an OPTIONS request to GET due to absent route
+		if (method === OPTIONS && this.allowed(method, req.parsed.pathname) === false) {
+			method = GET; // Changing an OPTIONS request to GET due to absent route
 		}
 
-		if (req.cors === false && "origin" in req.headers && req.corsHost && this.origins.includes(req.headers.origin) === false) {
+		if (req.cors === false && ORIGIN in req.headers && req.corsHost && this.origins.includes(req.headers.origin) === false) {
 			res.error(403);
-		} else if (req.ALLow.includes(method)) {
+		} else if (req.allow.includes(method)) {
 			const result = this.routes(req.parsed.pathname, method);
 
 			if (result.params) {
@@ -384,7 +496,7 @@ class Woodland extends EventEmitter {
 		}
 
 		if (this.logging.enabled) {
-			this.log("type=route, message=\"Routing request\"", "debug");
+			this.log(`type=route, message="${MSG_ROUTING}"`);
 		}
 	}
 
@@ -408,7 +520,7 @@ class Woodland extends EventEmitter {
 		}
 
 		if (this.logging.enabled) {
-			this.log(`type=routes, uri=${uri}, method=${method}, cached=${cached !== void 0}, middleware=${result.middleware.length}, params=${result.params}, visible=${result.visible}, override=${override}, message="Retrieved middleware for request"`, "debug");
+			this.log(`type=routes, uri=${uri}, method=${method}, cached=${cached !== void 0}, middleware=${result.middleware.length}, params=${result.params}, visible=${result.visible}, override=${override}, message="${MSG_RETRIEVED_MIDDLEWARE}"`);
 		}
 
 		return result;
@@ -417,10 +529,10 @@ class Woodland extends EventEmitter {
 	serve (req, res, arg = "", folder = process.cwd(), index = this.indexes) {
 		const fp = resolve(folder, decodeURIComponent(arg));
 
-		if (req.method !== "GET" && req.method !== "HEAD" && req.method !== "OPTIONS") {
-			if (req.ALLow.length > 0) {
-				req.ALLow = "GET, HEAD, OPTIONS";
-				res.header("ALLow", req.ALLow);
+		if (req.method !== GET && req.method !== HEAD && req.method !== OPTIONS) {
+			if (req.allow.length > 0) {
+				req.allow = READ_HEADERS;
+				res.header(ALLOW, req.allow);
 			}
 
 			res.error(405);
@@ -435,14 +547,14 @@ class Woodland extends EventEmitter {
 						path: fp,
 						stats: stats
 					});
-				} else if (req.parsed.pathname.endsWith("/") === false) {
+				} else if (req.parsed.pathname.endsWith(SLASH) === false) {
 					res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
 				} else {
-					readdir(fp, {encoding: "utf8", withFileTypes: true}, (e2, files) => {
+					readdir(fp, {encoding: UTF8, withFileTypes: true}, (e2, files) => {
 						if (e2 !== null) {
 							res.error(500, e2);
 						} else {
-							let result = "";
+							let result = EMPTY;
 
 							for (const file of files) {
 								if (index.includes(file.name)) {
@@ -456,7 +568,7 @@ class Woodland extends EventEmitter {
 									res.error(404);
 								} else {
 									let valid = true,
-										body = "",
+										body = EMPTY,
 										lerr;
 
 									try {
@@ -467,7 +579,7 @@ class Woodland extends EventEmitter {
 									}
 
 									if (valid) {
-										res.header("content-type", `text/html; charset=${this.charset}`);
+										res.header(CONTENT_TYPE, `text/html; charset=${this.charset}`);
 										res.send(body);
 									} else {
 										res.error(500, lerr);
@@ -494,28 +606,28 @@ class Woodland extends EventEmitter {
 		}
 
 		if (this.logging.enabled) {
-			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, message="Routing request to file system"`, "debug");
+			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, message="${MSG_ROUTING_FILE}"`);
 		}
 	}
 
 	trace (...args) {
-		return this.use(...args, "TRACE");
+		return this.use(...args, TRACE);
 	}
 
 	use (rpath, ...fn) {
-		if (typeof rpath === "function") {
+		if (typeof rpath === FUNCTION) {
 			fn = [rpath, ...fn];
 			rpath = `/.${ALL}`;
 		}
 
-		const method = typeof fn[fn.length - 1] === "string" ? fn.pop().toUpperCase() : "GET";
+		const method = typeof fn[fn.length - 1] === STRING ? fn.pop().toUpperCase() : GET;
 
 		if (method !== ALL && METHODS.includes(method) === false) {
-			throw new TypeError("Invalid HTTP method");
+			throw new TypeError(ERROR_MSG_INVALID_METHOD);
 		}
 
-		if (method === "HEAD") {
-			throw new TypeError("Cannot set HEAD route, use GET");
+		if (method === HEAD) {
+			throw new TypeError(ERROR_MSG_HEAD_ROUTE);
 		}
 
 		if (this.middleware.has(method) === false) {
@@ -531,12 +643,12 @@ class Woodland extends EventEmitter {
 		let lrpath = rpath,
 			lparams = false;
 
-		if (lrpath.includes(":") && lrpath.includes("(") === false) {
+		if (lrpath.includes(COLON) && lrpath.includes(LEFT_PAREN) === false) {
 			lparams = true;
 
-			for (const [idx, i] of lrpath.split("/").entries()) {
+			for (const [idx, i] of lrpath.split(SLASH).entries()) {
 				if (i[0] === ":") {
-					lpos.push([idx, i.replace(/^:/, "")]);
+					lpos.push([idx, i.replace(/^:/, EMPTY)]);
 				}
 			}
 
@@ -554,7 +666,7 @@ class Woodland extends EventEmitter {
 		});
 
 		if (this.logging.enabled) {
-			this.log(`type=use, route=${rpath}, method=${method}, message="Registering middleware"`, "debug");
+			this.log(`type=use, route=${rpath}, method=${method}, message="${MSG_REGISTERING_MIDDLEWARE}"`);
 		}
 
 		return this;

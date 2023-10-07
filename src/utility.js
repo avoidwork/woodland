@@ -35,6 +35,7 @@ import {
 	STRING_00,
 	STRING_30,
 	TIME_MS,
+	TITLE,
 	TOKEN_N,
 	UTF8
 } from "./constants.js";
@@ -52,11 +53,11 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url)),
 		return a;
 	}, {});
 
-export function autoindex(title = EMPTY, files = []) {
+export function autoindex (title = EMPTY, files = []) {
 	return new Function(TITLE, FILES, `return \`${html}\`;`)(title, files);
 }
 
-export function last(req, res, e, err) {
+export function last (req, res, e, err) {
 	const status = res.statusCode || 0;
 
 	if (err === void 0) {
@@ -70,17 +71,17 @@ export function last(req, res, e, err) {
 	return true;
 }
 
-function mime(arg = EMPTY) {
+function mime (arg = EMPTY) {
 	const ext = extname(arg);
 
 	return ext in extensions ? extensions[ext].type : APPLICATION_OCTET_STREAM;
 }
 
-export function ms(arg = 0, digits = 3) {
+export function ms (arg = 0, digits = 3) {
 	return TIME_MS.replace(TOKEN_N, Number(arg / 1e6).toFixed(digits));
 }
 
-export function next(req, res, e, middleware) {
+export function next (req, res, e, middleware) {
 	const fn = err => process.nextTick(() => {
 		let obj = middleware.next();
 
@@ -106,11 +107,11 @@ export function next(req, res, e, middleware) {
 	return fn;
 }
 
-export function pad(arg = 0) {
+export function pad (arg = 0) {
 	return String(arg).padStart(2, STRING_0);
 }
 
-export function params(req, pos = []) {
+export function params (req, pos = []) {
 	if (pos.length > 0) {
 		const uri = req.parsed.pathname.split(SLASH);
 
@@ -120,11 +121,11 @@ export function params(req, pos = []) {
 	}
 }
 
-export function parse(arg) {
+export function parse (arg) {
 	return new URL(typeof arg === STRING ? arg : `http://${arg.headers.host || `localhost:${arg.socket.server._connectionKey.replace(/.*::/, EMPTY)}`}${arg.url}`);
 }
 
-export function partial(req, res, buffered, status, headers) {
+export function partial (req, res, buffered, status, headers) {
 	if ((req.headers.range || EMPTY).indexOf(KEY_BYTES) === 0) {
 		const options = {},
 			size = Buffer.byteLength(buffered);
@@ -152,11 +153,11 @@ export function partial(req, res, buffered, status, headers) {
 	}
 }
 
-export function pipeable(method, arg) {
+export function pipeable (method, arg) {
 	return method !== HEAD && arg !== null && typeof arg.on === FUNCTION;
 }
 
-export function reduce(uri, map = new Map(), arg = {}, end = false, ignore = new Set()) {
+export function reduce (uri, map = new Map(), arg = {}, end = false, ignore = new Set()) {
 	Array.from(map.entries()).filter(i => {
 		i[0].lastIndex = 0;
 
@@ -177,7 +178,7 @@ export function reduce(uri, map = new Map(), arg = {}, end = false, ignore = new
 	});
 }
 
-export function stream(req, res, file = {
+export function stream (req, res, file = {
 	charset: EMPTY,
 	etag: EMPTY,
 	path: EMPTY,
@@ -242,7 +243,7 @@ export function stream(req, res, file = {
 	return void 0;
 }
 
-export function timeOffset(arg = 0) {
+export function timeOffset (arg = 0) {
 	const neg = arg < 0;
 
 	return `${neg ? EMPTY : HYPHEN}${String((neg ? -arg : arg) / 60).split(PERIOD).reduce((a, v, idx, arr) => {
@@ -256,7 +257,7 @@ export function timeOffset(arg = 0) {
 	}, []).join(EMPTY)}`;
 }
 
-export function writeHead(res, status, headers) {
+export function writeHead (res, status, headers) {
 	if (res.statusCode < status) {
 		res.statusCode = status;
 	}
