@@ -1,12 +1,15 @@
 import {join} from "node:path";
 import {createServer, METHODS} from "node:http";
 import {fileURLToPath, URL} from "node:url";
+import {lstatSync} from "node:fs";
 import {httptest} from "tiny-httptest";
 import {woodland} from "../dist/woodland.cjs";
 import {CACHE_CONTROL, CONTENT_TYPE} from "../src/constants.js";
 const methods = METHODS.join(", ");
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
+const testStat = lstatSync(join(__dirname, "..", "test", "test.js"));
+const testSize = testStat.size;
 
 function handler (err) {
 	console.error(err.stack || err.message);
@@ -269,6 +272,13 @@ describe("Valid Requests", function () {
 			.end();
 	});
 
+	it("GET /test/ (206 / 'Partial response error - bytes=50000-50001')", function () {
+		return httptest({url: "http://localhost:8001/test/", headers: {range: "bytes=50000-50001"}})
+			.expectStatus(416)
+			.expectHeader("content-range", "bytes */947")
+			.end();
+	});
+
 	it("GET /test/test.js (200 / 'Success')", function () {
 		return httptest({url: "http://localhost:8001/test/test.js"})
 			.etags()
@@ -301,7 +311,7 @@ describe("Valid Requests", function () {
 	it("GET /test/test.js (416 / 'Partial response error - bytes=50000-50001')", function () {
 		return httptest({url: "http://localhost:8001/test/test.js", headers: {range: "bytes=50000-50001"}})
 			.expectStatus(416)
-			.expectHeader("content-range", "bytes */20630")
+			.expectHeader("content-range", `bytes */${testSize}`)
 			.end();
 	});
 

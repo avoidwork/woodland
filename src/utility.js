@@ -141,17 +141,22 @@ export function partialHeaders (req, res, size, status, headers = {}, options = 
 			options.end = size;
 		}
 
+		res.removeHeader(CONTENT_RANGE);
+		res.removeHeader(CONTENT_LENGTH);
+		res.removeHeader(ETAG);
+		delete headers.etag;
+
 		if (isNaN(options.start) === false && isNaN(options.end) === false && options.start < options.end && options.end <= size) {
 			req.range = options;
 			headers[CONTENT_RANGE] = `bytes ${options.start}-${options.end}/${size}`;
 			headers[CONTENT_LENGTH] = options.end - options.start;
+			res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
+			res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
 			status = res.statusCode = 206;
 		} else {
 			headers[CONTENT_RANGE] = `bytes */${size}`;
+			res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
 		}
-
-		res.removeHeader(ETAG);
-		delete headers.etag;
 	}
 
 	return [headers, options];

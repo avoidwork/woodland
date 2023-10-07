@@ -222,17 +222,22 @@ function partialHeaders (req, res, size, status, headers = {}, options = {}) {
 			options.end = size;
 		}
 
+		res.removeHeader(CONTENT_RANGE);
+		res.removeHeader(CONTENT_LENGTH);
+		res.removeHeader(ETAG);
+		delete headers.etag;
+
 		if (isNaN(options.start) === false && isNaN(options.end) === false && options.start < options.end && options.end <= size) {
 			req.range = options;
 			headers[CONTENT_RANGE] = `bytes ${options.start}-${options.end}/${size}`;
 			headers[CONTENT_LENGTH] = options.end - options.start;
+			res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
+			res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
 			res.statusCode = 206;
 		} else {
 			headers[CONTENT_RANGE] = `bytes */${size}`;
+			res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
 		}
-
-		res.removeHeader(ETAG);
-		delete headers.etag;
 	}
 
 	return [headers, options];
@@ -469,20 +474,30 @@ function writeHead (res, status, headers) {
 	}
 
 	decoratorSend (req, res) {
-		return (body = EMPTY, status = 200, headers = {}) => {
+		return (body = EMPTY, status = 200, headers = {}, errorPass = false) => {
+			const done = () => {
+				if (res.getHeader(CONTENT_LENGTH) === void 0) {
+					res.header(CONTENT_LENGTH, Buffer.byteLength(body));
+				}
+
+				writeHead(res, status, headers);
+				res.end(body, this.charset);
+			};
+
 			if (res.headersSent === false) {
 				[body, status, headers] = this.onsend(req, res, body, status, headers);
 
-				if (this.time && res.getHeader(X_RESPONSE_TIME) === void 0) {
+				if (errorPass === false && this.time && res.getHeader(X_RESPONSE_TIME) === void 0) {
 					res.header(X_RESPONSE_TIME, `${ms(req.precise.stop().diff(), this.digit)}`);
 				}
 
-				if (pipeable(req.method, body)) {
+				if (errorPass) {
+					done();
+				} else if (pipeable(req.method, body)) {
 					if (req.headers.range === void 0 || req.range !== void 0) {
 						writeHead(res, status, headers);
 						body.on(ERROR, err => res.error(500, err)).pipe(res);
 					} else {
-						delete req.headers.range;
 						res.error(416);
 					}
 				} else {
@@ -499,18 +514,10 @@ function writeHead (res, status, headers) {
 							writeHead(res, status, headers);
 							res.end(buffered.slice(req.range.start, req.range.end).toString(), this.charset);
 						} else {
-							delete req.headers.range;
 							res.error(416);
 						}
 					} else {
-						const cl = CONTENT_LENGTH;
-
-						if (res.getHeader(cl) === void 0) {
-							res.header(cl, Buffer.byteLength(body));
-						}
-
-						writeHead(res, status, headers);
-						res.end(body, this.charset);
+						done();
 					}
 				}
 
@@ -524,7 +531,7 @@ function writeHead (res, status, headers) {
 		};
 	}
 
-	decorateStatus (req, res) {
+	decoratorStatus (req, res) {
 		return (arg = 200) => {
 			res.statusCode = arg;
 
@@ -546,14 +553,14 @@ function writeHead (res, status, headers) {
 		req.cors = this.cors(req);
 		req.host = parsed.hostname;
 		req.ip = this.ip(req);
-		res.locals = {};
 		req.params = {};
+		res.locals = {};
 		res.error = this.decoratorError(req, res);
 		res.header = res.setHeader;
 		res.json = this.decoratorJson(req, res);
 		res.redirect = this.decoratorRedirect(req, res);
 		res.send = this.decoratorSend(req, res);
-		res.status = this.decorateStatus(req, res);
+		res.status = this.decoratorStatus(req, res);
 
 		for (const i of this.defaultHeaders) {
 			res.header(i[0], i[1]);
@@ -611,7 +618,7 @@ function writeHead (res, status, headers) {
 			}
 
 			res.statusCode = status;
-			res.send(output, status);
+			res.send(output, status, {}, true);
 		}
 
 		if (this.listenerCount(ev) > 0) {
