@@ -314,8 +314,6 @@ function stream (req, res, file = {
 	} else if (req.method === OPTIONS) {
 		res.removeHeader(CONTENT_LENGTH);
 		res.send(OPTIONS_BODY);
-	} else {
-		res.error(405);
 	}
 
 	return void 0;
