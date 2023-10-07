@@ -143,8 +143,8 @@ export function partialHeaders (req, res, size, status, headers = {}, options = 
 
 		if (options.start < options.end && isNaN(options.start) === false && isNaN(options.end) === false) {
 			req.range = options;
-			headers[CONTENT_RANGE] = `bytes ${options.start + (options.end === size ? 1 : 0)}-${options.end}/${size}`;
-			headers[CONTENT_LENGTH] = `${options.end - options.start + (options.end === size ? 0 : 1)}`;
+			headers[CONTENT_RANGE] = `bytes ${options.start}-${options.end}/${size}`;
+			headers[CONTENT_LENGTH] = options.end - options.start;
 			status = res.statusCode = 206;
 			res.removeHeader(ETAG);
 			delete headers.etag;
@@ -203,10 +203,11 @@ export function stream (req, res, file = {
 
 			if (RANGE in req.headers) {
 				const headers = {};
-				partialHeaders(req, res, file.stats.size, status, headers);
+				partialHeaders(req, res, file.stats.size, status, headers, options);
 				res.removeHeader(CONTENT_LENGTH);
 				res.removeHeader(ETAG);
 				res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
+				res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
 			}
 
 			res.send(createReadStream(file.path, options), status);

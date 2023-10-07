@@ -264,7 +264,7 @@ class Woodland extends EventEmitter {
 
 						if (req.range !== void 0) {
 							writeHead(res, status, headers);
-							res.end(buffered.slice(req.range.start, req.range.end + 1).toString(), this.charset);
+							res.end(buffered.slice(req.range.start, req.range.end).toString(), this.charset);
 						} else {
 							delete req.headers.range;
 							res.error(416);

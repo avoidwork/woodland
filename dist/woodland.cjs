@@ -241,8 +241,8 @@ function partialHeaders (req, res, size, status, headers = {}, options = {}) {
 
 		if (options.start < options.end && isNaN(options.start) === false && isNaN(options.end) === false) {
 			req.range = options;
-			headers[CONTENT_RANGE] = `bytes ${options.start + (options.end === size ? 1 : 0)}-${options.end}/${size}`;
-			headers[CONTENT_LENGTH] = `${options.end - options.start + (options.end === size ? 0 : 1)}`;
+			headers[CONTENT_RANGE] = `bytes ${options.start}-${options.end}/${size}`;
+			headers[CONTENT_LENGTH] = options.end - options.start;
 			res.statusCode = 206;
 			res.removeHeader(ETAG);
 			delete headers.etag;
@@ -301,10 +301,11 @@ function stream (req, res, file = {
 
 			if (RANGE in req.headers) {
 				const headers = {};
-				partialHeaders(req, res, file.stats.size, status, headers);
+				partialHeaders(req, res, file.stats.size, status, headers, options);
 				res.removeHeader(CONTENT_LENGTH);
 				res.removeHeader(ETAG);
 				res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
+				res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
 			}
 
 			res.send(node_fs.createReadStream(file.path, options), status);
@@ -503,7 +504,7 @@ class Woodland extends node_events.EventEmitter {
 
 						if (req.range !== void 0) {
 							writeHead(res, status, headers);
-							res.end(buffered.slice(req.range.start, req.range.end + 1).toString(), this.charset);
+							res.end(buffered.slice(req.range.start, req.range.end).toString(), this.charset);
 						} else {
 							delete req.headers.range;
 							res.error(416);

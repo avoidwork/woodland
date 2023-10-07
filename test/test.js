@@ -212,15 +212,15 @@ describe("Valid Requests", function () {
 		return httptest({url: "http://localhost:8001/", headers: {range: "bytes=0-5"}})
 			.expectStatus(206)
 			.expectHeader("content-range", /^bytes 0-5\/12$/)
-			.expectHeader("content-length", 6)
-			.expectBody(/^Hello\s$/)
+			.expectHeader("content-length", 5)
+			.expectBody(/^Hello$/)
 			.end();
 	});
 
 	it("GET / (206 / 'Partial response - bytes=-5')", function () {
 		return httptest({url: "http://localhost:8001/", headers: {range: "bytes=-5"}})
 			.expectStatus(206)
-			.expectHeader("content-range", /^bytes 8-12\/12$/)
+			.expectHeader("content-range", /^bytes 7-12\/12$/)
 			.expectHeader("content-length", 5)
 			.expectBody(/^orld!$/)
 			.end();
@@ -229,7 +229,7 @@ describe("Valid Requests", function () {
 	it("GET / (206 / 'Partial response - bytes=5-')", function () {
 		return httptest({url: "http://localhost:8001/", headers: {range: "bytes=5-"}})
 			.expectStatus(206)
-			.expectHeader("content-range", /^bytes 6-12\/12$/)
+			.expectHeader("content-range", /^bytes 5-12\/12$/)
 			.expectHeader("content-length", 7)
 			.expectBody(/^ World!$/)
 			.end();
@@ -239,14 +239,14 @@ describe("Valid Requests", function () {
 		return httptest({url: "http://localhost:8001/test/", headers: {range: "bytes=0-5"}})
 			.expectStatus(206)
 			.expectHeader("content-range", /^bytes 0-5\/947$/)
-			.expectHeader("content-length", 6)
+			.expectHeader("content-length", 5)
 			.end();
 	});
 
 	it("GET /test/ (206 / 'Partial response - bytes=-5')", function () {
 		return httptest({url: "http://localhost:8001/test/", headers: {range: "bytes=-5"}})
 			.expectStatus(206)
-			.expectHeader("content-range", /^bytes 943-947\/947$/)
+			.expectHeader("content-range", /^bytes 942-947\/947$/)
 			.expectHeader("content-length", 5)
 			.end();
 	});
@@ -254,7 +254,7 @@ describe("Valid Requests", function () {
 	it("GET /test/ (206 / 'Partial response - bytes=5-')", function () {
 		return httptest({url: "http://localhost:8001/test/", headers: {range: "bytes=5-"}})
 			.expectStatus(206)
-			.expectHeader("content-range", /^bytes 6-947\/947$/)
+			.expectHeader("content-range", /^bytes 5-947\/947$/)
 			.expectHeader("content-length", 942)
 			.end();
 	});
@@ -283,6 +283,7 @@ describe("Valid Requests", function () {
 	it("GET /test/test.js (206 / 'Partial response - bytes=0-5')", function () {
 		return httptest({url: "http://localhost:8001/test/test.js", headers: {range: "bytes=0-5"}})
 			.expectStatus(206)
+			.expectHeader("content-length", 5)
 			.expectHeader("content-type", "application/javascript; charset=utf-8")
 			.end();
 	});
