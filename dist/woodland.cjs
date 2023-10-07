@@ -3,7 +3,7 @@
  *
  * @copyright 2023 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 18.0.3
+ * @version 18.0.4
  */
 'use strict';
 
@@ -14,7 +14,6 @@ var node_fs = require('node:fs');
 var tinyEtag = require('tiny-etag');
 var precise = require('precise');
 var tinyLru = require('tiny-lru');
-var deepFreeze = require('deep-freeze');
 var node_url = require('node:url');
 var tinyCoerce = require('tiny-coerce');
 var mimeDb = require('mime-db');
@@ -22,7 +21,7 @@ var mimeDb = require('mime-db');
 var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
 const ALL = "*";
 const DELIMITER = "|";
-const LEVELS = deepFreeze({
+const LEVELS = Object.freeze({
 	emerg: 0,
 	alert: 1,
 	crit: 2,
@@ -35,11 +34,11 @@ const LEVELS = deepFreeze({
 
 const EN_US = "en-US";
 const SHORT = "short";
-const MONTHS = deepFreeze(Array.from(Array(12).values()).map((i, idx) => {
+const MONTHS = Object.freeze(Array.from(Array(12).values()).map((i, idx) => {
 	const d = new Date();
 	d.setMonth(idx);
 
-	return d.toLocaleString(EN_US, {month: SHORT});
+	return Object.freeze(d.toLocaleString(EN_US, {month: SHORT}));
 }));
 const UTF8 = "utf8";
 const UTF_8 = "utf-8";

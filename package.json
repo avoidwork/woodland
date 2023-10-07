@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "18.0.3",
+  "version": "18.0.4",
   "description": "Lightweight HTTP framework with automatic headers",
   "type": "module",
   "types": "types/woodland.d.ts",
@@ -56,7 +56,6 @@
     "woodland": "cli.js"
   },
   "dependencies": {
-    "deep-freeze": "^0.0.1",
     "mime-db": "^1.52.0",
     "precise": "^4.0.2",
     "tiny-coerce": "^3.0.0",

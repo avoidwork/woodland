@@ -1,8 +1,6 @@
-import deepFreeze from "deep-freeze";
-
 export const ALL = "*";
 export const DELIMITER = "|";
-export const LEVELS = deepFreeze({
+export const LEVELS = Object.freeze({
 	emerg: 0,
 	alert: 1,
 	crit: 2,
@@ -15,11 +13,11 @@ export const LEVELS = deepFreeze({
 
 export const EN_US = "en-US";
 export const SHORT = "short";
-export const MONTHS = deepFreeze(Array.from(Array(12).values()).map((i, idx) => {
+export const MONTHS = Object.freeze(Array.from(Array(12).values()).map((i, idx) => {
 	const d = new Date();
 	d.setMonth(idx);
 
-	return d.toLocaleString(EN_US, {month: SHORT});
+	return Object.freeze(d.toLocaleString(EN_US, {month: SHORT}));
 }));
 export const UTF8 = "utf8";
 export const UTF_8 = "utf-8";

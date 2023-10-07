@@ -3,11 +3,11 @@
  *
  * @copyright 2023 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 18.0.3
+ * @version 18.0.4
  */
-import {STATUS_CODES,METHODS}from'node:http';import {join,extname,resolve}from'node:path';import {EventEmitter}from'node:events';import {readFileSync,createReadStream,stat,readdir}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import deepFreeze from'deep-freeze';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const ALL = "*";
+import {STATUS_CODES,METHODS}from'node:http';import {join,extname,resolve}from'node:path';import {EventEmitter}from'node:events';import {readFileSync,createReadStream,stat,readdir}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const ALL = "*";
 const DELIMITER = "|";
-const LEVELS = deepFreeze({
+const LEVELS = Object.freeze({
 	emerg: 0,
 	alert: 1,
 	crit: 2,
@@ -20,11 +20,11 @@ const LEVELS = deepFreeze({
 
 const EN_US = "en-US";
 const SHORT = "short";
-const MONTHS = deepFreeze(Array.from(Array(12).values()).map((i, idx) => {
+const MONTHS = Object.freeze(Array.from(Array(12).values()).map((i, idx) => {
 	const d = new Date();
 	d.setMonth(idx);
 
-	return d.toLocaleString(EN_US, {month: SHORT});
+	return Object.freeze(d.toLocaleString(EN_US, {month: SHORT}));
 }));
 const UTF8 = "utf8";
 const UTF_8 = "utf-8";
