@@ -1,5 +1,5 @@
 export function woodland(arg: any): Woodland;
-declare class Woodland extends EventEmitter {
+export class Woodland {
     constructor({ autoindex, cacheSize, cacheTTL, charset, defaultHeaders, digit, etags, indexes, logging, origins, time }?: {
         autoindex?: boolean;
         cacheSize?: number;
@@ -14,29 +14,16 @@ declare class Woodland extends EventEmitter {
         time?: boolean;
     });
     autoindex: boolean;
-    ignored: Set<any>;
+    ignored: any;
     cache: import("tiny-lru").LRU<any>;
     charset: string;
     corsExpose: string;
     defaultHeaders: any[][];
     digit: number;
     etags: {
-        cache: {
-            first: any;
-            items: any;
-            last: any;
-            max: number;
-            size: number;
-            ttl: number;
-            has(key: any): boolean;
-            clear(): any;
-            delete(key: any): any;
-            evict(bypass?: boolean): any;
-            get(key: any): any;
-            keys(): string[];
-            set(key: any, value: any, bypass?: boolean): any;
-        };
+        cache: import("tiny-lru").LRU<any>;
         mimetype: any;
+        seed: any;
         create(arg: any): string;
         middleware(req: any, res: any, next: any): void;
         hash(arg?: string, mimetype?: string): string;
@@ -44,7 +31,7 @@ declare class Woodland extends EventEmitter {
         unregister(key: any): void;
         valid(headers: any): boolean;
     };
-    indexes: any;
+    indexes: string[];
     permissions: import("tiny-lru").LRU<any>;
     logging: {
         enabled: boolean;
@@ -52,36 +39,44 @@ declare class Woodland extends EventEmitter {
         level: any;
     };
     methods: any[];
-    middleware: Map<any, any>;
-    origins: any;
+    middleware: any;
+    origins: string[];
     time: boolean;
     allowed(method: any, uri: any, override?: boolean): boolean;
     allows(uri: any, override?: boolean): any;
-    always(...args: any[]): Woodland;
-    connect(...args: any[]): Woodland;
+    always(...args: any[]): this;
+    connect(...args: any[]): this;
     clf(req: any, res: any): any;
+    cors(req: any): any;
+    corsHost(req: any): boolean;
+    decoratorError(req: any, res: any): (status: number, body: any) => void;
+    decoratorJson(req: any, res: any): (arg: any, status?: number, headers?: {
+        "content-type": string;
+    }) => void;
+    decoratorRedirect(req: any, res: any): (uri: any, perm?: boolean) => void;
+    decoratorSend(req: any, res: any): (body?: string, status?: number, headers?: {}) => void;
+    decoratorStatus(req: any, res: any): (arg?: number) => any;
     decorate(req: any, res: any): void;
-    del(...args: any[]): Woodland;
-    delete(...args: any[]): Woodland;
+    del(...args: any[]): this;
+    delete(...args: any[]): this;
     error(req: any, res: any, err: any): void;
     etag(method: any, ...args: any[]): string;
-    get(...args: any[]): Woodland;
-    ignore(fn: any): Woodland;
-    list(method?: string, type?: string): {};
-    log(msg: any, level?: string): Woodland;
-    ondone(req: any, res: any, body: any, status: any, headers: any): any[];
+    get(...args: any[]): this;
+    ignore(fn: any): this;
+    ip(req: any): any;
+    list(method?: string, type?: string): any;
+    log(msg: any, level?: string): this;
+    ondone(req: any, res: any, body: any, status: any, headers: any): void;
     onready(req: any, res: any, body: any, status: any, headers: any): any[];
     onsend(req: any, res: any, body: any, status: any, headers: any): any[];
-    options(...args: any[]): Woodland;
-    patch(...args: any[]): Woodland;
+    options(...args: any[]): this;
+    patch(...args: any[]): this;
     path(arg?: string): string;
-    post(...args: any[]): Woodland;
-    put(...args: any[]): Woodland;
+    post(...args: any[]): this;
+    put(...args: any[]): this;
     route(req: any, res: any): void;
     routes(uri: any, method: any, override?: boolean): any;
-    serve(req: any, res: any, arg?: string, folder?: string, index?: any): void;
-    trace(...args: any[]): Woodland;
-    use(rpath: any, ...fn: any[]): Woodland;
+    serve(req: any, res: any, arg?: string, folder?: any, index?: string[]): void;
+    trace(...args: any[]): this;
+    use(rpath: any, ...fn: any[]): this;
 }
-import { EventEmitter } from "events";
-export {};

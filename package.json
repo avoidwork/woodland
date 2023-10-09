@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "18.0.10",
+  "version": "18.0.11",
   "description": "Lightweight HTTP framework with automatic headers",
   "type": "module",
   "types": "types/woodland.d.ts",
@@ -26,7 +26,7 @@
     "rollup": "rollup --config",
     "sample": "node sample.js",
     "test": "npm run lint && npm run mocha",
-    "types": "npx -p typescript tsc src/*.js --declaration --allowJs --emitDeclarationOnly --outDir types",
+    "types": "npx -p typescript tsc src/woodland.js --declaration --allowJs --emitDeclarationOnly --outDir types",
     "prepare": "husky install"
   },
   "repository": {
