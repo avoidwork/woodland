@@ -3,7 +3,7 @@
  *
  * @copyright 2023 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 18.0.8
+ * @version 18.0.9
  */
 'use strict';
 
@@ -19,8 +19,49 @@ var tinyCoerce = require('tiny-coerce');
 var mimeDb = require('mime-db');
 
 var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
+const ACCESS_CONTROL_ALLOW_CREDENTIALS = "access-control-allow-credentials";
+const ACCESS_CONTROL_ALLOW_HEADERS = "access-control-allow-headers";
+const ACCESS_CONTROL_ALLOW_METHODS = "access-control-allow-methods";
+const ACCESS_CONTROL_ALLOW_ORIGIN = "access-control-allow-origin";
+const ACCESS_CONTROL_EXPOSE_HEADERS = "access-control-expose-headers";
+const ACCESS_CONTROL_REQUEST_HEADERS = "access-control-request-headers";
 const ALL = "*";
+const ALLOW = "allow";
+const APPLICATION_JSON = "application/json";
+const APPLICATION_OCTET_STREAM = "application/octet-stream";
+const ARRAY = "array";
+const CACHE_CONTROL = "cache-control";
+const COLON = ":";
+const COMMA = ",";
+const COMMA_SPACE = ", ";
+const CONNECT = "CONNECT";
+const CONTENT_LENGTH = "content-length";
+const CONTENT_RANGE = "content-range";
+const CONTENT_TYPE = "content-type";
+const DEBUG = "debug";
+const DELETE = "DELETE";
 const DELIMITER = "|";
+const EMPTY = "";
+const EN_US = "en-US";
+const END = "end";
+const ETAG = "etag";
+const ERROR = "error";
+const EXTENSIONS = "extensions";
+const FILES = "files";
+const FINISH = "finish";
+const FUNCTION = "function";
+const GET = "GET";
+const HEAD = "HEAD";
+const HYPHEN = "-";
+const IF_NONE_MATCH = "if-none-match";
+const IF_MODIFIED_SINCE = "if-modified-since";
+const INDEX_HTM = "index.htm";
+const INDEX_HTML = "index.html";
+const INFO = "info";
+const IP_TOKEN = "%IP";
+const KEY_BYTES = "bytes=";
+const LAST_MODIFIED = "last-modified";
+const LEFT_PAREN = "(";
 const LEVELS = Object.freeze({
 	emerg: 0,
 	alert: 1,
@@ -31,8 +72,19 @@ const LEVELS = Object.freeze({
 	info: 6,
 	debug: 7
 });
-
-const EN_US = "en-US";
+const LOCATION = "location";
+const LOG = "log";
+const LOG_B = "%b";
+const LOG_FORMAT = "%h %l %u %t \"%r\" %>s %b";
+const LOG_H = "%h";
+const LOG_L = "%l";
+const LOG_R = "%r";
+const LOG_REFERRER = "%{Referer}i";
+const LOG_S = "%>s";
+const LOG_T = "%t";
+const LOG_U = "%u";
+const LOG_USER_AGENT = "%{User-agent}i";
+const LOG_V = "%v";
 const SHORT = "short";
 const MONTHS = Object.freeze(Array.from(Array(12).values()).map((i, idx) => {
 	const d = new Date();
@@ -40,78 +92,10 @@ const MONTHS = Object.freeze(Array.from(Array(12).values()).map((i, idx) => {
 
 	return Object.freeze(d.toLocaleString(EN_US, {month: SHORT}));
 }));
-const UTF8 = "utf8";
-const UTF_8 = "utf-8";
-const INDEX_HTM = "index.htm";
-const INDEX_HTML = "index.html";
-const EXTENSIONS = "extensions";
-const EMPTY = "";
-const WILDCARD = "*";
-const GET = "GET";
-const POST = "POST";
-const PUT = "PUT";
-const DELETE = "DELETE";
-const PATCH = "PATCH";
-const CONNECT = "CONNECT";
-const APPLICATION_JSON = "application/json";
-const APPLICATION_OCTET_STREAM = "application/octet-stream";
-const TIME_MS = "%N ms";
-const TOKEN_N = "%N";
-const STRING_0 = "0";
-const STRING_00 = "00";
-const STRING_30 = "30";
-const SLASH = "/";
-const STRING = "string";
-const TO_STRING = "toString";
-const KEY_BYTES = "bytes=";
-const COMMA = ",";
-const COMMA_SPACE = ", ";
-const HYPHEN = "-";
-const PERIOD = ".";
-const START = "start";
-const END = "end";
-const CACHE_CONTROL = "cache-control";
-const CONTENT_RANGE = "content-range";
-const CONTENT_LENGTH = "content-length";
-const CONTENT_TYPE = "content-type";
-const LAST_MODIFIED = "last-modified";
-const IF_NONE_MATCH = "if-none-match";
-const IF_MODIFIED_SINCE = "if-modified-since";
-const X_FORWARDED_FOR = "x-forwarded-for";
-const X_RESPONSE_TIME = "x-response-time";
-const ACCESS_CONTROL_ALLOW_ORIGIN = "access-control-allow-origin";
-const ACCESS_CONTROL_ALLOW_METHODS = "access-control-allow-methods";
-const ACCESS_CONTROL_ALLOW_HEADERS = "access-control-allow-headers";
-const ACCESS_CONTROL_EXPOSE_HEADERS = "access-control-expose-headers";
-const ACCESS_CONTROL_REQUEST_HEADERS = "access-control-request-headers";
-const ACCESS_CONTROL_ALLOW_CREDENTIALS = "access-control-allow-credentials";
-const TIMING_ALLOW_ORIGIN = "timing-allow-origin";
-const LOCATION = "location";
-const USER_AGENT = "user-agent";
-const RANGE = "range";
-const ETAG = "etag";
-const HEAD = "HEAD";
-const FUNCTION = "function";
-const OPTIONS = "OPTIONS";
-const OPTIONS_BODY = "Make a GET request to retrieve the file";
-const TITLE = "title";
-const FILES = "files";
-const LOG_FORMAT = "%h %l %u %t \"%r\" %>s %b";
-const LOG_V = "%v";
-const LOG_H = "%h";
-const LOG_L = "%l";
-const LOG_U = "%u";
-const LOG_T = "%t";
-const LOG_R = "%r";
-const LOG_S = "%>s";
-const LOG_B = "%b";
-const LOG_REFERRER = "%{Referer}i";
-const LOG_USER_AGENT = "%{User-agent}i";
-const INFO = "info";
-const DEBUG = "debug";
-const ORIGIN = "origin";
-const MSG_ERROR_ROUTING = "Routing to error handler";
 const MSG_DETERMINED_ALLOW = "Determined 'allow' header value";
+const MSG_ERROR_HEAD_ROUTE = "Cannot set HEAD route, use GET";
+const MSG_ERROR_INVALID_METHOD = "Invalid HTTP method";
+const MSG_ERROR_ROUTING = "Routing to error handler";
 const MSG_SENDING_BODY = "Sending response body";
 const MSG_DECORATED_IP = "Decorated request from %IP";
 const MSG_ERROR_IP = "Handled error response for %IP";
@@ -121,21 +105,36 @@ const MSG_ROUTING_FILE = "Routing request to file system";
 const MSG_RETRIEVED_MIDDLEWARE = "Retrieved middleware for request";
 const MSG_REGISTERING_MIDDLEWARE = "Registering middleware";
 const MSG_HEADERS_SENT = "Headers already sent";
-const IP_TOKEN = "%IP";
-const ALLOW = "allow";
-const TRUE = "true";
-const ERROR = "error";
-const ARRAY = "array";
 const OBJECT = "object";
-const LOG = "log";
+const OPTIONS = "OPTIONS";
+const OPTIONS_BODY = "Make a GET request to retrieve the file";
+const ORIGIN = "origin";
 const PARAMS_GROUP = "/([^/]+)";
-const FINISH = "finish";
+const PATCH = "PATCH";
+const PERIOD = ".";
+const POST = "POST";
+const PUT = "PUT";
+const RANGE = "range";
 const READ_HEADERS = "GET, HEAD, OPTIONS";
+const SLASH = "/";
+const START = "start";
+const STRING = "string";
+const STRING_0 = "0";
+const STRING_00 = "00";
+const STRING_30 = "30";
+const TIME_MS = "%N ms";
+const TIMING_ALLOW_ORIGIN = "timing-allow-origin";
+const TITLE = "title";
+const TO_STRING = "toString";
+const TOKEN_N = "%N";
 const TRACE = "TRACE";
-const ERROR_MSG_INVALID_METHOD = "Invalid HTTP method";
-const ERROR_MSG_HEAD_ROUTE = "Cannot set HEAD route, use GET";
-const COLON = ":";
-const LEFT_PAREN = "(";
+const TRUE = "true";
+const USER_AGENT = "user-agent";
+const UTF8 = "utf8";
+const UTF_8 = "utf-8";
+const WILDCARD = "*";
+const X_FORWARDED_FOR = "x-forwarded-for";
+const X_RESPONSE_TIME = "x-response-time";
 
 const __dirname$1 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href)))),
 	html = node_fs.readFileSync(node_path.join(__dirname$1, "..", "tpl", "autoindex.html"), {encoding: UTF8}),
@@ -459,10 +458,6 @@ class Woodland extends node_events.EventEmitter {
 		return ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host;
 	}
 
-	ip (req) {
-		return X_FORWARDED_FOR in req.headers ? req.headers[X_FORWARDED_FOR].split(COMMA).pop().trim() : req.connection.remoteAddress;
-	}
-
 	decoratorError (req, res) {
 		return (status = 500, body) => {
 			const err = body !== void 0 ? body instanceof Error ? body : new Error(body) : new Error(node_http.STATUS_CODES[status]);
@@ -642,6 +637,10 @@ class Woodland extends node_events.EventEmitter {
 		}
 
 		return this;
+	}
+
+	ip (req) {
+		return X_FORWARDED_FOR in req.headers ? req.headers[X_FORWARDED_FOR].split(COMMA).pop().trim() : req.connection.remoteAddress;
 	}
 
 	list (method = GET.toLowerCase(), type = ARRAY) {
@@ -871,11 +870,11 @@ class Woodland extends node_events.EventEmitter {
 		const method = typeof fn[fn.length - 1] === STRING ? fn.pop().toUpperCase() : GET;
 
 		if (method !== ALL && node_http.METHODS.includes(method) === false) {
-			throw new TypeError(ERROR_MSG_INVALID_METHOD);
+			throw new TypeError(MSG_ERROR_INVALID_METHOD);
 		}
 
 		if (method === HEAD) {
-			throw new TypeError(ERROR_MSG_HEAD_ROUTE);
+			throw new TypeError(MSG_ERROR_HEAD_ROUTE);
 		}
 
 		if (this.middleware.has(method) === false) {

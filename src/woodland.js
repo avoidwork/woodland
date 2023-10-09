@@ -27,8 +27,6 @@ import {
 	DELIMITER,
 	EMPTY,
 	ERROR,
-	ERROR_MSG_HEAD_ROUTE,
-	ERROR_MSG_INVALID_METHOD,
 	FINISH,
 	FUNCTION,
 	GET,
@@ -56,6 +54,8 @@ import {
 	MONTHS,
 	MSG_DECORATED_IP,
 	MSG_DETERMINED_ALLOW,
+	MSG_ERROR_HEAD_ROUTE,
+	MSG_ERROR_INVALID_METHOD,
 	MSG_ERROR_IP,
 	MSG_ERROR_ROUTING,
 	MSG_HEADERS_SENT,
@@ -206,10 +206,6 @@ export class Woodland extends EventEmitter {
 
 	corsHost (req) {
 		return ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host;
-	}
-
-	ip (req) {
-		return X_FORWARDED_FOR in req.headers ? req.headers[X_FORWARDED_FOR].split(COMMA).pop().trim() : req.connection.remoteAddress;
 	}
 
 	decoratorError (req, res) {
@@ -391,6 +387,10 @@ export class Woodland extends EventEmitter {
 		}
 
 		return this;
+	}
+
+	ip (req) {
+		return X_FORWARDED_FOR in req.headers ? req.headers[X_FORWARDED_FOR].split(COMMA).pop().trim() : req.connection.remoteAddress;
 	}
 
 	list (method = GET.toLowerCase(), type = ARRAY) {
@@ -620,11 +620,11 @@ export class Woodland extends EventEmitter {
 		const method = typeof fn[fn.length - 1] === STRING ? fn.pop().toUpperCase() : GET;
 
 		if (method !== ALL && METHODS.includes(method) === false) {
-			throw new TypeError(ERROR_MSG_INVALID_METHOD);
+			throw new TypeError(MSG_ERROR_INVALID_METHOD);
 		}
 
 		if (method === HEAD) {
-			throw new TypeError(ERROR_MSG_HEAD_ROUTE);
+			throw new TypeError(MSG_ERROR_HEAD_ROUTE);
 		}
 
 		if (this.middleware.has(method) === false) {
