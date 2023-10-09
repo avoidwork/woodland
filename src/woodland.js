@@ -12,7 +12,6 @@ import {
 	ACCESS_CONTROL_ALLOW_ORIGIN,
 	ACCESS_CONTROL_EXPOSE_HEADERS,
 	ACCESS_CONTROL_REQUEST_HEADERS,
-	ALL,
 	ALLOW,
 	APPLICATION_JSON,
 	ARRAY,
@@ -153,7 +152,7 @@ export class Woodland extends EventEmitter {
 		let result = override === false ? this.permissions.get(uri) : void 0;
 
 		if (override || result === void 0) {
-			const allMethods = this.routes(uri, ALL, override).visible > 0,
+			const allMethods = this.routes(uri, WILDCARD, override).visible > 0,
 				list = allMethods ? structuredClone(METHODS) : this.methods.filter(i => this.allowed(i, uri, override));
 
 			if (list.includes(GET)) {
@@ -178,7 +177,7 @@ export class Woodland extends EventEmitter {
 	}
 
 	always (...args) {
-		return this.use(...args, ALL);
+		return this.use(...args, WILDCARD);
 	}
 
 	connect (...args) {
@@ -201,7 +200,7 @@ export class Woodland extends EventEmitter {
 	}
 
 	cors (req) {
-		return req.corsHost && (this.origins.includes(ALL) || this.origins.includes(req.headers.origin));
+		return req.corsHost && (this.origins.includes(WILDCARD) || this.origins.includes(req.headers.origin));
 	}
 
 	corsHost (req) {
@@ -517,9 +516,9 @@ export class Woodland extends EventEmitter {
 			result = cached;
 		} else {
 			result = {middleware: [], params: false, pos: [], visible: 0, last: null};
-			reduce(uri, this.middleware.get(ALL), result);
+			reduce(uri, this.middleware.get(WILDCARD), result);
 
-			if (method !== ALL) {
+			if (method !== WILDCARD) {
 				reduce(uri, this.middleware.get(method), result, true, this.ignored);
 			}
 
@@ -614,12 +613,12 @@ export class Woodland extends EventEmitter {
 	use (rpath, ...fn) {
 		if (typeof rpath === FUNCTION) {
 			fn = [rpath, ...fn];
-			rpath = `/.${ALL}`;
+			rpath = `/.${WILDCARD}`;
 		}
 
 		const method = typeof fn[fn.length - 1] === STRING ? fn.pop().toUpperCase() : GET;
 
-		if (method !== ALL && METHODS.includes(method) === false) {
+		if (method !== WILDCARD && METHODS.includes(method) === false) {
 			throw new TypeError(MSG_ERROR_INVALID_METHOD);
 		}
 
@@ -628,7 +627,7 @@ export class Woodland extends EventEmitter {
 		}
 
 		if (this.middleware.has(method) === false) {
-			if (method !== ALL) {
+			if (method !== WILDCARD) {
 				this.methods.push(method);
 			}
 

@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "18.0.9",
+  "version": "18.0.10",
   "description": "Lightweight HTTP framework with automatic headers",
   "type": "module",
   "types": "types/woodland.d.ts",

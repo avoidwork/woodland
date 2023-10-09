@@ -4,7 +4,6 @@ export const ACCESS_CONTROL_ALLOW_METHODS = "access-control-allow-methods";
 export const ACCESS_CONTROL_ALLOW_ORIGIN = "access-control-allow-origin";
 export const ACCESS_CONTROL_EXPOSE_HEADERS = "access-control-expose-headers";
 export const ACCESS_CONTROL_REQUEST_HEADERS = "access-control-request-headers";
-export const ALL = "*";
 export const ALLOW = "allow";
 export const APPLICATION_JSON = "application/json";
 export const APPLICATION_OCTET_STREAM = "application/octet-stream";

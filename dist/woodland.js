@@ -3,7 +3,7 @@
  *
  * @copyright 2023 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 18.0.9
+ * @version 18.0.10
  */
 import {STATUS_CODES,METHODS}from'node:http';import {join,extname,resolve}from'node:path';import {EventEmitter}from'node:events';import {readFileSync,createReadStream,stat,readdir}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const ACCESS_CONTROL_ALLOW_CREDENTIALS = "access-control-allow-credentials";
 const ACCESS_CONTROL_ALLOW_HEADERS = "access-control-allow-headers";
@@ -11,7 +11,6 @@ const ACCESS_CONTROL_ALLOW_METHODS = "access-control-allow-methods";
 const ACCESS_CONTROL_ALLOW_ORIGIN = "access-control-allow-origin";
 const ACCESS_CONTROL_EXPOSE_HEADERS = "access-control-expose-headers";
 const ACCESS_CONTROL_REQUEST_HEADERS = "access-control-request-headers";
-const ALL = "*";
 const ALLOW = "allow";
 const APPLICATION_JSON = "application/json";
 const APPLICATION_OCTET_STREAM = "application/octet-stream";
@@ -385,7 +384,7 @@ function writeHead (res, status = 200, headers = {}) {
 		let result = override === false ? this.permissions.get(uri) : void 0;
 
 		if (override || result === void 0) {
-			const allMethods = this.routes(uri, ALL, override).visible > 0,
+			const allMethods = this.routes(uri, WILDCARD, override).visible > 0,
 				list = allMethods ? structuredClone(METHODS) : this.methods.filter(i => this.allowed(i, uri, override));
 
 			if (list.includes(GET)) {
@@ -410,7 +409,7 @@ function writeHead (res, status = 200, headers = {}) {
 	}
 
 	always (...args) {
-		return this.use(...args, ALL);
+		return this.use(...args, WILDCARD);
 	}
 
 	connect (...args) {
@@ -433,7 +432,7 @@ function writeHead (res, status = 200, headers = {}) {
 	}
 
 	cors (req) {
-		return req.corsHost && (this.origins.includes(ALL) || this.origins.includes(req.headers.origin));
+		return req.corsHost && (this.origins.includes(WILDCARD) || this.origins.includes(req.headers.origin));
 	}
 
 	corsHost (req) {
@@ -749,9 +748,9 @@ function writeHead (res, status = 200, headers = {}) {
 			result = cached;
 		} else {
 			result = {middleware: [], params: false, pos: [], visible: 0, last: null};
-			reduce(uri, this.middleware.get(ALL), result);
+			reduce(uri, this.middleware.get(WILDCARD), result);
 
-			if (method !== ALL) {
+			if (method !== WILDCARD) {
 				reduce(uri, this.middleware.get(method), result, true, this.ignored);
 			}
 
@@ -846,12 +845,12 @@ function writeHead (res, status = 200, headers = {}) {
 	use (rpath, ...fn) {
 		if (typeof rpath === FUNCTION) {
 			fn = [rpath, ...fn];
-			rpath = `/.${ALL}`;
+			rpath = `/.${WILDCARD}`;
 		}
 
 		const method = typeof fn[fn.length - 1] === STRING ? fn.pop().toUpperCase() : GET;
 
-		if (method !== ALL && METHODS.includes(method) === false) {
+		if (method !== WILDCARD && METHODS.includes(method) === false) {
 			throw new TypeError(MSG_ERROR_INVALID_METHOD);
 		}
 
@@ -860,7 +859,7 @@ function writeHead (res, status = 200, headers = {}) {
 		}
 
 		if (this.middleware.has(method) === false) {
-			if (method !== ALL) {
+			if (method !== WILDCARD) {
 				this.methods.push(method);
 			}
 
