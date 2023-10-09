@@ -107,7 +107,7 @@ Registers middleware for a route. `path` is a regular expression (as a string), 
 All HTTP methods are available on the prototype (partial application of the third argument), e.g. `get([path,] ...fn)` & `options([path,] ...fn)`.
 
 ## Benchmark
-Please benchmark `woodland` on your target hardware to understand the overhead which is expected to be 25%, e.g. if `http` can handle 50k req/s, then `woodland` should handle 40k req/s.
+Please benchmark `woodland` on your target hardware to understand the overhead which is expected to be <15% with etags disabled, or <25% with etags enabled. E.g. if `http` can handle 50k req/s, then `woodland` should handle 43k req/s.
 
 The performance delta is primarily caused by the native [URL](https://nodejs.org/dist/latest-v18.x/docs/api/url.html) class.
 
