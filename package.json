@@ -18,7 +18,7 @@
   ],
   "scripts": {
     "benchmark": "node benchmark.js",
-    "build": "rm -rf dist && npm run rollup && npm run test",
+    "build": "npm run lint && rm -rf dist && npm run rollup && npm run mocha",
     "changelog": "auto-changelog -p",
     "fix": "eslint --fix *.js src/*.js test/*.js",
     "lint": "eslint *.js src/*.js test/*.js",
@@ -58,10 +58,10 @@
   },
   "dependencies": {
     "mime-db": "^1.52.0",
-    "precise": "^4.0.2",
-    "tiny-coerce": "^3.0.0",
-    "tiny-etag": "^4.0.1",
-    "tiny-lru": "^11.2.2"
+    "precise": "^4.0.3",
+    "tiny-coerce": "^3.0.1",
+    "tiny-etag": "^4.0.2",
+    "tiny-lru": "^11.2.3"
   },
   "devDependencies": {
     "auto-changelog": "^2.4.0",
