@@ -3,7 +3,7 @@
  *
  * @copyright 2023 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 18.0.13
+ * @version 18.0.14
  */
 'use strict';
 
@@ -616,7 +616,7 @@ class Woodland extends node_events.EventEmitter {
 		}
 
 		if (this.logging.enabled) {
-			this.log(`type=error, message="${MSG_ERROR_IP.replace(IP_TOKEN, req.ip)}"`);
+			this.log(`type=error, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ERROR_IP.replace(IP_TOKEN, req.ip)}"`);
 		}
 	}
 
@@ -737,6 +737,10 @@ class Woodland extends node_events.EventEmitter {
 			method = GET; // Changing an OPTIONS request to GET due to absent route
 		}
 
+		if (this.logging.enabled) {
+			this.log(`type=route, uri=${req.parsed.pathname}, method=${req.method}, message="${MSG_ROUTING}"`);
+		}
+
 		if (req.cors === false && ORIGIN in req.headers && req.corsHost && this.origins.includes(req.headers.origin) === false) {
 			res.error(403);
 		} else if (req.allow.includes(method)) {
@@ -750,10 +754,6 @@ class Woodland extends node_events.EventEmitter {
 			next(req, res, e, result.middleware[Symbol.iterator]())();
 		} else {
 			last(req, res, e);
-		}
-
-		if (this.logging.enabled) {
-			this.log(`type=route, message="${MSG_ROUTING}"`);
 		}
 	}
 

@@ -36,6 +36,7 @@ export const IF_MODIFIED_SINCE = "if-modified-since";
 export const INDEX_HTM = "index.htm";
 export const INDEX_HTML = "index.html";
 export const INFO = "info";
+export const INT_500 = 500;
 export const IP_TOKEN = "%IP";
 export const KEY_BYTES = "bytes=";
 export const LAST_MODIFIED = "last-modified";
