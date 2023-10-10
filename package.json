@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "18.0.12",
+  "version": "18.0.13",
   "description": "Lightweight HTTP framework with automatic headers",
   "type": "module",
   "types": "types/woodland.d.ts",
@@ -72,7 +72,7 @@
     "mocha": "^10.2.0",
     "nyc": "^15.1.0",
     "rollup": "^4.0.2",
-    "tiny-httptest": "^4.0.6",
+    "tiny-httptest": "^4.0.7",
     "typescript": "^5.2.2"
   }
 }
