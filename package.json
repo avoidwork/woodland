@@ -1,11 +1,11 @@
 {
   "name": "woodland",
-  "version": "18.0.11",
+  "version": "18.0.12",
   "description": "Lightweight HTTP framework with automatic headers",
   "type": "module",
   "types": "types/woodland.d.ts",
   "source": "src/woodland.js",
-  "main": "dist/woodland",
+  "main": "dist/woodland.cjs",
   "exports": {
     "types": "./types/woodland.d.ts",
     "import": "./dist/woodland.js",
