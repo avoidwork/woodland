@@ -151,6 +151,10 @@ function autoindex (title = EMPTY, files = []) {
 	return new Function(TITLE, FILES, `return \`${html}\`;`)(title, files);
 }
 
+function getStatus (req, res) {
+	return req.allow.length > 0 ? req.method !== GET ? 405 : req.allow.includes(GET) ? res.statusCode > 500 ? res.statusCode : 500 : 404 : 404;
+}
+
 function mime (arg = EMPTY) {
 	const ext = node_path.extname(arg);
 
@@ -159,10 +163,6 @@ function mime (arg = EMPTY) {
 
 function ms (arg = 0, digits = 3) {
 	return TIME_MS.replace(TOKEN_N, Number(arg / 1e6).toFixed(digits));
-}
-
-function getStatus (req) {
-	return req.allow.length > 0 ? req.method !== GET ? 405 : req.allow.includes(GET) ? 500 : 404 : 404;
 }
 
 function next (req, res, middleware) {
@@ -178,13 +178,13 @@ function next (req, res, middleware) {
 				if (obj.done === false) {
 					obj.value(err, req, res, fn);
 				} else {
-					res.error(getStatus(req));
+					res.error(getStatus(req, res));
 				}
 			} else {
 				obj.value(req, res, fn);
 			}
 		} else {
-			res.error(getStatus(req));
+			res.error(getStatus(req, res));
 		}
 	});
 
@@ -723,7 +723,7 @@ class Woodland extends node_events.EventEmitter {
 			req.last = result.last;
 			next(req, res, result.middleware[Symbol.iterator]())();
 		} else {
-			res.error(getStatus(req));
+			res.error(getStatus(req, res));
 		}
 	}
 

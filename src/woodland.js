@@ -487,7 +487,7 @@ export class Woodland extends EventEmitter {
 			req.last = result.last;
 			next(req, res, result.middleware[Symbol.iterator]())();
 		} else {
-			res.error(getStatus(req));
+			res.error(getStatus(req, res));
 		}
 	}
 

@@ -36,14 +36,14 @@ class MyFramework extends Woodland {};
 
 ## Testing
 
-Woodland has 100% code coverage with its tests; the missing 0.21% is ignored file system error handlers that aren't worth testing - they're present!
+Woodland has 100% code coverage with its tests; the missing 0.22% is ignored file system error handlers that aren't worth testing - they're present!
 
 ```console
 --------------|---------|----------|---------|---------|-------------------------------
 File          | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s
 --------------|---------|----------|---------|---------|-------------------------------
-All files     |   99.79 |    75.67 |   98.63 |     100 | 
- woodland.cjs |   99.79 |    75.67 |   98.63 |     100 | ...288-298,327-349,358-359,...
+All files     |   99.78 |    75.95 |   98.59 |     100 | 
+ woodland.cjs |   99.78 |    75.95 |   98.59 |     100 | ...288-298,327-349,358-359,...
 --------------|---------|----------|---------|---------|-------------------------------
 ```
 
