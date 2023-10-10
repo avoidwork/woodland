@@ -496,6 +496,7 @@ function writeHead (res, headers = {}) {
 							res.error(416);
 						}
 					} else {
+						res.statusCode = status;
 						this.ondone(req, res, body, headers);
 					}
 				}
@@ -637,10 +638,8 @@ function writeHead (res, headers = {}) {
 	}
 
 	onready (req, res, body, status, headers) {
-		if (res.headersSent === false) {
-			if (this.time && res.getHeader(X_RESPONSE_TIME) === void 0) {
-				res.header(X_RESPONSE_TIME, `${ms(req.precise.stop().diff(), this.digit)}`);
-			}
+		if (this.time && res.getHeader(X_RESPONSE_TIME) === void 0) {
+			res.header(X_RESPONSE_TIME, `${ms(req.precise.stop().diff(), this.digit)}`);
 		}
 
 		return this.onsend(req, res, body, status, headers);
