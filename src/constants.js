@@ -74,7 +74,6 @@ export const MONTHS = Object.freeze(Array.from(Array(12).values()).map((i, idx) 
 export const MSG_DETERMINED_ALLOW = "Determined 'allow' header value";
 export const MSG_ERROR_HEAD_ROUTE = "Cannot set HEAD route, use GET";
 export const MSG_ERROR_INVALID_METHOD = "Invalid HTTP method";
-export const MSG_ERROR_ROUTING = "Routing to error handler";
 export const MSG_SENDING_BODY = "Sending response body";
 export const MSG_DECORATED_IP = "Decorated request from %IP";
 export const MSG_ERROR_IP = "Handled error response for %IP";

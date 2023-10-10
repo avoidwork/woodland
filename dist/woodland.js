@@ -80,7 +80,6 @@ const MONTHS = Object.freeze(Array.from(Array(12).values()).map((i, idx) => {
 const MSG_DETERMINED_ALLOW = "Determined 'allow' header value";
 const MSG_ERROR_HEAD_ROUTE = "Cannot set HEAD route, use GET";
 const MSG_ERROR_INVALID_METHOD = "Invalid HTTP method";
-const MSG_ERROR_ROUTING = "Routing to error handler";
 const MSG_SENDING_BODY = "Sending response body";
 const MSG_DECORATED_IP = "Decorated request from %IP";
 const MSG_ERROR_IP = "Handled error response for %IP";
@@ -136,20 +135,6 @@ function autoindex (title = EMPTY, files = []) {
 	return new Function(TITLE, FILES, `return \`${html}\`;`)(title, files);
 }
 
-function last (req, res, e, err) {
-	const status = res.statusCode || 0;
-
-	if (err === void 0) {
-		e(new Error(req.allow.length > 0 ? req.method !== GET ? 405 : req.allow.includes(GET) ? 500 : 404 : 404));
-	} else if (isNaN(status) === false && status >= 400) {
-		e(err);
-	} else {
-		e(new Error(status >= 400 ? status : isNaN(err.message) === false ? err.message : STATUS_CODES[err.message || err] || 500));
-	}
-
-	return true;
-}
-
 function mime (arg = EMPTY) {
 	const ext = extname(arg);
 
@@ -160,7 +145,11 @@ function ms (arg = 0, digits = 3) {
 	return TIME_MS.replace(TOKEN_N, Number(arg / 1e6).toFixed(digits));
 }
 
-function next (req, res, e, middleware) {
+function getStatus (req) {
+	return req.allow.length > 0 ? req.method !== GET ? 405 : req.allow.includes(GET) ? 500 : 404 : 404;
+}
+
+function next (req, res, middleware) {
 	const fn = err => process.nextTick(() => {
 		let obj = middleware.next();
 
@@ -173,13 +162,13 @@ function next (req, res, e, middleware) {
 				if (obj.done === false) {
 					obj.value(err, req, res, fn);
 				} else {
-					last(req, res, e, err);
+					res.error(getStatus(req));
 				}
 			} else {
 				obj.value(req, res, fn);
 			}
 		} else {
-			last(req, res, e, err);
+			res.error(getStatus(req));
 		}
 	});
 
@@ -327,11 +316,7 @@ function timeOffset (arg = 0) {
 	}, []).join(EMPTY)}`;
 }
 
-function writeHead (res, status = 200, headers = {}) {
-	if (res.statusCode < status) {
-		res.statusCode = status;
-	}
-
+function writeHead (res, headers = {}) {
 	res.writeHead(res.statusCode, STATUS_CODES[res.statusCode], headers);
 }class Woodland extends EventEmitter {
 	constructor ({
@@ -441,15 +426,33 @@ function writeHead (res, status = 200, headers = {}) {
 
 	decoratorError (req, res) {
 		return (status = 500, body) => {
-			const err = body !== void 0 ? body instanceof Error ? body : new Error(body) : new Error(STATUS_CODES[status]);
+			if (res.headersSent === false) {
+				const err = body instanceof Error ? body : new Error(body ?? STATUS_CODES[status]),
+					output = err.message;
 
-			res.statusCode = status;
+				if (status === 404) {
+					res.removeHeader(ALLOW);
+					res.header(ALLOW, EMPTY);
 
-			if (this.logging.enabled) {
-				this.log(`type=res.error, status=${status}, ip=${req.ip}, uri=${req.parsed.pathname}, message="${MSG_ERROR_ROUTING}"`);
+					if (req.cors) {
+						res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
+						res.header(ACCESS_CONTROL_ALLOW_METHODS, EMPTY);
+					}
+				}
+
+				res.removeHeader(CONTENT_LENGTH);
+				res.statusCode = status;
+
+				if (this.listenerCount(ERROR) > 0) {
+					this.emit(ERROR, req, res, err);
+				}
+
+				if (this.logging.enabled) {
+					this.log(`type=error, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ERROR_IP.replace(IP_TOKEN, req.ip)}"`);
+				}
+
+				this.ondone(req, res, output);
 			}
-
-			this.error(req, res, err);
 		};
 	}
 
@@ -466,13 +469,13 @@ function writeHead (res, status = 200, headers = {}) {
 	}
 
 	decoratorSend (req, res) {
-		return (body = EMPTY, status = 200, headers = {}) => {
+		return (body = EMPTY, status = res.statusCode, headers = {}) => {
 			if (res.headersSent === false) {
 				[body, status, headers] = this.onready(req, res, body, status, headers);
 
 				if (pipeable(req.method, body)) {
 					if (req.headers.range === void 0 || req.range !== void 0) {
-						writeHead(res, status, headers);
+						writeHead(res, headers);
 						body.on(ERROR, err => res.error(500, err)).pipe(res);
 					} else {
 						res.error(416);
@@ -488,12 +491,12 @@ function writeHead (res, status = 200, headers = {}) {
 						[headers] = partialHeaders(req, res, Buffer.byteLength(buffered), status, headers);
 
 						if (req.range !== void 0) {
-							this.ondone(req, res, buffered.slice(req.range.start, req.range.end).toString(), status, headers);
+							this.ondone(req, res, buffered.slice(req.range.start, req.range.end).toString(), headers);
 						} else {
 							res.error(416);
 						}
 					} else {
-						this.ondone(req, res, body, status, headers);
+						this.ondone(req, res, body, headers);
 					}
 				}
 
@@ -571,37 +574,6 @@ function writeHead (res, status = 200, headers = {}) {
 		return this.use(...args, DELETE);
 	}
 
-	error (req, res, err) {
-		const ev = ERROR;
-
-		if (res.headersSent === false) {
-			const numeric = isNaN(err.message) === false,
-				status = isNaN(res.statusCode) === false && res.statusCode >= 400 ? res.statusCode : numeric ? Number(err.message) : 500,
-				output = numeric ? STATUS_CODES[status] : err.message;
-
-			if (status === 404) {
-				res.removeHeader(ALLOW);
-				res.header(ALLOW, EMPTY);
-
-				if (req.cors) {
-					res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
-					res.header(ACCESS_CONTROL_ALLOW_METHODS, EMPTY);
-				}
-			}
-
-			res.removeHeader(CONTENT_LENGTH);
-			this.ondone(req, res, output, status);
-		}
-
-		if (this.listenerCount(ev) > 0) {
-			this.emit(ev, req, res, err);
-		}
-
-		if (this.logging.enabled) {
-			this.log(`type=error, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ERROR_IP.replace(IP_TOKEN, req.ip)}"`);
-		}
-	}
-
 	etag (method, ...args) {
 		return (method === GET || method === HEAD || method === OPTIONS) && this.etags !== null ? this.etags.create(args.map(i => typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i).join(HYPHEN)) : EMPTY;
 	}
@@ -655,12 +627,12 @@ function writeHead (res, status = 200, headers = {}) {
 		return this;
 	}
 
-	ondone (req, res, body, status, headers) {
+	ondone (req, res, body, headers) {
 		if (res.getHeader(CONTENT_LENGTH) === void 0) {
 			res.header(CONTENT_LENGTH, Buffer.byteLength(body));
 		}
 
-		writeHead(res, status, headers);
+		writeHead(res, headers);
 		res.end(body, this.charset);
 	}
 
@@ -700,8 +672,7 @@ function writeHead (res, status = 200, headers = {}) {
 	}
 
 	route (req, res) {
-		const e = err => res.error(res.statusCode, err),
-			evc = CONNECT.toLowerCase(),
+		const evc = CONNECT.toLowerCase(),
 			evf = FINISH;
 		let method = req.method === HEAD ? GET : req.method;
 
@@ -733,9 +704,9 @@ function writeHead (res, status = 200, headers = {}) {
 			}
 
 			req.last = result.last;
-			next(req, res, e, result.middleware[Symbol.iterator]())();
+			next(req, res, result.middleware[Symbol.iterator]())();
 		} else {
-			last(req, res, e);
+			res.error(getStatus(req));
 		}
 	}
 
