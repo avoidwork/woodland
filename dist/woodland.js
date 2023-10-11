@@ -3,7 +3,7 @@
  *
  * @copyright 2023 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 18.0.16
+ * @version 18.1.0
  */
 import {STATUS_CODES,METHODS}from'node:http';import {join,extname,resolve}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {readFileSync,createReadStream}from'node:fs';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const ACCESS_CONTROL_ALLOW_CREDENTIALS = "access-control-allow-credentials";
 const ACCESS_CONTROL_ALLOW_HEADERS = "access-control-allow-headers";
@@ -455,13 +455,13 @@ function writeHead (res, headers = {}) {
 		};
 	}
 
-	decoratorJson (req, res) {
+	decoratorJson (res) {
 		return (arg, status = 200, headers = {[CONTENT_TYPE]: `${APPLICATION_JSON}; charset=${UTF_8}`}) => {
 			res.send(JSON.stringify(arg), status, headers);
 		};
 	}
 
-	decoratorRedirect (req, res) {
+	decoratorRedirect (res) {
 		return (uri, perm = true) => {
 			res.send(EMPTY, perm ? 301 : 302, {[LOCATION]: uri});
 		};
@@ -510,7 +510,15 @@ function writeHead (res, headers = {}) {
 		};
 	}
 
-	decoratorStatus (req, res) {
+	decoratorSet (res) {
+		return (arg = {}) => {
+			res.setHeaders(arg instanceof Map || arg instanceof Headers ? arg : new Headers(arg));
+
+			return res;
+		};
+	}
+
+	decoratorStatus (res) {
 		return (arg = 200) => {
 			res.statusCode = arg;
 
@@ -536,10 +544,11 @@ function writeHead (res, headers = {}) {
 		res.locals = {};
 		res.error = this.decoratorError(req, res);
 		res.header = res.setHeader;
-		res.json = this.decoratorJson(req, res);
-		res.redirect = this.decoratorRedirect(req, res);
+		res.json = this.decoratorJson(res);
+		res.redirect = this.decoratorRedirect(res);
 		res.send = this.decoratorSend(req, res);
-		res.status = this.decoratorStatus(req, res);
+		res.set = this.decoratorSet(res);
+		res.status = this.decoratorStatus(res);
 
 		for (const i of this.defaultHeaders) {
 			res.header(i[0], i[1]);

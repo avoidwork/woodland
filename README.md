@@ -42,8 +42,8 @@ Woodland has 100% code coverage with its tests; the missing 0.22% is hard to rea
 --------------|---------|----------|---------|---------|-------------------------------
 File          | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s
 --------------|---------|----------|---------|---------|-------------------------------
-All files     |   99.78 |    76.26 |   98.52 |     100 | 
- woodland.cjs |   99.78 |    76.26 |   98.52 |     100 | ...214,254,275-285,314-328,...
+All files     |   99.78 |    76.02 |   98.57 |     100 | 
+ woodland.cjs |   99.78 |    76.02 |   98.57 |     100 | ...214,254,275-285,314-328,...
 --------------|---------|----------|---------|---------|-------------------------------
 ```
 
@@ -229,6 +229,9 @@ Sends a redirection response.
 
 ### res.send(body, [status = 200, headers = {}])
 Sends a response. `Range` header is ignored on `stream` responses.
+
+### res.set(headers = {})
+Shorthand of `res.setHeaders()` which accepts `Object`, `Map`, or `Headers` instances.
 
 ### res.status(arg)
 Sets the response `statusCode` property.

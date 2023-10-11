@@ -47,6 +47,7 @@ const router = woodland({
 
 function always (req, res, next) {
 	res.header("x-always", "true");
+	res.set({"x-other-stuff": "true"});
 	next();
 }
 
