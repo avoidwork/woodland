@@ -125,7 +125,10 @@ export class Woodland extends EventEmitter {
 		super();
 
 		if (silent === false) {
-			defaultHeaders[SERVER] = SERVER_VALUE;
+			if (SERVER in defaultHeaders === false) {
+				defaultHeaders[SERVER] = SERVER_VALUE;
+			}
+
 			defaultHeaders[X_POWERED_BY] = X_POWERED_BY_VALUE;
 		}
 

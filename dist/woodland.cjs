@@ -3,7 +3,7 @@
  *
  * @copyright 2023 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 18.1.5
+ * @version 18.1.6
  */
 'use strict';
 
@@ -366,7 +366,10 @@ class Woodland extends node_events.EventEmitter {
 		super();
 
 		if (silent === false) {
-			defaultHeaders[SERVER] = SERVER_VALUE;
+			if (SERVER in defaultHeaders === false) {
+				defaultHeaders[SERVER] = SERVER_VALUE;
+			}
+
 			defaultHeaders[X_POWERED_BY] = X_POWERED_BY_VALUE;
 		}
 
