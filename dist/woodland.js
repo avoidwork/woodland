@@ -272,7 +272,6 @@ function stream (req, res, file = {
 
 	if (req.method === GET) {
 		if ((file.etag.length > 0 && req.headers[IF_NONE_MATCH] === file.etag) || (req.headers[IF_NONE_MATCH] === void 0 && Date.parse(req.headers[IF_MODIFIED_SINCE]) >= file.stats.mtime)) { // eslint-disable-line no-extra-parens
-			res.removeHeader(CONTENT_TYPE);
 			res.removeHeader(CONTENT_LENGTH);
 			res.send(EMPTY, 304);
 		} else {
