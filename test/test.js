@@ -62,6 +62,7 @@ router.on("error", () => void 0);
 router.on("finish", () => void 0);
 router.always("/.*", always).ignore(always);
 router.use("/", (req, res) => res.send(req.method !== "OPTIONS" ? "Hello World!" : EMPTY));
+router.use("/another-temp", (req, res) => res.redirect("/test/another/", false));
 router.use("/int", (req, res) => res.send(123));
 router.use("/json1", (req, res) => res.json({text: "Hello World!"}));
 router.use("/json2", (req, res) => res.json("Hello World!"));
@@ -387,9 +388,16 @@ describe("Valid Requests", function () {
 			.end();
 	});
 
-	it("GET /test/another (301 / 'Redirect')", function () {
+	it("GET /test/another (308 / 'Permanent Redirect')", function () {
 		return httptest({url: "http://localhost:8001/test/another"})
-			.expectStatus(301)
+			.expectStatus(308)
+			.expectHeader(LOCATION, "/test/another/")
+			.end();
+	});
+
+	it("GET /another-temp (307 / 'Temporary Redirect')", function () {
+		return httptest({url: "http://localhost:8001/another-temp"})
+			.expectStatus(307)
 			.expectHeader(LOCATION, "/test/another/")
 			.end();
 	});

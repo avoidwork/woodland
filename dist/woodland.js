@@ -591,7 +591,7 @@ function writeHead (res, headers = {}) {
 	}
 
 	ondone (req, res, body, headers) {
-		if (res.getHeader(CONTENT_LENGTH) === void 0) {
+		if (res.statusCode !== 204 && res.statusCode !== 304 && res.getHeader(CONTENT_LENGTH) === void 0) {
 			res.header(CONTENT_LENGTH, Buffer.byteLength(body));
 		}
 
@@ -634,7 +634,7 @@ function writeHead (res, headers = {}) {
 
 	redirect (res) {
 		return (uri, perm = true) => {
-			res.send(EMPTY, perm ? 301 : 302, {[LOCATION]: uri});
+			res.send(EMPTY, perm ? 308 : 307, {[LOCATION]: uri});
 		};
 	}
 
