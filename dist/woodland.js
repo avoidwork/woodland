@@ -3,7 +3,7 @@
  *
  * @copyright 2023 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 18.1.0
+ * @version 18.1.1
  */
 import {STATUS_CODES,METHODS}from'node:http';import {join,extname,resolve}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {readFileSync,createReadStream}from'node:fs';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const ACCESS_CONTROL_ALLOW_CREDENTIALS = "access-control-allow-credentials";
 const ACCESS_CONTROL_ALLOW_HEADERS = "access-control-allow-headers";
@@ -501,11 +501,11 @@ function writeHead (res, headers = {}) {
 				}
 
 				if (this.logging.enabled) {
-					this.log(`type=res.send, uri=${req.parsed.pathname}, ip=${req.ip}, valid=true, message="${MSG_SENDING_BODY}"`);
+					this.log(`type=res.send, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, valid=true, message="${MSG_SENDING_BODY}"`);
 					this.log(this.clf(req, res), INFO);
 				}
 			} else if (this.logging.enabled) {
-				this.log(`type=res.send, uri=${req.parsed.pathname}, ip=${req.ip}, valid=false, message="${MSG_HEADERS_SENT}"`);
+				this.log(`type=res.send, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, valid=false, message="${MSG_HEADERS_SENT}"`);
 			}
 		};
 	}
@@ -698,7 +698,7 @@ function writeHead (res, headers = {}) {
 		}
 
 		if (this.logging.enabled) {
-			this.log(`type=route, uri=${req.parsed.pathname}, method=${req.method}, message="${MSG_ROUTING}"`);
+			this.log(`type=route, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ROUTING}"`);
 		}
 
 		if (req.cors === false && ORIGIN in req.headers && req.corsHost && this.origins.includes(req.headers.origin) === false) {
@@ -808,7 +808,7 @@ function writeHead (res, headers = {}) {
 		}
 
 		if (this.logging.enabled) {
-			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, message="${MSG_ROUTING_FILE}"`);
+			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ROUTING_FILE}"`);
 		}
 	}
 

@@ -284,11 +284,11 @@ export class Woodland extends EventEmitter {
 				}
 
 				if (this.logging.enabled) {
-					this.log(`type=res.send, uri=${req.parsed.pathname}, ip=${req.ip}, valid=true, message="${MSG_SENDING_BODY}"`);
+					this.log(`type=res.send, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, valid=true, message="${MSG_SENDING_BODY}"`);
 					this.log(this.clf(req, res), INFO);
 				}
 			} else if (this.logging.enabled) {
-				this.log(`type=res.send, uri=${req.parsed.pathname}, ip=${req.ip}, valid=false, message="${MSG_HEADERS_SENT}"`);
+				this.log(`type=res.send, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, valid=false, message="${MSG_HEADERS_SENT}"`);
 			}
 		};
 	}
@@ -481,7 +481,7 @@ export class Woodland extends EventEmitter {
 		}
 
 		if (this.logging.enabled) {
-			this.log(`type=route, uri=${req.parsed.pathname}, method=${req.method}, message="${MSG_ROUTING}"`);
+			this.log(`type=route, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ROUTING}"`);
 		}
 
 		if (req.cors === false && ORIGIN in req.headers && req.corsHost && this.origins.includes(req.headers.origin) === false) {
@@ -591,7 +591,7 @@ export class Woodland extends EventEmitter {
 		}
 
 		if (this.logging.enabled) {
-			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, message="${MSG_ROUTING_FILE}"`);
+			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ROUTING_FILE}"`);
 		}
 	}
 
