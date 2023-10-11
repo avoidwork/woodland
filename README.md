@@ -36,7 +36,7 @@ class MyFramework extends Woodland {};
 
 ## Testing
 
-Woodland has 100% code coverage with its tests; the missing 0.22% is ignored file system error handlers that aren't worth testing - they're present!
+Woodland has 100% code coverage with its tests; the missing 0.22% is hard to reach conditions.
 
 ```console
 --------------|---------|----------|---------|---------|-------------------------------

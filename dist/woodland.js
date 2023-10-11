@@ -3,9 +3,9 @@
  *
  * @copyright 2023 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 18.0.14
+ * @version 18.0.15
  */
-import {STATUS_CODES,METHODS}from'node:http';import {join,extname,resolve}from'node:path';import {EventEmitter}from'node:events';import {readFileSync,createReadStream,stat,readdir}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const ACCESS_CONTROL_ALLOW_CREDENTIALS = "access-control-allow-credentials";
+import {STATUS_CODES,METHODS}from'node:http';import {join,extname,resolve}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {readFileSync,createReadStream}from'node:fs';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const ACCESS_CONTROL_ALLOW_CREDENTIALS = "access-control-allow-credentials";
 const ACCESS_CONTROL_ALLOW_HEADERS = "access-control-allow-headers";
 const ACCESS_CONTROL_ALLOW_METHODS = "access-control-allow-methods";
 const ACCESS_CONTROL_ALLOW_ORIGIN = "access-control-allow-origin";
@@ -735,7 +735,7 @@ function writeHead (res, headers = {}) {
 		return result;
 	}
 
-	serve (req, res, arg = "", folder = process.cwd(), index = this.indexes) {
+	async serve (req, res, arg = "", folder = process.cwd(), index = this.indexes) {
 		const fp = resolve(folder, decodeURIComponent(arg));
 
 		if (req.method !== GET && req.method !== HEAD && req.method !== OPTIONS) {
@@ -746,61 +746,57 @@ function writeHead (res, headers = {}) {
 
 			res.error(405);
 		} else {
-			stat(fp, {bigint: false}, (e, stats) => {
-				if (e !== null) {
-					res.error(404);
-				} else if (stats.isDirectory() === false) {
+			let valid = true;
+			let stats;
+
+			try {
+				stats = await stat(fp, {bigint: false});
+			} catch (e) {
+				valid = false;
+			}
+
+			if (valid === false) {
+				res.error(404);
+			} else if (stats.isDirectory() === false) {
+				stream(req, res, {
+					charset: this.charset,
+					etag: this.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
+					path: fp,
+					stats: stats
+				});
+			} else if (req.parsed.pathname.endsWith(SLASH) === false) {
+				res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
+			} else {
+				const files = await readdir(fp, {encoding: UTF8, withFileTypes: true});
+				let result = EMPTY;
+
+				for (const file of files) {
+					if (index.includes(file.name)) {
+						result = join(fp, file.name);
+						break;
+					}
+				}
+
+				if (result.length === 0) {
+					if (this.autoindex === false) {
+						res.error(404);
+					} else {
+						const body = autoindex(decodeURIComponent(req.parsed.pathname), files);
+
+						res.header(CONTENT_TYPE, `text/html; charset=${this.charset}`);
+						res.send(body);
+					}
+				} else {
+					const rstats = await stat(result, {bigint: false});
+
 					stream(req, res, {
 						charset: this.charset,
-						etag: this.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
-						path: fp,
-						stats: stats
-					});
-				} else if (req.parsed.pathname.endsWith(SLASH) === false) {
-					res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
-				} else {
-					readdir(fp, {encoding: UTF8, withFileTypes: true}, (e2, files) => {
-						if (e2 !== null) {
-							/* istanbul ignore next */
-							res.error(500, e2);
-						} else {
-							let result = EMPTY;
-
-							for (const file of files) {
-								if (index.includes(file.name)) {
-									result = join(fp, file.name);
-									break;
-								}
-							}
-
-							if (result.length === 0) {
-								if (this.autoindex === false) {
-									res.error(404);
-								} else {
-									const body = autoindex(decodeURIComponent(req.parsed.pathname), files);
-
-									res.header(CONTENT_TYPE, `text/html; charset=${this.charset}`);
-									res.send(body);
-								}
-							} else {
-								stat(result, {bigint: false}, (e3, rstats) => {
-									if (e3 !== null) {
-										/* istanbul ignore next */
-										res.error(500, e3);
-									} else {
-										stream(req, res, {
-											charset: this.charset,
-											etag: this.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
-											path: result,
-											stats: rstats
-										});
-									}
-								});
-							}
-						}
+						etag: this.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
+						path: result,
+						stats: rstats
 					});
 				}
-			});
+			}
 		}
 
 		if (this.logging.enabled) {

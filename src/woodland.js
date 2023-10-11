@@ -1,7 +1,7 @@
 import {METHODS, STATUS_CODES} from "node:http";
 import {join, resolve} from "node:path";
 import {EventEmitter} from "node:events";
-import {readdir, stat} from "node:fs";
+import {readdir, stat} from "node:fs/promises";
 import {etag} from "tiny-etag";
 import {precise} from "precise";
 import {lru} from "tiny-lru";
@@ -517,7 +517,7 @@ export class Woodland extends EventEmitter {
 		return result;
 	}
 
-	serve (req, res, arg = "", folder = process.cwd(), index = this.indexes) {
+	async serve (req, res, arg = "", folder = process.cwd(), index = this.indexes) {
 		const fp = resolve(folder, decodeURIComponent(arg));
 
 		if (req.method !== GET && req.method !== HEAD && req.method !== OPTIONS) {
@@ -528,61 +528,57 @@ export class Woodland extends EventEmitter {
 
 			res.error(405);
 		} else {
-			stat(fp, {bigint: false}, (e, stats) => {
-				if (e !== null) {
-					res.error(404);
-				} else if (stats.isDirectory() === false) {
+			let valid = true;
+			let stats;
+
+			try {
+				stats = await stat(fp, {bigint: false});
+			} catch (e) {
+				valid = false;
+			}
+
+			if (valid === false) {
+				res.error(404);
+			} else if (stats.isDirectory() === false) {
+				stream(req, res, {
+					charset: this.charset,
+					etag: this.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
+					path: fp,
+					stats: stats
+				});
+			} else if (req.parsed.pathname.endsWith(SLASH) === false) {
+				res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
+			} else {
+				const files = await readdir(fp, {encoding: UTF8, withFileTypes: true});
+				let result = EMPTY;
+
+				for (const file of files) {
+					if (index.includes(file.name)) {
+						result = join(fp, file.name);
+						break;
+					}
+				}
+
+				if (result.length === 0) {
+					if (this.autoindex === false) {
+						res.error(404);
+					} else {
+						const body = aindex(decodeURIComponent(req.parsed.pathname), files);
+
+						res.header(CONTENT_TYPE, `text/html; charset=${this.charset}`);
+						res.send(body);
+					}
+				} else {
+					const rstats = await stat(result, {bigint: false});
+
 					stream(req, res, {
 						charset: this.charset,
-						etag: this.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
-						path: fp,
-						stats: stats
-					});
-				} else if (req.parsed.pathname.endsWith(SLASH) === false) {
-					res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
-				} else {
-					readdir(fp, {encoding: UTF8, withFileTypes: true}, (e2, files) => {
-						if (e2 !== null) {
-							/* istanbul ignore next */
-							res.error(500, e2);
-						} else {
-							let result = EMPTY;
-
-							for (const file of files) {
-								if (index.includes(file.name)) {
-									result = join(fp, file.name);
-									break;
-								}
-							}
-
-							if (result.length === 0) {
-								if (this.autoindex === false) {
-									res.error(404);
-								} else {
-									const body = aindex(decodeURIComponent(req.parsed.pathname), files);
-
-									res.header(CONTENT_TYPE, `text/html; charset=${this.charset}`);
-									res.send(body);
-								}
-							} else {
-								stat(result, {bigint: false}, (e3, rstats) => {
-									if (e3 !== null) {
-										/* istanbul ignore next */
-										res.error(500, e3);
-									} else {
-										stream(req, res, {
-											charset: this.charset,
-											etag: this.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
-											path: result,
-											stats: rstats
-										});
-									}
-								});
-							}
-						}
+						etag: this.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
+						path: result,
+						stats: rstats
 					});
 				}
-			});
+			}
 		}
 
 		if (this.logging.enabled) {

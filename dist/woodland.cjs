@@ -3,17 +3,18 @@
  *
  * @copyright 2023 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 18.0.14
+ * @version 18.0.15
  */
 'use strict';
 
 var node_http = require('node:http');
 var node_path = require('node:path');
 var node_events = require('node:events');
-var node_fs = require('node:fs');
+var promises = require('node:fs/promises');
 var tinyEtag = require('tiny-etag');
 var precise = require('precise');
 var tinyLru = require('tiny-lru');
+var node_fs = require('node:fs');
 var node_url = require('node:url');
 var tinyCoerce = require('tiny-coerce');
 var mimeDb = require('mime-db');
@@ -753,7 +754,7 @@ class Woodland extends node_events.EventEmitter {
 		return result;
 	}
 
-	serve (req, res, arg = "", folder = process.cwd(), index = this.indexes) {
+	async serve (req, res, arg = "", folder = process.cwd(), index = this.indexes) {
 		const fp = node_path.resolve(folder, decodeURIComponent(arg));
 
 		if (req.method !== GET && req.method !== HEAD && req.method !== OPTIONS) {
@@ -764,61 +765,57 @@ class Woodland extends node_events.EventEmitter {
 
 			res.error(405);
 		} else {
-			node_fs.stat(fp, {bigint: false}, (e, stats) => {
-				if (e !== null) {
-					res.error(404);
-				} else if (stats.isDirectory() === false) {
+			let valid = true;
+			let stats;
+
+			try {
+				stats = await promises.stat(fp, {bigint: false});
+			} catch (e) {
+				valid = false;
+			}
+
+			if (valid === false) {
+				res.error(404);
+			} else if (stats.isDirectory() === false) {
+				stream(req, res, {
+					charset: this.charset,
+					etag: this.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
+					path: fp,
+					stats: stats
+				});
+			} else if (req.parsed.pathname.endsWith(SLASH) === false) {
+				res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
+			} else {
+				const files = await promises.readdir(fp, {encoding: UTF8, withFileTypes: true});
+				let result = EMPTY;
+
+				for (const file of files) {
+					if (index.includes(file.name)) {
+						result = node_path.join(fp, file.name);
+						break;
+					}
+				}
+
+				if (result.length === 0) {
+					if (this.autoindex === false) {
+						res.error(404);
+					} else {
+						const body = autoindex(decodeURIComponent(req.parsed.pathname), files);
+
+						res.header(CONTENT_TYPE, `text/html; charset=${this.charset}`);
+						res.send(body);
+					}
+				} else {
+					const rstats = await promises.stat(result, {bigint: false});
+
 					stream(req, res, {
 						charset: this.charset,
-						etag: this.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
-						path: fp,
-						stats: stats
-					});
-				} else if (req.parsed.pathname.endsWith(SLASH) === false) {
-					res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
-				} else {
-					node_fs.readdir(fp, {encoding: UTF8, withFileTypes: true}, (e2, files) => {
-						if (e2 !== null) {
-							/* istanbul ignore next */
-							res.error(500, e2);
-						} else {
-							let result = EMPTY;
-
-							for (const file of files) {
-								if (index.includes(file.name)) {
-									result = node_path.join(fp, file.name);
-									break;
-								}
-							}
-
-							if (result.length === 0) {
-								if (this.autoindex === false) {
-									res.error(404);
-								} else {
-									const body = autoindex(decodeURIComponent(req.parsed.pathname), files);
-
-									res.header(CONTENT_TYPE, `text/html; charset=${this.charset}`);
-									res.send(body);
-								}
-							} else {
-								node_fs.stat(result, {bigint: false}, (e3, rstats) => {
-									if (e3 !== null) {
-										/* istanbul ignore next */
-										res.error(500, e3);
-									} else {
-										stream(req, res, {
-											charset: this.charset,
-											etag: this.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
-											path: result,
-											stats: rstats
-										});
-									}
-								});
-							}
-						}
+						etag: this.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
+						path: result,
+						stats: rstats
 					});
 				}
-			});
+			}
 		}
 
 		if (this.logging.enabled) {
