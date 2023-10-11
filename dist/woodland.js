@@ -423,7 +423,7 @@ function writeHead (res, headers = {}) {
 		return ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host;
 	}
 
-	decorateError (req, res) {
+	error (req, res) {
 		return (status = 500, body) => {
 			if (res.headersSent === false) {
 				const err = body instanceof Error ? body : new Error(body ?? STATUS_CODES[status]),
@@ -455,19 +455,19 @@ function writeHead (res, headers = {}) {
 		};
 	}
 
-	decorateJson (res) {
+	json (res) {
 		return (arg, status = 200, headers = {[CONTENT_TYPE]: `${APPLICATION_JSON}; charset=${UTF_8}`}) => {
 			res.send(JSON.stringify(arg), status, headers);
 		};
 	}
 
-	decorateRedirect (res) {
+	redirect (res) {
 		return (uri, perm = true) => {
 			res.send(EMPTY, perm ? 301 : 302, {[LOCATION]: uri});
 		};
 	}
 
-	decorateSend (req, res) {
+	send (req, res) {
 		return (body = EMPTY, status = res.statusCode, headers = {}) => {
 			if (res.headersSent === false) {
 				[body, status, headers] = this.onready(req, res, body, status, headers);
@@ -510,7 +510,7 @@ function writeHead (res, headers = {}) {
 		};
 	}
 
-	decorateSet (res) {
+	set (res) {
 		return (arg = {}) => {
 			res.setHeaders(arg instanceof Map || arg instanceof Headers ? arg : new Headers(arg));
 
@@ -518,7 +518,7 @@ function writeHead (res, headers = {}) {
 		};
 	}
 
-	decorateStatus (res) {
+	status (res) {
 		return (arg = 200) => {
 			res.statusCode = arg;
 
@@ -542,13 +542,13 @@ function writeHead (res, headers = {}) {
 		req.ip = this.ip(req);
 		req.params = {};
 		res.locals = {};
-		res.error = this.decorateError(req, res);
+		res.error = this.error(req, res);
 		res.header = res.setHeader;
-		res.json = this.decorateJson(res);
-		res.redirect = this.decorateRedirect(res);
-		res.send = this.decorateSend(req, res);
-		res.set = this.decorateSet(res);
-		res.status = this.decorateStatus(res);
+		res.json = this.json(res);
+		res.redirect = this.redirect(res);
+		res.send = this.send(req, res);
+		res.set = this.set(res);
+		res.status = this.status(res);
 
 		for (const i of this.defaultHeaders) {
 			res.header(i[0], i[1]);
