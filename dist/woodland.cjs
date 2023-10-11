@@ -442,109 +442,6 @@ class Woodland extends node_events.EventEmitter {
 		return ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host;
 	}
 
-	error (req, res) {
-		return (status = 500, body) => {
-			if (res.headersSent === false) {
-				const err = body instanceof Error ? body : new Error(body ?? node_http.STATUS_CODES[status]),
-					output = err.message;
-
-				if (status === 404) {
-					res.removeHeader(ALLOW);
-					res.header(ALLOW, EMPTY);
-
-					if (req.cors) {
-						res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
-						res.header(ACCESS_CONTROL_ALLOW_METHODS, EMPTY);
-					}
-				}
-
-				res.removeHeader(CONTENT_LENGTH);
-				res.statusCode = status;
-
-				if (this.listenerCount(ERROR) > 0) {
-					this.emit(ERROR, req, res, err);
-				}
-
-				if (this.logging.enabled) {
-					this.log(`type=error, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ERROR_IP.replace(IP_TOKEN, req.ip)}"`);
-				}
-
-				this.ondone(req, res, output);
-			}
-		};
-	}
-
-	json (res) {
-		return (arg, status = 200, headers = {[CONTENT_TYPE]: `${APPLICATION_JSON}; charset=${UTF_8}`}) => {
-			res.send(JSON.stringify(arg), status, headers);
-		};
-	}
-
-	redirect (res) {
-		return (uri, perm = true) => {
-			res.send(EMPTY, perm ? 301 : 302, {[LOCATION]: uri});
-		};
-	}
-
-	send (req, res) {
-		return (body = EMPTY, status = res.statusCode, headers = {}) => {
-			if (res.headersSent === false) {
-				[body, status, headers] = this.onready(req, res, body, status, headers);
-
-				if (pipeable(req.method, body)) {
-					if (req.headers.range === void 0 || req.range !== void 0) {
-						writeHead(res, headers);
-						body.on(ERROR, err => res.error(500, err)).pipe(res);
-					} else {
-						res.error(416);
-					}
-				} else {
-					if (typeof body !== STRING && typeof body[TO_STRING] === FUNCTION) {
-						body = body.toString();
-					}
-
-					if (req.headers.range !== void 0) {
-						const buffered = Buffer.from(body);
-
-						[headers] = partialHeaders(req, res, Buffer.byteLength(buffered), status, headers);
-
-						if (req.range !== void 0) {
-							this.ondone(req, res, buffered.slice(req.range.start, req.range.end).toString(), headers);
-						} else {
-							res.error(416);
-						}
-					} else {
-						res.statusCode = status;
-						this.ondone(req, res, body, headers);
-					}
-				}
-
-				if (this.logging.enabled) {
-					this.log(`type=res.send, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, valid=true, message="${MSG_SENDING_BODY}"`);
-					this.log(this.clf(req, res), INFO);
-				}
-			} else if (this.logging.enabled) {
-				this.log(`type=res.send, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, valid=false, message="${MSG_HEADERS_SENT}"`);
-			}
-		};
-	}
-
-	set (res) {
-		return (arg = {}) => {
-			res.setHeaders(arg instanceof Map || arg instanceof Headers ? arg : new Headers(arg));
-
-			return res;
-		};
-	}
-
-	status (res) {
-		return (arg = 200) => {
-			res.statusCode = arg;
-
-			return res;
-		};
-	}
-
 	decorate (req, res) {
 		if (this.time) {
 			req.precise = precise.precise().start();
@@ -602,6 +499,38 @@ class Woodland extends node_events.EventEmitter {
 		return this.use(...args, DELETE);
 	}
 
+	error (req, res) {
+		return (status = 500, body) => {
+			if (res.headersSent === false) {
+				const err = body instanceof Error ? body : new Error(body ?? node_http.STATUS_CODES[status]),
+					output = err.message;
+
+				if (status === 404) {
+					res.removeHeader(ALLOW);
+					res.header(ALLOW, EMPTY);
+
+					if (req.cors) {
+						res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
+						res.header(ACCESS_CONTROL_ALLOW_METHODS, EMPTY);
+					}
+				}
+
+				res.removeHeader(CONTENT_LENGTH);
+				res.statusCode = status;
+
+				if (this.listenerCount(ERROR) > 0) {
+					this.emit(ERROR, req, res, err);
+				}
+
+				if (this.logging.enabled) {
+					this.log(`type=error, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ERROR_IP.replace(IP_TOKEN, req.ip)}"`);
+				}
+
+				this.ondone(req, res, output);
+			}
+		};
+	}
+
 	etag (method, ...args) {
 		return (method === GET || method === HEAD || method === OPTIONS) && this.etags !== null ? this.etags.create(args.map(i => typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i).join(HYPHEN)) : EMPTY;
 	}
@@ -622,6 +551,12 @@ class Woodland extends node_events.EventEmitter {
 
 	ip (req) {
 		return X_FORWARDED_FOR in req.headers ? req.headers[X_FORWARDED_FOR].split(COMMA).pop().trim() : req.connection.remoteAddress;
+	}
+
+	json (res) {
+		return (arg, status = 200, headers = {[CONTENT_TYPE]: `${APPLICATION_JSON}; charset=${UTF_8}`}) => {
+			res.send(JSON.stringify(arg), status, headers);
+		};
 	}
 
 	list (method = GET.toLowerCase(), type = ARRAY) {
@@ -697,6 +632,12 @@ class Woodland extends node_events.EventEmitter {
 		return this.use(...args, PUT);
 	}
 
+	redirect (res) {
+		return (uri, perm = true) => {
+			res.send(EMPTY, perm ? 301 : 302, {[LOCATION]: uri});
+		};
+	}
+
 	route (req, res) {
 		const evc = CONNECT.toLowerCase(),
 			evf = FINISH;
@@ -760,6 +701,57 @@ class Woodland extends node_events.EventEmitter {
 		}
 
 		return result;
+	}
+
+	send (req, res) {
+		return (body = EMPTY, status = res.statusCode, headers = {}) => {
+			if (res.headersSent === false) {
+				[body, status, headers] = this.onready(req, res, body, status, headers);
+
+				if (pipeable(req.method, body)) {
+					if (req.headers.range === void 0 || req.range !== void 0) {
+						writeHead(res, headers);
+						body.on(ERROR, err => res.error(500, err)).pipe(res);
+					} else {
+						res.error(416);
+					}
+				} else {
+					if (typeof body !== STRING && typeof body[TO_STRING] === FUNCTION) {
+						body = body.toString();
+					}
+
+					if (req.headers.range !== void 0) {
+						const buffered = Buffer.from(body);
+
+						[headers] = partialHeaders(req, res, Buffer.byteLength(buffered), status, headers);
+
+						if (req.range !== void 0) {
+							this.ondone(req, res, buffered.slice(req.range.start, req.range.end).toString(), headers);
+						} else {
+							res.error(416);
+						}
+					} else {
+						res.statusCode = status;
+						this.ondone(req, res, body, headers);
+					}
+				}
+
+				if (this.logging.enabled) {
+					this.log(`type=res.send, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, valid=true, message="${MSG_SENDING_BODY}"`);
+					this.log(this.clf(req, res), INFO);
+				}
+			} else if (this.logging.enabled) {
+				this.log(`type=res.send, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, valid=false, message="${MSG_HEADERS_SENT}"`);
+			}
+		};
+	}
+
+	set (res) {
+		return (arg = {}) => {
+			res.setHeaders(arg instanceof Map || arg instanceof Headers ? arg : new Headers(arg));
+
+			return res;
+		};
 	}
 
 	async serve (req, res, arg = "", folder = process.cwd(), index = this.indexes) {
@@ -829,6 +821,14 @@ class Woodland extends node_events.EventEmitter {
 		if (this.logging.enabled) {
 			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ROUTING_FILE}"`);
 		}
+	}
+
+	status (res) {
+		return (arg = 200) => {
+			res.statusCode = arg;
+
+			return res;
+		};
 	}
 
 	trace (...args) {
