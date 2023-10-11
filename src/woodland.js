@@ -206,7 +206,7 @@ export class Woodland extends EventEmitter {
 		return ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host;
 	}
 
-	decoratorError (req, res) {
+	decorateError (req, res) {
 		return (status = 500, body) => {
 			if (res.headersSent === false) {
 				const err = body instanceof Error ? body : new Error(body ?? STATUS_CODES[status]),
@@ -238,19 +238,19 @@ export class Woodland extends EventEmitter {
 		};
 	}
 
-	decoratorJson (res) {
+	decorateJson (res) {
 		return (arg, status = 200, headers = {[CONTENT_TYPE]: `${APPLICATION_JSON}; charset=${UTF_8}`}) => {
 			res.send(JSON.stringify(arg), status, headers);
 		};
 	}
 
-	decoratorRedirect (res) {
+	decorateRedirect (res) {
 		return (uri, perm = true) => {
 			res.send(EMPTY, perm ? 301 : 302, {[LOCATION]: uri});
 		};
 	}
 
-	decoratorSend (req, res) {
+	decorateSend (req, res) {
 		return (body = EMPTY, status = res.statusCode, headers = {}) => {
 			if (res.headersSent === false) {
 				[body, status, headers] = this.onready(req, res, body, status, headers);
@@ -293,7 +293,7 @@ export class Woodland extends EventEmitter {
 		};
 	}
 
-	decoratorSet (res) {
+	decorateSet (res) {
 		return (arg = {}) => {
 			res.setHeaders(arg instanceof Map || arg instanceof Headers ? arg : new Headers(arg));
 
@@ -301,7 +301,7 @@ export class Woodland extends EventEmitter {
 		};
 	}
 
-	decoratorStatus (res) {
+	decorateStatus (res) {
 		return (arg = 200) => {
 			res.statusCode = arg;
 
@@ -325,13 +325,13 @@ export class Woodland extends EventEmitter {
 		req.ip = this.ip(req);
 		req.params = {};
 		res.locals = {};
-		res.error = this.decoratorError(req, res);
+		res.error = this.decorateError(req, res);
 		res.header = res.setHeader;
-		res.json = this.decoratorJson(res);
-		res.redirect = this.decoratorRedirect(res);
-		res.send = this.decoratorSend(req, res);
-		res.set = this.decoratorSet(res);
-		res.status = this.decoratorStatus(res);
+		res.json = this.decorateJson(res);
+		res.redirect = this.decorateRedirect(res);
+		res.send = this.decorateSend(req, res);
+		res.set = this.decorateSet(res);
+		res.status = this.decorateStatus(res);
 
 		for (const i of this.defaultHeaders) {
 			res.header(i[0], i[1]);

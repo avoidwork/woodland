@@ -3,7 +3,7 @@
  *
  * @copyright 2023 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 18.1.2
+ * @version 18.1.3
  */
 import {STATUS_CODES,METHODS}from'node:http';import {join,extname,resolve}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {readFileSync,createReadStream}from'node:fs';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const ACCESS_CONTROL_ALLOW_CREDENTIALS = "access-control-allow-credentials";
 const ACCESS_CONTROL_ALLOW_HEADERS = "access-control-allow-headers";
@@ -423,7 +423,7 @@ function writeHead (res, headers = {}) {
 		return ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host;
 	}
 
-	decoratorError (req, res) {
+	decorateError (req, res) {
 		return (status = 500, body) => {
 			if (res.headersSent === false) {
 				const err = body instanceof Error ? body : new Error(body ?? STATUS_CODES[status]),
@@ -455,19 +455,19 @@ function writeHead (res, headers = {}) {
 		};
 	}
 
-	decoratorJson (res) {
+	decorateJson (res) {
 		return (arg, status = 200, headers = {[CONTENT_TYPE]: `${APPLICATION_JSON}; charset=${UTF_8}`}) => {
 			res.send(JSON.stringify(arg), status, headers);
 		};
 	}
 
-	decoratorRedirect (res) {
+	decorateRedirect (res) {
 		return (uri, perm = true) => {
 			res.send(EMPTY, perm ? 301 : 302, {[LOCATION]: uri});
 		};
 	}
 
-	decoratorSend (req, res) {
+	decorateSend (req, res) {
 		return (body = EMPTY, status = res.statusCode, headers = {}) => {
 			if (res.headersSent === false) {
 				[body, status, headers] = this.onready(req, res, body, status, headers);
@@ -510,7 +510,7 @@ function writeHead (res, headers = {}) {
 		};
 	}
 
-	decoratorSet (res) {
+	decorateSet (res) {
 		return (arg = {}) => {
 			res.setHeaders(arg instanceof Map || arg instanceof Headers ? arg : new Headers(arg));
 
@@ -518,7 +518,7 @@ function writeHead (res, headers = {}) {
 		};
 	}
 
-	decoratorStatus (res) {
+	decorateStatus (res) {
 		return (arg = 200) => {
 			res.statusCode = arg;
 
@@ -542,13 +542,13 @@ function writeHead (res, headers = {}) {
 		req.ip = this.ip(req);
 		req.params = {};
 		res.locals = {};
-		res.error = this.decoratorError(req, res);
+		res.error = this.decorateError(req, res);
 		res.header = res.setHeader;
-		res.json = this.decoratorJson(res);
-		res.redirect = this.decoratorRedirect(res);
-		res.send = this.decoratorSend(req, res);
-		res.set = this.decoratorSet(res);
-		res.status = this.decoratorStatus(res);
+		res.json = this.decorateJson(res);
+		res.redirect = this.decorateRedirect(res);
+		res.send = this.decorateSend(req, res);
+		res.set = this.decorateSet(res);
+		res.status = this.decorateStatus(res);
 
 		for (const i of this.defaultHeaders) {
 			res.header(i[0], i[1]);
