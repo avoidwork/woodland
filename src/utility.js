@@ -57,18 +57,8 @@ export function autoindex (title = EMPTY, files = []) {
 	return new Function(TITLE, FILES, `return \`${html}\`;`)(title, files);
 }
 
-export function last (req, res, e, err) {
-	const status = res.statusCode || 0;
-
-	if (err === void 0) {
-		e(new Error(req.allow.length > 0 ? req.method !== GET ? 405 : req.allow.includes(GET) ? 500 : 404 : 404));
-	} else if (isNaN(status) === false && status >= 400) {
-		e(err);
-	} else {
-		e(new Error(status >= 400 ? status : isNaN(err.message) === false ? err.message : STATUS_CODES[err.message || err] || 500));
-	}
-
-	return true;
+export function getStatus (req, res) {
+	return req.allow.length > 0 ? req.method !== GET ? 405 : req.allow.includes(GET) ? res.statusCode > 500 ? res.statusCode : 500 : 404 : 404;
 }
 
 function mime (arg = EMPTY) {
@@ -81,7 +71,7 @@ export function ms (arg = 0, digits = 3) {
 	return TIME_MS.replace(TOKEN_N, Number(arg / 1e6).toFixed(digits));
 }
 
-export function next (req, res, e, middleware) {
+export function next (req, res, middleware) {
 	const fn = err => process.nextTick(() => {
 		let obj = middleware.next();
 
@@ -94,13 +84,13 @@ export function next (req, res, e, middleware) {
 				if (obj.done === false) {
 					obj.value(err, req, res, fn);
 				} else {
-					last(req, res, e, err);
+					res.error(getStatus(req, res));
 				}
 			} else {
 				obj.value(req, res, fn);
 			}
 		} else {
-			last(req, res, e, err);
+			res.error(getStatus(req, res));
 		}
 	});
 
@@ -248,10 +238,6 @@ export function timeOffset (arg = 0) {
 	}, []).join(EMPTY)}`;
 }
 
-export function writeHead (res, status = 200, headers = {}) {
-	if (res.statusCode < status) {
-		res.statusCode = status;
-	}
-
+export function writeHead (res, headers = {}) {
 	res.writeHead(res.statusCode, STATUS_CODES[res.statusCode], headers);
 }

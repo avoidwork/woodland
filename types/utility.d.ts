@@ -1,7 +1,7 @@
 export function autoindex(title?: string, files?: any[]): any;
-export function last(req: any, res: any, e: any, err: any): boolean;
+export function getStatus(req: any, res: any): any;
 export function ms(arg?: number, digits?: number): string;
-export function next(req: any, res: any, e: any, middleware: any): (err: any) => any;
+export function next(req: any, res: any, middleware: any): (err: any) => any;
 export function pad(arg?: number): any;
 export function params(req: any, pos?: any[]): void;
 export function parse(arg: any): any;
@@ -18,4 +18,4 @@ export function stream(req: any, res: any, file?: {
     };
 }): any;
 export function timeOffset(arg?: number): string;
-export function writeHead(res: any, status?: number, headers?: {}): void;
+export function writeHead(res: any, headers?: {}): void;

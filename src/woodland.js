@@ -56,7 +56,6 @@ import {
 	MSG_ERROR_HEAD_ROUTE,
 	MSG_ERROR_INVALID_METHOD,
 	MSG_ERROR_IP,
-	MSG_ERROR_ROUTING,
 	MSG_HEADERS_SENT,
 	MSG_IGNORED_FN,
 	MSG_REGISTERING_MIDDLEWARE,
@@ -87,7 +86,7 @@ import {
 } from "./constants.js";
 import {
 	autoindex as aindex,
-	last,
+	getStatus,
 	ms,
 	next,
 	pad,
@@ -209,15 +208,33 @@ export class Woodland extends EventEmitter {
 
 	decoratorError (req, res) {
 		return (status = 500, body) => {
-			const err = body !== void 0 ? body instanceof Error ? body : new Error(body) : new Error(STATUS_CODES[status]);
+			if (res.headersSent === false) {
+				const err = body instanceof Error ? body : new Error(body ?? STATUS_CODES[status]),
+					output = err.message;
 
-			res.statusCode = status;
+				if (status === 404) {
+					res.removeHeader(ALLOW);
+					res.header(ALLOW, EMPTY);
 
-			if (this.logging.enabled) {
-				this.log(`type=res.error, status=${status}, ip=${req.ip}, uri=${req.parsed.pathname}, message="${MSG_ERROR_ROUTING}"`);
+					if (req.cors) {
+						res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
+						res.header(ACCESS_CONTROL_ALLOW_METHODS, EMPTY);
+					}
+				}
+
+				res.removeHeader(CONTENT_LENGTH);
+				res.statusCode = status;
+
+				if (this.listenerCount(ERROR) > 0) {
+					this.emit(ERROR, req, res, err);
+				}
+
+				if (this.logging.enabled) {
+					this.log(`type=error, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ERROR_IP.replace(IP_TOKEN, req.ip)}"`);
+				}
+
+				this.ondone(req, res, output);
 			}
-
-			this.error(req, res, err);
 		};
 	}
 
@@ -234,13 +251,13 @@ export class Woodland extends EventEmitter {
 	}
 
 	decoratorSend (req, res) {
-		return (body = EMPTY, status = 200, headers = {}) => {
+		return (body = EMPTY, status = res.statusCode, headers = {}) => {
 			if (res.headersSent === false) {
 				[body, status, headers] = this.onready(req, res, body, status, headers);
 
 				if (pipeable(req.method, body)) {
 					if (req.headers.range === void 0 || req.range !== void 0) {
-						writeHead(res, status, headers);
+						writeHead(res, headers);
 						body.on(ERROR, err => res.error(500, err)).pipe(res);
 					} else {
 						res.error(416);
@@ -256,12 +273,13 @@ export class Woodland extends EventEmitter {
 						[headers] = partialHeaders(req, res, Buffer.byteLength(buffered), status, headers);
 
 						if (req.range !== void 0) {
-							this.ondone(req, res, buffered.slice(req.range.start, req.range.end).toString(), status, headers);
+							this.ondone(req, res, buffered.slice(req.range.start, req.range.end).toString(), headers);
 						} else {
 							res.error(416);
 						}
 					} else {
-						this.ondone(req, res, body, status, headers);
+						res.statusCode = status;
+						this.ondone(req, res, body, headers);
 					}
 				}
 
@@ -339,37 +357,6 @@ export class Woodland extends EventEmitter {
 		return this.use(...args, DELETE);
 	}
 
-	error (req, res, err) {
-		const ev = ERROR;
-
-		if (res.headersSent === false) {
-			const numeric = isNaN(err.message) === false,
-				status = isNaN(res.statusCode) === false && res.statusCode >= 400 ? res.statusCode : numeric ? Number(err.message) : 500,
-				output = numeric ? STATUS_CODES[status] : err.message;
-
-			if (status === 404) {
-				res.removeHeader(ALLOW);
-				res.header(ALLOW, EMPTY);
-
-				if (req.cors) {
-					res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
-					res.header(ACCESS_CONTROL_ALLOW_METHODS, EMPTY);
-				}
-			}
-
-			res.removeHeader(CONTENT_LENGTH);
-			this.ondone(req, res, output, status);
-		}
-
-		if (this.listenerCount(ev) > 0) {
-			this.emit(ev, req, res, err);
-		}
-
-		if (this.logging.enabled) {
-			this.log(`type=error, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ERROR_IP.replace(IP_TOKEN, req.ip)}"`);
-		}
-	}
-
 	etag (method, ...args) {
 		return (method === GET || method === HEAD || method === OPTIONS) && this.etags !== null ? this.etags.create(args.map(i => typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i).join(HYPHEN)) : EMPTY;
 	}
@@ -423,20 +410,18 @@ export class Woodland extends EventEmitter {
 		return this;
 	}
 
-	ondone (req, res, body, status, headers) {
+	ondone (req, res, body, headers) {
 		if (res.getHeader(CONTENT_LENGTH) === void 0) {
 			res.header(CONTENT_LENGTH, Buffer.byteLength(body));
 		}
 
-		writeHead(res, status, headers);
+		writeHead(res, headers);
 		res.end(body, this.charset);
 	}
 
 	onready (req, res, body, status, headers) {
-		if (res.headersSent === false) {
-			if (this.time && res.getHeader(X_RESPONSE_TIME) === void 0) {
-				res.header(X_RESPONSE_TIME, `${ms(req.precise.stop().diff(), this.digit)}`);
-			}
+		if (this.time && res.getHeader(X_RESPONSE_TIME) === void 0) {
+			res.header(X_RESPONSE_TIME, `${ms(req.precise.stop().diff(), this.digit)}`);
 		}
 
 		return this.onsend(req, res, body, status, headers);
@@ -468,8 +453,7 @@ export class Woodland extends EventEmitter {
 	}
 
 	route (req, res) {
-		const e = err => res.error(res.statusCode, err),
-			evc = CONNECT.toLowerCase(),
+		const evc = CONNECT.toLowerCase(),
 			evf = FINISH;
 		let method = req.method === HEAD ? GET : req.method;
 
@@ -501,9 +485,9 @@ export class Woodland extends EventEmitter {
 			}
 
 			req.last = result.last;
-			next(req, res, e, result.middleware[Symbol.iterator]())();
+			next(req, res, result.middleware[Symbol.iterator]())();
 		} else {
-			last(req, res, e);
+			res.error(getStatus(req, res));
 		}
 	}
 
