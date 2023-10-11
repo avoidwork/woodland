@@ -166,10 +166,10 @@ export class Woodland extends EventEmitter {
 
 			result = list.sort().join(COMMA_SPACE);
 			this.permissions.set(uri, result);
-		}
 
-		if (this.logging.enabled) {
-			this.log(`type=allows, uri=${uri}, override=${override}, message="${MSG_DETERMINED_ALLOW}"`);
+			if (this.logging.enabled) {
+				this.log(`type=allows, uri=${uri}, override=${override}, message="${MSG_DETERMINED_ALLOW}"`);
+			}
 		}
 
 		return result;

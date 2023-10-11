@@ -3,7 +3,7 @@
  *
  * @copyright 2023 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 18.1.1
+ * @version 18.1.2
  */
 'use strict';
 
@@ -402,10 +402,10 @@ class Woodland extends node_events.EventEmitter {
 
 			result = list.sort().join(COMMA_SPACE);
 			this.permissions.set(uri, result);
-		}
 
-		if (this.logging.enabled) {
-			this.log(`type=allows, uri=${uri}, override=${override}, message="${MSG_DETERMINED_ALLOW}"`);
+			if (this.logging.enabled) {
+				this.log(`type=allows, uri=${uri}, override=${override}, message="${MSG_DETERMINED_ALLOW}"`);
+			}
 		}
 
 		return result;
