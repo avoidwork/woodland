@@ -3,7 +3,7 @@
  *
  * @copyright 2023 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 18.1.3
+ * @version 18.1.4
  */
 'use strict';
 
@@ -502,8 +502,11 @@ class Woodland extends node_events.EventEmitter {
 	error (req, res) {
 		return (status = 500, body) => {
 			if (res.headersSent === false) {
-				const err = body instanceof Error ? body : new Error(body ?? node_http.STATUS_CODES[status]),
-					output = err.message;
+				const err = body instanceof Error ? body : new Error(body ?? node_http.STATUS_CODES[status]);
+				let output = err.message,
+					headers = {};
+
+				[output, status, headers] = this.onready(req, res, output, status, headers);
 
 				if (status === 404) {
 					res.removeHeader(ALLOW);
@@ -524,9 +527,10 @@ class Woodland extends node_events.EventEmitter {
 
 				if (this.logging.enabled) {
 					this.log(`type=error, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ERROR_IP.replace(IP_TOKEN, req.ip)}"`);
+					this.log(this.clf(req, res), INFO);
 				}
 
-				this.ondone(req, res, output);
+				this.ondone(req, res, output, headers);
 			}
 		};
 	}

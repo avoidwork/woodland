@@ -266,8 +266,11 @@ export class Woodland extends EventEmitter {
 	error (req, res) {
 		return (status = 500, body) => {
 			if (res.headersSent === false) {
-				const err = body instanceof Error ? body : new Error(body ?? STATUS_CODES[status]),
-					output = err.message;
+				const err = body instanceof Error ? body : new Error(body ?? STATUS_CODES[status]);
+				let output = err.message,
+					headers = {};
+
+				[output, status, headers] = this.onready(req, res, output, status, headers);
 
 				if (status === 404) {
 					res.removeHeader(ALLOW);
@@ -288,9 +291,10 @@ export class Woodland extends EventEmitter {
 
 				if (this.logging.enabled) {
 					this.log(`type=error, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ERROR_IP.replace(IP_TOKEN, req.ip)}"`);
+					this.log(this.clf(req, res), INFO);
 				}
 
-				this.ondone(req, res, output);
+				this.ondone(req, res, output, headers);
 			}
 		};
 	}

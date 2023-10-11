@@ -3,7 +3,7 @@
  *
  * @copyright 2023 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 18.1.3
+ * @version 18.1.4
  */
 import {STATUS_CODES,METHODS}from'node:http';import {join,extname,resolve}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {readFileSync,createReadStream}from'node:fs';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const ACCESS_CONTROL_ALLOW_CREDENTIALS = "access-control-allow-credentials";
 const ACCESS_CONTROL_ALLOW_HEADERS = "access-control-allow-headers";
@@ -483,8 +483,11 @@ function writeHead (res, headers = {}) {
 	error (req, res) {
 		return (status = 500, body) => {
 			if (res.headersSent === false) {
-				const err = body instanceof Error ? body : new Error(body ?? STATUS_CODES[status]),
-					output = err.message;
+				const err = body instanceof Error ? body : new Error(body ?? STATUS_CODES[status]);
+				let output = err.message,
+					headers = {};
+
+				[output, status, headers] = this.onready(req, res, output, status, headers);
 
 				if (status === 404) {
 					res.removeHeader(ALLOW);
@@ -505,9 +508,10 @@ function writeHead (res, headers = {}) {
 
 				if (this.logging.enabled) {
 					this.log(`type=error, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ERROR_IP.replace(IP_TOKEN, req.ip)}"`);
+					this.log(this.clf(req, res), INFO);
 				}
 
-				this.ondone(req, res, output);
+				this.ondone(req, res, output, headers);
 			}
 		};
 	}
