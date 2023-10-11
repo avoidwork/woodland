@@ -117,6 +117,7 @@ Returns a woodland instance. Enable directory browsing & traversal with `autoind
   "origins": [
     "*"
   ],
+  "silent": false,
   "time": false
 }
 ```

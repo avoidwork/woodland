@@ -5,7 +5,11 @@
  * @license BSD-3-Clause
  * @version 18.1.4
  */
-import {STATUS_CODES,METHODS}from'node:http';import {join,extname,resolve}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {readFileSync,createReadStream}from'node:fs';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const ACCESS_CONTROL_ALLOW_CREDENTIALS = "access-control-allow-credentials";
+import {STATUS_CODES,METHODS}from'node:http';import {join,extname,resolve}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {createRequire}from'node:module';import {fileURLToPath,URL}from'node:url';import {readFileSync,createReadStream}from'node:fs';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const __dirname$1 = fileURLToPath(new URL(".", import.meta.url));
+const require = createRequire(import.meta.url);
+const {name, version} = require(join(__dirname$1, "..", "package.json"));
+
+const ACCESS_CONTROL_ALLOW_CREDENTIALS = "access-control-allow-credentials";
 const ACCESS_CONTROL_ALLOW_HEADERS = "access-control-allow-headers";
 const ACCESS_CONTROL_ALLOW_METHODS = "access-control-allow-methods";
 const ACCESS_CONTROL_ALLOW_ORIGIN = "access-control-allow-origin";
@@ -100,6 +104,8 @@ const POST = "POST";
 const PUT = "PUT";
 const RANGE = "range";
 const READ_HEADERS = "GET, HEAD, OPTIONS";
+const SERVER = "server";
+const SERVER_VALUE = `${name}/${version}`;
 const SLASH = "/";
 const START = "start";
 const STRING = "string";
@@ -118,6 +124,8 @@ const UTF8 = "utf8";
 const UTF_8 = "utf-8";
 const WILDCARD = "*";
 const X_FORWARDED_FOR = "x-forwarded-for";
+const X_POWERED_BY = "x-powered-by";
+const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform}/${process.arch}`;
 const X_RESPONSE_TIME = "x-response-time";const __dirname = fileURLToPath(new URL(".", import.meta.url)),
 	html = readFileSync(join(__dirname, "..", "tpl", "autoindex.html"), {encoding: UTF8}),
 	valid = Object.entries(mimeDb).filter(i => EXTENSIONS in i[1]),
@@ -332,9 +340,16 @@ function writeHead (res, headers = {}) {
 		],
 		logging = {},
 		origins = [WILDCARD],
+		silent = false,
 		time = false
 	} = {}) {
 		super();
+
+		if (silent === false) {
+			defaultHeaders[SERVER] = SERVER_VALUE;
+			defaultHeaders[X_POWERED_BY] = X_POWERED_BY_VALUE;
+		}
+
 		this.autoindex = autoindex;
 		this.ignored = new Set();
 		this.cache = lru(cacheSize, cacheTTL);

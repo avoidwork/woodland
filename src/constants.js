@@ -1,3 +1,11 @@
+import {createRequire} from "node:module";
+import {join} from "node:path";
+import {fileURLToPath, URL} from "node:url";
+
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
+const require = createRequire(import.meta.url);
+const {name, version} = require(join(__dirname, "..", "package.json"));
+
 export const ACCESS_CONTROL_ALLOW_CREDENTIALS = "access-control-allow-credentials";
 export const ACCESS_CONTROL_ALLOW_HEADERS = "access-control-allow-headers";
 export const ACCESS_CONTROL_ALLOW_METHODS = "access-control-allow-methods";
@@ -93,6 +101,8 @@ export const POST = "POST";
 export const PUT = "PUT";
 export const RANGE = "range";
 export const READ_HEADERS = "GET, HEAD, OPTIONS";
+export const SERVER = "server";
+export const SERVER_VALUE = `${name}/${version}`;
 export const SLASH = "/";
 export const START = "start";
 export const STRING = "string";
@@ -111,4 +121,6 @@ export const UTF8 = "utf8";
 export const UTF_8 = "utf-8";
 export const WILDCARD = "*";
 export const X_FORWARDED_FOR = "x-forwarded-for";
+export const X_POWERED_BY = "x-powered-by";
+export const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform}/${process.arch}`;
 export const X_RESPONSE_TIME = "x-response-time";

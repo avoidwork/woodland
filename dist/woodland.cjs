@@ -14,12 +14,17 @@ var promises = require('node:fs/promises');
 var tinyEtag = require('tiny-etag');
 var precise = require('precise');
 var tinyLru = require('tiny-lru');
-var node_fs = require('node:fs');
+var node_module = require('node:module');
 var node_url = require('node:url');
+var node_fs = require('node:fs');
 var tinyCoerce = require('tiny-coerce');
 var mimeDb = require('mime-db');
 
 var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
+const __dirname$2 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href))));
+const require$1 = node_module.createRequire((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href)));
+const {name, version} = require$1(node_path.join(__dirname$2, "..", "package.json"));
+
 const ACCESS_CONTROL_ALLOW_CREDENTIALS = "access-control-allow-credentials";
 const ACCESS_CONTROL_ALLOW_HEADERS = "access-control-allow-headers";
 const ACCESS_CONTROL_ALLOW_METHODS = "access-control-allow-methods";
@@ -115,6 +120,8 @@ const POST = "POST";
 const PUT = "PUT";
 const RANGE = "range";
 const READ_HEADERS = "GET, HEAD, OPTIONS";
+const SERVER = "server";
+const SERVER_VALUE = `${name}/${version}`;
 const SLASH = "/";
 const START = "start";
 const STRING = "string";
@@ -133,6 +140,8 @@ const UTF8 = "utf8";
 const UTF_8 = "utf-8";
 const WILDCARD = "*";
 const X_FORWARDED_FOR = "x-forwarded-for";
+const X_POWERED_BY = "x-powered-by";
+const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform}/${process.arch}`;
 const X_RESPONSE_TIME = "x-response-time";
 
 const __dirname$1 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href)))),
@@ -351,9 +360,16 @@ class Woodland extends node_events.EventEmitter {
 		],
 		logging = {},
 		origins = [WILDCARD],
+		silent = false,
 		time = false
 	} = {}) {
 		super();
+
+		if (silent === false) {
+			defaultHeaders[SERVER] = SERVER_VALUE;
+			defaultHeaders[X_POWERED_BY] = X_POWERED_BY_VALUE;
+		}
+
 		this.autoindex = autoindex;
 		this.ignored = new Set();
 		this.cache = tinyLru.lru(cacheSize, cacheTTL);

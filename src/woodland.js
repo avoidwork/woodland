@@ -71,6 +71,8 @@ import {
 	POST,
 	PUT,
 	READ_HEADERS,
+	SERVER,
+	SERVER_VALUE,
 	SLASH,
 	STRING,
 	TIMING_ALLOW_ORIGIN,
@@ -82,6 +84,8 @@ import {
 	UTF_8,
 	WILDCARD,
 	X_FORWARDED_FOR,
+	X_POWERED_BY,
+	X_POWERED_BY_VALUE,
 	X_RESPONSE_TIME
 } from "./constants.js";
 import {
@@ -115,9 +119,16 @@ export class Woodland extends EventEmitter {
 		],
 		logging = {},
 		origins = [WILDCARD],
+		silent = false,
 		time = false
 	} = {}) {
 		super();
+
+		if (silent === false) {
+			defaultHeaders[SERVER] = SERVER_VALUE;
+			defaultHeaders[X_POWERED_BY] = X_POWERED_BY_VALUE;
+		}
+
 		this.autoindex = autoindex;
 		this.ignored = new Set();
 		this.cache = lru(cacheSize, cacheTTL);
