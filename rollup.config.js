@@ -38,5 +38,19 @@ export default [
 				file: `dist/${pkg.name}.js`
 			}
 		]
+	},
+	{
+		external: [
+			"node:http",
+			"tiny-coerce",
+			"woodland"
+		],
+		input: "./src/cli.js",
+		output: [
+			{
+				...cjOutBase,
+				file: "dist/cli.cjs"
+			}
+		]
 	}
 ];

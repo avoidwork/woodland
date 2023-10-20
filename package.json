@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "18.1.6",
+  "version": "18.1.7",
   "description": "Lightweight HTTP framework with automatic headers",
   "type": "module",
   "types": "types/woodland.d.ts",
@@ -24,7 +24,6 @@
     "lint": "eslint *.js src/*.js test/*.js",
     "mocha": "nyc mocha test/*.js",
     "rollup": "rollup --config",
-    "sample": "node sample.js",
     "test": "npm run lint && npm run mocha",
     "types": "npx -p typescript tsc src/woodland.js --declaration --allowJs --emitDeclarationOnly --outDir types",
     "prepare": "husky install"
@@ -54,7 +53,7 @@
   },
   "homepage": "https://github.com/avoidwork/woodland",
   "bin": {
-    "woodland": "cli.js"
+    "woodland": "dist/cli.cjs"
   },
   "dependencies": {
     "mime-db": "^1.52.0",
