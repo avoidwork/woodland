@@ -1,6 +1,6 @@
 export function woodland(arg: any): Woodland;
 export class Woodland {
-    constructor({ autoindex, cacheSize, cacheTTL, charset, defaultHeaders, digit, etags, indexes, logging, origins, time }?: {
+    constructor({ autoindex, cacheSize, cacheTTL, charset, defaultHeaders, digit, etags, indexes, logging, origins, silent, time }?: {
         autoindex?: boolean;
         cacheSize?: number;
         cacheTTL?: number;
@@ -11,6 +11,7 @@ export class Woodland {
         indexes?: string[];
         logging?: {};
         origins?: string[];
+        silent?: boolean;
         time?: boolean;
     });
     autoindex: boolean;
@@ -49,33 +50,34 @@ export class Woodland {
     clf(req: any, res: any): any;
     cors(req: any): any;
     corsHost(req: any): boolean;
-    decoratorError(req: any, res: any): (status: number, body: any) => void;
-    decoratorJson(req: any, res: any): (arg: any, status?: number, headers?: {
-        "content-type": string;
-    }) => void;
-    decoratorRedirect(req: any, res: any): (uri: any, perm?: boolean) => void;
-    decoratorSend(req: any, res: any): (body?: string, status?: number, headers?: {}) => void;
-    decoratorStatus(req: any, res: any): (arg?: number) => any;
     decorate(req: any, res: any): void;
     del(...args: any[]): this;
     delete(...args: any[]): this;
+    error(req: any, res: any): (status: number, body: any) => void;
     etag(method: any, ...args: any[]): string;
     get(...args: any[]): this;
     ignore(fn: any): this;
     ip(req: any): any;
+    json(res: any): (arg: any, status?: number, headers?: {
+        "content-type": string;
+    }) => void;
     list(method?: string, type?: string): any;
     log(msg: any, level?: string): this;
     ondone(req: any, res: any, body: any, headers: any): void;
-    onready(req: any, res: any, body: any, status: number, headers: any): any[];
-    onsend(req: any, res: any, body: any, status: number, headers: any): any[];
+    onready(req: any, res: any, body: any, status: any, headers: any): any[];
+    onsend(req: any, res: any, body: any, status: any, headers: any): any[];
     options(...args: any[]): this;
     patch(...args: any[]): this;
     path(arg?: string): string;
     post(...args: any[]): this;
     put(...args: any[]): this;
+    redirect(res: any): (uri: any, perm?: boolean) => void;
     route(req: any, res: any): void;
     routes(uri: any, method: any, override?: boolean): any;
-    serve(req: any, res: any, arg?: string, folder?: any, index?: string[]): void;
+    send(req: any, res: any): (body?: string, status?: any, headers?: {}) => void;
+    set(res: any): (arg?: {}) => any;
+    serve(req: any, res: any, arg?: string, folder?: any, index?: string[]): Promise<void>;
+    status(res: any): (arg?: number) => any;
     trace(...args: any[]): this;
     use(rpath: any, ...fn: any[]): this;
 }
