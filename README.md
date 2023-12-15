@@ -170,6 +170,9 @@ app.use("/files/:file", (req, res) => app.serve(req, res, req.params.file, path.
 app.use("/files(/.*)?", (req, res) => app.serve(req, res, req.parsed.pathname.replace(/^\/files\/?/, ""), join(__dirname, "files")));
 ```
 
+### staticFiles (root = "/")
+Serve static files on disk. Calls `this.serve()`.
+
 ### use ([path = "/.*",] ...fn[, method = "GET"])
 Registers middleware for a route. `path` is a regular expression (as a string), and if not passed it defaults to `/.*`. See `always()` if you want the middleware to be used for all HTTP methods.
 

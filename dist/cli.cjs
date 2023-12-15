@@ -52,6 +52,6 @@ const app = woodland.woodland({
 	ip = argv.ip || LOCALHOST,
 	port = argv.port || 8000;
 
-app.get("/(.*)?", (req, res) => app.serve(req, res, req.parsed.pathname.substring(1)));
+app.staticFiles();
 node_http.createServer(app.route).listen(port, ip);
 console.log(`id=woodland, hostname=localhost, ip=${ip}, port=${port}`);

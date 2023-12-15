@@ -613,6 +613,10 @@ export class Woodland extends EventEmitter {
 		};
 	}
 
+	staticFiles (root = "/") {
+		this.get(`${root}(.*)?`, (req, res) => this.serve(req, res, req.parsed.pathname.substring(1)));
+	}
+
 	trace (...args) {
 		return this.use(...args, TRACE);
 	}
