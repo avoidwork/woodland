@@ -50,6 +50,7 @@ const INFO = "info";
 const IP_TOKEN = "%IP";
 const KEY_BYTES = "bytes=";
 const LAST_MODIFIED = "last-modified";
+const LEFT_PAREN = "(";
 const LEVELS = Object.freeze({
 	emerg: 0,
 	alert: 1,
@@ -869,7 +870,7 @@ function writeHead (res, headers = {}) {
 		let lrpath = rpath,
 			lparams = false;
 
-		if (lrpath.includes(`${SLASH}${COLON}`)) {
+		if (lrpath.includes(`${SLASH}${COLON}`) && lrpath.includes(LEFT_PAREN) === false) {
 			lparams = true;
 			lrpath = this.path(lrpath);
 		}

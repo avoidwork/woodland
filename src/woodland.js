@@ -35,6 +35,7 @@ import {
 	INDEX_HTML,
 	INFO,
 	IP_TOKEN,
+	LEFT_PAREN,
 	LEVELS,
 	LOCATION,
 	LOG,
@@ -649,7 +650,7 @@ export class Woodland extends EventEmitter {
 		let lrpath = rpath,
 			lparams = false;
 
-		if (lrpath.includes(`${SLASH}${COLON}`)) {
+		if (lrpath.includes(`${SLASH}${COLON}`) && lrpath.includes(LEFT_PAREN) === false) {
 			lparams = true;
 			lrpath = this.path(lrpath);
 		}
