@@ -50,7 +50,6 @@ const INFO = "info";
 const IP_TOKEN = "%IP";
 const KEY_BYTES = "bytes=";
 const LAST_MODIFIED = "last-modified";
-const LEFT_PAREN = "(";
 const LEVELS = Object.freeze({
 	emerg: 0,
 	alert: 1,
@@ -97,7 +96,7 @@ const OBJECT = "object";
 const OPTIONS = "OPTIONS";
 const OPTIONS_BODY = "Make a GET request to retrieve the file";
 const ORIGIN = "origin";
-const PARAMS_GROUP = "/([^/]+)";
+const PARAMS_GROUP = "/(?<$1>[^/]+)";
 const PATCH = "PATCH";
 const PERIOD = ".";
 const POST = "POST";
@@ -187,13 +186,11 @@ function pad (arg = 0) {
 	return String(arg).padStart(2, STRING_0);
 }
 
-function params (req, pos = []) {
-	if (pos.length > 0) {
-		const uri = req.parsed.pathname.split(SLASH);
+function params (req, getParams) {
+	req.params = getParams.exec(req.parsed.pathname)?.groups ?? {};
 
-		for (const i of pos) {
-			req.params[i[1]] = coerce(decodeURIComponent(uri[i[0]]));
-		}
+	for (const [key, value] of Object.entries(req.params)) {
+		req.params[key] = coerce(decodeURIComponent(value));
 	}
 }
 
@@ -243,12 +240,12 @@ function pipeable (method, arg) {
 }
 
 function reduce (uri, map = new Map(), arg = {}, end = false, ignore = new Set()) {
-	Array.from(map.entries()).filter(i => {
-		i[0].lastIndex = 0;
+	Array.from(map.values()).filter(i => {
+		i.regex.lastIndex = 0;
 
-		return i[0].test(uri);
+		return i.regex.test(uri);
 	}).forEach(i => {
-		for (const fn of i[1].handlers) {
+		for (const fn of i.handlers) {
 			arg.middleware.push(fn);
 
 			if (end && arg.last === null && ignore.has(fn) === false) {
@@ -256,9 +253,10 @@ function reduce (uri, map = new Map(), arg = {}, end = false, ignore = new Set()
 			}
 		}
 
-		if (i[1].pos.length > 0 && arg.pos.length === 0) {
-			arg.pos = i[1].pos;
-			arg.params = i[1].params;
+		if (i.params && arg.params === false) {
+			i.regex.lastIndex = 0;
+			arg.params = true;
+			arg.getParams = i.regex;
 		}
 	});
 }
@@ -358,7 +356,7 @@ function writeHead (res, headers = {}) {
 		this.cache = lru(cacheSize, cacheTTL);
 		this.charset = charset;
 		this.corsExpose = EMPTY;
-		this.defaultHeaders = Object.keys(defaultHeaders).map(key => [key.toLowerCase(), defaultHeaders[key]]);
+		this.defaultHeaders = Reflect.ownKeys(defaultHeaders).map(key => [key.toLowerCase(), defaultHeaders[key]]);
 		this.digit = digit;
 		this.etags = etags ? etag({cacheSize, cacheTTL}) : null;
 		this.indexes = structuredClone(indexes);
@@ -472,7 +470,7 @@ function writeHead (res, headers = {}) {
 		res.header(ALLOW, req.allow);
 
 		if (req.cors) {
-			const headers = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] || this.corsExpose;
+			const headers = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
 
 			res.header(ACCESS_CONTROL_ALLOW_ORIGIN, req.headers.origin);
 			res.header(TIMING_ALLOW_ORIGIN, req.headers.origin);
@@ -670,7 +668,7 @@ function writeHead (res, headers = {}) {
 			const result = this.routes(req.parsed.pathname, method);
 
 			if (result.params) {
-				params(req, result.pos);
+				params(req, result.getParams);
 			}
 
 			req.last = result.last;
@@ -688,7 +686,7 @@ function writeHead (res, headers = {}) {
 		if (cached !== void 0) {
 			result = cached;
 		} else {
-			result = {middleware: [], params: false, pos: [], visible: 0, last: null};
+			result = {getParams: null, middleware: [], params: false, visible: 0, last: null};
 			reduce(uri, this.middleware.get(WILDCARD), result);
 
 			if (method !== WILDCARD) {
@@ -866,31 +864,22 @@ function writeHead (res, headers = {}) {
 			this.middleware.set(method, new Map());
 		}
 
-		const mmethod = this.middleware.get(method),
-			lpos = [];
+		const mmethod = this.middleware.get(method);
 		let lrpath = rpath,
 			lparams = false;
 
-		if (lrpath.includes(COLON) && lrpath.includes(LEFT_PAREN) === false) {
+		if (lrpath.includes(`${SLASH}${COLON}`)) {
 			lparams = true;
-
-			for (const [idx, i] of lrpath.split(SLASH).entries()) {
-				if (i[0] === ":") {
-					lpos.push([idx, i.replace(/^:/, EMPTY)]);
-				}
-			}
-
 			lrpath = this.path(lrpath);
 		}
 
-		const current = mmethod.get(lrpath) || {},
-			keep = (current.pos || []).length > 0;
+		const current = mmethod.get(lrpath) ?? {handlers: []};
 
-		lrpath = new RegExp(`^${lrpath}$`);
+		current.handlers.push(...fn);
 		mmethod.set(lrpath, {
-			handlers: [...current.handlers || [], ...fn],
-			params: keep ? current.params : lparams,
-			pos: keep ? current.pos : lpos
+			handlers: current.handlers,
+			params: lparams,
+			regex: new RegExp(`^${lrpath}$`)
 		});
 
 		if (this.logging.enabled) {

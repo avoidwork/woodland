@@ -35,7 +35,6 @@ import {
 	INDEX_HTML,
 	INFO,
 	IP_TOKEN,
-	LEFT_PAREN,
 	LEVELS,
 	LOCATION,
 	LOG,
@@ -137,7 +136,7 @@ export class Woodland extends EventEmitter {
 		this.cache = lru(cacheSize, cacheTTL);
 		this.charset = charset;
 		this.corsExpose = EMPTY;
-		this.defaultHeaders = Object.keys(defaultHeaders).map(key => [key.toLowerCase(), defaultHeaders[key]]);
+		this.defaultHeaders = Reflect.ownKeys(defaultHeaders).map(key => [key.toLowerCase(), defaultHeaders[key]]);
 		this.digit = digit;
 		this.etags = etags ? etag({cacheSize, cacheTTL}) : null;
 		this.indexes = structuredClone(indexes);
@@ -251,7 +250,7 @@ export class Woodland extends EventEmitter {
 		res.header(ALLOW, req.allow);
 
 		if (req.cors) {
-			const headers = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] || this.corsExpose;
+			const headers = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
 
 			res.header(ACCESS_CONTROL_ALLOW_ORIGIN, req.headers.origin);
 			res.header(TIMING_ALLOW_ORIGIN, req.headers.origin);
@@ -449,7 +448,7 @@ export class Woodland extends EventEmitter {
 			const result = this.routes(req.parsed.pathname, method);
 
 			if (result.params) {
-				params(req, result.pos);
+				params(req, result.getParams);
 			}
 
 			req.last = result.last;
@@ -467,7 +466,7 @@ export class Woodland extends EventEmitter {
 		if (cached !== void 0) {
 			result = cached;
 		} else {
-			result = {middleware: [], params: false, pos: [], visible: 0, last: null};
+			result = {getParams: null, middleware: [], params: false, visible: 0, last: null};
 			reduce(uri, this.middleware.get(WILDCARD), result);
 
 			if (method !== WILDCARD) {
@@ -645,31 +644,22 @@ export class Woodland extends EventEmitter {
 			this.middleware.set(method, new Map());
 		}
 
-		const mmethod = this.middleware.get(method),
-			lpos = [];
+		const mmethod = this.middleware.get(method);
 		let lrpath = rpath,
 			lparams = false;
 
-		if (lrpath.includes(COLON) && lrpath.includes(LEFT_PAREN) === false) {
+		if (lrpath.includes(`${SLASH}${COLON}`)) {
 			lparams = true;
-
-			for (const [idx, i] of lrpath.split(SLASH).entries()) {
-				if (i[0] === ":") {
-					lpos.push([idx, i.replace(/^:/, EMPTY)]);
-				}
-			}
-
 			lrpath = this.path(lrpath);
 		}
 
-		const current = mmethod.get(lrpath) || {},
-			keep = (current.pos || []).length > 0;
+		const current = mmethod.get(lrpath) ?? {handlers: []};
 
-		lrpath = new RegExp(`^${lrpath}$`);
+		current.handlers.push(...fn);
 		mmethod.set(lrpath, {
-			handlers: [...current.handlers || [], ...fn],
-			params: keep ? current.params : lparams,
-			pos: keep ? current.pos : lpos
+			handlers: current.handlers,
+			params: lparams,
+			regex: new RegExp(`^${lrpath}$`)
 		});
 
 		if (this.logging.enabled) {
