@@ -28,7 +28,6 @@ import {
 	OPTIONS_BODY,
 	PERIOD,
 	RANGE,
-	SLASH,
 	START,
 	STRING,
 	STRING_0,
@@ -101,13 +100,12 @@ export function pad (arg = 0) {
 	return String(arg).padStart(2, STRING_0);
 }
 
-export function params (req, pos = []) {
-	if (pos.length > 0) {
-		const uri = req.parsed.pathname.split(SLASH);
+export function params (req, getParams) {
+	getParams.lastIndex = 0;
+	req.params = getParams.exec(req.parsed.pathname)?.groups ?? {};
 
-		for (const i of pos) {
-			req.params[i[1]] = coerce(decodeURIComponent(uri[i[0]]));
-		}
+	for (const [key, value] of Object.entries(req.params)) {
+		req.params[key] = coerce(decodeURIComponent(value));
 	}
 }
 
@@ -157,12 +155,12 @@ export function pipeable (method, arg) {
 }
 
 export function reduce (uri, map = new Map(), arg = {}, end = false, ignore = new Set()) {
-	Array.from(map.entries()).filter(i => {
-		i[0].lastIndex = 0;
+	Array.from(map.values()).filter(i => {
+		i.regex.lastIndex = 0;
 
-		return i[0].test(uri);
+		return i.regex.test(uri);
 	}).forEach(i => {
-		for (const fn of i[1].handlers) {
+		for (const fn of i.handlers) {
 			arg.middleware.push(fn);
 
 			if (end && arg.last === null && ignore.has(fn) === false) {
@@ -170,9 +168,9 @@ export function reduce (uri, map = new Map(), arg = {}, end = false, ignore = ne
 			}
 		}
 
-		if (i[1].pos.length > 0 && arg.pos.length === 0) {
-			arg.pos = i[1].pos;
-			arg.params = i[1].params;
+		if (i.params && arg.params === false) {
+			arg.params = true;
+			arg.getParams = i.regex;
 		}
 	});
 }

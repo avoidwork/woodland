@@ -69,6 +69,7 @@ router.use("/json2", (req, res) => res.json("Hello World!"));
 router.use("/empty", (req, res) => res.status(204).send(EMPTY));
 router.use("/echo/:echo", (req, res) => res.send(req.params.echo));
 router.use("/echo/:echo", (req, res) => res.send("The entity will be echoed back to you"), "OPTIONS");
+router.use("/params/:first/:second", (req, res) => res.send(`${req.params.first}-${req.params.second}`));
 router.use("/error", (req, res) => res.error(500));
 router.use("/test(/.*)?", (req, res) => router.serve(req, res, req.parsed.pathname.replace(/^\/test\/?/, EMPTY), join(__dirname, "..", "test")), "*");
 router.use("/last", (req, res, next) => next());
@@ -217,6 +218,24 @@ describe("Valid Requests", function () {
 			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectBody(/^hello$/)
+			.end();
+	});
+
+	it("GET /params/hello/world (200 / 'Success')", function () {
+		return httptest({url: "http://localhost:8001/params/hello/world"})
+			.expectStatus(200)
+			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
+			.expectHeader(CACHE_CONTROL, "no-cache")
+			.expectBody(/^hello-world$/)
+			.end();
+	});
+
+	it("GET /params/goodbye/world (200 / 'Success')", function () {
+		return httptest({url: "http://localhost:8001/params/goodbye/world"})
+			.expectStatus(200)
+			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
+			.expectHeader(CACHE_CONTROL, "no-cache")
+			.expectBody(/^goodbye-world$/)
 			.end();
 	});
 
