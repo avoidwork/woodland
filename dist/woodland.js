@@ -188,6 +188,7 @@ function pad (arg = 0) {
 }
 
 function params (req, getParams) {
+	getParams.lastIndex = 0;
 	req.params = getParams.exec(req.parsed.pathname)?.groups ?? {};
 
 	for (const [key, value] of Object.entries(req.params)) {
@@ -255,7 +256,6 @@ function reduce (uri, map = new Map(), arg = {}, end = false, ignore = new Set()
 		}
 
 		if (i.params && arg.params === false) {
-			i.regex.lastIndex = 0;
 			arg.params = true;
 			arg.getParams = i.regex;
 		}
