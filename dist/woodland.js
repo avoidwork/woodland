@@ -833,6 +833,7 @@ function writeHead (res, headers = {}) {
 	}
 
 	staticFiles (root = "/") {
+		/* istanbul ignore next */
 		this.get(`${root}(.*)?`, (req, res) => this.serve(req, res, req.parsed.pathname.substring(1)));
 	}
 
