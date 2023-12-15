@@ -230,6 +230,15 @@ describe("Valid Requests", function () {
 			.end();
 	});
 
+	it("GET /params/goodbye/world (200 / 'Success')", function () {
+		return httptest({url: "http://localhost:8001/params/goodbye/world"})
+			.expectStatus(200)
+			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
+			.expectHeader(CACHE_CONTROL, "no-cache")
+			.expectBody(/^goodbye-world$/)
+			.end();
+	});
+
 	it("GET /double-send (200 / 'Success')", function () {
 		return httptest({url: "http://localhost:8001/double-send"})
 			.expectStatus(200)
