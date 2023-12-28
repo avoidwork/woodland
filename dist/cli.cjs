@@ -25,6 +25,7 @@ const CONTENT_TYPE = "content-type";
 const EQUAL = "=";
 const EN_US = "en-US";
 const HYPHEN = "-";
+const INT_8000 = 8000;
 const LOCALHOST = "127.0.0.1";
 const SHORT = "short";
 Object.freeze(Array.from(Array(12).values()).map((i, idx) => {
@@ -49,9 +50,9 @@ const app = woodland.woodland({
 
 		return a;
 	}, {}),
-	ip = argv.ip || LOCALHOST,
-	port = argv.port || 8000;
+	ip = argv.ip ?? LOCALHOST,
+	port = argv.port ?? INT_8000;
 
 app.staticFiles();
 node_http.createServer(app.route).listen(port, ip);
-console.log(`id=woodland, hostname=localhost, ip=${ip}, port=${port}`);
+app.log(`id=woodland, hostname=localhost, ip=${ip}, port=${port}`);

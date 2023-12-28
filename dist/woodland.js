@@ -47,6 +47,26 @@ const IF_MODIFIED_SINCE = "if-modified-since";
 const INDEX_HTM = "index.htm";
 const INDEX_HTML = "index.html";
 const INFO = "info";
+const INT_0 = 0;
+const INT_2 = 2;
+const INT_3 = 3;
+const INT_4 = 4;
+const INT_10 = 10;
+const INT_60 = 60;
+const INT_200 = 200;
+const INT_204 = 204;
+const INT_206 = 206;
+const INT_304 = 304;
+const INT_307 = 307;
+const INT_308 = 308;
+const INT_403 = 403;
+const INT_404 = 404;
+const INT_405 = 405;
+const INT_416 = 416;
+const INT_500 = 500;
+const INT_1e3 = 1e3;
+const INT_1e4 = 1e4;
+const INT_1e6 = 1e6;
 const IP_TOKEN = "%IP";
 const KEY_BYTES = "bytes=";
 const LAST_MODIFIED = "last-modified";
@@ -144,7 +164,7 @@ function autoindex (title = EMPTY, files = []) {
 }
 
 function getStatus (req, res) {
-	return req.allow.length > 0 ? req.method !== GET ? 405 : req.allow.includes(GET) ? res.statusCode > 500 ? res.statusCode : 500 : 404 : 404;
+	return req.allow.length > INT_0 ? req.method !== GET ? INT_405 : req.allow.includes(GET) ? res.statusCode > INT_500 ? res.statusCode : INT_500 : INT_404 : INT_404;
 }
 
 function mime (arg = EMPTY) {
@@ -153,8 +173,8 @@ function mime (arg = EMPTY) {
 	return ext in extensions ? extensions[ext].type : APPLICATION_OCTET_STREAM;
 }
 
-function ms (arg = 0, digits = 3) {
-	return TIME_MS.replace(TOKEN_N, Number(arg / 1e6).toFixed(digits));
+function ms (arg = INT_0, digits = INT_3) {
+	return TIME_MS.replace(TOKEN_N, Number(arg / INT_1e6).toFixed(digits));
 }
 
 function next (req, res, middleware) {
@@ -183,12 +203,12 @@ function next (req, res, middleware) {
 	return fn;
 }
 
-function pad (arg = 0) {
-	return String(arg).padStart(2, STRING_0);
+function pad (arg = INT_0) {
+	return String(arg).padStart(INT_2, STRING_0);
 }
 
 function params (req, getParams) {
-	getParams.lastIndex = 0;
+	getParams.lastIndex = INT_0;
 	req.params = getParams.exec(req.parsed.pathname)?.groups ?? {};
 
 	for (const [key, value] of Object.entries(req.params)) {
@@ -201,11 +221,11 @@ function parse (arg) {
 }
 
 function partialHeaders (req, res, size, status, headers = {}, options = {}) {
-	if ((req.headers.range || EMPTY).indexOf(KEY_BYTES) === 0) {
+	if ((req.headers.range || EMPTY).indexOf(KEY_BYTES) === INT_0) {
 		options = {};
 
 		for (const [idx, i] of req.headers.range.replace(KEY_BYTES, EMPTY).split(COMMA)[0].split(HYPHEN).entries()) {
-			options[idx === 0 ? START : END] = i ? parseInt(i, 10) : void 0;
+			options[idx === INT_0 ? START : END] = i ? parseInt(i, INT_10) : void 0;
 		}
 
 		// Byte offsets
@@ -227,7 +247,7 @@ function partialHeaders (req, res, size, status, headers = {}, options = {}) {
 			headers[CONTENT_LENGTH] = options.end - options.start;
 			res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
 			res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
-			res.statusCode = 206;
+			res.statusCode = INT_206;
 		} else {
 			headers[CONTENT_RANGE] = `bytes */${size}`;
 			res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
@@ -243,7 +263,7 @@ function pipeable (method, arg) {
 
 function reduce (uri, map = new Map(), arg = {}, end = false, ignore = new Set()) {
 	Array.from(map.values()).filter(i => {
-		i.regex.lastIndex = 0;
+		i.regex.lastIndex = INT_0;
 
 		return i.regex.test(uri);
 	}).forEach(i => {
@@ -266,23 +286,23 @@ function stream (req, res, file = {
 	charset: EMPTY,
 	etag: EMPTY,
 	path: EMPTY,
-	stats: {mtime: new Date(), size: 0}
+	stats: {mtime: new Date(), size: INT_0}
 }) {
 	res.header(CONTENT_LENGTH, file.stats.size);
-	res.header(CONTENT_TYPE, file.charset.length > 0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path));
+	res.header(CONTENT_TYPE, file.charset.length > INT_0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path));
 	res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
 
-	if (file.etag.length > 0) {
+	if (file.etag.length > INT_0) {
 		res.header(ETAG, file.etag);
 		res.removeHeader(CACHE_CONTROL);
 	}
 
 	if (req.method === GET) {
-		if ((file.etag.length > 0 && req.headers[IF_NONE_MATCH] === file.etag) || (req.headers[IF_NONE_MATCH] === void 0 && Date.parse(req.headers[IF_MODIFIED_SINCE]) >= file.stats.mtime)) { // eslint-disable-line no-extra-parens
+		if ((file.etag.length > INT_0 && req.headers[IF_NONE_MATCH] === file.etag) || (req.headers[IF_NONE_MATCH] === void 0 && Date.parse(req.headers[IF_MODIFIED_SINCE]) >= file.stats.mtime)) { // eslint-disable-line no-extra-parens
 			res.removeHeader(CONTENT_LENGTH);
-			res.send(EMPTY, 304);
+			res.send(EMPTY, INT_304);
 		} else {
-			let status = 200;
+			let status = INT_200;
 			let options, headers;
 
 			if (RANGE in req.headers) {
@@ -308,11 +328,11 @@ function stream (req, res, file = {
 	return void 0;
 }
 
-function timeOffset (arg = 0) {
-	const neg = arg < 0;
+function timeOffset (arg = INT_0) {
+	const neg = arg < INT_0;
 
-	return `${neg ? EMPTY : HYPHEN}${String((neg ? -arg : arg) / 60).split(PERIOD).reduce((a, v, idx, arr) => {
-		a.push(idx === 0 ? pad(v) : STRING_30);
+	return `${neg ? EMPTY : HYPHEN}${String((neg ? -arg : arg) / INT_60).split(PERIOD).reduce((a, v, idx, arr) => {
+		a.push(idx === INT_0 ? pad(v) : STRING_30);
 
 		if (arr.length === 1) {
 			a.push(STRING_00);
@@ -327,11 +347,11 @@ function writeHead (res, headers = {}) {
 }class Woodland extends EventEmitter {
 	constructor ({
 		autoindex = false,
-		cacheSize = 1e3,
-		cacheTTL = 3e5,
+		cacheSize = INT_1e3,
+		cacheTTL = INT_1e4,
 		charset = UTF_8,
 		defaultHeaders = {},
-		digit = 3,
+		digit = INT_3,
 		etags = true,
 		indexes = [
 			INDEX_HTM,
@@ -378,14 +398,14 @@ function writeHead (res, headers = {}) {
 	}
 
 	allowed (method, uri, override = false) {
-		return this.routes(uri, method, override).visible > 0;
+		return this.routes(uri, method, override).visible > INT_0;
 	}
 
 	allows (uri, override = false) {
 		let result = override === false ? this.permissions.get(uri) : void 0;
 
 		if (override || result === void 0) {
-			const allMethods = this.routes(uri, WILDCARD, override).visible > 0,
+			const allMethods = this.routes(uri, WILDCARD, override).visible > INT_0,
 				list = allMethods ? structuredClone(METHODS) : this.methods.filter(i => this.allowed(i, uri, override));
 
 			if (list.includes(GET)) {
@@ -498,7 +518,7 @@ function writeHead (res, headers = {}) {
 	}
 
 	error (req, res) {
-		return (status = 500, body) => {
+		return (status = INT_500, body) => {
 			if (res.headersSent === false) {
 				const err = body instanceof Error ? body : new Error(body ?? STATUS_CODES[status]);
 				let output = err.message,
@@ -506,7 +526,7 @@ function writeHead (res, headers = {}) {
 
 				[output, status, headers] = this.onready(req, res, output, status, headers);
 
-				if (status === 404) {
+				if (status === INT_404) {
 					res.removeHeader(ALLOW);
 					res.header(ALLOW, EMPTY);
 
@@ -519,7 +539,7 @@ function writeHead (res, headers = {}) {
 				res.removeHeader(CONTENT_LENGTH);
 				res.statusCode = status;
 
-				if (this.listenerCount(ERROR) > 0) {
+				if (this.listenerCount(ERROR) > INT_0) {
 					this.emit(ERROR, req, res, err);
 				}
 
@@ -586,14 +606,14 @@ function writeHead (res, headers = {}) {
 
 		if (idx <= LEVELS[this.logging.level]) {
 			/* istanbul ignore next */
-			process.nextTick(() => console[idx > 4 ? LOG : ERROR](msg));
+			process.nextTick(() => console[idx > INT_4 ? LOG : ERROR](msg));
 		}
 
 		return this;
 	}
 
 	ondone (req, res, body, headers) {
-		if (res.statusCode !== 204 && res.statusCode !== 304 && res.getHeader(CONTENT_LENGTH) === void 0) {
+		if (res.statusCode !== INT_204 && res.statusCode !== INT_304 && res.getHeader(CONTENT_LENGTH) === void 0) {
 			res.header(CONTENT_LENGTH, Buffer.byteLength(body));
 		}
 
@@ -636,7 +656,7 @@ function writeHead (res, headers = {}) {
 
 	redirect (res) {
 		return (uri, perm = true) => {
-			res.send(EMPTY, perm ? 308 : 307, {[LOCATION]: uri});
+			res.send(EMPTY, perm ? INT_308 : INT_307, {[LOCATION]: uri});
 		};
 	}
 
@@ -647,11 +667,11 @@ function writeHead (res, headers = {}) {
 
 		this.decorate(req, res);
 
-		if (this.listenerCount(evc) > 0) {
+		if (this.listenerCount(evc) > INT_0) {
 			this.emit(evc, req, res);
 		}
 
-		if (this.listenerCount(evf) > 0) {
+		if (this.listenerCount(evf) > INT_0) {
 			res.on(evf, () => this.emit(evf, req, res));
 		}
 
@@ -664,7 +684,7 @@ function writeHead (res, headers = {}) {
 		}
 
 		if (req.cors === false && ORIGIN in req.headers && req.corsHost && this.origins.includes(req.headers.origin) === false) {
-			res.error(403);
+			res.error(INT_403);
 		} else if (req.allow.includes(method)) {
 			const result = this.routes(req.parsed.pathname, method);
 
@@ -687,7 +707,7 @@ function writeHead (res, headers = {}) {
 		if (cached !== void 0) {
 			result = cached;
 		} else {
-			result = {getParams: null, middleware: [], params: false, visible: 0, last: null};
+			result = {getParams: null, middleware: [], params: false, visible: INT_0, last: null};
 			reduce(uri, this.middleware.get(WILDCARD), result);
 
 			if (method !== WILDCARD) {
@@ -713,9 +733,9 @@ function writeHead (res, headers = {}) {
 				if (pipeable(req.method, body)) {
 					if (req.headers.range === void 0 || req.range !== void 0) {
 						writeHead(res, headers);
-						body.on(ERROR, err => res.error(500, err)).pipe(res);
+						body.on(ERROR, err => res.error(INT_500, err)).pipe(res);
 					} else {
-						res.error(416);
+						res.error(INT_416);
 					}
 				} else {
 					if (typeof body !== STRING && typeof body[TO_STRING] === FUNCTION) {
@@ -730,7 +750,7 @@ function writeHead (res, headers = {}) {
 						if (req.range !== void 0) {
 							this.ondone(req, res, buffered.slice(req.range.start, req.range.end).toString(), headers);
 						} else {
-							res.error(416);
+							res.error(INT_416);
 						}
 					} else {
 						res.statusCode = status;
@@ -760,12 +780,12 @@ function writeHead (res, headers = {}) {
 		const fp = resolve(folder, decodeURIComponent(arg));
 
 		if (req.method !== GET && req.method !== HEAD && req.method !== OPTIONS) {
-			if (req.allow.length > 0) {
+			if (req.allow.length > INT_0) {
 				req.allow = READ_HEADERS;
 				res.header(ALLOW, req.allow);
 			}
 
-			res.error(405);
+			res.error(INT_405);
 		} else {
 			let valid = true;
 			let stats;
@@ -777,7 +797,7 @@ function writeHead (res, headers = {}) {
 			}
 
 			if (valid === false) {
-				res.error(404);
+				res.error(INT_404);
 			} else if (stats.isDirectory() === false) {
 				stream(req, res, {
 					charset: this.charset,
@@ -798,9 +818,9 @@ function writeHead (res, headers = {}) {
 					}
 				}
 
-				if (result.length === 0) {
+				if (result.length === INT_0) {
 					if (this.autoindex === false) {
-						res.error(404);
+						res.error(INT_404);
 					} else {
 						const body = autoindex(decodeURIComponent(req.parsed.pathname), files);
 
@@ -826,7 +846,7 @@ function writeHead (res, headers = {}) {
 	}
 
 	status (res) {
-		return (arg = 200) => {
+		return (arg = INT_200) => {
 			res.statusCode = arg;
 
 			return res;

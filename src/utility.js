@@ -22,6 +22,18 @@ import {
 	HYPHEN,
 	IF_MODIFIED_SINCE,
 	IF_NONE_MATCH,
+	INT_0,
+	INT_10,
+	INT_1e6,
+	INT_2,
+	INT_200,
+	INT_206,
+	INT_3,
+	INT_304,
+	INT_404,
+	INT_405,
+	INT_500,
+	INT_60,
 	KEY_BYTES,
 	LAST_MODIFIED,
 	OPTIONS,
@@ -57,7 +69,7 @@ export function autoindex (title = EMPTY, files = []) {
 }
 
 export function getStatus (req, res) {
-	return req.allow.length > 0 ? req.method !== GET ? 405 : req.allow.includes(GET) ? res.statusCode > 500 ? res.statusCode : 500 : 404 : 404;
+	return req.allow.length > INT_0 ? req.method !== GET ? INT_405 : req.allow.includes(GET) ? res.statusCode > INT_500 ? res.statusCode : INT_500 : INT_404 : INT_404;
 }
 
 function mime (arg = EMPTY) {
@@ -66,8 +78,8 @@ function mime (arg = EMPTY) {
 	return ext in extensions ? extensions[ext].type : APPLICATION_OCTET_STREAM;
 }
 
-export function ms (arg = 0, digits = 3) {
-	return TIME_MS.replace(TOKEN_N, Number(arg / 1e6).toFixed(digits));
+export function ms (arg = INT_0, digits = INT_3) {
+	return TIME_MS.replace(TOKEN_N, Number(arg / INT_1e6).toFixed(digits));
 }
 
 export function next (req, res, middleware) {
@@ -96,12 +108,12 @@ export function next (req, res, middleware) {
 	return fn;
 }
 
-export function pad (arg = 0) {
-	return String(arg).padStart(2, STRING_0);
+export function pad (arg = INT_0) {
+	return String(arg).padStart(INT_2, STRING_0);
 }
 
 export function params (req, getParams) {
-	getParams.lastIndex = 0;
+	getParams.lastIndex = INT_0;
 	req.params = getParams.exec(req.parsed.pathname)?.groups ?? {};
 
 	for (const [key, value] of Object.entries(req.params)) {
@@ -114,11 +126,11 @@ export function parse (arg) {
 }
 
 export function partialHeaders (req, res, size, status, headers = {}, options = {}) {
-	if ((req.headers.range || EMPTY).indexOf(KEY_BYTES) === 0) {
+	if ((req.headers.range || EMPTY).indexOf(KEY_BYTES) === INT_0) {
 		options = {};
 
 		for (const [idx, i] of req.headers.range.replace(KEY_BYTES, EMPTY).split(COMMA)[0].split(HYPHEN).entries()) {
-			options[idx === 0 ? START : END] = i ? parseInt(i, 10) : void 0;
+			options[idx === INT_0 ? START : END] = i ? parseInt(i, INT_10) : void 0;
 		}
 
 		// Byte offsets
@@ -140,7 +152,7 @@ export function partialHeaders (req, res, size, status, headers = {}, options = 
 			headers[CONTENT_LENGTH] = options.end - options.start;
 			res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
 			res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
-			status = res.statusCode = 206;
+			status = res.statusCode = INT_206;
 		} else {
 			headers[CONTENT_RANGE] = `bytes */${size}`;
 			res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
@@ -156,7 +168,7 @@ export function pipeable (method, arg) {
 
 export function reduce (uri, map = new Map(), arg = {}, end = false, ignore = new Set()) {
 	Array.from(map.values()).filter(i => {
-		i.regex.lastIndex = 0;
+		i.regex.lastIndex = INT_0;
 
 		return i.regex.test(uri);
 	}).forEach(i => {
@@ -179,23 +191,23 @@ export function stream (req, res, file = {
 	charset: EMPTY,
 	etag: EMPTY,
 	path: EMPTY,
-	stats: {mtime: new Date(), size: 0}
+	stats: {mtime: new Date(), size: INT_0}
 }) {
 	res.header(CONTENT_LENGTH, file.stats.size);
-	res.header(CONTENT_TYPE, file.charset.length > 0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path));
+	res.header(CONTENT_TYPE, file.charset.length > INT_0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path));
 	res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
 
-	if (file.etag.length > 0) {
+	if (file.etag.length > INT_0) {
 		res.header(ETAG, file.etag);
 		res.removeHeader(CACHE_CONTROL);
 	}
 
 	if (req.method === GET) {
-		if ((file.etag.length > 0 && req.headers[IF_NONE_MATCH] === file.etag) || (req.headers[IF_NONE_MATCH] === void 0 && Date.parse(req.headers[IF_MODIFIED_SINCE]) >= file.stats.mtime)) { // eslint-disable-line no-extra-parens
+		if ((file.etag.length > INT_0 && req.headers[IF_NONE_MATCH] === file.etag) || (req.headers[IF_NONE_MATCH] === void 0 && Date.parse(req.headers[IF_MODIFIED_SINCE]) >= file.stats.mtime)) { // eslint-disable-line no-extra-parens
 			res.removeHeader(CONTENT_LENGTH);
-			res.send(EMPTY, 304);
+			res.send(EMPTY, INT_304);
 		} else {
-			let status = 200;
+			let status = INT_200;
 			let options, headers;
 
 			if (RANGE in req.headers) {
@@ -221,11 +233,11 @@ export function stream (req, res, file = {
 	return void 0;
 }
 
-export function timeOffset (arg = 0) {
-	const neg = arg < 0;
+export function timeOffset (arg = INT_0) {
+	const neg = arg < INT_0;
 
-	return `${neg ? EMPTY : HYPHEN}${String((neg ? -arg : arg) / 60).split(PERIOD).reduce((a, v, idx, arr) => {
-		a.push(idx === 0 ? pad(v) : STRING_30);
+	return `${neg ? EMPTY : HYPHEN}${String((neg ? -arg : arg) / INT_60).split(PERIOD).reduce((a, v, idx, arr) => {
+		a.push(idx === INT_0 ? pad(v) : STRING_30);
 
 		if (arr.length === 1) {
 			a.push(STRING_00);

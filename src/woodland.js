@@ -34,6 +34,21 @@ import {
 	INDEX_HTM,
 	INDEX_HTML,
 	INFO,
+	INT_0,
+	INT_1e3,
+	INT_1e4,
+	INT_200,
+	INT_204,
+	INT_3,
+	INT_304,
+	INT_307,
+	INT_308,
+	INT_4,
+	INT_403,
+	INT_404,
+	INT_405,
+	INT_416,
+	INT_500,
 	IP_TOKEN,
 	LEFT_PAREN,
 	LEVELS,
@@ -107,11 +122,11 @@ import {
 export class Woodland extends EventEmitter {
 	constructor ({
 		autoindex = false,
-		cacheSize = 1e3,
-		cacheTTL = 3e5,
+		cacheSize = INT_1e3,
+		cacheTTL = INT_1e4,
 		charset = UTF_8,
 		defaultHeaders = {},
-		digit = 3,
+		digit = INT_3,
 		etags = true,
 		indexes = [
 			INDEX_HTM,
@@ -158,14 +173,14 @@ export class Woodland extends EventEmitter {
 	}
 
 	allowed (method, uri, override = false) {
-		return this.routes(uri, method, override).visible > 0;
+		return this.routes(uri, method, override).visible > INT_0;
 	}
 
 	allows (uri, override = false) {
 		let result = override === false ? this.permissions.get(uri) : void 0;
 
 		if (override || result === void 0) {
-			const allMethods = this.routes(uri, WILDCARD, override).visible > 0,
+			const allMethods = this.routes(uri, WILDCARD, override).visible > INT_0,
 				list = allMethods ? structuredClone(METHODS) : this.methods.filter(i => this.allowed(i, uri, override));
 
 			if (list.includes(GET)) {
@@ -278,7 +293,7 @@ export class Woodland extends EventEmitter {
 	}
 
 	error (req, res) {
-		return (status = 500, body) => {
+		return (status = INT_500, body) => {
 			if (res.headersSent === false) {
 				const err = body instanceof Error ? body : new Error(body ?? STATUS_CODES[status]);
 				let output = err.message,
@@ -286,7 +301,7 @@ export class Woodland extends EventEmitter {
 
 				[output, status, headers] = this.onready(req, res, output, status, headers);
 
-				if (status === 404) {
+				if (status === INT_404) {
 					res.removeHeader(ALLOW);
 					res.header(ALLOW, EMPTY);
 
@@ -299,7 +314,7 @@ export class Woodland extends EventEmitter {
 				res.removeHeader(CONTENT_LENGTH);
 				res.statusCode = status;
 
-				if (this.listenerCount(ERROR) > 0) {
+				if (this.listenerCount(ERROR) > INT_0) {
 					this.emit(ERROR, req, res, err);
 				}
 
@@ -366,14 +381,14 @@ export class Woodland extends EventEmitter {
 
 		if (idx <= LEVELS[this.logging.level]) {
 			/* istanbul ignore next */
-			process.nextTick(() => console[idx > 4 ? LOG : ERROR](msg));
+			process.nextTick(() => console[idx > INT_4 ? LOG : ERROR](msg));
 		}
 
 		return this;
 	}
 
 	ondone (req, res, body, headers) {
-		if (res.statusCode !== 204 && res.statusCode !== 304 && res.getHeader(CONTENT_LENGTH) === void 0) {
+		if (res.statusCode !== INT_204 && res.statusCode !== INT_304 && res.getHeader(CONTENT_LENGTH) === void 0) {
 			res.header(CONTENT_LENGTH, Buffer.byteLength(body));
 		}
 
@@ -416,7 +431,7 @@ export class Woodland extends EventEmitter {
 
 	redirect (res) {
 		return (uri, perm = true) => {
-			res.send(EMPTY, perm ? 308 : 307, {[LOCATION]: uri});
+			res.send(EMPTY, perm ? INT_308 : INT_307, {[LOCATION]: uri});
 		};
 	}
 
@@ -427,11 +442,11 @@ export class Woodland extends EventEmitter {
 
 		this.decorate(req, res);
 
-		if (this.listenerCount(evc) > 0) {
+		if (this.listenerCount(evc) > INT_0) {
 			this.emit(evc, req, res);
 		}
 
-		if (this.listenerCount(evf) > 0) {
+		if (this.listenerCount(evf) > INT_0) {
 			res.on(evf, () => this.emit(evf, req, res));
 		}
 
@@ -444,7 +459,7 @@ export class Woodland extends EventEmitter {
 		}
 
 		if (req.cors === false && ORIGIN in req.headers && req.corsHost && this.origins.includes(req.headers.origin) === false) {
-			res.error(403);
+			res.error(INT_403);
 		} else if (req.allow.includes(method)) {
 			const result = this.routes(req.parsed.pathname, method);
 
@@ -467,7 +482,7 @@ export class Woodland extends EventEmitter {
 		if (cached !== void 0) {
 			result = cached;
 		} else {
-			result = {getParams: null, middleware: [], params: false, visible: 0, last: null};
+			result = {getParams: null, middleware: [], params: false, visible: INT_0, last: null};
 			reduce(uri, this.middleware.get(WILDCARD), result);
 
 			if (method !== WILDCARD) {
@@ -493,9 +508,9 @@ export class Woodland extends EventEmitter {
 				if (pipeable(req.method, body)) {
 					if (req.headers.range === void 0 || req.range !== void 0) {
 						writeHead(res, headers);
-						body.on(ERROR, err => res.error(500, err)).pipe(res);
+						body.on(ERROR, err => res.error(INT_500, err)).pipe(res);
 					} else {
-						res.error(416);
+						res.error(INT_416);
 					}
 				} else {
 					if (typeof body !== STRING && typeof body[TO_STRING] === FUNCTION) {
@@ -510,7 +525,7 @@ export class Woodland extends EventEmitter {
 						if (req.range !== void 0) {
 							this.ondone(req, res, buffered.slice(req.range.start, req.range.end).toString(), headers);
 						} else {
-							res.error(416);
+							res.error(INT_416);
 						}
 					} else {
 						res.statusCode = status;
@@ -540,12 +555,12 @@ export class Woodland extends EventEmitter {
 		const fp = resolve(folder, decodeURIComponent(arg));
 
 		if (req.method !== GET && req.method !== HEAD && req.method !== OPTIONS) {
-			if (req.allow.length > 0) {
+			if (req.allow.length > INT_0) {
 				req.allow = READ_HEADERS;
 				res.header(ALLOW, req.allow);
 			}
 
-			res.error(405);
+			res.error(INT_405);
 		} else {
 			let valid = true;
 			let stats;
@@ -557,7 +572,7 @@ export class Woodland extends EventEmitter {
 			}
 
 			if (valid === false) {
-				res.error(404);
+				res.error(INT_404);
 			} else if (stats.isDirectory() === false) {
 				stream(req, res, {
 					charset: this.charset,
@@ -578,9 +593,9 @@ export class Woodland extends EventEmitter {
 					}
 				}
 
-				if (result.length === 0) {
+				if (result.length === INT_0) {
 					if (this.autoindex === false) {
-						res.error(404);
+						res.error(INT_404);
 					} else {
 						const body = aindex(decodeURIComponent(req.parsed.pathname), files);
 
@@ -606,7 +621,7 @@ export class Woodland extends EventEmitter {
 	}
 
 	status (res) {
-		return (arg = 200) => {
+		return (arg = INT_200) => {
 			res.statusCode = arg;
 
 			return res;

@@ -3,7 +3,17 @@
 import {createServer} from "node:http";
 import {coerce} from "tiny-coerce";
 import {woodland} from "woodland";
-import {CACHE_CONTROL, CHAR_SET, CONTENT_TYPE, EQUAL, HYPHEN, LOCALHOST, NO_CACHE, TEXT_PLAIN} from "./constants.js";
+import {
+	CACHE_CONTROL,
+	CHAR_SET,
+	CONTENT_TYPE,
+	EQUAL,
+	HYPHEN,
+	INT_8000,
+	LOCALHOST,
+	NO_CACHE,
+	TEXT_PLAIN
+} from "./constants.js";
 
 const app = woodland({
 		autoindex: true,
@@ -17,9 +27,9 @@ const app = woodland({
 
 		return a;
 	}, {}),
-	ip = argv.ip || LOCALHOST,
-	port = argv.port || 8000;
+	ip = argv.ip ?? LOCALHOST,
+	port = argv.port ?? INT_8000;
 
 app.staticFiles();
 createServer(app.route).listen(port, ip);
-console.log(`id=woodland, hostname=localhost, ip=${ip}, port=${port}`);
+app.log(`id=woodland, hostname=localhost, ip=${ip}, port=${port}`);
