@@ -551,7 +551,7 @@ export class Woodland extends EventEmitter {
 		};
 	}
 
-	async serve (req, res, arg = "", folder = process.cwd(), index = this.indexes) {
+	async serve (req, res, arg = EMPTY, folder = process.cwd(), index = this.indexes) {
 		const fp = resolve(folder, decodeURIComponent(arg));
 
 		if (req.method !== GET && req.method !== HEAD && req.method !== OPTIONS) {
@@ -628,7 +628,7 @@ export class Woodland extends EventEmitter {
 		};
 	}
 
-	staticFiles (root = "/") {
+	staticFiles (root = SLASH) {
 		/* istanbul ignore next */
 		this.get(`${root}(.*)?`, (req, res) => this.serve(req, res, req.parsed.pathname.substring(1)));
 	}
