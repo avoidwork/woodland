@@ -9,6 +9,7 @@ import {
 	CONTENT_TYPE,
 	EQUAL,
 	HYPHEN,
+	INFO,
 	INT_8000,
 	LOCALHOST,
 	NO_CACHE,
@@ -32,4 +33,4 @@ const app = woodland({
 
 app.staticFiles();
 createServer(app.route).listen(port, ip);
-app.log(`id=woodland, hostname=localhost, ip=${ip}, port=${port}`);
+app.log(`id=woodland, hostname=localhost, ip=${ip}, port=${port}`, INFO);

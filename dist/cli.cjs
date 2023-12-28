@@ -4,7 +4,7 @@
  *
  * @copyright 2023 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 18.2.2
+ * @version 18.2.3
  */
 'use strict';
 
@@ -25,6 +25,7 @@ const CONTENT_TYPE = "content-type";
 const EQUAL = "=";
 const EN_US = "en-US";
 const HYPHEN = "-";
+const INFO = "info";
 const INT_8000 = 8000;
 const LOCALHOST = "127.0.0.1";
 const SHORT = "short";
@@ -55,4 +56,4 @@ const app = woodland.woodland({
 
 app.staticFiles();
 node_http.createServer(app.route).listen(port, ip);
-app.log(`id=woodland, hostname=localhost, ip=${ip}, port=${port}`);
+app.log(`id=woodland, hostname=localhost, ip=${ip}, port=${port}`, INFO);
