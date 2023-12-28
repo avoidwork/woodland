@@ -19,7 +19,7 @@ export class Woodland {
     cache: import("tiny-lru").LRU<any>;
     charset: string;
     corsExpose: string;
-    defaultHeaders: any[][];
+    defaultHeaders: any;
     digit: number;
     etags: {
         cache: import("tiny-lru").LRU<any>;
@@ -78,6 +78,7 @@ export class Woodland {
     set(res: any): (arg?: {}) => any;
     serve(req: any, res: any, arg?: string, folder?: any, index?: string[]): Promise<void>;
     status(res: any): (arg?: number) => any;
+    staticFiles(root?: string): void;
     trace(...args: any[]): this;
     use(rpath: any, ...fn: any[]): this;
 }

@@ -3,7 +3,7 @@ export function getStatus(req: any, res: any): any;
 export function ms(arg?: number, digits?: number): string;
 export function next(req: any, res: any, middleware: any): (err: any) => any;
 export function pad(arg?: number): any;
-export function params(req: any, pos?: any[]): void;
+export function params(req: any, getParams: any): void;
 export function parse(arg: any): any;
 export function partialHeaders(req: any, res: any, size: any, status: any, headers?: {}, options?: {}): {}[];
 export function pipeable(method: any, arg: any): boolean;
