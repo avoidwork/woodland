@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "18.2.4",
+  "version": "18.2.5",
   "description": "Lightweight HTTP framework with automatic headers",
   "type": "module",
   "types": "types/woodland.d.ts",
@@ -18,7 +18,7 @@
   ],
   "scripts": {
     "benchmark": "node benchmark.js",
-    "build": "npm run lint && rm -rf dist && npm run rollup && npm run mocha",
+    "build": "npm run lint && npm run rollup && npm run mocha",
     "changelog": "auto-changelog -p",
     "fix": "eslint --fix *.js src/*.js test/*.js",
     "lint": "eslint *.js src/*.js test/*.js",
@@ -60,18 +60,18 @@
     "precise": "^4.0.3",
     "tiny-coerce": "^3.0.2",
     "tiny-etag": "^4.0.5",
-    "tiny-lru": "^11.2.5"
+    "tiny-lru": "^11.2.6"
   },
   "devDependencies": {
     "auto-changelog": "^2.4.0",
-    "autocannon": "^7.14.0",
+    "autocannon": "^7.15.0",
     "concurrently": "^8.2.2",
-    "eslint": "^8.56.0",
-    "husky": "^9.0.6",
-    "mocha": "^10.2.0",
+    "eslint": "^9.5.0",
+    "husky": "^9.0.11",
+    "mocha": "^10.4.0",
     "nyc": "^17.0.0",
-    "rollup": "^4.9.1",
-    "tiny-httptest": "^4.0.9",
-    "typescript": "^5.3.3"
+    "rollup": "^4.18.0",
+    "tiny-httptest": "^4.0.11",
+    "typescript": "^5.4.5"
   }
 }

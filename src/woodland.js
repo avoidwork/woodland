@@ -158,7 +158,7 @@ export class Woodland extends EventEmitter {
 		this.indexes = structuredClone(indexes);
 		this.permissions = lru(cacheSize, cacheTTL);
 		this.logging = {
-			enabled: logging?.enabled !== false ?? true,
+			enabled: (logging?.enabled ?? true) !== false,
 			format: logging?.format ?? LOG_FORMAT,
 			level: logging?.level ?? INFO
 		};
@@ -567,6 +567,7 @@ export class Woodland extends EventEmitter {
 
 			try {
 				stats = await stat(fp, {bigint: false});
+				// eslint-disable-next-line no-unused-vars
 			} catch (e) {
 				valid = false;
 			}

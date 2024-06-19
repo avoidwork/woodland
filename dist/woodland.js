@@ -1,9 +1,9 @@
 /**
  * woodland
  *
- * @copyright 2023 Jason Mulligan <jason.mulligan@avoidwork.com>
+ * @copyright 2024 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 18.2.4
+ * @version 18.2.5
  */
 import {STATUS_CODES,METHODS}from'node:http';import {join,extname,resolve}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {createRequire}from'node:module';import {fileURLToPath,URL}from'node:url';import {readFileSync,createReadStream}from'node:fs';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const __dirname$1 = fileURLToPath(new URL(".", import.meta.url));
 const require = createRequire(import.meta.url);
@@ -298,7 +298,7 @@ function stream (req, res, file = {
 	}
 
 	if (req.method === GET) {
-		if ((file.etag.length > INT_0 && req.headers[IF_NONE_MATCH] === file.etag) || (req.headers[IF_NONE_MATCH] === void 0 && Date.parse(req.headers[IF_MODIFIED_SINCE]) >= file.stats.mtime)) { // eslint-disable-line no-extra-parens
+		if ((file.etag.length > INT_0 && req.headers[IF_NONE_MATCH] === file.etag) || (req.headers[IF_NONE_MATCH] === void 0 && Date.parse(req.headers[IF_MODIFIED_SINCE]) >= file.stats.mtime)) {  
 			res.removeHeader(CONTENT_LENGTH);
 			res.send(EMPTY, INT_304);
 		} else {
@@ -383,7 +383,7 @@ function writeHead (res, headers = {}) {
 		this.indexes = structuredClone(indexes);
 		this.permissions = lru(cacheSize, cacheTTL);
 		this.logging = {
-			enabled: logging?.enabled !== false ?? true,
+			enabled: (logging?.enabled ?? true) !== false,
 			format: logging?.format ?? LOG_FORMAT,
 			level: logging?.level ?? INFO
 		};
@@ -792,6 +792,7 @@ function writeHead (res, headers = {}) {
 
 			try {
 				stats = await stat(fp, {bigint: false});
+				// eslint-disable-next-line no-unused-vars
 			} catch (e) {
 				valid = false;
 			}

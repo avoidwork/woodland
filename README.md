@@ -246,6 +246,6 @@ Woodland defaults to [Common Log Format](https://en.wikipedia.org/wiki/Common_Lo
 You can disable woodland's logging by configuration with `{logging: {enabled: false}}`.
 
 ## License
-Copyright (c) 2023 Jason Mulligan
+Copyright (c) 2024 Jason Mulligan
 
 Licensed under the BSD-3 license.

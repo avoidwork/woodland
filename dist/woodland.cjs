@@ -1,9 +1,9 @@
 /**
  * woodland
  *
- * @copyright 2023 Jason Mulligan <jason.mulligan@avoidwork.com>
+ * @copyright 2024 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 18.2.4
+ * @version 18.2.5
  */
 'use strict';
 
@@ -316,7 +316,7 @@ function stream (req, res, file = {
 	}
 
 	if (req.method === GET) {
-		if ((file.etag.length > INT_0 && req.headers[IF_NONE_MATCH] === file.etag) || (req.headers[IF_NONE_MATCH] === void 0 && Date.parse(req.headers[IF_MODIFIED_SINCE]) >= file.stats.mtime)) { // eslint-disable-line no-extra-parens
+		if ((file.etag.length > INT_0 && req.headers[IF_NONE_MATCH] === file.etag) || (req.headers[IF_NONE_MATCH] === void 0 && Date.parse(req.headers[IF_MODIFIED_SINCE]) >= file.stats.mtime)) {  
 			res.removeHeader(CONTENT_LENGTH);
 			res.send(EMPTY, INT_304);
 		} else {
@@ -403,7 +403,7 @@ class Woodland extends node_events.EventEmitter {
 		this.indexes = structuredClone(indexes);
 		this.permissions = tinyLru.lru(cacheSize, cacheTTL);
 		this.logging = {
-			enabled: logging?.enabled !== false ?? true,
+			enabled: (logging?.enabled ?? true) !== false,
 			format: logging?.format ?? LOG_FORMAT,
 			level: logging?.level ?? INFO
 		};
@@ -812,6 +812,7 @@ class Woodland extends node_events.EventEmitter {
 
 			try {
 				stats = await promises.stat(fp, {bigint: false});
+				// eslint-disable-next-line no-unused-vars
 			} catch (e) {
 				valid = false;
 			}
