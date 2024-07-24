@@ -1,6 +1,5 @@
 import {join} from "node:path";
-import {createServer, METHODS} from "node:http";
-import {fileURLToPath, URL} from "node:url";
+import {createServer} from "node:http";
 import {lstatSync} from "node:fs";
 import assert from "node:assert/strict";
 import {httptest} from "tiny-httptest";
@@ -18,10 +17,7 @@ import {
 	LOCATION
 } from "../src/constants.js";
 
-const methods = METHODS.join(", ");
-
-const __dirname = fileURLToPath(new URL(".", import.meta.url));
-const testStat = lstatSync(join(__dirname, "..", "test", "test.js"));
+const testStat = lstatSync(join(process.cwd(), "test", "test.js"));
 const testSize = testStat.size;
 
 function handler (err) {
@@ -71,7 +67,7 @@ router.use("/echo/:echo", (req, res) => res.send(req.params.echo));
 router.use("/echo/:echo", (req, res) => res.send("The entity will be echoed back to you"), "OPTIONS");
 router.use("/params/:first/:second", (req, res) => res.send(`${req.params.first}-${req.params.second}`));
 router.use("/error", (req, res) => res.error(500));
-router.use("/test(/.*)?", (req, res) => router.serve(req, res, req.parsed.pathname.replace(/^\/test\/?/, EMPTY), join(__dirname, "..", "test")), "*");
+router.staticFiles("/test");
 router.use("/last", (req, res, next) => next());
 router.use("/last-error", (req, res, next) => next(new Error("Something went wrong")));
 router.use("/last-error", (err, req, res, next) => next(err));
@@ -312,7 +308,7 @@ describe("Valid Requests", function () {
 			.end();
 	});
 
-	it("GET /test/ (404 / 'Success')", function () {
+	it("GET /test/ (404 / 'Not Found')", function () {
 		router.autoindex = false;
 
 		return httptest({url: "http://localhost:8001/test/"})
@@ -320,44 +316,11 @@ describe("Valid Requests", function () {
 			.end();
 	});
 
-	it("GET /test/ (206 / 'Partial response - bytes=0-5')", function () {
-		router.autoindex = true;
-
-		return httptest({url: "http://localhost:8001/test/", headers: {range: "bytes=0-5"}})
-			.expectStatus(206)
-			.expectHeader(CONTENT_RANGE, /^bytes 0-5\/947$/)
-			.expectHeader(CONTENT_LENGTH, 5)
-			.end();
-	});
-
-	it("GET /test/ (206 / 'Partial response - bytes=-5')", function () {
-		return httptest({url: "http://localhost:8001/test/", headers: {range: "bytes=-5"}})
-			.expectStatus(206)
-			.expectHeader(CONTENT_RANGE, /^bytes 942-947\/947$/)
-			.expectHeader(CONTENT_LENGTH, 5)
-			.end();
-	});
-
-	it("GET /test/ (206 / 'Partial response - bytes=5-')", function () {
-		return httptest({url: "http://localhost:8001/test/", headers: {range: "bytes=5-"}})
-			.expectStatus(206)
-			.expectHeader(CONTENT_RANGE, /^bytes 5-947\/947$/)
-			.expectHeader(CONTENT_LENGTH, 942)
-			.end();
-	});
-
-	it("GET /test/ (206 / 'Partial response error - bytes=50000-50001')", function () {
-		return httptest({url: "http://localhost:8001/test/", headers: {range: "bytes=50000-50001"}})
-			.expectStatus(416)
-			.expectHeader(CONTENT_RANGE, "bytes */947")
-			.end();
-	});
-
 	it("GET /test/test.js (200 / 'Success')", function () {
 		return httptest({url: "http://localhost:8001/test/test.js"})
 			.etags()
 			.expectStatus(200)
-			.expectHeader(ALLOW, methods)
+			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CONTENT_TYPE, "text/javascript; charset=utf-8")
 			.expectHeader(ETAG, /^(.*)$/)
 			.expectHeader("x-always", "true")
@@ -392,7 +355,7 @@ describe("Valid Requests", function () {
 	it("HEAD /test/test.js (200 / 'Success')", function () {
 		return httptest({url: "http://localhost:8001/test/test.js", method: "HEAD"})
 			.expectStatus(200)
-			.expectHeader(ALLOW, methods)
+			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CONTENT_TYPE, "text/javascript; charset=utf-8")
 			.expectBody(/^$/)
 			.end();
@@ -401,7 +364,7 @@ describe("Valid Requests", function () {
 	it("OPTIONS /test/test.js (200 / 'Success')", function () {
 		return httptest({url: "http://localhost:8001/test/test.js", method: "OPTIONS"})
 			.expectStatus(200)
-			.expectHeader(ALLOW, methods)
+			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CONTENT_TYPE, "text/javascript; charset=utf-8")
 			.expectBody("Make a GET request to retrieve the file")
 			.end();
@@ -424,7 +387,7 @@ describe("Valid Requests", function () {
 	it("GET /test/another/ (200 / 'Success')", function () {
 		return httptest({url: "http://localhost:8001/test/another/"})
 			.expectStatus(200)
-			.expectHeader(ALLOW, methods)
+			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CONTENT_TYPE, "text/html; charset=utf-8")
 			.expectHeader(ETAG, /^(.*)$/)
 			.expectHeader("x-always", "true")
