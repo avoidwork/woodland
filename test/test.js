@@ -1,6 +1,5 @@
 import {join} from "node:path";
-import {createServer, METHODS} from "node:http";
-import {fileURLToPath, URL} from "node:url";
+import {createServer} from "node:http";
 import {lstatSync} from "node:fs";
 import assert from "node:assert/strict";
 import {httptest} from "tiny-httptest";
@@ -18,10 +17,7 @@ import {
 	LOCATION
 } from "../src/constants.js";
 
-const methods = METHODS.join(", ");
-
-const __dirname = fileURLToPath(new URL(".", import.meta.url));
-const testStat = lstatSync(join(__dirname, "..", "test", "test.js"));
+const testStat = lstatSync(join(process.cwd(), "test", "test.js"));
 const testSize = testStat.size;
 
 function handler (err) {
@@ -324,7 +320,7 @@ describe("Valid Requests", function () {
 		return httptest({url: "http://localhost:8001/test/test.js"})
 			.etags()
 			.expectStatus(200)
-			.expectHeader(ALLOW, methods)
+			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CONTENT_TYPE, "text/javascript; charset=utf-8")
 			.expectHeader(ETAG, /^(.*)$/)
 			.expectHeader("x-always", "true")
@@ -359,7 +355,7 @@ describe("Valid Requests", function () {
 	it("HEAD /test/test.js (200 / 'Success')", function () {
 		return httptest({url: "http://localhost:8001/test/test.js", method: "HEAD"})
 			.expectStatus(200)
-			.expectHeader(ALLOW, methods)
+			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CONTENT_TYPE, "text/javascript; charset=utf-8")
 			.expectBody(/^$/)
 			.end();
@@ -368,7 +364,7 @@ describe("Valid Requests", function () {
 	it("OPTIONS /test/test.js (200 / 'Success')", function () {
 		return httptest({url: "http://localhost:8001/test/test.js", method: "OPTIONS"})
 			.expectStatus(200)
-			.expectHeader(ALLOW, methods)
+			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CONTENT_TYPE, "text/javascript; charset=utf-8")
 			.expectBody("Make a GET request to retrieve the file")
 			.end();
@@ -391,7 +387,7 @@ describe("Valid Requests", function () {
 	it("GET /test/another/ (200 / 'Success')", function () {
 		return httptest({url: "http://localhost:8001/test/another/"})
 			.expectStatus(200)
-			.expectHeader(ALLOW, methods)
+			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CONTENT_TYPE, "text/html; charset=utf-8")
 			.expectHeader(ETAG, /^(.*)$/)
 			.expectHeader("x-always", "true")
