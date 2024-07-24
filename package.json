@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "18.2.6",
+  "version": "18.2.7",
   "description": "Lightweight HTTP framework with automatic headers",
   "type": "module",
   "types": "types/woodland.d.ts",
@@ -14,7 +14,7 @@
   "files": [
     "dist",
     "tpl",
-    "types"
+    "types/woodland.d.ts"
   ],
   "scripts": {
     "benchmark": "node benchmark.js",
