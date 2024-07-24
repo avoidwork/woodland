@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "18.2.5",
+  "version": "18.2.6",
   "description": "Lightweight HTTP framework with automatic headers",
   "type": "module",
   "types": "types/woodland.d.ts",
@@ -26,7 +26,7 @@
     "rollup": "rollup --config",
     "test": "npm run lint && npm run mocha",
     "types": "npx -p typescript tsc src/woodland.js --declaration --allowJs --emitDeclarationOnly --outDir types",
-    "prepare": "husky install"
+    "prepare": "husky"
   },
   "repository": {
     "type": "git",
@@ -56,22 +56,22 @@
     "woodland": "dist/cli.cjs"
   },
   "dependencies": {
-    "mime-db": "^1.52.0",
+    "mime-db": "^1.53.0",
     "precise": "^4.0.3",
     "tiny-coerce": "^3.0.2",
     "tiny-etag": "^4.0.5",
-    "tiny-lru": "^11.2.6"
+    "tiny-lru": "^11.2.11"
   },
   "devDependencies": {
     "auto-changelog": "^2.4.0",
     "autocannon": "^7.15.0",
     "concurrently": "^8.2.2",
-    "eslint": "^9.5.0",
-    "husky": "^9.0.11",
-    "mocha": "^10.4.0",
+    "eslint": "^9.7.0",
+    "husky": "^9.1.1",
+    "mocha": "^10.7.0",
     "nyc": "^17.0.0",
-    "rollup": "^4.18.0",
+    "rollup": "^4.19.0",
     "tiny-httptest": "^4.0.11",
-    "typescript": "^5.4.5"
+    "typescript": "^5.5.4"
   }
 }

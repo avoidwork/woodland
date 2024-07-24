@@ -358,7 +358,7 @@ describe("Valid Requests", function () {
 			.etags()
 			.expectStatus(200)
 			.expectHeader(ALLOW, methods)
-			.expectHeader(CONTENT_TYPE, "application/javascript; charset=utf-8")
+			.expectHeader(CONTENT_TYPE, "text/javascript; charset=utf-8")
 			.expectHeader(ETAG, /^(.*)$/)
 			.expectHeader("x-always", "true")
 			.expectHeader("x-by-reference", "true")
@@ -378,7 +378,7 @@ describe("Valid Requests", function () {
 		return httptest({url: "http://localhost:8001/test/test.js", headers: {range: "bytes=0-5"}})
 			.expectStatus(206)
 			.expectHeader(CONTENT_LENGTH, 5)
-			.expectHeader(CONTENT_TYPE, "application/javascript; charset=utf-8")
+			.expectHeader(CONTENT_TYPE, "text/javascript; charset=utf-8")
 			.end();
 	});
 
@@ -393,7 +393,7 @@ describe("Valid Requests", function () {
 		return httptest({url: "http://localhost:8001/test/test.js", method: "HEAD"})
 			.expectStatus(200)
 			.expectHeader(ALLOW, methods)
-			.expectHeader(CONTENT_TYPE, "application/javascript; charset=utf-8")
+			.expectHeader(CONTENT_TYPE, "text/javascript; charset=utf-8")
 			.expectBody(/^$/)
 			.end();
 	});
@@ -402,7 +402,7 @@ describe("Valid Requests", function () {
 		return httptest({url: "http://localhost:8001/test/test.js", method: "OPTIONS"})
 			.expectStatus(200)
 			.expectHeader(ALLOW, methods)
-			.expectHeader(CONTENT_TYPE, "application/javascript; charset=utf-8")
+			.expectHeader(CONTENT_TYPE, "text/javascript; charset=utf-8")
 			.expectBody("Make a GET request to retrieve the file")
 			.end();
 	});

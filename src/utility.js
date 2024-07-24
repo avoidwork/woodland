@@ -203,7 +203,7 @@ export function stream (req, res, file = {
 	}
 
 	if (req.method === GET) {
-		if ((file.etag.length > INT_0 && req.headers[IF_NONE_MATCH] === file.etag) || (req.headers[IF_NONE_MATCH] === void 0 && Date.parse(req.headers[IF_MODIFIED_SINCE]) >= file.stats.mtime)) {  
+		if (file.etag.length > INT_0 && req.headers[IF_NONE_MATCH] === file.etag || req.headers[IF_NONE_MATCH] === void 0 && Date.parse(req.headers[IF_MODIFIED_SINCE]) >= file.stats.mtime) {
 			res.removeHeader(CONTENT_LENGTH);
 			res.send(EMPTY, INT_304);
 		} else {

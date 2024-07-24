@@ -20,6 +20,8 @@ export default [
 			"node:path",
 			"node:events",
 			"node:fs",
+			"node:fs/promises",
+			"node:module",
 			"node:url",
 			"mime-db",
 			"precise",
@@ -42,6 +44,9 @@ export default [
 	{
 		external: [
 			"node:http",
+			"node:module",
+			"node:path",
+			"node:url",
 			"tiny-coerce",
 			"woodland"
 		],
