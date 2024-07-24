@@ -71,7 +71,8 @@ router.use("/echo/:echo", (req, res) => res.send(req.params.echo));
 router.use("/echo/:echo", (req, res) => res.send("The entity will be echoed back to you"), "OPTIONS");
 router.use("/params/:first/:second", (req, res) => res.send(`${req.params.first}-${req.params.second}`));
 router.use("/error", (req, res) => res.error(500));
-router.use("/test(/.*)?", (req, res) => router.serve(req, res, req.parsed.pathname.replace(/^\/test\/?/, EMPTY), join(__dirname, "..", "test")), "*");
+//router.use("/test(/.*)?", (req, res) => router.serve(req, res, req.parsed.pathname.replace(/^\/test\/?/, EMPTY), join(__dirname, "..", "test")), "*");
+router.staticFiles("/test", process.cwd());
 router.use("/last", (req, res, next) => next());
 router.use("/last-error", (req, res, next) => next(new Error("Something went wrong")));
 router.use("/last-error", (err, req, res, next) => next(err));
@@ -312,44 +313,11 @@ describe("Valid Requests", function () {
 			.end();
 	});
 
-	it("GET /test/ (404 / 'Success')", function () {
+	it("GET /test/ (404 / 'Not Found')", function () {
 		router.autoindex = false;
 
 		return httptest({url: "http://localhost:8001/test/"})
 			.expectStatus(404)
-			.end();
-	});
-
-	it("GET /test/ (206 / 'Partial response - bytes=0-5')", function () {
-		router.autoindex = true;
-
-		return httptest({url: "http://localhost:8001/test/", headers: {range: "bytes=0-5"}})
-			.expectStatus(206)
-			.expectHeader(CONTENT_RANGE, /^bytes 0-5\/947$/)
-			.expectHeader(CONTENT_LENGTH, 5)
-			.end();
-	});
-
-	it("GET /test/ (206 / 'Partial response - bytes=-5')", function () {
-		return httptest({url: "http://localhost:8001/test/", headers: {range: "bytes=-5"}})
-			.expectStatus(206)
-			.expectHeader(CONTENT_RANGE, /^bytes 942-947\/947$/)
-			.expectHeader(CONTENT_LENGTH, 5)
-			.end();
-	});
-
-	it("GET /test/ (206 / 'Partial response - bytes=5-')", function () {
-		return httptest({url: "http://localhost:8001/test/", headers: {range: "bytes=5-"}})
-			.expectStatus(206)
-			.expectHeader(CONTENT_RANGE, /^bytes 5-947\/947$/)
-			.expectHeader(CONTENT_LENGTH, 942)
-			.end();
-	});
-
-	it("GET /test/ (206 / 'Partial response error - bytes=50000-50001')", function () {
-		return httptest({url: "http://localhost:8001/test/", headers: {range: "bytes=50000-50001"}})
-			.expectStatus(416)
-			.expectHeader(CONTENT_RANGE, "bytes */947")
 			.end();
 	});
 

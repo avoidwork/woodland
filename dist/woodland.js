@@ -5,7 +5,7 @@
  * @license BSD-3-Clause
  * @version 18.2.7
  */
-import {STATUS_CODES,METHODS}from'node:http';import {join,extname,resolve}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {createRequire}from'node:module';import {fileURLToPath,URL}from'node:url';import {readFileSync,createReadStream}from'node:fs';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const __dirname$1 = fileURLToPath(new URL(".", import.meta.url));
+import {STATUS_CODES,METHODS}from'node:http';import {join,extname}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {createRequire}from'node:module';import {fileURLToPath,URL}from'node:url';import {readFileSync,createReadStream}from'node:fs';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const __dirname$1 = fileURLToPath(new URL(".", import.meta.url));
 const require = createRequire(import.meta.url);
 const {name, version} = require(join(__dirname$1, "..", "package.json"));
 
@@ -776,8 +776,8 @@ function writeHead (res, headers = {}) {
 		};
 	}
 
-	async serve (req, res, arg = EMPTY, folder = process.cwd(), index = this.indexes) {
-		const fp = resolve(folder, decodeURIComponent(arg));
+	async serve (req, res, arg, folder = process.cwd()) {
+		const fp = join(folder, arg);
 
 		if (req.method !== GET && req.method !== HEAD && req.method !== OPTIONS) {
 			if (req.allow.length > INT_0) {
@@ -813,7 +813,7 @@ function writeHead (res, headers = {}) {
 				let result = EMPTY;
 
 				for (const file of files) {
-					if (index.includes(file.name)) {
+					if (this.indexes.includes(file.name)) {
 						result = join(fp, file.name);
 						break;
 					}
@@ -854,9 +854,8 @@ function writeHead (res, headers = {}) {
 		};
 	}
 
-	staticFiles (root = SLASH) {
-		/* istanbul ignore next */
-		this.get(`${root}(.*)?`, (req, res) => this.serve(req, res, req.parsed.pathname.substring(1)));
+	staticFiles (root, folder = process.cwd()) {
+		this.get(`${root.replace(/\/$/, EMPTY)}(.*)?`, (req, res) => this.serve(req, res, req.parsed.pathname.substring(1), folder));
 	}
 
 	trace (...args) {

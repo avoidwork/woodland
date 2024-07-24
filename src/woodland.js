@@ -1,5 +1,5 @@
 import {METHODS, STATUS_CODES} from "node:http";
-import {join, resolve} from "node:path";
+import {join} from "node:path";
 import {EventEmitter} from "node:events";
 import {readdir, stat} from "node:fs/promises";
 import {etag} from "tiny-etag";
@@ -551,8 +551,8 @@ export class Woodland extends EventEmitter {
 		};
 	}
 
-	async serve (req, res, arg = EMPTY, folder = process.cwd(), index = this.indexes) {
-		const fp = resolve(folder, decodeURIComponent(arg));
+	async serve (req, res, arg, folder = process.cwd()) {
+		const fp = join(folder, arg);
 
 		if (req.method !== GET && req.method !== HEAD && req.method !== OPTIONS) {
 			if (req.allow.length > INT_0) {
@@ -588,7 +588,7 @@ export class Woodland extends EventEmitter {
 				let result = EMPTY;
 
 				for (const file of files) {
-					if (index.includes(file.name)) {
+					if (this.indexes.includes(file.name)) {
 						result = join(fp, file.name);
 						break;
 					}
@@ -629,9 +629,8 @@ export class Woodland extends EventEmitter {
 		};
 	}
 
-	staticFiles (root = SLASH) {
-		/* istanbul ignore next */
-		this.get(`${root}(.*)?`, (req, res) => this.serve(req, res, req.parsed.pathname.substring(1)));
+	staticFiles (root, folder = process.cwd()) {
+		this.get(`${root.replace(/\/$/, EMPTY)}(.*)?`, (req, res) => this.serve(req, res, req.parsed.pathname.substring(1), folder));
 	}
 
 	trace (...args) {
