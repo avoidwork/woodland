@@ -76,9 +76,9 @@ export class Woodland {
     routes(uri: any, method: any, override?: boolean): any;
     send(req: any, res: any): (body?: string, status?: any, headers?: {}) => void;
     set(res: any): (arg?: {}) => any;
-    serve(req: any, res: any, arg?: string, folder?: any, index?: string[]): Promise<void>;
+    serve(req: any, res: any, arg: string, folder?: string): Promise<void>;
     status(res: any): (arg?: number) => any;
-    staticFiles(root?: string): void;
+    staticFiles(root: string, folder?: string): void;
     trace(...args: any[]): this;
     use(rpath: any, ...fn: any[]): this;
 }
