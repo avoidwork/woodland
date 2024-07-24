@@ -71,7 +71,6 @@ router.use("/echo/:echo", (req, res) => res.send(req.params.echo));
 router.use("/echo/:echo", (req, res) => res.send("The entity will be echoed back to you"), "OPTIONS");
 router.use("/params/:first/:second", (req, res) => res.send(`${req.params.first}-${req.params.second}`));
 router.use("/error", (req, res) => res.error(500));
-//router.use("/test(/.*)?", (req, res) => router.serve(req, res, req.parsed.pathname.replace(/^\/test\/?/, EMPTY), join(__dirname, "..", "test")), "*");
 router.staticFiles("/test");
 router.use("/last", (req, res, next) => next());
 router.use("/last-error", (req, res, next) => next(new Error("Something went wrong")));
