@@ -3,7 +3,7 @@
  *
  * @copyright 2024 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 18.2.9
+ * @version 18.2.10
  */
 import {STATUS_CODES,METHODS}from'node:http';import {join,extname}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {createRequire}from'node:module';import {fileURLToPath,URL}from'node:url';import {readFileSync,createReadStream}from'node:fs';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const __dirname$1 = fileURLToPath(new URL(".", import.meta.url));
 const require = createRequire(import.meta.url);
@@ -854,7 +854,7 @@ function writeHead (res, headers = {}) {
 		};
 	}
 
-	staticFiles (root, folder = process.cwd()) {
+	staticFiles (root = SLASH, folder = process.cwd()) {
 		this.get(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) => this.serve(req, res, req.parsed.pathname.substring(1), folder));
 	}
 

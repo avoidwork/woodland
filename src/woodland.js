@@ -629,7 +629,7 @@ export class Woodland extends EventEmitter {
 		};
 	}
 
-	staticFiles (root, folder = process.cwd()) {
+	staticFiles (root = SLASH, folder = process.cwd()) {
 		this.get(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) => this.serve(req, res, req.parsed.pathname.substring(1), folder));
 	}
 

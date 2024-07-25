@@ -3,7 +3,7 @@
  *
  * @copyright 2024 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 18.2.9
+ * @version 18.2.10
  */
 'use strict';
 
@@ -874,7 +874,7 @@ class Woodland extends node_events.EventEmitter {
 		};
 	}
 
-	staticFiles (root, folder = process.cwd()) {
+	staticFiles (root = SLASH, folder = process.cwd()) {
 		this.get(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) => this.serve(req, res, req.parsed.pathname.substring(1), folder));
 	}
 
