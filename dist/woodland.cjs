@@ -137,7 +137,6 @@ const PERIOD = ".";
 const POST = "POST";
 const PUT = "PUT";
 const RANGE = "range";
-const READ_HEADERS = "GET, HEAD, OPTIONS";
 const SERVER = "server";
 const SERVER_VALUE = `${name}/${version}`;
 const SLASH = "/";
@@ -791,66 +790,56 @@ class Woodland extends node_events.EventEmitter {
 
 	async serve (req, res, arg, folder = process.cwd()) {
 		const fp = node_path.join(folder, arg);
+		let valid = true;
+		let stats;
 
-		if (req.method !== GET && req.method !== HEAD && req.method !== OPTIONS) {
-			if (req.allow.length > INT_0) {
-				req.allow = READ_HEADERS;
-				res.header(ALLOW, req.allow);
-			}
+		try {
+			stats = await promises.stat(fp, {bigint: false});
+			// eslint-disable-next-line no-unused-vars
+		} catch (e) {
+			valid = false;
+		}
 
-			res.error(INT_405);
+		if (valid === false) {
+			res.error(INT_404);
+		} else if (stats.isDirectory() === false) {
+			stream(req, res, {
+				charset: this.charset,
+				etag: this.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
+				path: fp,
+				stats: stats
+			});
+		} else if (req.parsed.pathname.endsWith(SLASH) === false) {
+			res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
 		} else {
-			let valid = true;
-			let stats;
+			const files = await promises.readdir(fp, {encoding: UTF8, withFileTypes: true});
+			let result = EMPTY;
 
-			try {
-				stats = await promises.stat(fp, {bigint: false});
-				// eslint-disable-next-line no-unused-vars
-			} catch (e) {
-				valid = false;
+			for (const file of files) {
+				if (this.indexes.includes(file.name)) {
+					result = node_path.join(fp, file.name);
+					break;
+				}
 			}
 
-			if (valid === false) {
-				res.error(INT_404);
-			} else if (stats.isDirectory() === false) {
+			if (result.length === INT_0) {
+				if (this.autoindex === false) {
+					res.error(INT_404);
+				} else {
+					const body = autoindex(decodeURIComponent(req.parsed.pathname), files);
+
+					res.header(CONTENT_TYPE, `text/html; charset=${this.charset}`);
+					res.send(body);
+				}
+			} else {
+				const rstats = await promises.stat(result, {bigint: false});
+
 				stream(req, res, {
 					charset: this.charset,
-					etag: this.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
-					path: fp,
-					stats: stats
+					etag: this.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
+					path: result,
+					stats: rstats
 				});
-			} else if (req.parsed.pathname.endsWith(SLASH) === false) {
-				res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
-			} else {
-				const files = await promises.readdir(fp, {encoding: UTF8, withFileTypes: true});
-				let result = EMPTY;
-
-				for (const file of files) {
-					if (this.indexes.includes(file.name)) {
-						result = node_path.join(fp, file.name);
-						break;
-					}
-				}
-
-				if (result.length === INT_0) {
-					if (this.autoindex === false) {
-						res.error(INT_404);
-					} else {
-						const body = autoindex(decodeURIComponent(req.parsed.pathname), files);
-
-						res.header(CONTENT_TYPE, `text/html; charset=${this.charset}`);
-						res.send(body);
-					}
-				} else {
-					const rstats = await promises.stat(result, {bigint: false});
-
-					stream(req, res, {
-						charset: this.charset,
-						etag: this.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
-						path: result,
-						stats: rstats
-					});
-				}
 			}
 		}
 

@@ -123,7 +123,6 @@ export const PERIOD = ".";
 export const POST = "POST";
 export const PUT = "PUT";
 export const RANGE = "range";
-export const READ_HEADERS = "GET, HEAD, OPTIONS";
 export const SERVER = "server";
 export const SERVER_VALUE = `${name}/${version}`;
 export const SLASH = "/";

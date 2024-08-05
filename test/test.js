@@ -381,6 +381,12 @@ describe("Valid Requests", function () {
 			.end();
 	});
 
+	it("DELETE /test/test.js (405 / 'Method not allowed')", function () {
+		return httptest({url: "http://localhost:8001/test/test.js", method: "DELETE"})
+			.expectStatus(405)
+			.end();
+	});
+
 	it("GET /test/another (308 / 'Permanent Redirect')", function () {
 		return httptest({url: "http://localhost:8001/test/another"})
 			.expectStatus(308)
