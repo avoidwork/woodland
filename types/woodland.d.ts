@@ -51,10 +51,10 @@ export class Woodland {
     cors(req: any): any;
     corsHost(req: any): boolean;
     decorate(req: any, res: any): void;
-    del(...args: any[]): this;
     delete(...args: any[]): this;
     error(req: any, res: any): (status: number, body: any) => void;
     etag(method: any, ...args: any[]): string;
+    files(root: string, folder?: string): void;
     get(...args: any[]): this;
     ignore(fn: any): this;
     ip(req: any): any;
@@ -63,9 +63,9 @@ export class Woodland {
     }) => void;
     list(method?: string, type?: string): any;
     log(msg: any, level?: string): this;
-    ondone(req: any, res: any, body: any, headers: any): void;
-    onready(req: any, res: any, body: any, status: any, headers: any): any[];
-    onsend(req: any, res: any, body: any, status: any, headers: any): any[];
+    onDone(req: any, res: any, body: any, headers: any): void;
+    onReady(req: any, res: any, body: any, status: any, headers: any): any[];
+    onSend(req: any, res: any, body: any, status: any, headers: any): any[];
     options(...args: any[]): this;
     patch(...args: any[]): this;
     path(arg?: string): string;
@@ -78,7 +78,6 @@ export class Woodland {
     set(res: any): (arg?: {}) => any;
     serve(req: any, res: any, arg: string, folder?: string): Promise<void>;
     status(res: any): (arg?: number) => any;
-    staticFiles(root: string, folder?: string): void;
     trace(...args: any[]): this;
     use(rpath: any, ...fn: any[]): this;
 }
