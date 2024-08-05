@@ -307,6 +307,12 @@ describe("Valid Requests", function () {
 			.end();
 	});
 
+	it("GET / (416 / 'Partial response - bytes=5-')", function () {
+		return httptest({url: "http://localhost:8001/", headers: {range: "bytes=30-31"}})
+			.expectStatus(416)
+			.end();
+	});
+
 	it("GET /test/ (200 / 'Success')", function () {
 		return httptest({url: "http://localhost:8001/test/"})
 			.expectStatus(200)
