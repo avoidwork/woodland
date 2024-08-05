@@ -36,15 +36,15 @@ class MyFramework extends Woodland {};
 
 ## Testing
 
-Woodland has 100% code coverage with its tests; the missing 0.22% is hard to reach conditions.
+Woodland has >98% code coverage with its tests.
 
 ```console
---------------|---------|----------|---------|---------|-------------------------------
+--------------|---------|----------|---------|---------|---------------------
 File          | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s
---------------|---------|----------|---------|---------|-------------------------------
-All files     |   99.78 |    76.02 |   98.57 |     100 | 
- woodland.cjs |   99.78 |    76.02 |   98.57 |     100 | ...214,254,275-285,314-328,...
---------------|---------|----------|---------|---------|-------------------------------
+--------------|---------|----------|---------|---------|---------------------
+All files     |   98.41 |    73.63 |   98.59 |   98.59 |                    
+ woodland.cjs |   98.41 |    73.63 |   98.59 |   98.59 | 320-321,773,803-808
+--------------|---------|----------|---------|---------|---------------------
 ```
 
 ## Benchmark
@@ -139,8 +139,17 @@ Ignores `fn` for calculating the return of `allows()`.
 ### decorate (req, res)
 Decorates `allow, body, cors, host, ip, params, & parsed` on `req` and `error(status[, body, headers]), header(key, value), json(body[, status, headers]), locals{} & redirect(url[, perm = false])` on `res`.
 
+### delete ([path = "/.*",] ...fn)
+Registers middleware for a route. `path` is a regular expression (as a string), and if not passed it defaults to `/.*`.
+
 ### etag (...args)
 Returns a String to be used as an etag response header value.
+
+### files (root = "/", folder = process.cwd())
+Serve static files on disk.
+
+### get ([path = "/.*",] ...fn)
+Registers middleware for a route. `path` is a regular expression (as a string), and if not passed it defaults to `/.*`. See `always()` if you want the middleware to be used for all HTTP methods.
 
 ### list (method = "get", type = "array")
 Returns an `Array` or `Object` of routes for the specified method.
@@ -148,30 +157,32 @@ Returns an `Array` or `Object` of routes for the specified method.
 ### log (msg = "", level = "debug")
 Logs to `stdout` or `stderr` depending on the `level`, & what the minimum log level is set to.
 
-### onsend (req, res, body, status, headers)
+### patch ([path = "/.*",] ...fn)
+Registers middleware for a route. `path` is a regular expression (as a string), and if not passed it defaults to `/.*`.
+
+### post ([path = "/.*",] ...fn)
+Registers middleware for a route. `path` is a regular expression (as a string), and if not passed it defaults to `/.*`.
+
+### put ([path = "/.*",] ...fn)
+Registers middleware for a route. `path` is a regular expression (as a string), and if not passed it defaults to `/.*`.
+
+### onDone (req, res, body, headers)
+**Override** to customize final handler. Must terminate response.
+
+### onReady (req, res, body, status, headers)
+**Override** to customize response `body`, `status`, or `headers`. Must call `onSend()`.
+
+### onSend (req, res, body, status, headers)
 **Override** to customize response `body`, `status`, or `headers`. Must return `[body, status, headers]`!
+
+### options ([path = "/.*",] ...fn)
+Registers middleware for a route. `path` is a regular expression (as a string), and if not passed it defaults to `/.*`.
 
 ### route (req, res)
 Function for `http.createServer()` or `https.createServer()`.
 
 ### routes (uri, method, override = false)
 Returns an `Array` of middleware for the request. Caches value, & will update cache if `override` is `true`.
-
-### serve (req, res, localFilePath, folderPath, indexes = this.indexes)
-Serve static files on disk. Use a route parameter or remove `folderPath` from `req.parsed.pathname` to create `localFilePath`.
-
-#### Without `autoindex`
-```javascript
-app.use("/files/:file", (req, res) => app.serve(req, res, req.params.file, path.join(__dirname, "files")));
-```
-
-#### With `autoindex`
-```javascript
-app.use("/files(/.*)?", (req, res) => app.serve(req, res, req.parsed.pathname.replace(/^\/files\/?/, ""), join(__dirname, "files")));
-```
-
-### staticFiles (root = "/")
-Serve static files on disk. Calls `this.serve()`.
 
 ### use ([path = "/.*",] ...fn[, method = "GET"])
 Registers middleware for a route. `path` is a regular expression (as a string), and if not passed it defaults to `/.*`. See `always()` if you want the middleware to be used for all HTTP methods.
