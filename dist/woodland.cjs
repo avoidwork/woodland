@@ -3,7 +3,7 @@
  *
  * @copyright 2024 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 18.2.10
+ * @version 19.0.0
  */
 'use strict';
 
@@ -529,10 +529,6 @@ class Woodland extends node_events.EventEmitter {
 		}
 	}
 
-	del (...args) {
-		return this.use(...args, DELETE);
-	}
-
 	delete (...args) {
 		return this.use(...args, DELETE);
 	}
@@ -544,7 +540,7 @@ class Woodland extends node_events.EventEmitter {
 				let output = err.message,
 					headers = {};
 
-				[output, status, headers] = this.onready(req, res, output, status, headers);
+				[output, status, headers] = this.onReady(req, res, output, status, headers);
 
 				if (status === INT_404) {
 					res.removeHeader(ALLOW);
@@ -568,13 +564,17 @@ class Woodland extends node_events.EventEmitter {
 					this.log(this.clf(req, res), INFO);
 				}
 
-				this.ondone(req, res, output, headers);
+				this.onDone(req, res, output, headers);
 			}
 		};
 	}
 
 	etag (method, ...args) {
 		return (method === GET || method === HEAD || method === OPTIONS) && this.etags !== null ? this.etags.create(args.map(i => typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i).join(HYPHEN)) : EMPTY;
+	}
+
+	files (root = SLASH, folder = process.cwd()) {
+		this.get(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) => this.serve(req, res, req.parsed.pathname.substring(1), folder));
 	}
 
 	get (...args) {
@@ -632,7 +632,7 @@ class Woodland extends node_events.EventEmitter {
 		return this;
 	}
 
-	ondone (req, res, body, headers) {
+	onDone (req, res, body, headers) {
 		if (res.statusCode !== INT_204 && res.statusCode !== INT_304 && res.getHeader(CONTENT_LENGTH) === void 0) {
 			res.header(CONTENT_LENGTH, Buffer.byteLength(body));
 		}
@@ -641,16 +641,16 @@ class Woodland extends node_events.EventEmitter {
 		res.end(body, this.charset);
 	}
 
-	onready (req, res, body, status, headers) {
+	onReady (req, res, body, status, headers) {
 		if (this.time && res.getHeader(X_RESPONSE_TIME) === void 0) {
 			res.header(X_RESPONSE_TIME, `${ms(req.precise.stop().diff(), this.digit)}`);
 		}
 
-		return this.onsend(req, res, body, status, headers);
+		return this.onSend(req, res, body, status, headers);
 	}
 
 	/* istanbul ignore next */
-	onsend (req, res, body, status, headers) {
+	onSend (req, res, body, status, headers) {
 		return [body, status, headers];
 	}
 
@@ -748,7 +748,7 @@ class Woodland extends node_events.EventEmitter {
 	send (req, res) {
 		return (body = EMPTY, status = res.statusCode, headers = {}) => {
 			if (res.headersSent === false) {
-				[body, status, headers] = this.onready(req, res, body, status, headers);
+				[body, status, headers] = this.onReady(req, res, body, status, headers);
 
 				if (pipeable(req.method, body)) {
 					if (req.headers.range === void 0 || req.range !== void 0) {
@@ -768,13 +768,13 @@ class Woodland extends node_events.EventEmitter {
 						[headers] = partialHeaders(req, res, Buffer.byteLength(buffered), status, headers);
 
 						if (req.range !== void 0) {
-							this.ondone(req, res, buffered.slice(req.range.start, req.range.end).toString(), headers);
+							this.onDone(req, res, buffered.slice(req.range.start, req.range.end).toString(), headers);
 						} else {
 							res.error(INT_416);
 						}
 					} else {
 						res.statusCode = status;
-						this.ondone(req, res, body, headers);
+						this.onDone(req, res, body, headers);
 					}
 				}
 
@@ -872,10 +872,6 @@ class Woodland extends node_events.EventEmitter {
 
 			return res;
 		};
-	}
-
-	staticFiles (root = SLASH, folder = process.cwd()) {
-		this.get(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) => this.serve(req, res, req.parsed.pathname.substring(1), folder));
 	}
 
 	trace (...args) {

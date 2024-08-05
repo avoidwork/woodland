@@ -48,7 +48,7 @@ function always (req, res, next) {
 }
 
 router.on("connect", (req, res) => res.header("x-onconnect", "true"));
-router.onsend = (req, res, body, status, headers) => {
+router.onSend = (req, res, body, status, headers) => {
 	headers["x-by-reference"] = "true";
 
 	return [body, status, headers];
@@ -67,7 +67,7 @@ router.use("/echo/:echo", (req, res) => res.send(req.params.echo));
 router.use("/echo/:echo", (req, res) => res.send("The entity will be echoed back to you"), "OPTIONS");
 router.use("/params/:first/:second", (req, res) => res.send(`${req.params.first}-${req.params.second}`));
 router.use("/error", (req, res) => res.error(500));
-router.staticFiles("/test");
+router.files("/test");
 router.use("/last", (req, res, next) => next());
 router.use("/last-error", (req, res, next) => next(new Error("Something went wrong")));
 router.use("/last-error", (err, req, res, next) => next(err));
@@ -84,7 +84,6 @@ router.use("/double-send", (req, res) => {
 
 // Methods
 router.connect("/methods", (req, res) => res.send("connect handler"));
-router.del("/methods", (req, res) => res.send(EMPTY));
 router.delete("/methods", (req, res) => res.send(EMPTY));
 router.get("/methods", (req, res) => res.send(EMPTY));
 router.patch("/methods", (req, res) => res.send(EMPTY));
@@ -305,6 +304,12 @@ describe("Valid Requests", function () {
 			.expectHeader(CONTENT_RANGE, /^bytes 5-12\/12$/)
 			.expectHeader(CONTENT_LENGTH, 7)
 			.expectBody(/^ World!$/)
+			.end();
+	});
+
+	it("GET /test/ (200 / 'Success')", function () {
+		return httptest({url: "http://localhost:8001/test/"})
+			.expectStatus(200)
 			.end();
 	});
 

@@ -31,6 +31,6 @@ const app = woodland({
 	ip = argv.ip ?? LOCALHOST,
 	port = argv.port ?? INT_8000;
 
-app.staticFiles();
+app.files();
 createServer(app.route).listen(port, ip);
 app.log(`id=woodland, hostname=localhost, ip=${ip}, port=${port}`, INFO);
