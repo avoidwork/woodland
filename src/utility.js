@@ -20,8 +20,6 @@ import {
 	GET,
 	HEAD,
 	HYPHEN,
-	IF_MODIFIED_SINCE,
-	IF_NONE_MATCH,
 	INT_0,
 	INT_10,
 	INT_1e6,
@@ -29,7 +27,6 @@ import {
 	INT_200,
 	INT_206,
 	INT_3,
-	INT_304,
 	INT_404,
 	INT_405,
 	INT_500,
@@ -203,26 +200,21 @@ export function stream (req, res, file = {
 	}
 
 	if (req.method === GET) {
-		if (file.etag.length > INT_0 && req.headers[IF_NONE_MATCH] === file.etag || req.headers[IF_NONE_MATCH] === void 0 && Date.parse(req.headers[IF_MODIFIED_SINCE]) >= file.stats.mtime) {
+		let status = INT_200;
+		let options, headers;
+
+		if (RANGE in req.headers) {
+			[headers, options] = partialHeaders(req, res, file.stats.size, status);
 			res.removeHeader(CONTENT_LENGTH);
-			res.send(EMPTY, INT_304);
-		} else {
-			let status = INT_200;
-			let options, headers;
+			res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
+			options.end--; // last byte offset
 
-			if (RANGE in req.headers) {
-				[headers, options] = partialHeaders(req, res, file.stats.size, status);
-				res.removeHeader(CONTENT_LENGTH);
-				res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
-				options.end--; // last byte offset
-
-				if (CONTENT_LENGTH in headers) {
-					res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
-				}
+			if (CONTENT_LENGTH in headers) {
+				res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
 			}
-
-			res.send(createReadStream(file.path, options), status);
 		}
+
+		res.send(createReadStream(file.path, options), status);
 	} else if (req.method === HEAD) {
 		res.send(EMPTY);
 	} else if (req.method === OPTIONS) {
