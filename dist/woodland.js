@@ -3,7 +3,7 @@
  *
  * @copyright 2024 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 19.0.2
+ * @version 20.0.0
  */
 import {STATUS_CODES,METHODS}from'node:http';import {join,extname}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {createRequire}from'node:module';import {fileURLToPath,URL}from'node:url';import {readFileSync,createReadStream}from'node:fs';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const __dirname$1 = fileURLToPath(new URL(".", import.meta.url));
 const require = createRequire(import.meta.url);
@@ -258,7 +258,7 @@ function pipeable (method, arg) {
 	return method !== HEAD && arg !== null && typeof arg.on === FUNCTION;
 }
 
-function reduce (uri, map = new Map(), arg = {}, end = false, ignore = new Set()) {
+function reduce (uri, map = new Map(), arg = {}, end = false) {
 	Array.from(map.values()).filter(i => {
 		i.regex.lastIndex = INT_0;
 
@@ -267,8 +267,8 @@ function reduce (uri, map = new Map(), arg = {}, end = false, ignore = new Set()
 		for (const fn of i.handlers) {
 			arg.middleware.push(fn);
 
-			if (end && arg.last === null && ignore.has(fn) === false) {
-				arg.last = fn;
+			if (end && arg.exit === null) {
+				arg.exit = fn;
 			}
 		}
 
@@ -684,7 +684,7 @@ function writeHead (res, headers = {}) {
 				params(req, result.getParams);
 			}
 
-			req.last = result.last;
+			req.exit = result.exit;
 			next(req, res, result.middleware[Symbol.iterator]())();
 		} else {
 			res.error(getStatus(req, res));
@@ -699,7 +699,7 @@ function writeHead (res, headers = {}) {
 		if (cached !== void 0) {
 			result = cached;
 		} else {
-			result = {getParams: null, middleware: [], params: false, visible: INT_0, last: null};
+			result = {getParams: null, middleware: [], params: false, visible: INT_0, exit: null};
 			reduce(uri, this.middleware.get(WILDCARD), result);
 
 			if (method !== WILDCARD) {

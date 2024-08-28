@@ -3,7 +3,7 @@
  *
  * @copyright 2024 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 19.0.2
+ * @version 20.0.0
  */
 'use strict';
 
@@ -276,7 +276,7 @@ function pipeable (method, arg) {
 	return method !== HEAD && arg !== null && typeof arg.on === FUNCTION;
 }
 
-function reduce (uri, map = new Map(), arg = {}, end = false, ignore = new Set()) {
+function reduce (uri, map = new Map(), arg = {}, end = false) {
 	Array.from(map.values()).filter(i => {
 		i.regex.lastIndex = INT_0;
 
@@ -285,8 +285,8 @@ function reduce (uri, map = new Map(), arg = {}, end = false, ignore = new Set()
 		for (const fn of i.handlers) {
 			arg.middleware.push(fn);
 
-			if (end && arg.last === null && ignore.has(fn) === false) {
-				arg.last = fn;
+			if (end && arg.exit === null) {
+				arg.exit = fn;
 			}
 		}
 
@@ -704,7 +704,7 @@ class Woodland extends node_events.EventEmitter {
 				params(req, result.getParams);
 			}
 
-			req.last = result.last;
+			req.exit = result.exit;
 			next(req, res, result.middleware[Symbol.iterator]())();
 		} else {
 			res.error(getStatus(req, res));
@@ -719,7 +719,7 @@ class Woodland extends node_events.EventEmitter {
 		if (cached !== void 0) {
 			result = cached;
 		} else {
-			result = {getParams: null, middleware: [], params: false, visible: INT_0, last: null};
+			result = {getParams: null, middleware: [], params: false, visible: INT_0, exit: null};
 			reduce(uri, this.middleware.get(WILDCARD), result);
 
 			if (method !== WILDCARD) {

@@ -4,7 +4,7 @@
  *
  * @copyright 2024 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 19.0.2
+ * @version 20.0.0
  */
 'use strict';
 

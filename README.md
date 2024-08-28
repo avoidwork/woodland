@@ -227,6 +227,9 @@ Executes after the response has been sent.
 ## Helpers
 `req` & `res` are decorated with helper functions to simplify responding.
 
+### req.exit(req, res, next)
+Exit middleware of the route for the HTTP method as a way to "skip" authentication middleware for unprotected routes.
+
 ### res.error(status[, body, headers])
 Sends an error response.
 
@@ -235,9 +238,6 @@ Shorthand of `res.setHeader()`.
 
 ### res.json(body, [status = 200, headers])
 Sends a JSON response.
-
-### res.last(req, res, next)
-Last middleware of the route for the HTTP method as a way to "skip" to the middleware which sends a response.
 
 ### res.redirect(uri[, perm = false])
 Sends a redirection response.

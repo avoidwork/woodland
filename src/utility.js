@@ -163,7 +163,7 @@ export function pipeable (method, arg) {
 	return method !== HEAD && arg !== null && typeof arg.on === FUNCTION;
 }
 
-export function reduce (uri, map = new Map(), arg = {}, end = false, ignore = new Set()) {
+export function reduce (uri, map = new Map(), arg = {}, end = false) {
 	Array.from(map.values()).filter(i => {
 		i.regex.lastIndex = INT_0;
 
@@ -172,8 +172,8 @@ export function reduce (uri, map = new Map(), arg = {}, end = false, ignore = ne
 		for (const fn of i.handlers) {
 			arg.middleware.push(fn);
 
-			if (end && arg.last === null && ignore.has(fn) === false) {
-				arg.last = fn;
+			if (end && arg.exit === null) {
+				arg.exit = fn;
 			}
 		}
 
