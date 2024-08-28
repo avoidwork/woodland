@@ -79,8 +79,8 @@ export function ms (arg = INT_0, digits = INT_3) {
 	return TIME_MS.replace(TOKEN_N, Number(arg / INT_1e6).toFixed(digits));
 }
 
-export function next (req, res, middleware) {
-	const fn = err => process.nextTick(() => {
+export function next (req, res, middleware, immediate = false) {
+	const internalFn = (err, fn) => {
 		let obj = middleware.next();
 
 		if (obj.done === false) {
@@ -100,7 +100,8 @@ export function next (req, res, middleware) {
 		} else {
 			res.error(getStatus(req, res));
 		}
-	});
+	};
+	const fn = immediate ? () => internalFn(undefined, fn) : err => process.nextTick(() => internalFn(err, fn));
 
 	return fn;
 }
@@ -163,7 +164,7 @@ export function pipeable (method, arg) {
 	return method !== HEAD && arg !== null && typeof arg.on === FUNCTION;
 }
 
-export function reduce (uri, map = new Map(), arg = {}, end = false) {
+export function reduce (uri, map = new Map(), arg = {}) {
 	Array.from(map.values()).filter(i => {
 		i.regex.lastIndex = INT_0;
 
@@ -171,10 +172,6 @@ export function reduce (uri, map = new Map(), arg = {}, end = false) {
 	}).forEach(i => {
 		for (const fn of i.handlers) {
 			arg.middleware.push(fn);
-
-			if (end && arg.exit === null) {
-				arg.exit = fn;
-			}
 		}
 
 		if (i.params && arg.params === false) {

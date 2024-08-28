@@ -465,7 +465,7 @@ export class Woodland extends EventEmitter {
 				params(req, result.getParams);
 			}
 
-			req.exit = result.exit;
+			req.exit = next(req, res, result.middleware.slice(result.exit, result.middleware.length)[Symbol.iterator](), true);
 			next(req, res, result.middleware[Symbol.iterator]())();
 		} else {
 			res.error(getStatus(req, res));
@@ -480,10 +480,11 @@ export class Woodland extends EventEmitter {
 		if (cached !== void 0) {
 			result = cached;
 		} else {
-			result = {getParams: null, middleware: [], params: false, visible: INT_0, exit: null};
+			result = {getParams: null, middleware: [], params: false, visible: INT_0, exit: -1};
 			reduce(uri, this.middleware.get(WILDCARD), result);
 
 			if (method !== WILDCARD) {
+				result.exit = result.middleware.length;
 				reduce(uri, this.middleware.get(method), result, true);
 			}
 

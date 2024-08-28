@@ -3,7 +3,7 @@
  *
  * @copyright 2024 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.0.0
+ * @version 20.0.1
  */
 'use strict';
 
@@ -192,8 +192,8 @@ function ms (arg = INT_0, digits = INT_3) {
 	return TIME_MS.replace(TOKEN_N, Number(arg / INT_1e6).toFixed(digits));
 }
 
-function next (req, res, middleware) {
-	const fn = err => process.nextTick(() => {
+function next (req, res, middleware, immediate = false) {
+	const internalFn = (err, fn) => {
 		let obj = middleware.next();
 
 		if (obj.done === false) {
@@ -213,7 +213,8 @@ function next (req, res, middleware) {
 		} else {
 			res.error(getStatus(req, res));
 		}
-	});
+	};
+	const fn = immediate ? () => internalFn(undefined, fn) : err => process.nextTick(() => internalFn(err, fn));
 
 	return fn;
 }
@@ -276,7 +277,7 @@ function pipeable (method, arg) {
 	return method !== HEAD && arg !== null && typeof arg.on === FUNCTION;
 }
 
-function reduce (uri, map = new Map(), arg = {}, end = false) {
+function reduce (uri, map = new Map(), arg = {}) {
 	Array.from(map.values()).filter(i => {
 		i.regex.lastIndex = INT_0;
 
@@ -284,10 +285,6 @@ function reduce (uri, map = new Map(), arg = {}, end = false) {
 	}).forEach(i => {
 		for (const fn of i.handlers) {
 			arg.middleware.push(fn);
-
-			if (end && arg.exit === null) {
-				arg.exit = fn;
-			}
 		}
 
 		if (i.params && arg.params === false) {
@@ -704,7 +701,7 @@ class Woodland extends node_events.EventEmitter {
 				params(req, result.getParams);
 			}
 
-			req.exit = result.exit;
+			req.exit = next(req, res, result.middleware.slice(result.exit, result.middleware.length)[Symbol.iterator](), true);
 			next(req, res, result.middleware[Symbol.iterator]())();
 		} else {
 			res.error(getStatus(req, res));
@@ -719,11 +716,12 @@ class Woodland extends node_events.EventEmitter {
 		if (cached !== void 0) {
 			result = cached;
 		} else {
-			result = {getParams: null, middleware: [], params: false, visible: INT_0, exit: null};
+			result = {getParams: null, middleware: [], params: false, visible: INT_0, exit: -1};
 			reduce(uri, this.middleware.get(WILDCARD), result);
 
 			if (method !== WILDCARD) {
-				reduce(uri, this.middleware.get(method), result, true);
+				result.exit = result.middleware.length;
+				reduce(uri, this.middleware.get(method), result);
 			}
 
 			result.visible = result.middleware.filter(i => this.ignored.has(i) === false).length;

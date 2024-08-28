@@ -227,8 +227,8 @@ Executes after the response has been sent.
 ## Helpers
 `req` & `res` are decorated with helper functions to simplify responding.
 
-### req.exit(req, res, next)
-Exit middleware of the route for the HTTP method as a way to "skip" authentication middleware for unprotected routes.
+### req.exit()
+Exit the middleware chain if the route is un-protected.
 
 ### res.error(status[, body, headers])
 Sends an error response.
