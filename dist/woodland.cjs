@@ -723,7 +723,7 @@ class Woodland extends node_events.EventEmitter {
 			reduce(uri, this.middleware.get(WILDCARD), result);
 
 			if (method !== WILDCARD) {
-				reduce(uri, this.middleware.get(method), result, true, this.ignored);
+				reduce(uri, this.middleware.get(method), result, true);
 			}
 
 			result.visible = result.middleware.filter(i => this.ignored.has(i) === false).length;
