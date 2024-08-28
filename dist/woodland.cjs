@@ -3,7 +3,7 @@
  *
  * @copyright 2024 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 19.0.1
+ * @version 19.0.2
  */
 'use strict';
 
@@ -793,6 +793,10 @@ class Woodland extends node_events.EventEmitter {
 		let valid = true;
 		let stats;
 
+		if (this.logging.enabled) {
+			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ROUTING_FILE}"`);
+		}
+
 		try {
 			stats = await promises.stat(fp, {bigint: false});
 			// eslint-disable-next-line no-unused-vars
@@ -841,10 +845,6 @@ class Woodland extends node_events.EventEmitter {
 					stats: rstats
 				});
 			}
-		}
-
-		if (this.logging.enabled) {
-			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ROUTING_FILE}"`);
 		}
 	}
 

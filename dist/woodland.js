@@ -3,7 +3,7 @@
  *
  * @copyright 2024 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 19.0.1
+ * @version 19.0.2
  */
 import {STATUS_CODES,METHODS}from'node:http';import {join,extname}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {createRequire}from'node:module';import {fileURLToPath,URL}from'node:url';import {readFileSync,createReadStream}from'node:fs';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const __dirname$1 = fileURLToPath(new URL(".", import.meta.url));
 const require = createRequire(import.meta.url);
@@ -773,6 +773,10 @@ function writeHead (res, headers = {}) {
 		let valid = true;
 		let stats;
 
+		if (this.logging.enabled) {
+			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ROUTING_FILE}"`);
+		}
+
 		try {
 			stats = await stat(fp, {bigint: false});
 			// eslint-disable-next-line no-unused-vars
@@ -821,10 +825,6 @@ function writeHead (res, headers = {}) {
 					stats: rstats
 				});
 			}
-		}
-
-		if (this.logging.enabled) {
-			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ROUTING_FILE}"`);
 		}
 	}
 

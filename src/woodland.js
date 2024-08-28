@@ -554,6 +554,10 @@ export class Woodland extends EventEmitter {
 		let valid = true;
 		let stats;
 
+		if (this.logging.enabled) {
+			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ROUTING_FILE}"`);
+		}
+
 		try {
 			stats = await stat(fp, {bigint: false});
 			// eslint-disable-next-line no-unused-vars
@@ -602,10 +606,6 @@ export class Woodland extends EventEmitter {
 					stats: rstats
 				});
 			}
-		}
-
-		if (this.logging.enabled) {
-			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ROUTING_FILE}"`);
 		}
 	}
 
