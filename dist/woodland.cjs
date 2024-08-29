@@ -3,7 +3,7 @@
  *
  * @copyright 2024 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.0.2
+ * @version 20.0.3
  */
 'use strict';
 
@@ -431,10 +431,7 @@ class Woodland extends node_events.EventEmitter {
 
 			result = list.sort().join(COMMA_SPACE);
 			this.permissions.set(uri, result);
-
-			if (this.logging.enabled) {
-				this.log(`type=allows, uri=${uri}, override=${override}, message="${MSG_DETERMINED_ALLOW}"`);
-			}
+			this.log(`type=allows, uri=${uri}, override=${override}, message="${MSG_DETERMINED_ALLOW}"`);
 		}
 
 		return result;
@@ -515,9 +512,7 @@ class Woodland extends node_events.EventEmitter {
 			res.header(ACCESS_CONTROL_ALLOW_METHODS, req.allow);
 		}
 
-		if (this.logging.enabled) {
-			this.log(`type=decorate, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_DECORATED_IP.replace(IP_TOKEN, req.ip)}"`);
-		}
+		this.log(`type=decorate, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_DECORATED_IP.replace(IP_TOKEN, req.ip)}"`);
 	}
 
 	delete (...args) {
@@ -550,11 +545,8 @@ class Woodland extends node_events.EventEmitter {
 					this.emit(ERROR, req, res, err);
 				}
 
-				if (this.logging.enabled) {
-					this.log(`type=error, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ERROR_IP.replace(IP_TOKEN, req.ip)}"`);
-					this.log(this.clf(req, res), INFO);
-				}
-
+				this.log(`type=error, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ERROR_IP.replace(IP_TOKEN, req.ip)}"`);
+				this.log(this.clf(req, res), INFO);
 				this.onDone(req, res, output, headers);
 			}
 		};
@@ -574,10 +566,7 @@ class Woodland extends node_events.EventEmitter {
 
 	ignore (fn) {
 		this.ignored.add(fn);
-
-		if (this.logging.enabled) {
-			this.log(`type=ignore, message="${MSG_IGNORED_FN}", code="${fn.toString()}"`);
-		}
+		this.log(`type=ignore, message="${MSG_IGNORED_FN}"`);
 
 		return this;
 	}
@@ -605,19 +594,19 @@ class Woodland extends node_events.EventEmitter {
 			}
 		}
 
-		if (this.logging.enabled) {
-			this.log(`type=list, method=${method}, type=${type}`);
-		}
+		this.log(`type=list, method=${method}, type=${type}`);
 
 		return result;
 	}
 
 	log (msg, level = DEBUG) {
-		const idx = LEVELS[level];
+		if (this.logging.enabled) {
+			const idx = LEVELS[level];
 
-		if (idx <= LEVELS[this.logging.level]) {
-			/* istanbul ignore next */
-			process.nextTick(() => console[idx > INT_4 ? LOG : ERROR](msg));
+			if (idx <= LEVELS[this.logging.level]) {
+				/* istanbul ignore next */
+				process.nextTick(() => console[idx > INT_4 ? LOG : ERROR](msg));
+			}
 		}
 
 		return this;
@@ -690,9 +679,7 @@ class Woodland extends node_events.EventEmitter {
 			method = GET; // Changing an OPTIONS request to GET due to absent route
 		}
 
-		if (this.logging.enabled) {
-			this.log(`type=route, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ROUTING}"`);
-		}
+		this.log(`type=route, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ROUTING}"`);
 
 		if (req.cors === false && ORIGIN in req.headers && req.corsHost && this.origins.includes(req.headers.origin) === false) {
 			res.error(INT_403);
@@ -730,9 +717,7 @@ class Woodland extends node_events.EventEmitter {
 			this.cache.set(key, result);
 		}
 
-		if (this.logging.enabled) {
-			this.log(`type=routes, uri=${uri}, method=${method}, cached=${cached !== void 0}, middleware=${result.middleware.length}, params=${result.params}, visible=${result.visible}, override=${override}, message="${MSG_RETRIEVED_MIDDLEWARE}"`);
-		}
+		this.log(`type=routes, uri=${uri}, method=${method}, cached=${cached !== void 0}, middleware=${result.middleware.length}, params=${result.params}, visible=${result.visible}, override=${override}, message="${MSG_RETRIEVED_MIDDLEWARE}"`);
 
 		return result;
 	}
@@ -770,11 +755,9 @@ class Woodland extends node_events.EventEmitter {
 					}
 				}
 
-				if (this.logging.enabled) {
-					this.log(`type=res.send, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, valid=true, message="${MSG_SENDING_BODY}"`);
-					this.log(this.clf(req, res), INFO);
-				}
-			} else if (this.logging.enabled) {
+				this.log(`type=res.send, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, valid=true, message="${MSG_SENDING_BODY}"`);
+				this.log(this.clf(req, res), INFO);
+			} else {
 				this.log(`type=res.send, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, valid=false, message="${MSG_HEADERS_SENT}"`);
 			}
 		};
@@ -793,9 +776,7 @@ class Woodland extends node_events.EventEmitter {
 		let valid = true;
 		let stats;
 
-		if (this.logging.enabled) {
-			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ROUTING_FILE}"`);
-		}
+		this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ROUTING_FILE}"`);
 
 		try {
 			stats = await promises.stat(fp, {bigint: false});
@@ -902,9 +883,7 @@ class Woodland extends node_events.EventEmitter {
 			regex: new RegExp(`^${lrpath}$`)
 		});
 
-		if (this.logging.enabled) {
-			this.log(`type=use, route=${rpath}, method=${method}, message="${MSG_REGISTERING_MIDDLEWARE}"`);
-		}
+		this.log(`type=use, route=${rpath}, method=${method}, message="${MSG_REGISTERING_MIDDLEWARE}"`);
 
 		return this;
 	}
