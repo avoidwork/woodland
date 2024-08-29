@@ -328,7 +328,7 @@ export class Woodland extends EventEmitter {
 
 	ignore (fn) {
 		this.ignored.add(fn);
-		this.log(`type=ignore, message="${MSG_IGNORED_FN}"`);
+		this.log(`type=ignore, message="${MSG_IGNORED_FN}", name="${fn.name}"`);
 
 		return this;
 	}

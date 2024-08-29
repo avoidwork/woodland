@@ -3,7 +3,7 @@
  *
  * @copyright 2024 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.0.3
+ * @version 20.0.4
  */
 'use strict';
 
@@ -566,7 +566,7 @@ class Woodland extends node_events.EventEmitter {
 
 	ignore (fn) {
 		this.ignored.add(fn);
-		this.log(`type=ignore, message="${MSG_IGNORED_FN}"`);
+		this.log(`type=ignore, message="${MSG_IGNORED_FN}", name="${fn.name}"`);
 
 		return this;
 	}
