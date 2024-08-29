@@ -94,8 +94,10 @@ export function next (req, res, middleware, immediate = false) {
 				} else {
 					res.error(getStatus(req, res));
 				}
-			} else {
+			} else if (typeof obj.value === FUNCTION) {
 				obj.value(req, res, fn);
+			} else {
+				res.send(obj.value);
 			}
 		} else {
 			res.error(getStatus(req, res));

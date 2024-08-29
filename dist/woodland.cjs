@@ -3,7 +3,7 @@
  *
  * @copyright 2024 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.0.1
+ * @version 20.0.2
  */
 'use strict';
 
@@ -207,8 +207,10 @@ function next (req, res, middleware, immediate = false) {
 				} else {
 					res.error(getStatus(req, res));
 				}
-			} else {
+			} else if (typeof obj.value === FUNCTION) {
 				obj.value(req, res, fn);
+			} else {
+				res.send(obj.value);
 			}
 		} else {
 			res.error(getStatus(req, res));

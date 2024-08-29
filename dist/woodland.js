@@ -3,7 +3,7 @@
  *
  * @copyright 2024 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.0.1
+ * @version 20.0.2
  */
 import {STATUS_CODES,METHODS}from'node:http';import {join,extname}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {createRequire}from'node:module';import {fileURLToPath,URL}from'node:url';import {readFileSync,createReadStream}from'node:fs';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const __dirname$1 = fileURLToPath(new URL(".", import.meta.url));
 const require = createRequire(import.meta.url);
@@ -189,8 +189,10 @@ function next (req, res, middleware, immediate = false) {
 				} else {
 					res.error(getStatus(req, res));
 				}
-			} else {
+			} else if (typeof obj.value === FUNCTION) {
 				obj.value(req, res, fn);
+			} else {
+				res.send(obj.value);
 			}
 		} else {
 			res.error(getStatus(req, res));

@@ -81,6 +81,7 @@ router.use("/double-send", (req, res) => {
 	res.send("Hello World 1!");
 	process.nextTick(() => res.send("Hello World 2!"));
 });
+router.get("/hi", "hello!");
 
 // Methods
 router.connect("/methods", (req, res) => res.send("connect handler"));
@@ -635,6 +636,13 @@ describe("Invalid Requests", function () {
 	it("GET /last-error-invalid (502 / 'Faux Bad Gateway')", function () {
 		return httptest({url: "http://localhost:8001/last-error-invalid"})
 			.expectStatus(502)
+			.end();
+	});
+
+	it("GET /hi (200 / 'Primitive transmission')", function () {
+		return httptest({url: "http://localhost:8001/hi"})
+			.expectStatus(200)
+			.expectBody(/hello!/)
 			.end().then(() => server.close());
 	});
 });
