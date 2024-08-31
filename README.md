@@ -214,21 +214,33 @@ id=woodland, hostname=localhost, ip=127.0.0.1, port=8000
 ## Event Handlers
 Event Emitter syntax for the following events:
 
+### connect (req, res)
+Executes after the connection has been decorated, but before the middleware executes.
+
 ```javascript
 app.on("connect", (req, res) => res.header("x-custom-header", "abc-def"));
 ```
 
-### connect (req, res)
-Executes after the connection has been decorated, but before the middleware executes.
-
 ### error (req, res, err)
 Executes after the response has been sent.
+
+```javascript
+app.on("error", (req, res, err) => { /* log err */ });
+```
 
 ### finish (req, res)
 Executes after the response has been sent.
 
+```javascript
+app.on("finish", (req, res) => { /* telemetry */ });
+```
+
 ### stream (req, res)
-Executes after the response has been sent.
+Executes after the response has been streamed.
+
+```javascript
+app.on("stream", (req, res, err) => { /* telemetry */ });
+```
 
 ## Helpers
 `req` & `res` are decorated with helper functions to simplify responding.

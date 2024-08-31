@@ -3,7 +3,7 @@
  *
  * @copyright 2024 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.1.0
+ * @version 20.1.1
  */
 'use strict';
 
@@ -443,6 +443,7 @@ class Woodland extends node_events.EventEmitter {
 		req.host = parsed.hostname;
 		req.ip = this.ip(req);
 		req.params = {};
+		req.valid = true;
 		res.locals = {};
 		res.error = this.error(req, res);
 		res.header = res.setHeader;
@@ -642,6 +643,7 @@ class Woodland extends node_events.EventEmitter {
 		this.log(`type=route, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ROUTING}"`);
 
 		if (req.cors === false && ORIGIN in req.headers && req.corsHost && this.origins.includes(req.headers.origin) === false) {
+			req.valid = false;
 			res.error(INT_403);
 		} else if (req.allow.includes(method)) {
 			const result = this.routes(req.parsed.pathname, method);
@@ -653,6 +655,7 @@ class Woodland extends node_events.EventEmitter {
 			req.exit = next(req, res, result.middleware.slice(result.exit, result.middleware.length)[Symbol.iterator](), true);
 			next(req, res, result.middleware[Symbol.iterator]())();
 		} else {
+			req.valid = false;
 			res.error(getStatus(req, res));
 		}
 	}

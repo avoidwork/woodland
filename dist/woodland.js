@@ -3,7 +3,7 @@
  *
  * @copyright 2024 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.1.0
+ * @version 20.1.1
  */
 import {STATUS_CODES,METHODS}from'node:http';import {join,extname}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {createRequire}from'node:module';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const __dirname$1 = fileURLToPath(new URL(".", import.meta.url));
 const require = createRequire(import.meta.url);
@@ -423,6 +423,7 @@ function writeHead (res, headers = {}) {
 		req.host = parsed.hostname;
 		req.ip = this.ip(req);
 		req.params = {};
+		req.valid = true;
 		res.locals = {};
 		res.error = this.error(req, res);
 		res.header = res.setHeader;
@@ -622,6 +623,7 @@ function writeHead (res, headers = {}) {
 		this.log(`type=route, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ROUTING}"`);
 
 		if (req.cors === false && ORIGIN in req.headers && req.corsHost && this.origins.includes(req.headers.origin) === false) {
+			req.valid = false;
 			res.error(INT_403);
 		} else if (req.allow.includes(method)) {
 			const result = this.routes(req.parsed.pathname, method);
@@ -633,6 +635,7 @@ function writeHead (res, headers = {}) {
 			req.exit = next(req, res, result.middleware.slice(result.exit, result.middleware.length)[Symbol.iterator](), true);
 			next(req, res, result.middleware[Symbol.iterator]())();
 		} else {
+			req.valid = false;
 			res.error(getStatus(req, res));
 		}
 	}
