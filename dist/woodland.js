@@ -3,7 +3,7 @@
  *
  * @copyright 2024 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.0.4
+ * @version 20.0.5
  */
 import {STATUS_CODES,METHODS}from'node:http';import {join,extname}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {createRequire}from'node:module';import {fileURLToPath,URL}from'node:url';import {readFileSync,createReadStream}from'node:fs';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const __dirname$1 = fileURLToPath(new URL(".", import.meta.url));
 const require = createRequire(import.meta.url);
@@ -20,6 +20,7 @@ const APPLICATION_JSON = "application/json";
 const APPLICATION_OCTET_STREAM = "application/octet-stream";
 const ARRAY = "array";
 const CACHE_CONTROL = "cache-control";
+const CLOSE = "close";
 const COLON = ":";
 const COMMA = ",";
 const COMMA_SPACE = ", ";
@@ -110,7 +111,6 @@ const MSG_ROUTING = "Routing request";
 const MSG_ROUTING_FILE = "Routing request to file system";
 const MSG_RETRIEVED_MIDDLEWARE = "Retrieved middleware for request";
 const MSG_REGISTERING_MIDDLEWARE = "Registering middleware";
-const MSG_HEADERS_SENT = "Headers already sent";
 const OBJECT = "object";
 const OPTIONS = "OPTIONS";
 const OPTIONS_BODY = "Make a GET request to retrieve the file";
@@ -493,6 +493,7 @@ function writeHead (res, headers = {}) {
 		}
 
 		this.log(`type=decorate, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_DECORATED_IP.replace(IP_TOKEN, req.ip)}"`);
+		res.on(CLOSE, () => this.log(this.clf(req, res), INFO));
 	}
 
 	delete (...args) {
@@ -526,7 +527,6 @@ function writeHead (res, headers = {}) {
 				}
 
 				this.log(`type=error, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ERROR_IP.replace(IP_TOKEN, req.ip)}"`);
-				this.log(this.clf(req, res), INFO);
 				this.onDone(req, res, output, headers);
 			}
 		};
@@ -736,9 +736,6 @@ function writeHead (res, headers = {}) {
 				}
 
 				this.log(`type=res.send, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, valid=true, message="${MSG_SENDING_BODY}"`);
-				this.log(this.clf(req, res), INFO);
-			} else {
-				this.log(`type=res.send, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, valid=false, message="${MSG_HEADERS_SENT}"`);
 			}
 		};
 	}

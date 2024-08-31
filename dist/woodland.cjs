@@ -3,7 +3,7 @@
  *
  * @copyright 2024 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.0.4
+ * @version 20.0.5
  */
 'use strict';
 
@@ -36,6 +36,7 @@ const APPLICATION_JSON = "application/json";
 const APPLICATION_OCTET_STREAM = "application/octet-stream";
 const ARRAY = "array";
 const CACHE_CONTROL = "cache-control";
+const CLOSE = "close";
 const COLON = ":";
 const COMMA = ",";
 const COMMA_SPACE = ", ";
@@ -126,7 +127,6 @@ const MSG_ROUTING = "Routing request";
 const MSG_ROUTING_FILE = "Routing request to file system";
 const MSG_RETRIEVED_MIDDLEWARE = "Retrieved middleware for request";
 const MSG_REGISTERING_MIDDLEWARE = "Registering middleware";
-const MSG_HEADERS_SENT = "Headers already sent";
 const OBJECT = "object";
 const OPTIONS = "OPTIONS";
 const OPTIONS_BODY = "Make a GET request to retrieve the file";
@@ -513,6 +513,7 @@ class Woodland extends node_events.EventEmitter {
 		}
 
 		this.log(`type=decorate, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_DECORATED_IP.replace(IP_TOKEN, req.ip)}"`);
+		res.on(CLOSE, () => this.log(this.clf(req, res), INFO));
 	}
 
 	delete (...args) {
@@ -546,7 +547,6 @@ class Woodland extends node_events.EventEmitter {
 				}
 
 				this.log(`type=error, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ERROR_IP.replace(IP_TOKEN, req.ip)}"`);
-				this.log(this.clf(req, res), INFO);
 				this.onDone(req, res, output, headers);
 			}
 		};
@@ -756,9 +756,6 @@ class Woodland extends node_events.EventEmitter {
 				}
 
 				this.log(`type=res.send, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, valid=true, message="${MSG_SENDING_BODY}"`);
-				this.log(this.clf(req, res), INFO);
-			} else {
-				this.log(`type=res.send, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, valid=false, message="${MSG_HEADERS_SENT}"`);
 			}
 		};
 	}

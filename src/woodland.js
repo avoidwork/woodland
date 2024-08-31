@@ -14,7 +14,7 @@ import {
 	ACCESS_CONTROL_REQUEST_HEADERS,
 	ALLOW,
 	APPLICATION_JSON,
-	ARRAY,
+	ARRAY, CLOSE,
 	COLON,
 	COMMA,
 	COMMA_SPACE,
@@ -70,7 +70,6 @@ import {
 	MSG_ERROR_HEAD_ROUTE,
 	MSG_ERROR_INVALID_METHOD,
 	MSG_ERROR_IP,
-	MSG_HEADERS_SENT,
 	MSG_IGNORED_FN,
 	MSG_REGISTERING_MIDDLEWARE,
 	MSG_RETRIEVED_MIDDLEWARE,
@@ -275,6 +274,7 @@ export class Woodland extends EventEmitter {
 		}
 
 		this.log(`type=decorate, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_DECORATED_IP.replace(IP_TOKEN, req.ip)}"`);
+		res.on(CLOSE, () => this.log(this.clf(req, res), INFO));
 	}
 
 	delete (...args) {
@@ -308,7 +308,6 @@ export class Woodland extends EventEmitter {
 				}
 
 				this.log(`type=error, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ERROR_IP.replace(IP_TOKEN, req.ip)}"`);
-				this.log(this.clf(req, res), INFO);
 				this.onDone(req, res, output, headers);
 			}
 		};
@@ -518,9 +517,6 @@ export class Woodland extends EventEmitter {
 				}
 
 				this.log(`type=res.send, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, valid=true, message="${MSG_SENDING_BODY}"`);
-				this.log(this.clf(req, res), INFO);
-			} else {
-				this.log(`type=res.send, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, valid=false, message="${MSG_HEADERS_SENT}"`);
 			}
 		};
 	}
