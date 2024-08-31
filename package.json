@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "20.0.5",
+  "version": "20.1.0",
   "description": "Lightweight HTTP framework with automatic headers",
   "type": "module",
   "types": "types/woodland.d.ts",

@@ -184,6 +184,9 @@ Function for `http.createServer()` or `https.createServer()`.
 ### routes (uri, method, override = false)
 Returns an `Array` of middleware for the request. Caches value, & will update cache if `override` is `true`.
 
+### stream (req, res, file = {charset: "",  etag: "", path: "", stats: {mtime: datetime, size: int}})
+Streams a file to the client.
+
 ### use ([path = "/.*",] ...fn[, method = "GET"])
 Registers middleware for a route. `path` is a regular expression (as a string), and if not passed it defaults to `/.*`. See `always()` if you want the middleware to be used for all HTTP methods.
 
@@ -222,6 +225,9 @@ Executes after the connection has been decorated, but before the middleware exec
 Executes after the response has been sent.
 
 ### finish (req, res)
+Executes after the response has been sent.
+
+### stream (req, res)
 Executes after the response has been sent.
 
 ## Helpers

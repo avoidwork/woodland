@@ -2,6 +2,7 @@ import {METHODS, STATUS_CODES} from "node:http";
 import {join} from "node:path";
 import {EventEmitter} from "node:events";
 import {readdir, stat} from "node:fs/promises";
+import {createReadStream} from "node:fs";
 import {etag} from "tiny-etag";
 import {precise} from "precise";
 import {lru} from "tiny-lru";
@@ -14,18 +15,18 @@ import {
 	ACCESS_CONTROL_REQUEST_HEADERS,
 	ALLOW,
 	APPLICATION_JSON,
-	ARRAY, CLOSE,
+	ARRAY, CACHE_CONTROL, CLOSE,
 	COLON,
 	COMMA,
 	COMMA_SPACE,
 	CONNECT,
-	CONTENT_LENGTH,
+	CONTENT_LENGTH, CONTENT_RANGE,
 	CONTENT_TYPE,
 	DEBUG,
 	DELETE,
 	DELIMITER,
 	EMPTY,
-	ERROR,
+	ERROR, ETAG,
 	FINISH,
 	FUNCTION,
 	GET,
@@ -48,7 +49,7 @@ import {
 	INT_404,
 	INT_416,
 	INT_500,
-	IP_TOKEN,
+	IP_TOKEN, LAST_MODIFIED,
 	LEFT_PAREN,
 	LEVELS,
 	LOCATION,
@@ -77,15 +78,15 @@ import {
 	MSG_ROUTING_FILE,
 	MSG_SENDING_BODY,
 	OBJECT,
-	OPTIONS,
+	OPTIONS, OPTIONS_BODY,
 	ORIGIN,
 	PARAMS_GROUP,
 	PATCH,
 	POST,
-	PUT,
+	PUT, RANGE,
 	SERVER,
 	SERVER_VALUE,
-	SLASH,
+	SLASH, STREAM,
 	STRING,
 	TIMING_ALLOW_ORIGIN,
 	TO_STRING,
@@ -103,6 +104,7 @@ import {
 import {
 	autoindex as aindex,
 	getStatus,
+	mime,
 	ms,
 	next,
 	pad,
@@ -111,7 +113,6 @@ import {
 	partialHeaders,
 	pipeable,
 	reduce,
-	stream,
 	timeOffset,
 	writeHead
 } from "./utility.js";
@@ -546,7 +547,7 @@ export class Woodland extends EventEmitter {
 		if (valid === false) {
 			res.error(INT_404);
 		} else if (stats.isDirectory() === false) {
-			stream(req, res, {
+			this.stream(req, res, {
 				charset: this.charset,
 				etag: this.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
 				path: fp,
@@ -577,7 +578,7 @@ export class Woodland extends EventEmitter {
 			} else {
 				const rstats = await stat(result, {bigint: false});
 
-				stream(req, res, {
+				this.stream(req, res, {
 					charset: this.charset,
 					etag: this.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
 					path: result,
@@ -593,6 +594,47 @@ export class Woodland extends EventEmitter {
 
 			return res;
 		};
+	}
+
+	stream (req, res, file = {
+		charset: EMPTY,
+		etag: EMPTY,
+		path: EMPTY,
+		stats: {mtime: new Date(), size: INT_0}
+	}) {
+		res.header(CONTENT_LENGTH, file.stats.size);
+		res.header(CONTENT_TYPE, file.charset.length > INT_0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path));
+		res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
+
+		if (file.etag.length > INT_0) {
+			res.header(ETAG, file.etag);
+			res.removeHeader(CACHE_CONTROL);
+		}
+
+		if (req.method === GET) {
+			let status = INT_200;
+			let options, headers;
+
+			if (RANGE in req.headers) {
+				[headers, options] = partialHeaders(req, res, file.stats.size, status);
+				res.removeHeader(CONTENT_LENGTH);
+				res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
+				options.end--; // last byte offset
+
+				if (CONTENT_LENGTH in headers) {
+					res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
+				}
+			}
+
+			res.send(createReadStream(file.path, options), status);
+		} else if (req.method === HEAD) {
+			res.send(EMPTY);
+		} else if (req.method === OPTIONS) {
+			res.removeHeader(CONTENT_LENGTH);
+			res.send(OPTIONS_BODY);
+		}
+
+		this.emit(STREAM, req, res);
 	}
 
 	trace (...args) {

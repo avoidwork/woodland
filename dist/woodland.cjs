@@ -3,7 +3,7 @@
  *
  * @copyright 2024 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.0.5
+ * @version 20.1.0
  */
 'use strict';
 
@@ -11,12 +11,12 @@ var node_http = require('node:http');
 var node_path = require('node:path');
 var node_events = require('node:events');
 var promises = require('node:fs/promises');
+var node_fs = require('node:fs');
 var tinyEtag = require('tiny-etag');
 var precise = require('precise');
 var tinyLru = require('tiny-lru');
 var node_module = require('node:module');
 var node_url = require('node:url');
-var node_fs = require('node:fs');
 var tinyCoerce = require('tiny-coerce');
 var mimeDb = require('mime-db');
 
@@ -141,6 +141,7 @@ const SERVER = "server";
 const SERVER_VALUE = `${name}/${version}`;
 const SLASH = "/";
 const START = "start";
+const STREAM = "stream";
 const STRING = "string";
 const STRING_0 = "0";
 const STRING_00 = "00";
@@ -294,47 +295,6 @@ function reduce (uri, map = new Map(), arg = {}) {
 			arg.getParams = i.regex;
 		}
 	});
-}
-
-function stream (req, res, file = {
-	charset: EMPTY,
-	etag: EMPTY,
-	path: EMPTY,
-	stats: {mtime: new Date(), size: INT_0}
-}) {
-	res.header(CONTENT_LENGTH, file.stats.size);
-	res.header(CONTENT_TYPE, file.charset.length > INT_0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path));
-	res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
-
-	if (file.etag.length > INT_0) {
-		res.header(ETAG, file.etag);
-		res.removeHeader(CACHE_CONTROL);
-	}
-
-	if (req.method === GET) {
-		let status = INT_200;
-		let options, headers;
-
-		if (RANGE in req.headers) {
-			[headers, options] = partialHeaders(req, res, file.stats.size);
-			res.removeHeader(CONTENT_LENGTH);
-			res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
-			options.end--; // last byte offset
-
-			if (CONTENT_LENGTH in headers) {
-				res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
-			}
-		}
-
-		res.send(node_fs.createReadStream(file.path, options), status);
-	} else if (req.method === HEAD) {
-		res.send(EMPTY);
-	} else if (req.method === OPTIONS) {
-		res.removeHeader(CONTENT_LENGTH);
-		res.send(OPTIONS_BODY);
-	}
-
-	return void 0;
 }
 
 function timeOffset (arg = INT_0) {
@@ -785,7 +745,7 @@ class Woodland extends node_events.EventEmitter {
 		if (valid === false) {
 			res.error(INT_404);
 		} else if (stats.isDirectory() === false) {
-			stream(req, res, {
+			this.stream(req, res, {
 				charset: this.charset,
 				etag: this.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
 				path: fp,
@@ -816,7 +776,7 @@ class Woodland extends node_events.EventEmitter {
 			} else {
 				const rstats = await promises.stat(result, {bigint: false});
 
-				stream(req, res, {
+				this.stream(req, res, {
 					charset: this.charset,
 					etag: this.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
 					path: result,
@@ -832,6 +792,47 @@ class Woodland extends node_events.EventEmitter {
 
 			return res;
 		};
+	}
+
+	stream (req, res, file = {
+		charset: EMPTY,
+		etag: EMPTY,
+		path: EMPTY,
+		stats: {mtime: new Date(), size: INT_0}
+	}) {
+		res.header(CONTENT_LENGTH, file.stats.size);
+		res.header(CONTENT_TYPE, file.charset.length > INT_0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path));
+		res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
+
+		if (file.etag.length > INT_0) {
+			res.header(ETAG, file.etag);
+			res.removeHeader(CACHE_CONTROL);
+		}
+
+		if (req.method === GET) {
+			let status = INT_200;
+			let options, headers;
+
+			if (RANGE in req.headers) {
+				[headers, options] = partialHeaders(req, res, file.stats.size);
+				res.removeHeader(CONTENT_LENGTH);
+				res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
+				options.end--; // last byte offset
+
+				if (CONTENT_LENGTH in headers) {
+					res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
+				}
+			}
+
+			res.send(node_fs.createReadStream(file.path, options), status);
+		} else if (req.method === HEAD) {
+			res.send(EMPTY);
+		} else if (req.method === OPTIONS) {
+			res.removeHeader(CONTENT_LENGTH);
+			res.send(OPTIONS_BODY);
+		}
+
+		this.emit(STREAM, req, res);
 	}
 
 	trace (...args) {

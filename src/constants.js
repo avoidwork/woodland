@@ -127,6 +127,7 @@ export const SERVER = "server";
 export const SERVER_VALUE = `${name}/${version}`;
 export const SLASH = "/";
 export const START = "start";
+export const STREAM = "stream";
 export const STRING = "string";
 export const STRING_0 = "0";
 export const STRING_00 = "00";

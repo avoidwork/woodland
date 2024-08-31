@@ -1,16 +1,14 @@
 import {extname, join} from "node:path";
-import {createReadStream, readFileSync} from "node:fs";
+import {readFileSync} from "node:fs";
 import {STATUS_CODES} from "node:http";
 import {fileURLToPath, URL} from "node:url";
 import {coerce} from "tiny-coerce";
 import mimeDb from "mime-db";
 import {
 	APPLICATION_OCTET_STREAM,
-	CACHE_CONTROL,
 	COMMA,
 	CONTENT_LENGTH,
 	CONTENT_RANGE,
-	CONTENT_TYPE,
 	EMPTY,
 	END,
 	ETAG,
@@ -24,7 +22,6 @@ import {
 	INT_10,
 	INT_1e6,
 	INT_2,
-	INT_200,
 	INT_206,
 	INT_3,
 	INT_404,
@@ -32,11 +29,7 @@ import {
 	INT_500,
 	INT_60,
 	KEY_BYTES,
-	LAST_MODIFIED,
-	OPTIONS,
-	OPTIONS_BODY,
 	PERIOD,
-	RANGE,
 	START,
 	STRING,
 	STRING_0,
@@ -69,7 +62,7 @@ export function getStatus (req, res) {
 	return req.allow.length > INT_0 ? req.method !== GET ? INT_405 : req.allow.includes(GET) ? res.statusCode > INT_500 ? res.statusCode : INT_500 : INT_404 : INT_404;
 }
 
-function mime (arg = EMPTY) {
+export function mime (arg = EMPTY) {
 	const ext = extname(arg);
 
 	return ext in extensions ? extensions[ext].type : APPLICATION_OCTET_STREAM;
@@ -181,47 +174,6 @@ export function reduce (uri, map = new Map(), arg = {}) {
 			arg.getParams = i.regex;
 		}
 	});
-}
-
-export function stream (req, res, file = {
-	charset: EMPTY,
-	etag: EMPTY,
-	path: EMPTY,
-	stats: {mtime: new Date(), size: INT_0}
-}) {
-	res.header(CONTENT_LENGTH, file.stats.size);
-	res.header(CONTENT_TYPE, file.charset.length > INT_0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path));
-	res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
-
-	if (file.etag.length > INT_0) {
-		res.header(ETAG, file.etag);
-		res.removeHeader(CACHE_CONTROL);
-	}
-
-	if (req.method === GET) {
-		let status = INT_200;
-		let options, headers;
-
-		if (RANGE in req.headers) {
-			[headers, options] = partialHeaders(req, res, file.stats.size, status);
-			res.removeHeader(CONTENT_LENGTH);
-			res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
-			options.end--; // last byte offset
-
-			if (CONTENT_LENGTH in headers) {
-				res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
-			}
-		}
-
-		res.send(createReadStream(file.path, options), status);
-	} else if (req.method === HEAD) {
-		res.send(EMPTY);
-	} else if (req.method === OPTIONS) {
-		res.removeHeader(CONTENT_LENGTH);
-		res.send(OPTIONS_BODY);
-	}
-
-	return void 0;
 }
 
 export function timeOffset (arg = INT_0) {

@@ -3,9 +3,9 @@
  *
  * @copyright 2024 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.0.5
+ * @version 20.1.0
  */
-import {STATUS_CODES,METHODS}from'node:http';import {join,extname}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {createRequire}from'node:module';import {fileURLToPath,URL}from'node:url';import {readFileSync,createReadStream}from'node:fs';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const __dirname$1 = fileURLToPath(new URL(".", import.meta.url));
+import {STATUS_CODES,METHODS}from'node:http';import {join,extname}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {createRequire}from'node:module';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const __dirname$1 = fileURLToPath(new URL(".", import.meta.url));
 const require = createRequire(import.meta.url);
 const {name, version} = require(join(__dirname$1, "..", "package.json"));
 
@@ -125,6 +125,7 @@ const SERVER = "server";
 const SERVER_VALUE = `${name}/${version}`;
 const SLASH = "/";
 const START = "start";
+const STREAM = "stream";
 const STRING = "string";
 const STRING_0 = "0";
 const STRING_00 = "00";
@@ -276,47 +277,6 @@ function reduce (uri, map = new Map(), arg = {}) {
 			arg.getParams = i.regex;
 		}
 	});
-}
-
-function stream (req, res, file = {
-	charset: EMPTY,
-	etag: EMPTY,
-	path: EMPTY,
-	stats: {mtime: new Date(), size: INT_0}
-}) {
-	res.header(CONTENT_LENGTH, file.stats.size);
-	res.header(CONTENT_TYPE, file.charset.length > INT_0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path));
-	res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
-
-	if (file.etag.length > INT_0) {
-		res.header(ETAG, file.etag);
-		res.removeHeader(CACHE_CONTROL);
-	}
-
-	if (req.method === GET) {
-		let status = INT_200;
-		let options, headers;
-
-		if (RANGE in req.headers) {
-			[headers, options] = partialHeaders(req, res, file.stats.size);
-			res.removeHeader(CONTENT_LENGTH);
-			res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
-			options.end--; // last byte offset
-
-			if (CONTENT_LENGTH in headers) {
-				res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
-			}
-		}
-
-		res.send(createReadStream(file.path, options), status);
-	} else if (req.method === HEAD) {
-		res.send(EMPTY);
-	} else if (req.method === OPTIONS) {
-		res.removeHeader(CONTENT_LENGTH);
-		res.send(OPTIONS_BODY);
-	}
-
-	return void 0;
 }
 
 function timeOffset (arg = INT_0) {
@@ -765,7 +725,7 @@ function writeHead (res, headers = {}) {
 		if (valid === false) {
 			res.error(INT_404);
 		} else if (stats.isDirectory() === false) {
-			stream(req, res, {
+			this.stream(req, res, {
 				charset: this.charset,
 				etag: this.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
 				path: fp,
@@ -796,7 +756,7 @@ function writeHead (res, headers = {}) {
 			} else {
 				const rstats = await stat(result, {bigint: false});
 
-				stream(req, res, {
+				this.stream(req, res, {
 					charset: this.charset,
 					etag: this.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
 					path: result,
@@ -812,6 +772,47 @@ function writeHead (res, headers = {}) {
 
 			return res;
 		};
+	}
+
+	stream (req, res, file = {
+		charset: EMPTY,
+		etag: EMPTY,
+		path: EMPTY,
+		stats: {mtime: new Date(), size: INT_0}
+	}) {
+		res.header(CONTENT_LENGTH, file.stats.size);
+		res.header(CONTENT_TYPE, file.charset.length > INT_0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path));
+		res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
+
+		if (file.etag.length > INT_0) {
+			res.header(ETAG, file.etag);
+			res.removeHeader(CACHE_CONTROL);
+		}
+
+		if (req.method === GET) {
+			let status = INT_200;
+			let options, headers;
+
+			if (RANGE in req.headers) {
+				[headers, options] = partialHeaders(req, res, file.stats.size);
+				res.removeHeader(CONTENT_LENGTH);
+				res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
+				options.end--; // last byte offset
+
+				if (CONTENT_LENGTH in headers) {
+					res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
+				}
+			}
+
+			res.send(createReadStream(file.path, options), status);
+		} else if (req.method === HEAD) {
+			res.send(EMPTY);
+		} else if (req.method === OPTIONS) {
+			res.removeHeader(CONTENT_LENGTH);
+			res.send(OPTIONS_BODY);
+		}
+
+		this.emit(STREAM, req, res);
 	}
 
 	trace (...args) {
