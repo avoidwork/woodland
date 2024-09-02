@@ -3,7 +3,7 @@
  *
  * @copyright 2024 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.1.1
+ * @version 20.1.2
  */
 'use strict';
 
@@ -807,7 +807,7 @@ class Woodland extends node_events.EventEmitter {
 		res.header(CONTENT_TYPE, file.charset.length > INT_0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path));
 		res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
 
-		if (file.etag.length > INT_0) {
+		if (this.etags && file.etag.length > INT_0) {
 			res.header(ETAG, file.etag);
 			res.removeHeader(CACHE_CONTROL);
 		}

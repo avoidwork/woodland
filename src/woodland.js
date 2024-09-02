@@ -617,7 +617,7 @@ export class Woodland extends EventEmitter {
 		res.header(CONTENT_TYPE, file.charset.length > INT_0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path));
 		res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
 
-		if (file.etag.length > INT_0) {
+		if (this.etags && file.etag.length > INT_0) {
 			res.header(ETAG, file.etag);
 			res.removeHeader(CACHE_CONTROL);
 		}
