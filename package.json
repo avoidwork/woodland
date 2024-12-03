@@ -68,7 +68,7 @@
     "concurrently": "^9.0.0",
     "eslint": "^9.8.0",
     "husky": "^9.1.4",
-    "mocha": "^10.7.0",
+    "mocha": "^11.0.1",
     "nyc": "^17.0.0",
     "rollup": "^4.20.0",
     "tiny-httptest": "^4.0.11",
