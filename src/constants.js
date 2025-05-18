@@ -148,3 +148,4 @@ export const X_FORWARDED_FOR = "x-forwarded-for";
 export const X_POWERED_BY = "x-powered-by";
 export const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform}/${process.arch}`;
 export const X_RESPONSE_TIME = "x-response-time";
+export const X_CONTENT_TYPE_OPTIONS = "x-content-type-options";

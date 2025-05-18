@@ -104,6 +104,7 @@ import {
 	UTF8,
 	UTF_8,
 	WILDCARD,
+	X_CONTENT_TYPE_OPTIONS,
 	X_FORWARDED_FOR,
 	X_POWERED_BY,
 	X_POWERED_BY_VALUE,
@@ -381,7 +382,7 @@ export class Woodland extends EventEmitter {
 		if (res.statusCode !== INT_204 && res.statusCode !== INT_304 && res.getHeader(CONTENT_LENGTH) === void 0) {
 			res.header(CONTENT_LENGTH, Buffer.byteLength(body));
 		}
-		res.header("x-content-type-options", "nosniff");
+		res.header(X_CONTENT_TYPE_OPTIONS, "nosniff");
 		writeHead(res, headers);
 		res.end(body, this.charset);
 	}

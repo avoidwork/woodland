@@ -14,7 +14,7 @@ import {
 	CONTENT_TYPE,
 	EMPTY,
 	ETAG,
-	LOCATION
+	LOCATION, X_CONTENT_TYPE_OPTIONS
 } from "../src/constants.js";
 
 const testStat = lstatSync(join(process.cwd(), "test", "test.js"));
@@ -32,7 +32,8 @@ const router = woodland({
 	autoindex: true,
 	defaultHeaders: {
 		[CACHE_CONTROL]: "no-cache",
-		[CONTENT_TYPE]: "text/plain; charset=utf-8"
+		[CONTENT_TYPE]: "text/plain; charset=utf-8",
+		[X_CONTENT_TYPE_OPTIONS]: "nosniff"
 	},
 	origins: [
 		"http://localhost:8001",
@@ -125,6 +126,7 @@ describe("Valid Requests", function () {
 			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectHeader("x-always", "true")
 			.expectHeader("x-by-reference", "true")
 			.expectHeader("x-onconnect", "true")
@@ -138,6 +140,7 @@ describe("Valid Requests", function () {
 			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectHeader(CONTENT_LENGTH, undefined)
 			.expectBody(/^$/)
 			.end();
@@ -149,6 +152,7 @@ describe("Valid Requests", function () {
 			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectHeader(CONTENT_LENGTH, undefined)
 			.expectBody(/^$/)
 			.end();
@@ -170,6 +174,7 @@ describe("Valid Requests", function () {
 			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectBody(/^Hello World!$/)
 			.end();
 	});
@@ -204,6 +209,7 @@ describe("Valid Requests", function () {
 			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectBody("The entity will be echoed back to you")
 			.end();
 	});
@@ -257,6 +263,7 @@ describe("Valid Requests", function () {
 			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "application/json; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectBody({text: "Hello World!"})
 			.end();
 	});
@@ -267,6 +274,7 @@ describe("Valid Requests", function () {
 			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "application/json; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectBody("Hello World!")
 			.end();
 	});
@@ -277,6 +285,7 @@ describe("Valid Requests", function () {
 			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectBody(/^$/)
 			.end();
 	});
@@ -334,6 +343,7 @@ describe("Valid Requests", function () {
 			.expectStatus(200)
 			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CONTENT_TYPE, "text/javascript; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectHeader(ETAG, /^(.*)$/)
 			.expectHeader("x-always", "true")
 			.expectHeader("x-by-reference", "true")
@@ -354,6 +364,7 @@ describe("Valid Requests", function () {
 			.expectStatus(206)
 			.expectHeader(CONTENT_LENGTH, 5)
 			.expectHeader(CONTENT_TYPE, "text/javascript; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.end();
 	});
 
@@ -369,6 +380,7 @@ describe("Valid Requests", function () {
 			.expectStatus(200)
 			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CONTENT_TYPE, "text/javascript; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectBody(/^$/)
 			.end();
 	});
@@ -378,6 +390,7 @@ describe("Valid Requests", function () {
 			.expectStatus(200)
 			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CONTENT_TYPE, "text/javascript; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectBody("Make a GET request to retrieve the file")
 			.end();
 	});
@@ -407,6 +420,7 @@ describe("Valid Requests", function () {
 			.expectStatus(200)
 			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CONTENT_TYPE, "text/html; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectHeader(ETAG, /^(.*)$/)
 			.expectHeader("x-always", "true")
 			.expectHeader("x-by-reference", "true")
@@ -423,6 +437,7 @@ describe("Invalid Requests", function () {
 			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectHeader(CONTENT_LENGTH, 18)
 			.expectBody(/Method Not Allowed/)
 			.end();
@@ -434,6 +449,7 @@ describe("Invalid Requests", function () {
 			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectHeader(CONTENT_LENGTH, 18)
 			.expectBody(/Method Not Allowed/)
 			.end();
@@ -445,6 +461,7 @@ describe("Invalid Requests", function () {
 			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectHeader(CONTENT_LENGTH, 18)
 			.expectBody(/Method Not Allowed/)
 			.end();
@@ -456,6 +473,7 @@ describe("Invalid Requests", function () {
 			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectHeader(CONTENT_LENGTH, 18)
 			.expectBody(/Method Not Allowed/)
 			.end();
@@ -467,6 +485,7 @@ describe("Invalid Requests", function () {
 			.expectHeader(ALLOW, EMPTY)
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectHeader(CONTENT_LENGTH, 9)
 			.expectBody(/Not Found/)
 			.end();
@@ -478,6 +497,7 @@ describe("Invalid Requests", function () {
 			.expectHeader(ALLOW, EMPTY)
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectHeader(CONTENT_LENGTH, 9)
 			.expectBody(/Not Found/)
 			.end();
@@ -489,6 +509,7 @@ describe("Invalid Requests", function () {
 			.expectHeader(ALLOW, EMPTY)
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectHeader(CONTENT_LENGTH, 9)
 			.expectBody(/Not Found/)
 			.end();
@@ -500,6 +521,7 @@ describe("Invalid Requests", function () {
 			.expectHeader(ALLOW, EMPTY)
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectHeader(CONTENT_LENGTH, 9)
 			.expectBody(/Not Found/)
 			.end();
@@ -511,6 +533,7 @@ describe("Invalid Requests", function () {
 			.expectHeader(ALLOW, EMPTY)
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectHeader(CONTENT_LENGTH, 9)
 			.expectBody(/Not Found/)
 			.end();
@@ -522,6 +545,7 @@ describe("Invalid Requests", function () {
 			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectHeader(CONTENT_LENGTH, 21)
 			.expectBody(/^Internal Server Error$/)
 			.end();
@@ -534,6 +558,7 @@ describe("Invalid Requests", function () {
 			.expectHeader(ALLOW, EMPTY)
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectHeader(CONTENT_LENGTH, 9)
 			.expectBody(/Not Found/)
 			.end();
@@ -545,6 +570,7 @@ describe("Invalid Requests", function () {
 			.expectHeader(ALLOW, EMPTY)
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectHeader(CONTENT_LENGTH, 9)
 			.expectBody(/Not Found/)
 			.end();
@@ -556,6 +582,7 @@ describe("Invalid Requests", function () {
 			.expectHeader(ALLOW, EMPTY)
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectHeader(CONTENT_LENGTH, 9)
 			.expectBody(/Not Found/)
 			.end();
@@ -567,6 +594,7 @@ describe("Invalid Requests", function () {
 			.expectHeader(ALLOW, EMPTY)
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectHeader(CONTENT_LENGTH, 9)
 			.expectBody(/Not Found/)
 			.end();
@@ -578,6 +606,7 @@ describe("Invalid Requests", function () {
 			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectHeader(CONTENT_LENGTH, "18")
 			.expectBody(/Method Not Allowed/)
 			.end();
@@ -589,6 +618,7 @@ describe("Invalid Requests", function () {
 			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectHeader(CONTENT_LENGTH, "18")
 			.expectBody(/Method Not Allowed/)
 			.end();
@@ -606,6 +636,7 @@ describe("Invalid Requests", function () {
 			.expectHeader(ALLOW, EMPTY)
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectHeader(CONTENT_LENGTH, 9)
 			.expectBody(/Not Found/)
 			.end();
@@ -617,6 +648,7 @@ describe("Invalid Requests", function () {
 			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectHeader(CONTENT_LENGTH, 21)
 			.expectBody(/Internal Server Error/)
 			.end();
@@ -628,6 +660,7 @@ describe("Invalid Requests", function () {
 			.expectHeader(ALLOW, "GET, HEAD, OPTIONS")
 			.expectHeader(CACHE_CONTROL, "no-cache")
 			.expectHeader(CONTENT_TYPE, "text/plain; charset=utf-8")
+			.expectHeader("x-content-type-options", "nosniff")
 			.expectHeader(CONTENT_LENGTH, 21)
 			.expectBody(/Internal Server Error/)
 			.end();
