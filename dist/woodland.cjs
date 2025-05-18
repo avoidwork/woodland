@@ -1,9 +1,9 @@
 /**
  * woodland
  *
- * @copyright 2024 Jason Mulligan <jason.mulligan@avoidwork.com>
+ * @copyright 2025 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.1.2
+ * @version 20.1.3
  */
 'use strict';
 
@@ -21,8 +21,8 @@ var tinyCoerce = require('tiny-coerce');
 var mimeDb = require('mime-db');
 
 var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
-const __dirname$2 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href))));
-const require$1 = node_module.createRequire((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href)));
+const __dirname$2 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href))));
+const require$1 = node_module.createRequire((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href)));
 const {name, version} = require$1(node_path.join(__dirname$2, "..", "package.json"));
 
 const ACCESS_CONTROL_ALLOW_CREDENTIALS = "access-control-allow-credentials";
@@ -53,7 +53,6 @@ const END = "end";
 const ETAG = "etag";
 const ERROR = "error";
 const EXTENSIONS = "extensions";
-const FILES = "files";
 const FINISH = "finish";
 const FUNCTION = "function";
 const GET = "GET";
@@ -148,7 +147,6 @@ const STRING_00 = "00";
 const STRING_30 = "30";
 const TIME_MS = "%N ms";
 const TIMING_ALLOW_ORIGIN = "timing-allow-origin";
-const TITLE = "title";
 const TO_STRING = "toString";
 const TOKEN_N = "%N";
 const TRACE = "TRACE";
@@ -162,7 +160,7 @@ const X_POWERED_BY = "x-powered-by";
 const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform}/${process.arch}`;
 const X_RESPONSE_TIME = "x-response-time";
 
-const __dirname$1 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href)))),
+const __dirname$1 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href)))),
 	html = node_fs.readFileSync(node_path.join(__dirname$1, "..", "tpl", "autoindex.html"), {encoding: UTF8}),
 	valid = Object.entries(mimeDb).filter(i => EXTENSIONS in i[1]),
 	extensions = valid.reduce((a, v) => {
@@ -175,8 +173,23 @@ const __dirname$1 = node_url.fileURLToPath(new node_url.URL(".", (typeof documen
 		return a;
 	}, {});
 
+function escapeHtml (str) {
+	return String(str)
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#39;");
+}
+
 function autoindex (title = EMPTY, files = []) {
-	return new Function(TITLE, FILES, `return \`${html}\`;`)(title, files);
+	let safeTitle = escapeHtml(title);
+	let safeFiles = Array.isArray(files) ?
+		files.map(f => escapeHtml(f)).join("") :
+		escapeHtml(String(files));
+
+	return html.replace(/\$\{\s*TITLE\s*\}/g, safeTitle)
+		.replace(/\$\{\s*FILES\s*\}/g, safeFiles);
 }
 
 function getStatus (req, res) {
@@ -231,12 +244,23 @@ function params (req, getParams) {
 	req.params = getParams.exec(req.parsed.pathname)?.groups ?? {};
 
 	for (const [key, value] of Object.entries(req.params)) {
-		req.params[key] = tinyCoerce.coerce(decodeURIComponent(value));
+		let decoded = decodeURIComponent(value);
+		let safeValue = typeof decoded === "string" ? escapeHtml(decoded) : decoded;
+		req.params[key] = tinyCoerce.coerce(safeValue);
 	}
 }
 
 function parse (arg) {
-	return new node_url.URL(typeof arg === STRING ? arg : `http://${arg.headers.host || `localhost:${arg.socket.server._connectionKey.replace(/.*::/, EMPTY)}`}${arg.url}`);
+	const urlStr = typeof arg === STRING ?
+		arg :
+		`http://${arg.headers.host || `localhost:${arg.socket.server._connectionKey.replace(/.*::/, EMPTY)}`}${arg.url}`;
+	const urlObj = new node_url.URL(urlStr);
+	const allowedHosts = ["localhost", "127.0.0.1"];
+	if (!allowedHosts.includes(urlObj.hostname)) {
+		console.warn("parse(): Host not in allowed list. Potential SSRF risk.");
+	}
+
+	return urlObj;
 }
 
 function partialHeaders (req, res, size, status, headers = {}, options = {}) {
@@ -482,14 +506,11 @@ class Woodland extends node_events.EventEmitter {
 	}
 
 	error (req, res) {
-		return (status = INT_500, body) => {
+		return (status = INT_500) => {
 			if (res.headersSent === false) {
-				const err = body instanceof Error ? body : new Error(body ?? node_http.STATUS_CODES[status]);
-				let output = err.message,
-					headers = {};
-
+				let output = node_http.STATUS_CODES[status] || "Error";
+				let headers = {};
 				[output, status, headers] = this.onReady(req, res, output, status, headers);
-
 				if (status === INT_404) {
 					res.removeHeader(ALLOW);
 					res.header(ALLOW, EMPTY);
@@ -499,14 +520,11 @@ class Woodland extends node_events.EventEmitter {
 						res.header(ACCESS_CONTROL_ALLOW_METHODS, EMPTY);
 					}
 				}
-
 				res.removeHeader(CONTENT_LENGTH);
 				res.statusCode = status;
-
 				if (this.listenerCount(ERROR) > INT_0) {
-					this.emit(ERROR, req, res, err);
+					this.emit(ERROR, req, res, output);
 				}
-
 				this.log(`type=error, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ERROR_IP.replace(IP_TOKEN, req.ip)}"`);
 				this.onDone(req, res, output, headers);
 			}
@@ -577,7 +595,7 @@ class Woodland extends node_events.EventEmitter {
 		if (res.statusCode !== INT_204 && res.statusCode !== INT_304 && res.getHeader(CONTENT_LENGTH) === void 0) {
 			res.header(CONTENT_LENGTH, Buffer.byteLength(body));
 		}
-
+		res.header("x-content-type-options", "nosniff");
 		writeHead(res, headers);
 		res.end(body, this.charset);
 	}

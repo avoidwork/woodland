@@ -292,14 +292,11 @@ export class Woodland extends EventEmitter {
 	}
 
 	error (req, res) {
-		return (status = INT_500, body) => {
+		return (status = INT_500) => {
 			if (res.headersSent === false) {
-				const err = body instanceof Error ? body : new Error(body ?? STATUS_CODES[status]);
-				let output = err.message,
-					headers = {};
-
+				let output = STATUS_CODES[status] || "Error";
+				let headers = {};
 				[output, status, headers] = this.onReady(req, res, output, status, headers);
-
 				if (status === INT_404) {
 					res.removeHeader(ALLOW);
 					res.header(ALLOW, EMPTY);
@@ -309,14 +306,11 @@ export class Woodland extends EventEmitter {
 						res.header(ACCESS_CONTROL_ALLOW_METHODS, EMPTY);
 					}
 				}
-
 				res.removeHeader(CONTENT_LENGTH);
 				res.statusCode = status;
-
 				if (this.listenerCount(ERROR) > INT_0) {
-					this.emit(ERROR, req, res, err);
+					this.emit(ERROR, req, res, output);
 				}
-
 				this.log(`type=error, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ERROR_IP.replace(IP_TOKEN, req.ip)}"`);
 				this.onDone(req, res, output, headers);
 			}
@@ -387,7 +381,7 @@ export class Woodland extends EventEmitter {
 		if (res.statusCode !== INT_204 && res.statusCode !== INT_304 && res.getHeader(CONTENT_LENGTH) === void 0) {
 			res.header(CONTENT_LENGTH, Buffer.byteLength(body));
 		}
-
+		res.header("x-content-type-options", "nosniff");
 		writeHead(res, headers);
 		res.end(body, this.charset);
 	}

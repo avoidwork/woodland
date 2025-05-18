@@ -13,7 +13,6 @@ import {
 	END,
 	ETAG,
 	EXTENSIONS,
-	FILES,
 	FUNCTION,
 	GET,
 	HEAD,
@@ -36,7 +35,6 @@ import {
 	STRING_00,
 	STRING_30,
 	TIME_MS,
-	TITLE,
 	TOKEN_N,
 	UTF8
 } from "./constants.js";
@@ -54,8 +52,23 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url)),
 		return a;
 	}, {});
 
+function escapeHtml (str) {
+	return String(str)
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#39;");
+}
+
 export function autoindex (title = EMPTY, files = []) {
-	return new Function(TITLE, FILES, `return \`${html}\`;`)(title, files);
+	let safeTitle = escapeHtml(title);
+	let safeFiles = Array.isArray(files) ?
+		files.map(f => escapeHtml(f)).join("") :
+		escapeHtml(String(files));
+
+	return html.replace(/\$\{\s*TITLE\s*\}/g, safeTitle)
+		.replace(/\$\{\s*FILES\s*\}/g, safeFiles);
 }
 
 export function getStatus (req, res) {
@@ -110,12 +123,23 @@ export function params (req, getParams) {
 	req.params = getParams.exec(req.parsed.pathname)?.groups ?? {};
 
 	for (const [key, value] of Object.entries(req.params)) {
-		req.params[key] = coerce(decodeURIComponent(value));
+		let decoded = decodeURIComponent(value);
+		let safeValue = typeof decoded === "string" ? escapeHtml(decoded) : decoded;
+		req.params[key] = coerce(safeValue);
 	}
 }
 
 export function parse (arg) {
-	return new URL(typeof arg === STRING ? arg : `http://${arg.headers.host || `localhost:${arg.socket.server._connectionKey.replace(/.*::/, EMPTY)}`}${arg.url}`);
+	const urlStr = typeof arg === STRING ?
+		arg :
+		`http://${arg.headers.host || `localhost:${arg.socket.server._connectionKey.replace(/.*::/, EMPTY)}`}${arg.url}`;
+	const urlObj = new URL(urlStr);
+	const allowedHosts = ["localhost", "127.0.0.1"];
+	if (!allowedHosts.includes(urlObj.hostname)) {
+		console.warn("parse(): Host not in allowed list. Potential SSRF risk.");
+	}
+
+	return urlObj;
 }
 
 export function partialHeaders (req, res, size, status, headers = {}, options = {}) {
