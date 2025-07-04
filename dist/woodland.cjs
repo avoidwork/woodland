@@ -3,7 +3,7 @@
  *
  * @copyright 2025 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.1.3
+ * @version 20.1.4
  */
 'use strict';
 
@@ -159,6 +159,7 @@ const X_FORWARDED_FOR = "x-forwarded-for";
 const X_POWERED_BY = "x-powered-by";
 const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform}/${process.arch}`;
 const X_RESPONSE_TIME = "x-response-time";
+const X_CONTENT_TYPE_OPTIONS = "x-content-type-options";
 
 const __dirname$1 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href)))),
 	html = node_fs.readFileSync(node_path.join(__dirname$1, "..", "tpl", "autoindex.html"), {encoding: UTF8}),
@@ -595,7 +596,7 @@ class Woodland extends node_events.EventEmitter {
 		if (res.statusCode !== INT_204 && res.statusCode !== INT_304 && res.getHeader(CONTENT_LENGTH) === void 0) {
 			res.header(CONTENT_LENGTH, Buffer.byteLength(body));
 		}
-		res.header("x-content-type-options", "nosniff");
+		res.header(X_CONTENT_TYPE_OPTIONS, "nosniff");
 		writeHead(res, headers);
 		res.end(body, this.charset);
 	}

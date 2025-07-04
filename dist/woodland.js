@@ -3,7 +3,7 @@
  *
  * @copyright 2025 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.1.3
+ * @version 20.1.4
  */
 import {STATUS_CODES,METHODS}from'node:http';import {join,extname}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {createRequire}from'node:module';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const __dirname$1 = fileURLToPath(new URL(".", import.meta.url));
 const require = createRequire(import.meta.url);
@@ -142,7 +142,8 @@ const WILDCARD = "*";
 const X_FORWARDED_FOR = "x-forwarded-for";
 const X_POWERED_BY = "x-powered-by";
 const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform}/${process.arch}`;
-const X_RESPONSE_TIME = "x-response-time";const __dirname = fileURLToPath(new URL(".", import.meta.url)),
+const X_RESPONSE_TIME = "x-response-time";
+const X_CONTENT_TYPE_OPTIONS = "x-content-type-options";const __dirname = fileURLToPath(new URL(".", import.meta.url)),
 	html = readFileSync(join(__dirname, "..", "tpl", "autoindex.html"), {encoding: UTF8}),
 	valid = Object.entries(mimeDb).filter(i => EXTENSIONS in i[1]),
 	extensions = valid.reduce((a, v) => {
@@ -575,7 +576,7 @@ function writeHead (res, headers = {}) {
 		if (res.statusCode !== INT_204 && res.statusCode !== INT_304 && res.getHeader(CONTENT_LENGTH) === void 0) {
 			res.header(CONTENT_LENGTH, Buffer.byteLength(body));
 		}
-		res.header("x-content-type-options", "nosniff");
+		res.header(X_CONTENT_TYPE_OPTIONS, "nosniff");
 		writeHead(res, headers);
 		res.end(body, this.charset);
 	}
