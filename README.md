@@ -679,16 +679,34 @@ new Woodland(config)
 
 ### Benchmark Results
 
-*Node.js 20.x on Apple M2 MacBook Pro*
+*Node.js 20.x on Apple M2 MacBook Pro (5 iterations, 10 warmup)*
 
 ```
-http (baseline)
-Requests/sec: 88,409
-Latency avg: 10.81ms
+HTTP Operations
+Simple GET:       3,858 ops/sec  (0.26ms avg)
+JSON response:    1,255 ops/sec  (0.80ms avg)
+Parameterized:    3,095 ops/sec  (0.32ms avg)
+Middleware chain: 5,403 ops/sec  (0.19ms avg)
+POST requests:    2,266 ops/sec  (0.44ms avg)
+Error handling:   6,663 ops/sec  (0.15ms avg)
 
-woodland
-Requests/sec: 75,041 (85% of baseline)
-Latency avg: 12.82ms
+Routing Operations
+Static routes:    1,739,130 ops/sec  (0.0006ms avg)
+Parameter routes: 863,260 ops/sec   (0.0012ms avg)
+Path conversion:  1,904,762 ops/sec  (0.0005ms avg)
+Route caching:    413,873 ops/sec   (0.0024ms avg)
+
+Utility Operations
+MIME detection:   2,609,603 ops/sec  (0.0004ms avg)
+Time formatting:  1,846,381 ops/sec  (0.0005ms avg)
+Number padding:   2,033,347 ops/sec  (0.0005ms avg)
+Middleware chain: 2,223,210 ops/sec  (0.0004ms avg)
+
+File Serving
+Small files:      33,222 ops/sec  (0.03ms avg)
+Medium files:     46,584 ops/sec  (0.02ms avg)
+Large files:      37,129 ops/sec  (0.03ms avg)
+Directory listing: 19,262 ops/sec  (0.05ms avg)
 ```
 
 ### Performance Tips
