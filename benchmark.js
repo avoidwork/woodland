@@ -107,11 +107,23 @@ async function runBenchmarkSuite (suiteName, benchmarks, options = {}) {
 	const results = {};
 
 	for (const [name, benchmarkFn] of Object.entries(benchmarks)) {
+		// Skip cleanup function from benchmarks
+		if (name === "cleanup") continue; // eslint-disable-line
+
 		try {
 			results[name] = await runBenchmark(name, benchmarkFn, options);
 		} catch (error) {
 			console.error(`Error in benchmark ${name}:`, error);
 			results[name] = {error: error.message};
+		}
+	}
+
+	// Call cleanup function if it exists
+	if (typeof benchmarks.cleanup === "function") {
+		try {
+			await benchmarks.cleanup();
+		} catch (error) {
+			console.error(`Error during cleanup for ${suiteName}:`, error);
 		}
 	}
 
@@ -224,6 +236,11 @@ Examples:
 			console.log(`${index + 1}. ${benchmark.name}: ${benchmark.opsPerSecond.toFixed(2)} ops/sec`);
 		});
 	}
+
+	// Final cleanup - ensure all resources are freed
+	setTimeout(() => {
+		process.exit(0);
+	}, 100); // Give a small delay for any async cleanup to complete
 }
 
 // Run if called directly

@@ -50,8 +50,12 @@ const createMockResponse = () => {
 				});
 			}
 		},
-		end: () => {
+		end: (data) => {
 			response.headersSent = true;
+			// Store response data if needed for testing
+			if (data) {
+				response._responseData = data;
+			}
 		},
 		on: () => {},
 		emit: () => {},
@@ -224,7 +228,13 @@ function benchmarkErrorHandlingMiddleware () {
 			res.status(500).send("Error handled");
 		} else {
 			res.statusCode = 500;
-			res.end("Error handled");
+			if (typeof res.end === 'function') {
+				res.end("Error handled");
+			} else {
+				// Fallback for mock responses
+				res.headersSent = true;
+				res._responseData = "Error handled";
+			}
 		}
 	});
 	

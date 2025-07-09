@@ -1,24 +1,19 @@
 import {createServer} from "node:http";
 import {join} from "node:path";
 import {fileURLToPath} from "node:url";
-import {performance} from "node:perf_hooks";
 import {woodland} from "../dist/woodland.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
-
-// Configuration for HTTP benchmarks
-const HTTP_BENCHMARK_CONFIG = {
-	duration: 5, // seconds
-	connections: 10,
-	pipelining: 1,
-	timeout: 10000 // ms
-};
 
 // Test server configuration
 const SERVER_CONFIG = {
 	port: 0, // Use random available port
 	host: "127.0.0.1"
 };
+
+// Shared test server instance
+let testServer = null;
+let testServerUrl = null;
 
 /**
  * Creates a woodland app with typical routes for benchmarking
@@ -118,6 +113,18 @@ function createTestApp () {
 		res.json(largeData);
 	});
 
+	// Mixed workload route
+	app.get("/mixed", (req, res) => {
+		const choice = Math.random();
+		if (choice < 0.33) {
+			res.json({type: "json", data: "test"});
+		} else if (choice < 0.66) {
+			res.send("text response");
+		} else {
+			res.redirect("/redirected");
+		}
+	});
+
 	// Static file serving
 	app.files("/static", join(__dirname, "..", "test-files"));
 
@@ -125,361 +132,217 @@ function createTestApp () {
 }
 
 /**
- * Starts a test server and returns server info
- * @returns {Promise<Object>} Server information
- */
-async function startTestServer () {
-	const app = createTestApp();
-	const server = createServer(app.route);
-
-	return new Promise((resolve, reject) => {
-		server.listen(SERVER_CONFIG.port, SERVER_CONFIG.host, () => {
-			const address = server.address();
-			resolve({
-				server,
-				port: address.port,
-				host: address.address,
-				url: `http://${address.address}:${address.port}`
-			});
-		});
-
-		server.on("error", reject);
-	});
-}
-
-/**
- * Stops a test server
- * @param {Object} server - Server instance
+ * Starts the shared test server
  * @returns {Promise<void>}
  */
-async function stopTestServer (server) {
-	return new Promise((resolve) => {
-		server.close(resolve);
+async function startSharedTestServer () {
+	if (testServer) {
+		return; // Already started
+	}
+
+	const app = createTestApp();
+	testServer = createServer(app.route);
+
+	return new Promise((resolve, reject) => {
+		testServer.listen(SERVER_CONFIG.port, SERVER_CONFIG.host, () => {
+			const address = testServer.address();
+			testServerUrl = `http://${address.address}:${address.port}`;
+			resolve();
+		});
+
+		testServer.on("error", reject);
 	});
 }
 
 /**
- * Runs a simple HTTP benchmark without autocannon
- * @param {string} url - URL to benchmark
- * @param {Object} options - Benchmark options
- * @returns {Promise<Object>} Benchmark results
+ * Stops the shared test server
+ * @returns {Promise<void>}
  */
-async function runSimpleHttpBenchmark (url, options = {}) {
-	const {
-		duration = HTTP_BENCHMARK_CONFIG.duration,
-		connections = HTTP_BENCHMARK_CONFIG.connections
-	} = options;
+async function stopSharedTestServer () {
+	if (!testServer) {
+		return;
+	}
 
-	const results = {
-		requests: 0,
-		errors: 0,
-		duration: 0,
-		avgLatency: 0,
-		requestsPerSecond: 0
-	};
-
-	const startTime = performance.now();
-	const endTime = startTime + (duration * 1000);
-	const latencies = [];
-
-	// Create workers to simulate concurrent connections
-	const workers = Array.from({length: connections}, async () => {
-		while (performance.now() < endTime) {
-			const reqStart = performance.now();
-			
-			try {
-				const response = await fetch(url);
-				const reqEnd = performance.now();
-				
-				if (response.ok) {
-					results.requests++;
-					latencies.push(reqEnd - reqStart);
-				} else {
-					results.errors++;
-				}
-			} catch (error) {
-				results.errors++;
-			}
-		}
+	return new Promise((resolve) => {
+		testServer.close(() => {
+			testServer = null;
+			testServerUrl = null;
+			resolve();
+		});
 	});
-
-	// Wait for all workers to complete
-	await Promise.all(workers);
-
-	const actualDuration = (performance.now() - startTime) / 1000;
-	results.duration = actualDuration;
-	results.avgLatency = latencies.length > 0 ? latencies.reduce((a, b) => a + b, 0) / latencies.length : 0;
-	results.requestsPerSecond = results.requests / actualDuration;
-
-	return results;
 }
+
+/**
+ * Ensures the test server is running
+ * @returns {Promise<void>}
+ */
+async function ensureTestServer () {
+	if (!testServer) {
+		await startSharedTestServer();
+	}
+}
+
+/**
+ * Performs a single HTTP request for benchmarking
+ * @param {string} path - URL path to request
+ * @param {Object} options - Request options
+ * @returns {Promise<Response>} Fetch response
+ */
+async function performHttpRequest (path, options = {}) {
+	await ensureTestServer();
+	const url = `${testServerUrl}${path}`;
+	return await fetch(url, options);
+}
+
+// Individual benchmark functions that perform single HTTP requests
 
 /**
  * Benchmark simple GET request
  */
 async function benchmarkSimpleGet () {
-	const serverInfo = await startTestServer();
-	
-	try {
-		const results = await runSimpleHttpBenchmark(`${serverInfo.url}/`, {
-			duration: 1, // Shorter duration for individual benchmark
-			connections: 5
-		});
-		
-		return results.requestsPerSecond;
-	} finally {
-		await stopTestServer(serverInfo.server);
-	}
+	const response = await performHttpRequest("/");
+	await response.text(); // Consume response
+	return response.status;
 }
 
 /**
  * Benchmark JSON response
  */
 async function benchmarkJsonResponse () {
-	const serverInfo = await startTestServer();
-	
-	try {
-		const results = await runSimpleHttpBenchmark(`${serverInfo.url}/health`, {
-			duration: 1,
-			connections: 5
-		});
-		
-		return results.requestsPerSecond;
-	} finally {
-		await stopTestServer(serverInfo.server);
-	}
+	const response = await performHttpRequest("/health");
+	await response.json(); // Consume response
+	return response.status;
 }
 
 /**
  * Benchmark parameterized routes
  */
 async function benchmarkParameterizedRoutes () {
-	const serverInfo = await startTestServer();
-	
-	try {
-		const results = await runSimpleHttpBenchmark(`${serverInfo.url}/users/123`, {
-			duration: 1,
-			connections: 5
-		});
-		
-		return results.requestsPerSecond;
-	} finally {
-		await stopTestServer(serverInfo.server);
-	}
+	const response = await performHttpRequest("/users/123");
+	await response.json(); // Consume response
+	return response.status;
 }
 
 /**
  * Benchmark nested parameterized routes
  */
 async function benchmarkNestedParameterizedRoutes () {
-	const serverInfo = await startTestServer();
-	
-	try {
-		const results = await runSimpleHttpBenchmark(`${serverInfo.url}/users/123/posts/456`, {
-			duration: 1,
-			connections: 5
-		});
-		
-		return results.requestsPerSecond;
-	} finally {
-		await stopTestServer(serverInfo.server);
-	}
+	const response = await performHttpRequest("/users/123/posts/456");
+	await response.json(); // Consume response
+	return response.status;
 }
 
 /**
  * Benchmark middleware chain
  */
 async function benchmarkMiddlewareChain () {
-	const serverInfo = await startTestServer();
-	
-	try {
-		const results = await runSimpleHttpBenchmark(`${serverInfo.url}/api/data`, {
-			duration: 1,
-			connections: 5
-		});
-		
-		return results.requestsPerSecond;
-	} finally {
-		await stopTestServer(serverInfo.server);
-	}
+	const response = await performHttpRequest("/api/data");
+	await response.json(); // Consume response
+	return response.status;
 }
 
 /**
  * Benchmark complex middleware chain
  */
 async function benchmarkComplexMiddleware () {
-	const serverInfo = await startTestServer();
-	
-	try {
-		const results = await runSimpleHttpBenchmark(`${serverInfo.url}/api/protected/secret`, {
-			duration: 1,
-			connections: 5
-		});
-		
-		return results.requestsPerSecond;
-	} finally {
-		await stopTestServer(serverInfo.server);
-	}
+	const response = await performHttpRequest("/api/protected/secret");
+	await response.json(); // Consume response
+	return response.status;
 }
 
 /**
  * Benchmark POST requests
  */
 async function benchmarkPostRequests () {
-	const serverInfo = await startTestServer();
-	
-	try {
-		const results = await runSimpleHttpBenchmark(`${serverInfo.url}/users`, {
-			duration: 1,
-			connections: 5,
-			method: "POST"
-		});
-		
-		return results.requestsPerSecond;
-	} finally {
-		await stopTestServer(serverInfo.server);
-	}
+	const response = await performHttpRequest("/users", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json"
+		},
+		body: JSON.stringify({name: "Test User"})
+	});
+	await response.json(); // Consume response
+	return response.status;
 }
 
 /**
  * Benchmark PUT requests
  */
 async function benchmarkPutRequests () {
-	const serverInfo = await startTestServer();
-	
-	try {
-		const results = await runSimpleHttpBenchmark(`${serverInfo.url}/users/123`, {
-			duration: 1,
-			connections: 5,
-			method: "PUT"
-		});
-		
-		return results.requestsPerSecond;
-	} finally {
-		await stopTestServer(serverInfo.server);
-	}
+	const response = await performHttpRequest("/users/123", {
+		method: "PUT",
+		headers: {
+			"Content-Type": "application/json"
+		},
+		body: JSON.stringify({name: "Updated User"})
+	});
+	await response.json(); // Consume response
+	return response.status;
 }
 
 /**
  * Benchmark DELETE requests
  */
 async function benchmarkDeleteRequests () {
-	const serverInfo = await startTestServer();
-	
-	try {
-		const results = await runSimpleHttpBenchmark(`${serverInfo.url}/users/123`, {
-			duration: 1,
-			connections: 5,
-			method: "DELETE"
-		});
-		
-		return results.requestsPerSecond;
-	} finally {
-		await stopTestServer(serverInfo.server);
-	}
+	const response = await performHttpRequest("/users/123", {
+		method: "DELETE"
+	});
+	await response.text(); // Consume response
+	return response.status;
 }
 
 /**
  * Benchmark large response
  */
 async function benchmarkLargeResponse () {
-	const serverInfo = await startTestServer();
-	
-	try {
-		const results = await runSimpleHttpBenchmark(`${serverInfo.url}/large`, {
-			duration: 1,
-			connections: 3 // Fewer connections for large responses
-		});
-		
-		return results.requestsPerSecond;
-	} finally {
-		await stopTestServer(serverInfo.server);
-	}
+	const response = await performHttpRequest("/large");
+	await response.json(); // Consume response
+	return response.status;
 }
 
 /**
  * Benchmark error handling
  */
 async function benchmarkErrorHandling () {
-	const serverInfo = await startTestServer();
-	
-	try {
-		const results = await runSimpleHttpBenchmark(`${serverInfo.url}/error`, {
-			duration: 1,
-			connections: 5
-		});
-		
-		return results.requestsPerSecond;
-	} finally {
-		await stopTestServer(serverInfo.server);
-	}
+	const response = await performHttpRequest("/error");
+	await response.text(); // Consume response
+	return response.status;
 }
 
 /**
  * Benchmark 404 handling
  */
 async function benchmarkNotFoundHandling () {
-	const serverInfo = await startTestServer();
-	
-	try {
-		const results = await runSimpleHttpBenchmark(`${serverInfo.url}/does-not-exist`, {
-			duration: 1,
-			connections: 5
-		});
-		
-		return results.requestsPerSecond;
-	} finally {
-		await stopTestServer(serverInfo.server);
-	}
+	const response = await performHttpRequest("/not-found");
+	await response.text(); // Consume response
+	return response.status;
 }
 
 /**
  * Benchmark mixed workload
  */
 async function benchmarkMixedWorkload () {
-	const serverInfo = await startTestServer();
-	
-	try {
-		const urls = [
-			`${serverInfo.url}/`,
-			`${serverInfo.url}/health`,
-			`${serverInfo.url}/users/123`,
-			`${serverInfo.url}/api/data`,
-			`${serverInfo.url}/ping`
-		];
-		
-		const results = await Promise.all(
-			urls.map(url => runSimpleHttpBenchmark(url, {
-				duration: 0.5,
-				connections: 2
-			}))
-		);
-		
-		// Return average requests per second
-		return results.reduce((sum, result) => sum + result.requestsPerSecond, 0) / results.length;
-	} finally {
-		await stopTestServer(serverInfo.server);
+	const response = await performHttpRequest("/mixed");
+	// Handle different response types
+	const contentType = response.headers.get("content-type");
+	if (contentType && contentType.includes("application/json")) {
+		await response.json();
+	} else {
+		await response.text();
 	}
+	return response.status;
 }
 
 /**
- * Test server startup and shutdown performance
+ * Benchmark server startup (creates a new app instance)
  */
 async function benchmarkServerStartup () {
-	const start = performance.now();
-	const serverInfo = await startTestServer();
-	const startupTime = performance.now() - start;
-	
-	const shutdownStart = performance.now();
-	await stopTestServer(serverInfo.server);
-	const shutdownTime = performance.now() - shutdownStart;
-	
-	// Return startup time as the benchmark result
-	return 1000 / startupTime; // Convert to operations per second
+	const app = createTestApp();
+	return app ? 1 : 0; // Return success indicator
 }
 
 // Export benchmark functions
-export default {
+const benchmarks = {
 	"simple GET": benchmarkSimpleGet,
 	"JSON response": benchmarkJsonResponse,
 	"parameterized routes": benchmarkParameterizedRoutes,
@@ -494,4 +357,23 @@ export default {
 	"404 handling": benchmarkNotFoundHandling,
 	"mixed workload": benchmarkMixedWorkload,
 	"server startup": benchmarkServerStartup
-}; 
+};
+
+// Add cleanup function to benchmark exports
+benchmarks.cleanup = stopSharedTestServer;
+
+export default benchmarks;
+
+// Cleanup when process exits
+process.on("exit", () => {
+	if (testServer) {
+		testServer.close();
+	}
+});
+
+process.on("SIGINT", () => {
+	if (testServer) {
+		testServer.close();
+	}
+	process.exit(0);
+}); 
