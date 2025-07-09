@@ -4,7 +4,7 @@
  *
  * @copyright 2025 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.1.4
+ * @version 20.1.5
  */
 'use strict';
 
@@ -20,24 +20,29 @@ const __dirname$1 = node_url.fileURLToPath(new node_url.URL(".", (typeof documen
 const require$1 = node_module.createRequire((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('cli.cjs', document.baseURI).href)));
 const {name, version} = require$1(node_path.join(__dirname$1, "..", "package.json"));
 const CACHE_CONTROL = "cache-control";
-const CHAR_SET = "charset=utf-8";
 const CONTENT_TYPE = "content-type";
+const TEXT_PLAIN = "text/plain";
+const CHAR_SET = "charset=utf-8";
+`nodejs/${process.version}, ${process.platform}/${process.arch}`;
+const LOCALHOST = "127.0.0.1";
+const INT_8000 = 8000;
 const EQUAL = "=";
-const EN_US = "en-US";
 const HYPHEN = "-";
 const INFO = "info";
-const INT_8000 = 8000;
-const LOCALHOST = "127.0.0.1";
+const NO_CACHE = "no-cache";
+
+// =============================================================================
+// UTILITY & MISC
+// =============================================================================
+const EN_US = "en-US";
 const SHORT = "short";
+
 Object.freeze(Array.from(Array(12).values()).map((i, idx) => {
 	const d = new Date();
 	d.setMonth(idx);
 
 	return Object.freeze(d.toLocaleString(EN_US, {month: SHORT}));
 }));
-const NO_CACHE = "no-cache";
-const TEXT_PLAIN = "text/plain";
-`nodejs/${process.version}, ${process.platform}/${process.arch}`;
 
 const app = woodland.woodland({
 		autoindex: true,

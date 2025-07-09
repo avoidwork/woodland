@@ -3,54 +3,28 @@
  *
  * @copyright 2025 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.1.4
+ * @version 20.1.5
  */
 import {STATUS_CODES,METHODS}from'node:http';import {join,extname}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {createRequire}from'node:module';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const __dirname$1 = fileURLToPath(new URL(".", import.meta.url));
 const require = createRequire(import.meta.url);
 const {name, version} = require(join(__dirname$1, "..", "package.json"));
 
-const ACCESS_CONTROL_ALLOW_CREDENTIALS = "access-control-allow-credentials";
-const ACCESS_CONTROL_ALLOW_HEADERS = "access-control-allow-headers";
-const ACCESS_CONTROL_ALLOW_METHODS = "access-control-allow-methods";
-const ACCESS_CONTROL_ALLOW_ORIGIN = "access-control-allow-origin";
-const ACCESS_CONTROL_EXPOSE_HEADERS = "access-control-expose-headers";
-const ACCESS_CONTROL_REQUEST_HEADERS = "access-control-request-headers";
-const ALLOW = "allow";
-const APPLICATION_JSON = "application/json";
-const APPLICATION_OCTET_STREAM = "application/octet-stream";
-const ARRAY = "array";
-const CACHE_CONTROL = "cache-control";
-const CLOSE = "close";
-const COLON = ":";
-const COMMA = ",";
-const COMMA_SPACE = ", ";
+// =============================================================================
+// HTTP METHODS
+// =============================================================================
 const CONNECT = "CONNECT";
-const CONTENT_LENGTH = "content-length";
-const CONTENT_RANGE = "content-range";
-const CONTENT_TYPE = "content-type";
-const DEBUG = "debug";
 const DELETE = "DELETE";
-const DELIMITER = "|";
-const EMPTY = "";
-const EN_US = "en-US";
-const END = "end";
-const ETAG = "etag";
-const ERROR = "error";
-const EXTENSIONS = "extensions";
-const FINISH = "finish";
-const FUNCTION = "function";
 const GET = "GET";
 const HEAD = "HEAD";
-const HYPHEN = "-";
-const INDEX_HTM = "index.htm";
-const INDEX_HTML = "index.html";
-const INFO = "info";
-const INT_0 = 0;
-const INT_2 = 2;
-const INT_3 = 3;
-const INT_4 = 4;
-const INT_10 = 10;
-const INT_60 = 60;
+const OPTIONS = "OPTIONS";
+const PATCH = "PATCH";
+const POST = "POST";
+const PUT = "PUT";
+const TRACE = "TRACE";
+
+// =============================================================================
+// HTTP STATUS CODES
+// =============================================================================
 const INT_200 = 200;
 const INT_204 = 204;
 const INT_206 = 206;
@@ -62,13 +36,102 @@ const INT_404 = 404;
 const INT_405 = 405;
 const INT_416 = 416;
 const INT_500 = 500;
+
+// =============================================================================
+// HTTP HEADERS
+// =============================================================================
+const ACCESS_CONTROL_ALLOW_CREDENTIALS = "access-control-allow-credentials";
+const ACCESS_CONTROL_ALLOW_HEADERS = "access-control-allow-headers";
+const ACCESS_CONTROL_ALLOW_METHODS = "access-control-allow-methods";
+const ACCESS_CONTROL_ALLOW_ORIGIN = "access-control-allow-origin";
+const ACCESS_CONTROL_EXPOSE_HEADERS = "access-control-expose-headers";
+const ACCESS_CONTROL_REQUEST_HEADERS = "access-control-request-headers";
+const ALLOW = "allow";
+const CACHE_CONTROL = "cache-control";
+const CONTENT_LENGTH = "content-length";
+const CONTENT_RANGE = "content-range";
+const CONTENT_TYPE = "content-type";
+const ETAG = "etag";
+const LAST_MODIFIED = "last-modified";
+const LOCATION = "location";
+const ORIGIN = "origin";
+const RANGE = "range";
+const SERVER = "server";
+const TIMING_ALLOW_ORIGIN = "timing-allow-origin";
+const USER_AGENT = "user-agent";
+const X_CONTENT_TYPE_OPTIONS = "x-content-type-options";
+const X_FORWARDED_FOR = "x-forwarded-for";
+const X_POWERED_BY = "x-powered-by";
+const X_RESPONSE_TIME = "x-response-time";
+
+// =============================================================================
+// CONTENT TYPES & MEDIA
+// =============================================================================
+const APPLICATION_JSON = "application/json";
+const APPLICATION_OCTET_STREAM = "application/octet-stream";
+const UTF8 = "utf8";
+const UTF_8 = "utf-8";
+
+// =============================================================================
+// SERVER & SYSTEM INFO
+// =============================================================================
+const SERVER_VALUE = `${name}/${version}`;
+const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform}/${process.arch}`;
+
+// =============================================================================
+// FILE SYSTEM & ROUTING
+// =============================================================================
+const INDEX_HTM = "index.htm";
+const INDEX_HTML = "index.html";
+const EXTENSIONS = "extensions";
+const PARAMS_GROUP = "/(?<$1>[^/]+)";
+
+// =============================================================================
+// NUMERIC CONSTANTS
+// =============================================================================
+const INT_0 = 0;
+const INT_2 = 2;
+const INT_3 = 3;
+const INT_4 = 4;
+const INT_10 = 10;
+const INT_60 = 60;
 const INT_1e3 = 1e3;
 const INT_1e4 = 1e4;
 const INT_1e6 = 1e6;
-const IP_TOKEN = "%IP";
-const KEY_BYTES = "bytes=";
-const LAST_MODIFIED = "last-modified";
+
+// =============================================================================
+// STRING & CHARACTER CONSTANTS
+// =============================================================================
+const COLON = ":";
+const COMMA = ",";
+const COMMA_SPACE = ", ";
+const DELIMITER = "|";
+const EMPTY = "";
+const HYPHEN = "-";
 const LEFT_PAREN = "(";
+const PERIOD = ".";
+const SLASH = "/";
+const STRING_0 = "0";
+const STRING_00 = "00";
+const STRING_30 = "30";
+const WILDCARD = "*";
+
+// =============================================================================
+// DATA TYPES
+// =============================================================================
+const ARRAY = "array";
+const FUNCTION = "function";
+const OBJECT = "object";
+const STRING = "string";
+
+// =============================================================================
+// LOGGING & DEBUGGING
+// =============================================================================
+const DEBUG = "debug";
+const ERROR = "error";
+const INFO = "info";
+const LOG = "log";
+
 const LEVELS = Object.freeze({
 	emerg: 0,
 	alert: 1,
@@ -79,8 +142,8 @@ const LEVELS = Object.freeze({
 	info: 6,
 	debug: 7
 });
-const LOCATION = "location";
-const LOG = "log";
+
+// Log format tokens
 const LOG_B = "%b";
 const LOG_FORMAT = "%h %l %u %t \"%r\" %>s %b";
 const LOG_H = "%h";
@@ -92,58 +155,55 @@ const LOG_T = "%t";
 const LOG_U = "%u";
 const LOG_USER_AGENT = "%{User-agent}i";
 const LOG_V = "%v";
+
+// =============================================================================
+// MESSAGES & RESPONSES
+// =============================================================================
+const MSG_DECORATED_IP = "Decorated request from %IP";
+const MSG_DETERMINED_ALLOW = "Determined 'allow' header value";
+const MSG_ERROR_HEAD_ROUTE = "Cannot set HEAD route, use GET";
+const MSG_ERROR_INVALID_METHOD = "Invalid HTTP method";
+const MSG_ERROR_IP = "Handled error response for %IP";
+const MSG_IGNORED_FN = "Added function to ignored Set";
+const MSG_REGISTERING_MIDDLEWARE = "Registering middleware";
+const MSG_RETRIEVED_MIDDLEWARE = "Retrieved middleware for request";
+const MSG_ROUTING = "Routing request";
+const MSG_ROUTING_FILE = "Routing request to file system";
+const MSG_SENDING_BODY = "Sending response body";
+
+const OPTIONS_BODY = "Make a GET request to retrieve the file";
+
+// =============================================================================
+// HTTP RANGE & CACHING
+// =============================================================================
+const KEY_BYTES = "bytes=";
+
+// =============================================================================
+// EVENT & STREAM CONSTANTS
+// =============================================================================
+const CLOSE = "close";
+const END = "end";
+const FINISH = "finish";
+const START = "start";
+const STREAM = "stream";
+
+// =============================================================================
+// UTILITY & MISC
+// =============================================================================
+const EN_US = "en-US";
+const IP_TOKEN = "%IP";
 const SHORT = "short";
+const TIME_MS = "%N ms";
+const TOKEN_N = "%N";
+const TO_STRING = "toString";
+const TRUE = "true";
+
 const MONTHS = Object.freeze(Array.from(Array(12).values()).map((i, idx) => {
 	const d = new Date();
 	d.setMonth(idx);
 
 	return Object.freeze(d.toLocaleString(EN_US, {month: SHORT}));
-}));
-const MSG_DETERMINED_ALLOW = "Determined 'allow' header value";
-const MSG_ERROR_HEAD_ROUTE = "Cannot set HEAD route, use GET";
-const MSG_ERROR_INVALID_METHOD = "Invalid HTTP method";
-const MSG_SENDING_BODY = "Sending response body";
-const MSG_DECORATED_IP = "Decorated request from %IP";
-const MSG_ERROR_IP = "Handled error response for %IP";
-const MSG_IGNORED_FN = "Added function to ignored Set";
-const MSG_ROUTING = "Routing request";
-const MSG_ROUTING_FILE = "Routing request to file system";
-const MSG_RETRIEVED_MIDDLEWARE = "Retrieved middleware for request";
-const MSG_REGISTERING_MIDDLEWARE = "Registering middleware";
-const OBJECT = "object";
-const OPTIONS = "OPTIONS";
-const OPTIONS_BODY = "Make a GET request to retrieve the file";
-const ORIGIN = "origin";
-const PARAMS_GROUP = "/(?<$1>[^/]+)";
-const PATCH = "PATCH";
-const PERIOD = ".";
-const POST = "POST";
-const PUT = "PUT";
-const RANGE = "range";
-const SERVER = "server";
-const SERVER_VALUE = `${name}/${version}`;
-const SLASH = "/";
-const START = "start";
-const STREAM = "stream";
-const STRING = "string";
-const STRING_0 = "0";
-const STRING_00 = "00";
-const STRING_30 = "30";
-const TIME_MS = "%N ms";
-const TIMING_ALLOW_ORIGIN = "timing-allow-origin";
-const TO_STRING = "toString";
-const TOKEN_N = "%N";
-const TRACE = "TRACE";
-const TRUE = "true";
-const USER_AGENT = "user-agent";
-const UTF8 = "utf8";
-const UTF_8 = "utf-8";
-const WILDCARD = "*";
-const X_FORWARDED_FOR = "x-forwarded-for";
-const X_POWERED_BY = "x-powered-by";
-const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform}/${process.arch}`;
-const X_RESPONSE_TIME = "x-response-time";
-const X_CONTENT_TYPE_OPTIONS = "x-content-type-options";const __dirname = fileURLToPath(new URL(".", import.meta.url)),
+}));const __dirname = fileURLToPath(new URL(".", import.meta.url)),
 	html = readFileSync(join(__dirname, "..", "tpl", "autoindex.html"), {encoding: UTF8}),
 	valid = Object.entries(mimeDb).filter(i => EXTENSIONS in i[1]),
 	extensions = valid.reduce((a, v) => {
@@ -156,8 +216,13 @@ const X_CONTENT_TYPE_OPTIONS = "x-content-type-options";const __dirname = fileUR
 		return a;
 	}, {});
 
-function escapeHtml (str) {
-	return String(str)
+/**
+ * Escapes HTML special characters to prevent XSS attacks
+ * @param {string} [str=""] - The string to escape
+ * @returns {string} The escaped string with HTML entities
+ */
+function escapeHtml (str = EMPTY) {
+	return str
 		.replace(/&/g, "&amp;")
 		.replace(/</g, "&lt;")
 		.replace(/>/g, "&gt;")
@@ -165,6 +230,12 @@ function escapeHtml (str) {
 		.replace(/'/g, "&#39;");
 }
 
+/**
+ * Generates an HTML autoindex page for directory listings
+ * @param {string} [title=""] - The title for the autoindex page
+ * @param {Array|string} [files=[]] - Array of files or string to display in the listing
+ * @returns {string} The complete HTML string for the autoindex page
+ */
 function autoindex (title = EMPTY, files = []) {
 	let safeTitle = escapeHtml(title);
 	let safeFiles = Array.isArray(files) ?
@@ -175,20 +246,45 @@ function autoindex (title = EMPTY, files = []) {
 		.replace(/\$\{\s*FILES\s*\}/g, safeFiles);
 }
 
+/**
+ * Determines the appropriate HTTP status code based on request and response state
+ * @param {Object} req - The HTTP request object
+ * @param {Object} res - The HTTP response object
+ * @returns {number} The appropriate HTTP status code
+ */
 function getStatus (req, res) {
 	return req.allow.length > INT_0 ? req.method !== GET ? INT_405 : req.allow.includes(GET) ? res.statusCode > INT_500 ? res.statusCode : INT_500 : INT_404 : INT_404;
 }
 
+/**
+ * Gets the MIME type for a file based on its extension
+ * @param {string} [arg=""] - The filename or path to get the MIME type for
+ * @returns {string} The MIME type or application/octet-stream as default
+ */
 function mime (arg = EMPTY) {
 	const ext = extname(arg);
 
 	return ext in extensions ? extensions[ext].type : APPLICATION_OCTET_STREAM;
 }
 
+/**
+ * Formats a time value in milliseconds with specified precision
+ * @param {number} [arg=0] - The time value in nanoseconds
+ * @param {number} [digits=3] - Number of decimal places for precision
+ * @returns {string} Formatted time string with "ms" suffix
+ */
 function ms (arg = INT_0, digits = INT_3) {
 	return TIME_MS.replace(TOKEN_N, Number(arg / INT_1e6).toFixed(digits));
 }
 
+/**
+ * Creates a next function for middleware processing with error handling
+ * @param {Object} req - The HTTP request object
+ * @param {Object} res - The HTTP response object
+ * @param {Iterator} middleware - The middleware iterator
+ * @param {boolean} [immediate=false] - Whether to execute immediately or on next tick
+ * @returns {Function} The next function for middleware chain
+ */
 function next (req, res, middleware, immediate = false) {
 	const internalFn = (err, fn) => {
 		let obj = middleware.next();
@@ -218,10 +314,20 @@ function next (req, res, middleware, immediate = false) {
 	return fn;
 }
 
+/**
+ * Pads a number with leading zeros to make it 2 digits
+ * @param {number} [arg=0] - The number to pad
+ * @returns {string} The padded string representation
+ */
 function pad (arg = INT_0) {
 	return String(arg).padStart(INT_2, STRING_0);
 }
 
+/**
+ * Extracts and processes URL parameters from request path
+ * @param {Object} req - The HTTP request object
+ * @param {RegExp} getParams - Regular expression for parameter extraction
+ */
 function params (req, getParams) {
 	getParams.lastIndex = INT_0;
 	req.params = getParams.exec(req.parsed.pathname)?.groups ?? {};
@@ -233,6 +339,11 @@ function params (req, getParams) {
 	}
 }
 
+/**
+ * Parses a URL string or request object into a URL object with security checks
+ * @param {string|Object} arg - URL string or request object to parse
+ * @returns {URL} Parsed URL object
+ */
 function parse (arg) {
 	const urlStr = typeof arg === STRING ?
 		arg :
@@ -246,6 +357,16 @@ function parse (arg) {
 	return urlObj;
 }
 
+/**
+ * Handles partial content headers for HTTP range requests
+ * @param {Object} req - The HTTP request object
+ * @param {Object} res - The HTTP response object
+ * @param {number} size - Total size of the content
+ * @param {number} status - HTTP status code
+ * @param {Object} [headers={}] - Response headers object
+ * @param {Object} [options={}] - Options for range processing
+ * @returns {Array} Array containing [headers, options]
+ */
 function partialHeaders (req, res, size, status, headers = {}, options = {}) {
 	if ((req.headers.range || EMPTY).indexOf(KEY_BYTES) === INT_0) {
 		options = {};
@@ -283,10 +404,22 @@ function partialHeaders (req, res, size, status, headers = {}, options = {}) {
 	return [headers, options];
 }
 
+/**
+ * Checks if an object is pipeable (has 'on' method and is not null)
+ * @param {string} method - HTTP method
+ * @param {*} arg - Object to check for pipeability
+ * @returns {boolean} True if the object is pipeable
+ */
 function pipeable (method, arg) {
 	return method !== HEAD && arg !== null && typeof arg.on === FUNCTION;
 }
 
+/**
+ * Processes middleware map for a given URI and populates middleware array
+ * @param {string} uri - The URI to match against
+ * @param {Map} [map=new Map()] - Map of middleware handlers
+ * @param {Object} [arg={}] - Object containing middleware array and parameters
+ */
 function reduce (uri, map = new Map(), arg = {}) {
 	Array.from(map.values()).filter(i => {
 		i.regex.lastIndex = INT_0;
@@ -304,6 +437,11 @@ function reduce (uri, map = new Map(), arg = {}) {
 	});
 }
 
+/**
+ * Formats a time offset value into a string representation
+ * @param {number} [arg=0] - Time offset value
+ * @returns {string} Formatted time offset string
+ */
 function timeOffset (arg = INT_0) {
 	const neg = arg < INT_0;
 
@@ -318,9 +456,35 @@ function timeOffset (arg = INT_0) {
 	}, []).join(EMPTY)}`;
 }
 
+/**
+ * Writes HTTP response headers using writeHead method
+ * @param {Object} res - The HTTP response object
+ * @param {Object} [headers={}] - Headers object to write
+ */
 function writeHead (res, headers = {}) {
 	res.writeHead(res.statusCode, STATUS_CODES[res.statusCode], headers);
-}class Woodland extends EventEmitter {
+}/**
+ * Woodland HTTP server framework class extending EventEmitter
+ * @class
+ * @extends {EventEmitter}
+ */
+class Woodland extends EventEmitter {
+	/**
+	 * Creates a new Woodland instance
+	 * @param {Object} [config={}] - Configuration object
+	 * @param {boolean} [config.autoindex=false] - Enable automatic directory indexing
+	 * @param {number} [config.cacheSize=1000] - Size of internal cache
+	 * @param {number} [config.cacheTTL=10000] - Cache time-to-live in milliseconds
+	 * @param {string} [config.charset='utf-8'] - Default character encoding
+	 * @param {Object} [config.defaultHeaders={}] - Default HTTP headers
+	 * @param {number} [config.digit=3] - Number of digits for timing precision
+	 * @param {boolean} [config.etags=true] - Enable ETag generation
+	 * @param {string[]} [config.indexes=['index.htm', 'index.html']] - Index file names
+	 * @param {Object} [config.logging={}] - Logging configuration
+	 * @param {string[]} [config.origins=['*']] - Allowed CORS origins
+	 * @param {boolean} [config.silent=false] - Disable default headers
+	 * @param {boolean} [config.time=false] - Enable response time tracking
+	 */
 	constructor ({
 		autoindex = false,
 		cacheSize = INT_1e3,
@@ -373,10 +537,23 @@ function writeHead (res, headers = {}) {
 		}
 	}
 
+	/**
+	 * Checks if a method is allowed for a specific URI
+	 * @param {string} method - HTTP method
+	 * @param {string} uri - Request URI
+	 * @param {boolean} [override=false] - Skip cache lookup
+	 * @returns {boolean} True if method is allowed
+	 */
 	allowed (method, uri, override = false) {
 		return this.routes(uri, method, override).visible > INT_0;
 	}
 
+	/**
+	 * Gets allowed methods for a URI as a comma-separated string
+	 * @param {string} uri - Request URI
+	 * @param {boolean} [override=false] - Skip cache lookup
+	 * @returns {string} Comma-separated list of allowed methods
+	 */
 	allows (uri, override = false) {
 		let result = override === false ? this.permissions.get(uri) : void 0;
 
@@ -402,14 +579,30 @@ function writeHead (res, headers = {}) {
 		return result;
 	}
 
+	/**
+	 * Registers middleware that runs for all HTTP methods
+	 * @param {...Function} args - Middleware functions followed by optional method
+	 * @returns {Woodland} This instance for chaining
+	 */
 	always (...args) {
 		return this.use(...args, WILDCARD);
 	}
 
+	/**
+	 * Registers middleware for CONNECT method
+	 * @param {...Function} args - Middleware functions
+	 * @returns {Woodland} This instance for chaining
+	 */
 	connect (...args) {
 		return this.use(...args, CONNECT);
 	}
 
+	/**
+	 * Generates a Common Log Format entry for a request/response
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @returns {string} Formatted log entry
+	 */
 	clf (req, res) {
 		const date = new Date();
 
@@ -425,14 +618,29 @@ function writeHead (res, headers = {}) {
 			.replace(LOG_USER_AGENT, req.headers?.[USER_AGENT] ?? HYPHEN);
 	}
 
+	/**
+	 * Checks if a request should be handled with CORS
+	 * @param {Object} req - HTTP request object
+	 * @returns {boolean} True if CORS should be applied
+	 */
 	cors (req) {
 		return req.corsHost && (this.origins.includes(WILDCARD) || this.origins.includes(req.headers.origin));
 	}
 
+	/**
+	 * Determines if the request origin differs from the host
+	 * @param {Object} req - HTTP request object
+	 * @returns {boolean} True if cross-origin request
+	 */
 	corsHost (req) {
 		return ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host;
 	}
 
+	/**
+	 * Decorates request and response objects with additional properties and methods
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 */
 	decorate (req, res) {
 		if (this.time) {
 			req.precise = precise().start();
@@ -482,10 +690,21 @@ function writeHead (res, headers = {}) {
 		res.on(CLOSE, () => this.log(this.clf(req, res), INFO));
 	}
 
+	/**
+	 * Registers middleware for DELETE method
+	 * @param {...Function} args - Middleware functions
+	 * @returns {Woodland} This instance for chaining
+	 */
 	delete (...args) {
 		return this.use(...args, DELETE);
 	}
 
+	/**
+	 * Creates an error handler function for the response
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @returns {Function} Error handler function
+	 */
 	error (req, res) {
 		return (status = INT_500) => {
 			if (res.headersSent === false) {
@@ -512,18 +731,39 @@ function writeHead (res, headers = {}) {
 		};
 	}
 
+	/**
+	 * Generates an ETag for the given method and arguments
+	 * @param {string} method - HTTP method
+	 * @param {...*} args - Arguments to generate ETag from
+	 * @returns {string} Generated ETag or empty string
+	 */
 	etag (method, ...args) {
 		return (method === GET || method === HEAD || method === OPTIONS) && this.etags !== null ? this.etags.create(args.map(i => typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i).join(HYPHEN)) : EMPTY;
 	}
 
+	/**
+	 * Serves static files from a directory
+	 * @param {string} [root='/'] - URL root path
+	 * @param {string} [folder=process.cwd()] - File system folder to serve from
+	 */
 	files (root = SLASH, folder = process.cwd()) {
 		this.get(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) => this.serve(req, res, req.parsed.pathname.substring(1), folder));
 	}
 
+	/**
+	 * Registers middleware for GET method
+	 * @param {...Function} args - Middleware functions
+	 * @returns {Woodland} This instance for chaining
+	 */
 	get (...args) {
 		return this.use(...args, GET);
 	}
 
+	/**
+	 * Marks a middleware function to be ignored in route visibility calculations
+	 * @param {Function} fn - Middleware function to ignore
+	 * @returns {Woodland} This instance for chaining
+	 */
 	ignore (fn) {
 		this.ignored.add(fn);
 		this.log(`type=ignore, message="${MSG_IGNORED_FN}", name="${fn.name}"`);
@@ -531,16 +771,32 @@ function writeHead (res, headers = {}) {
 		return this;
 	}
 
+	/**
+	 * Extracts the client IP address from the request
+	 * @param {Object} req - HTTP request object
+	 * @returns {string} Client IP address
+	 */
 	ip (req) {
 		return X_FORWARDED_FOR in req.headers ? req.headers[X_FORWARDED_FOR].split(COMMA).pop().trim() : req.connection.remoteAddress;
 	}
 
+	/**
+	 * Creates a JSON response function for the response object
+	 * @param {Object} res - HTTP response object
+	 * @returns {Function} JSON response function
+	 */
 	json (res) {
 		return (arg, status = 200, headers = {[CONTENT_TYPE]: `${APPLICATION_JSON}; charset=${UTF_8}`}) => {
 			res.send(JSON.stringify(arg), status, headers);
 		};
 	}
 
+	/**
+	 * Lists registered routes for a specific method
+	 * @param {string} [method='get'] - HTTP method to list routes for
+	 * @param {string} [type='array'] - Return type: 'array' or 'object'
+	 * @returns {Array|Object} Array of route patterns or object with route details
+	 */
 	list (method = GET.toLowerCase(), type = ARRAY) {
 		let result;
 
@@ -559,6 +815,12 @@ function writeHead (res, headers = {}) {
 		return result;
 	}
 
+	/**
+	 * Logs a message at the specified level
+	 * @param {string} msg - Message to log
+	 * @param {string} [level='debug'] - Log level
+	 * @returns {Woodland} This instance for chaining
+	 */
 	log (msg, level = DEBUG) {
 		if (this.logging.enabled) {
 			const idx = LEVELS[level];
@@ -572,6 +834,13 @@ function writeHead (res, headers = {}) {
 		return this;
 	}
 
+	/**
+	 * Finalizes the response by setting headers and ending the response
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {string} body - Response body
+	 * @param {Object} headers - Additional headers to set
+	 */
 	onDone (req, res, body, headers) {
 		if (res.statusCode !== INT_204 && res.statusCode !== INT_304 && res.getHeader(CONTENT_LENGTH) === void 0) {
 			res.header(CONTENT_LENGTH, Buffer.byteLength(body));
@@ -581,6 +850,15 @@ function writeHead (res, headers = {}) {
 		res.end(body, this.charset);
 	}
 
+	/**
+	 * Prepares the response before sending, adding timing headers if enabled
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {string} body - Response body
+	 * @param {number} status - HTTP status code
+	 * @param {Object} headers - Response headers
+	 * @returns {Array} Array containing [body, status, headers]
+	 */
 	onReady (req, res, body, status, headers) {
 		if (this.time && res.getHeader(X_RESPONSE_TIME) === void 0) {
 			res.header(X_RESPONSE_TIME, `${ms(req.precise.stop().diff(), this.digit)}`);
@@ -589,37 +867,81 @@ function writeHead (res, headers = {}) {
 		return this.onSend(req, res, body, status, headers);
 	}
 
+	/**
+	 * Hook called before sending response, allows modification of response data
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {string} body - Response body
+	 * @param {number} status - HTTP status code
+	 * @param {Object} headers - Response headers
+	 * @returns {Array} Array containing [body, status, headers]
+	 */
 	/* istanbul ignore next */
 	onSend (req, res, body, status, headers) {
 		return [body, status, headers];
 	}
 
+	/**
+	 * Registers middleware for OPTIONS method
+	 * @param {...Function} args - Middleware functions
+	 * @returns {Woodland} This instance for chaining
+	 */
 	options (...args) {
 		return this.use(...args, OPTIONS);
 	}
 
+	/**
+	 * Registers middleware for PATCH method
+	 * @param {...Function} args - Middleware functions
+	 * @returns {Woodland} This instance for chaining
+	 */
 	patch (...args) {
 		return this.use(...args, PATCH);
 	}
 
+	/**
+	 * Converts a route path with parameters to a regex pattern
+	 * @param {string} [arg=''] - Route path with parameter placeholders
+	 * @returns {string} Regex pattern string
+	 */
 	path (arg = EMPTY) {
 		return arg.replace(/\/:([^/]+)/g, PARAMS_GROUP);
 	}
 
+	/**
+	 * Registers middleware for POST method
+	 * @param {...Function} args - Middleware functions
+	 * @returns {Woodland} This instance for chaining
+	 */
 	post (...args) {
 		return this.use(...args, POST);
 	}
 
+	/**
+	 * Registers middleware for PUT method
+	 * @param {...Function} args - Middleware functions
+	 * @returns {Woodland} This instance for chaining
+	 */
 	put (...args) {
 		return this.use(...args, PUT);
 	}
 
+	/**
+	 * Creates a redirect function for the response object
+	 * @param {Object} res - HTTP response object
+	 * @returns {Function} Redirect function
+	 */
 	redirect (res) {
 		return (uri, perm = true) => {
 			res.send(EMPTY, perm ? INT_308 : INT_307, {[LOCATION]: uri});
 		};
 	}
 
+	/**
+	 * Routes an incoming HTTP request through the middleware stack
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 */
 	route (req, res) {
 		const evc = CONNECT.toLowerCase(),
 			evf = FINISH;
@@ -659,6 +981,13 @@ function writeHead (res, headers = {}) {
 		}
 	}
 
+	/**
+	 * Retrieves route information for a URI and method
+	 * @param {string} uri - Request URI
+	 * @param {string} method - HTTP method
+	 * @param {boolean} [override=false] - Skip cache lookup
+	 * @returns {Object} Route information object
+	 */
 	routes (uri, method, override = false) {
 		const key = `${method}${DELIMITER}${uri}`,
 			cached = override === false ? this.cache.get(key) : void 0;
@@ -684,6 +1013,12 @@ function writeHead (res, headers = {}) {
 		return result;
 	}
 
+	/**
+	 * Creates a send function for the response object
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @returns {Function} Send function
+	 */
 	send (req, res) {
 		return (body = EMPTY, status = res.statusCode, headers = {}) => {
 			if (res.headersSent === false) {
@@ -722,6 +1057,11 @@ function writeHead (res, headers = {}) {
 		};
 	}
 
+	/**
+	 * Creates a function to set multiple headers on the response
+	 * @param {Object} res - HTTP response object
+	 * @returns {Function} Header setting function
+	 */
 	set (res) {
 		return (arg = {}) => {
 			res.setHeaders(arg instanceof Map || arg instanceof Headers ? arg : new Headers(arg));
@@ -730,6 +1070,14 @@ function writeHead (res, headers = {}) {
 		};
 	}
 
+	/**
+	 * Serves a file or directory from the file system
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {string} arg - File path relative to folder
+	 * @param {string} [folder=process.cwd()] - Base directory to serve from
+	 * @returns {Promise<void>} Promise that resolves when serving is complete
+	 */
 	async serve (req, res, arg, folder = process.cwd()) {
 		const fp = join(folder, arg);
 		let valid = true;
@@ -788,6 +1136,11 @@ function writeHead (res, headers = {}) {
 		}
 	}
 
+	/**
+	 * Creates a status code setting function for the response
+	 * @param {Object} res - HTTP response object
+	 * @returns {Function} Status setting function
+	 */
 	status (res) {
 		return (arg = INT_200) => {
 			res.statusCode = arg;
@@ -796,6 +1149,16 @@ function writeHead (res, headers = {}) {
 		};
 	}
 
+	/**
+	 * Streams a file to the response with appropriate headers
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {Object} [file] - File information object
+	 * @param {string} [file.charset=''] - Character encoding
+	 * @param {string} [file.etag=''] - ETag value
+	 * @param {string} [file.path=''] - File system path
+	 * @param {Object} [file.stats] - File statistics
+	 */
 	stream (req, res, file = {
 		charset: EMPTY,
 		etag: EMPTY,
@@ -837,10 +1200,22 @@ function writeHead (res, headers = {}) {
 		this.emit(STREAM, req, res);
 	}
 
+	/**
+	 * Registers middleware for TRACE method
+	 * @param {...Function} args - Middleware functions
+	 * @returns {Woodland} This instance for chaining
+	 */
 	trace (...args) {
 		return this.use(...args, TRACE);
 	}
 
+	/**
+	 * Registers middleware for a route pattern and HTTP method
+	 * @param {string|Function} rpath - Route pattern or middleware function
+	 * @param {...Function} fn - Middleware functions, optionally ending with method string
+	 * @returns {Woodland} This instance for chaining
+	 * @throws {TypeError} If invalid method or HEAD route is specified
+	 */
 	use (rpath, ...fn) {
 		if (typeof rpath === FUNCTION) {
 			fn = [rpath, ...fn];
@@ -889,6 +1264,11 @@ function writeHead (res, headers = {}) {
 	}
 }
 
+/**
+ * Factory function to create a new Woodland instance
+ * @param {Object} [arg] - Configuration object passed to Woodland constructor
+ * @returns {Woodland} New Woodland instance with bound route method
+ */
 function woodland (arg) {
 	const app = new Woodland(arg);
 
