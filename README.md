@@ -1028,7 +1028,7 @@ app.log("Debug message", "debug");
 
 ## 📄 License
 
-Copyright (c) 2024 Jason Mulligan
+Copyright (c) 2025 Jason Mulligan
 
 Licensed under the **BSD-3-Clause** license.
 
