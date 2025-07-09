@@ -1,83 +1,103 @@
-export function woodland(arg: any): Woodland;
-export class Woodland {
-    constructor({ autoindex, cacheSize, cacheTTL, charset, defaultHeaders, digit, etags, indexes, logging, origins, silent, time }?: {
-        autoindex?: boolean;
-        cacheSize?: number;
-        cacheTTL?: number;
-        charset?: string;
-        defaultHeaders?: {};
-        digit?: number;
-        etags?: boolean;
-        indexes?: string[];
-        logging?: {};
-        origins?: string[];
-        silent?: boolean;
-        time?: boolean;
-    });
+import { IncomingMessage, ServerResponse } from "node:http";
+import { EventEmitter } from "node:events";
+import { LRU } from "tiny-lru";
+
+export interface WoodlandConfig {
+    autoindex?: boolean;
+    cacheSize?: number;
+    cacheTTL?: number;
+    charset?: string;
+    defaultHeaders?: Record<string, string>;
+    digit?: number;
+    etags?: boolean;
+    indexes?: string[];
+    logging?: {
+        enabled?: boolean;
+        format?: string;
+        level?: string;
+    };
+    origins?: string[];
+    silent?: boolean;
+    time?: boolean;
+}
+
+export interface FileInfo {
+    charset: string;
+    etag: string;
+    path: string;
+    stats: {
+        mtime: Date;
+        size: number;
+    };
+}
+
+export interface MiddlewareFunction {
+    (req: IncomingMessage, res: ServerResponse, next: (err?: any) => void): void;
+}
+
+export interface ErrorMiddlewareFunction {
+    (err: any, req: IncomingMessage, res: ServerResponse, next: (err?: any) => void): void;
+}
+
+export class Woodland extends EventEmitter {
+    constructor(config?: WoodlandConfig);
+    
     autoindex: boolean;
-    ignored: any;
-    cache: import("tiny-lru").LRU<any>;
+    ignored: Set<Function>;
+    cache: LRU<any>;
     charset: string;
     corsExpose: string;
-    defaultHeaders: any;
+    defaultHeaders: [string, string][];
     digit: number;
-    etags: {
-        cache: import("tiny-lru").LRU<any>;
-        mimetype: any;
-        seed: any;
-        create(arg: any): string;
-        middleware(req: any, res: any, next: any): void;
-        hash(arg?: string, mimetype?: string): string;
-        register(key: any, arg: any): any;
-        unregister(key: any): void;
-        valid(headers: any): boolean;
-    };
+    etags: any;
     indexes: string[];
-    permissions: import("tiny-lru").LRU<any>;
+    permissions: LRU<any>;
     logging: {
         enabled: boolean;
-        format: any;
-        level: any;
+        format: string;
+        level: string;
     };
-    methods: any[];
-    middleware: any;
+    methods: string[];
+    middleware: Map<string, Map<string, any>>;
     origins: string[];
     time: boolean;
-    allowed(method: any, uri: any, override?: boolean): boolean;
-    allows(uri: any, override?: boolean): any;
-    always(...args: any[]): this;
-    connect(...args: any[]): this;
-    clf(req: any, res: any): any;
-    cors(req: any): any;
-    corsHost(req: any): boolean;
-    decorate(req: any, res: any): void;
-    delete(...args: any[]): this;
-    error(req: any, res: any): (status: number, body: any) => void;
-    etag(method: any, ...args: any[]): string;
-    files(root: string, folder?: string): void;
-    get(...args: any[]): this;
-    ignore(fn: any): this;
-    ip(req: any): any;
-    json(res: any): (arg: any, status?: number, headers?: {
-        "content-type": string;
-    }) => void;
+    
+    allowed(method: string, uri: string, override?: boolean): boolean;
+    allows(uri: string, override?: boolean): string;
+    always(...args: (MiddlewareFunction | ErrorMiddlewareFunction)[]): this;
+    connect(...args: (MiddlewareFunction | ErrorMiddlewareFunction)[]): this;
+    clf(req: IncomingMessage, res: ServerResponse): string;
+    cors(req: IncomingMessage): Record<string, string>;
+    corsHost(req: IncomingMessage): boolean;
+    decorate(req: IncomingMessage, res: ServerResponse): void;
+    delete(...args: (MiddlewareFunction | ErrorMiddlewareFunction)[]): this;
+    error(req: IncomingMessage, res: ServerResponse): (status: number, body?: any) => void;
+    etag(method: string, ...args: any[]): string;
+    files(root?: string, folder?: string): void;
+    get(...args: (MiddlewareFunction | ErrorMiddlewareFunction)[]): this;
+    ignore(fn: Function): this;
+    ip(req: IncomingMessage): string;
+    json(res: ServerResponse): (arg: any, status?: number, headers?: Record<string, string>) => void;
     list(method?: string, type?: string): any;
-    log(msg: any, level?: string): this;
-    onDone(req: any, res: any, body: any, headers: any): void;
-    onReady(req: any, res: any, body: any, status: any, headers: any): any[];
-    onSend(req: any, res: any, body: any, status: any, headers: any): any[];
-    options(...args: any[]): this;
-    patch(...args: any[]): this;
+    log(msg: string, level?: string): this;
+    onDone(req: IncomingMessage, res: ServerResponse, body: any, headers: Record<string, any>): void;
+    onReady(req: IncomingMessage, res: ServerResponse, body: any, status: number, headers: Record<string, any>): [Record<string, any>, Record<string, any>];
+    onSend(req: IncomingMessage, res: ServerResponse, body: any, status: number, headers: Record<string, any>): [Record<string, any>, Record<string, any>];
+    options(...args: (MiddlewareFunction | ErrorMiddlewareFunction)[]): this;
+    patch(...args: (MiddlewareFunction | ErrorMiddlewareFunction)[]): this;
     path(arg?: string): string;
-    post(...args: any[]): this;
-    put(...args: any[]): this;
-    redirect(res: any): (uri: any, perm?: boolean) => void;
-    route(req: any, res: any): void;
-    routes(uri: any, method: any, override?: boolean): any;
-    send(req: any, res: any): (body?: string, status?: any, headers?: {}) => void;
-    set(res: any): (arg?: {}) => any;
-    serve(req: any, res: any, arg: string, folder?: string): Promise<void>;
-    status(res: any): (arg?: number) => any;
-    trace(...args: any[]): this;
-    use(rpath: any, ...fn: any[]): this;
+    post(...args: (MiddlewareFunction | ErrorMiddlewareFunction)[]): this;
+    put(...args: (MiddlewareFunction | ErrorMiddlewareFunction)[]): this;
+    redirect(res: ServerResponse): (uri: string, perm?: boolean) => void;
+    route(req: IncomingMessage, res: ServerResponse): void;
+    routes(uri: string, method: string, override?: boolean): any;
+    send(req: IncomingMessage, res: ServerResponse): (body?: any, status?: number, headers?: Record<string, any>) => void;
+    set(res: ServerResponse): (arg?: Record<string, any>) => ServerResponse;
+    serve(req: IncomingMessage, res: ServerResponse, arg: string, folder?: string): Promise<void>;
+    status(res: ServerResponse): (arg?: number) => ServerResponse;
+    stream(req: IncomingMessage, res: ServerResponse, file?: FileInfo): void;
+    trace(...args: (MiddlewareFunction | ErrorMiddlewareFunction)[]): this;
+    use(rpath: string | MiddlewareFunction, ...fn: (MiddlewareFunction | ErrorMiddlewareFunction | string)[]): this;
 }
+
+export function woodland(config?: WoodlandConfig): Woodland;

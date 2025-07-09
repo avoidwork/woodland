@@ -1,21 +1,15 @@
-export function autoindex(title?: string, files?: any[]): any;
-export function getStatus(req: any, res: any): any;
+import { IncomingMessage, ServerResponse } from "node:http";
+
+export function autoindex(title?: string, files?: any[]): string;
+export function getStatus(req: IncomingMessage, res: ServerResponse): number;
+export function mime(arg?: string): string;
 export function ms(arg?: number, digits?: number): string;
-export function next(req: any, res: any, middleware: any): (err: any) => any;
-export function pad(arg?: number): any;
-export function params(req: any, getParams: any): void;
-export function parse(arg: any): any;
-export function partialHeaders(req: any, res: any, size: any, status: any, headers?: {}, options?: {}): {}[];
-export function pipeable(method: any, arg: any): boolean;
-export function reduce(uri: any, map?: any, arg?: {}, end?: boolean, ignore?: any): void;
-export function stream(req: any, res: any, file?: {
-    charset: string;
-    etag: string;
-    path: string;
-    stats: {
-        mtime: Date;
-        size: number;
-    };
-}): any;
+export function next(req: IncomingMessage, res: ServerResponse, middleware: Iterator<any>, immediate?: boolean): (err?: any) => void;
+export function pad(arg?: number): string;
+export function params(req: IncomingMessage, getParams: RegExp): void;
+export function parse(arg: string | IncomingMessage): URL;
+export function partialHeaders(req: IncomingMessage, res: ServerResponse, size: number, status: number, headers?: Record<string, any>, options?: Record<string, any>): [Record<string, any>, Record<string, any>];
+export function pipeable(method: string, arg: any): boolean;
+export function reduce(uri: string, map?: Map<any, any>, arg?: { middleware: any[], params: boolean, getParams?: RegExp }): void;
 export function timeOffset(arg?: number): string;
-export function writeHead(res: any, headers?: {}): void;
+export function writeHead(res: ServerResponse, headers?: Record<string, any>): void;
