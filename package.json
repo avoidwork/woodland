@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "20.1.5",
+  "version": "20.1.6",
   "description": "Lightweight HTTP framework with automatic headers",
   "type": "module",
   "types": "types/woodland.d.ts",
@@ -25,7 +25,6 @@
     "mocha": "mocha tests/**/*.test.js",
     "rollup": "rollup --config",
     "test": "npm run lint && npm run mocha",
-    "types": "npx -p typescript tsc src/woodland.js --declaration --allowJs --emitDeclarationOnly --outDir types",
     "prepare": "husky"
   },
   "repository": {
@@ -64,13 +63,10 @@
   },
   "devDependencies": {
     "auto-changelog": "^2.5.0",
-    "autocannon": "^8.0.0",
-    "concurrently": "^9.2.0",
     "eslint": "^9.30.1",
     "husky": "^9.1.7",
     "mocha": "^11.7.1",
     "rollup": "^4.44.2",
-    "tiny-httptest": "^4.0.13",
-    "typescript": "^5.8.3"
+    "tiny-httptest": "^4.0.13"
   }
 }
