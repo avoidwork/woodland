@@ -19,6 +19,7 @@ import {
 	CACHE_CONTROL,
 	CLOSE,
 	COLON,
+	COMMA,
 	COMMA_SPACE,
 	CONNECT,
 	CONTENT_LENGTH,
@@ -48,7 +49,6 @@ import {
 	INT_307,
 	INT_308,
 	INT_4,
-	INT_400,
 	INT_403,
 	INT_404,
 	INT_416,
@@ -82,6 +82,7 @@ import {
 	MSG_ROUTING,
 	MSG_ROUTING_FILE,
 	MSG_SENDING_BODY,
+	NO_SNIFF,
 	OBJECT,
 	OPTIONS,
 	OPTIONS_BODY,
@@ -112,10 +113,9 @@ import {
 } from "./constants.js";
 import {
 	autoindex as aindex,
-	extractForwardedIp,
 	getStatus,
 	isSafeFilePath,
-	isValidIpAddress,
+	isValidIP,
 	mime,
 	ms,
 	next,
@@ -343,6 +343,7 @@ export class Woodland extends EventEmitter {
 		}
 
 		res.header(ALLOW, req.allow);
+		res.header(X_CONTENT_TYPE_OPTIONS, NO_SNIFF);
 
 		if (req.cors) {
 			const headers = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
@@ -378,11 +379,14 @@ export class Woodland extends EventEmitter {
 	 * @returns {Function} Error handler function
 	 */
 	error (req, res) {
-		return (status = INT_500) => {
+		return (status = INT_500, body) => {
 			if (res.headersSent === false) {
-				let output = STATUS_CODES[status] || "Error";
-				let headers = {};
+				const err = body instanceof Error ? body : new Error(body ?? STATUS_CODES[status]);
+				let output = err.message,
+					headers = {};
+
 				[output, status, headers] = this.onReady(req, res, output, status, headers);
+
 				if (status === INT_404) {
 					res.removeHeader(ALLOW);
 					res.header(ALLOW, EMPTY);
@@ -392,11 +396,14 @@ export class Woodland extends EventEmitter {
 						res.header(ACCESS_CONTROL_ALLOW_METHODS, EMPTY);
 					}
 				}
+
 				res.removeHeader(CONTENT_LENGTH);
 				res.statusCode = status;
+
 				if (this.listenerCount(ERROR) > INT_0) {
-					this.emit(ERROR, req, res, output);
+					this.emit(ERROR, req, res, err);
 				}
+
 				this.log(`type=error, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ERROR_IP.replace(IP_TOKEN, req.ip)}"`);
 				this.onDone(req, res, output, headers);
 			}
@@ -419,26 +426,7 @@ export class Woodland extends EventEmitter {
 	 * @param {string} [folder=process.cwd()] - File system folder to serve from
 	 */
 	files (root = SLASH, folder = process.cwd()) {
-		this.get(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) => {
-			// Security: Extract and validate the file path
-			const rootPath = root.replace(/\/$/, EMPTY);
-			const requestPath = req.parsed.pathname.startsWith(rootPath) ?
-				req.parsed.pathname.substring(rootPath.length + 1) :
-				req.parsed.pathname.substring(1);
-
-			// Additional security: decode URI component safely
-			let decodedPath;
-			try {
-				decodedPath = decodeURIComponent(requestPath);
-			} catch {
-				this.log(`type=files, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Invalid URI encoding"`, ERROR);
-				res.error(INT_400);
-
-				return;
-			}
-
-			this.serve(req, res, decodedPath, folder);
-		});
+		this.get(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) => this.serve(req, res, req.parsed.pathname.substring(1), folder));
 	}
 
 	/**
@@ -468,26 +456,22 @@ export class Woodland extends EventEmitter {
 	 * @returns {string} Client IP address
 	 */
 	ip (req) {
-		// Security: Don't blindly trust X-Forwarded-For header
-		if (X_FORWARDED_FOR in req.headers) {
-			const forwardedIp = extractForwardedIp(req.headers[X_FORWARDED_FOR]);
-			if (forwardedIp !== null) {
-				return forwardedIp;
+		// If no X-Forwarded-For header, return connection IP
+		if (!(X_FORWARDED_FOR in req.headers) || !req.headers[X_FORWARDED_FOR].trim()) {
+			return req.connection.remoteAddress || req.socket.remoteAddress || "127.0.0.1";
+		}
+
+		// Parse X-Forwarded-For header and find first valid IP
+		const forwardedIPs = req.headers[X_FORWARDED_FOR].split(COMMA).map(ip => ip.trim());
+
+		for (const ip of forwardedIPs) {
+			if (isValidIP(ip)) {
+				return ip;
 			}
-			// If X-Forwarded-For is present but invalid, log a warning
-			this.log(`type=ip, message="Invalid X-Forwarded-For header", header="${req.headers[X_FORWARDED_FOR]}"`, ERROR);
 		}
 
-		// Fall back to connection remote address
-		const remoteAddress = req.connection.remoteAddress || req.socket.remoteAddress;
-
-		// Validate the remote address
-		if (remoteAddress && isValidIpAddress(remoteAddress)) {
-			return remoteAddress;
-		}
-
-		// Default fallback
-		return "127.0.0.1";
+		// Fall back to connection IP if no valid IP found
+		return req.connection.remoteAddress || req.socket.remoteAddress || "127.0.0.1";
 	}
 
 	/**
@@ -555,7 +539,7 @@ export class Woodland extends EventEmitter {
 		if (res.statusCode !== INT_204 && res.statusCode !== INT_304 && res.getHeader(CONTENT_LENGTH) === void 0) {
 			res.header(CONTENT_LENGTH, Buffer.byteLength(body));
 		}
-		res.header(X_CONTENT_TYPE_OPTIONS, "nosniff");
+
 		writeHead(res, headers);
 		res.end(body, this.charset);
 	}
