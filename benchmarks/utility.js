@@ -105,6 +105,14 @@ const createMockResponse = () => {
 		setHeader: (name, value) => headers.set(name.toLowerCase(), value),
 		getHeader: (name) => headers.get(name.toLowerCase()),
 		removeHeader: (name) => headers.delete(name.toLowerCase()),
+		header: (name, value) => headers.set(name.toLowerCase(), value),
+		writeHead: (statusCode, statusMessage, headerObj) => {
+			if (headerObj) {
+				Object.entries(headerObj).forEach(([key, value]) => {
+					headers.set(key.toLowerCase(), value);
+				});
+			}
+		},
 		headers: headers,
 		end: () => {}
 	};
@@ -182,7 +190,9 @@ function benchmarkTimeOffset () {
 function benchmarkAutoindex () {
 	const title = "/test/directory";
 	const files = createMockFiles();
-	return autoindex(title, files);
+	// Convert file objects to strings as expected by the autoindex function
+	const fileStrings = files.map(f => f.name);
+	return autoindex(title, fileStrings);
 }
 
 /**
@@ -253,11 +263,10 @@ function benchmarkPipeable () {
 	// Test with different types of content
 	const contents = [
 		"string content",
-		{pipe: () => {}}, // Stream-like object
+		{pipe: () => {}, on: () => {}}, // Stream-like object
 		Buffer.from("buffer content"),
 		123,
 		null,
-		undefined,
 		{toString: () => "object with toString"}
 	];
 	

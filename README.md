@@ -679,34 +679,37 @@ new Woodland(config)
 
 ### Benchmark Results
 
-*Node.js 20.x on Apple M2 MacBook Pro (5 iterations, 10 warmup)*
+*Node.js 20.x on Apple M2 MacBook Pro (1000 iterations, 100 warmup)*
 
 ```
-HTTP Operations
-Simple GET:       3,858 ops/sec  (0.26ms avg)
-JSON response:    1,255 ops/sec  (0.80ms avg)
-Parameterized:    3,095 ops/sec  (0.32ms avg)
-Middleware chain: 5,403 ops/sec  (0.19ms avg)
-POST requests:    2,266 ops/sec  (0.44ms avg)
-Error handling:   6,663 ops/sec  (0.15ms avg)
-
 Routing Operations
-Static routes:    1,739,130 ops/sec  (0.0006ms avg)
-Parameter routes: 863,260 ops/sec   (0.0012ms avg)
-Path conversion:  1,904,762 ops/sec  (0.0005ms avg)
-Route caching:    413,873 ops/sec   (0.0024ms avg)
+Route caching:      5,145,912 ops/sec  (0.0002ms avg)
+Static routes:      2,639,073 ops/sec  (0.0004ms avg)
+Parameter routes:   2,619,845 ops/sec  (0.0004ms avg)
+Path conversion:    2,602,405 ops/sec  (0.0004ms avg)
+Not found routes:   2,417,877 ops/sec  (0.0004ms avg)
 
 Utility Operations
-MIME detection:   2,609,603 ops/sec  (0.0004ms avg)
-Time formatting:  1,846,381 ops/sec  (0.0005ms avg)
-Number padding:   2,033,347 ops/sec  (0.0005ms avg)
-Middleware chain: 2,223,210 ops/sec  (0.0004ms avg)
+Number padding:     7,478,201 ops/sec  (0.0001ms avg)
+MIME detection:     5,032,561 ops/sec  (0.0002ms avg)
+Timezone offset:    3,914,522 ops/sec  (0.0003ms avg)
+Status determination: 2,972,440 ops/sec  (0.0003ms avg)
+Middleware chain:   946,746 ops/sec   (0.0011ms avg)
 
-File Serving
-Small files:      33,222 ops/sec  (0.03ms avg)
-Medium files:     46,584 ops/sec  (0.02ms avg)
-Large files:      37,129 ops/sec  (0.03ms avg)
-Directory listing: 19,262 ops/sec  (0.05ms avg)
+File Serving Operations
+Small files:        41,272 ops/sec  (0.024ms avg)
+Medium files:       43,517 ops/sec  (0.023ms avg)
+Large files:        42,839 ops/sec  (0.023ms avg)
+HEAD requests:      73,885 ops/sec  (0.014ms avg)
+Directory listing:  19,971 ops/sec  (0.050ms avg)
+Static file serving: 573,354 ops/sec  (0.0017ms avg)
+
+HTTP Operations
+URL parsing:        1,431,545 ops/sec  (0.0007ms avg)
+Parameter extraction: 842,269 ops/sec  (0.0012ms avg)
+Range headers:      970,166 ops/sec   (0.0010ms avg)
+Content pipeability: 2,655,930 ops/sec  (0.0004ms avg)
+Header writing:     566,052 ops/sec   (0.0018ms avg)
 ```
 
 ### Performance Tips
