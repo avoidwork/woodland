@@ -52,6 +52,7 @@ export const CONTENT_TYPE = "content-type";
 export const ETAG = "etag";
 export const LAST_MODIFIED = "last-modified";
 export const LOCATION = "location";
+export const NO_SNIFF = "nosniff";
 export const ORIGIN = "origin";
 export const RANGE = "range";
 export const SERVER = "server";

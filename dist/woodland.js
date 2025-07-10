@@ -54,6 +54,7 @@ const CONTENT_TYPE = "content-type";
 const ETAG = "etag";
 const LAST_MODIFIED = "last-modified";
 const LOCATION = "location";
+const NO_SNIFF = "nosniff";
 const ORIGIN = "origin";
 const RANGE = "range";
 const SERVER = "server";
@@ -773,6 +774,7 @@ class Woodland extends EventEmitter {
 		}
 
 		res.header(ALLOW, req.allow);
+		res.header(X_CONTENT_TYPE_OPTIONS, NO_SNIFF);
 
 		if (req.cors) {
 			const headers = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
@@ -972,7 +974,7 @@ class Woodland extends EventEmitter {
 		if (res.statusCode !== INT_204 && res.statusCode !== INT_304 && res.getHeader(CONTENT_LENGTH) === void 0) {
 			res.header(CONTENT_LENGTH, Buffer.byteLength(body));
 		}
-		res.header(X_CONTENT_TYPE_OPTIONS, "nosniff");
+
 		writeHead(res, headers);
 		res.end(body, this.charset);
 	}
