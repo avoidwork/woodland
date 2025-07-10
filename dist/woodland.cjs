@@ -47,7 +47,6 @@ const INT_206 = 206;
 const INT_304 = 304;
 const INT_307 = 307;
 const INT_308 = 308;
-const INT_400 = 400;
 const INT_403 = 403;
 const INT_404 = 404;
 const INT_405 = 405;
@@ -838,11 +837,14 @@ class Woodland extends node_events.EventEmitter {
 	 * @returns {Function} Error handler function
 	 */
 	error (req, res) {
-		return (status = INT_500) => {
+		return (status = INT_500, body) => {
 			if (res.headersSent === false) {
-				let output = node_http.STATUS_CODES[status] || "Error";
-				let headers = {};
+				const err = body instanceof Error ? body : new Error(body ?? node_http.STATUS_CODES[status]);
+				let output = err.message,
+					headers = {};
+
 				[output, status, headers] = this.onReady(req, res, output, status, headers);
+
 				if (status === INT_404) {
 					res.removeHeader(ALLOW);
 					res.header(ALLOW, EMPTY);
@@ -852,11 +854,14 @@ class Woodland extends node_events.EventEmitter {
 						res.header(ACCESS_CONTROL_ALLOW_METHODS, EMPTY);
 					}
 				}
+
 				res.removeHeader(CONTENT_LENGTH);
 				res.statusCode = status;
+
 				if (this.listenerCount(ERROR) > INT_0) {
-					this.emit(ERROR, req, res, output);
+					this.emit(ERROR, req, res, err);
 				}
+
 				this.log(`type=error, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ERROR_IP.replace(IP_TOKEN, req.ip)}"`);
 				this.onDone(req, res, output, headers);
 			}
@@ -879,26 +884,7 @@ class Woodland extends node_events.EventEmitter {
 	 * @param {string} [folder=process.cwd()] - File system folder to serve from
 	 */
 	files (root = SLASH, folder = process.cwd()) {
-		this.get(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) => {
-			// Security: Extract and validate the file path
-			const rootPath = root.replace(/\/$/, EMPTY);
-			const requestPath = req.parsed.pathname.startsWith(rootPath) ?
-				req.parsed.pathname.substring(rootPath.length + 1) :
-				req.parsed.pathname.substring(1);
-
-			// Additional security: decode URI component safely
-			let decodedPath;
-			try {
-				decodedPath = decodeURIComponent(requestPath);
-			} catch {
-				this.log(`type=files, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Invalid URI encoding"`, ERROR);
-				res.error(INT_400);
-
-				return;
-			}
-
-			this.serve(req, res, decodedPath, folder);
-		});
+		this.get(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) => this.serve(req, res, req.parsed.pathname.substring(1), folder));
 	}
 
 	/**
