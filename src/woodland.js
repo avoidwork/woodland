@@ -104,6 +104,7 @@ import {
 	UTF8,
 	UTF_8,
 	WILDCARD,
+	X_CONTENT_TYPE_OPTIONS,
 	X_FORWARDED_FOR,
 	X_POWERED_BY,
 	X_POWERED_BY_VALUE,
@@ -125,7 +126,28 @@ import {
 	writeHead
 } from "./utility.js";
 
+/**
+ * Woodland HTTP server framework class extending EventEmitter
+ * @class
+ * @extends {EventEmitter}
+ */
 export class Woodland extends EventEmitter {
+	/**
+	 * Creates a new Woodland instance
+	 * @param {Object} [config={}] - Configuration object
+	 * @param {boolean} [config.autoindex=false] - Enable automatic directory indexing
+	 * @param {number} [config.cacheSize=1000] - Size of internal cache
+	 * @param {number} [config.cacheTTL=10000] - Cache time-to-live in milliseconds
+	 * @param {string} [config.charset='utf-8'] - Default character encoding
+	 * @param {Object} [config.defaultHeaders={}] - Default HTTP headers
+	 * @param {number} [config.digit=3] - Number of digits for timing precision
+	 * @param {boolean} [config.etags=true] - Enable ETag generation
+	 * @param {string[]} [config.indexes=['index.htm', 'index.html']] - Index file names
+	 * @param {Object} [config.logging={}] - Logging configuration
+	 * @param {string[]} [config.origins=['*']] - Allowed CORS origins
+	 * @param {boolean} [config.silent=false] - Disable default headers
+	 * @param {boolean} [config.time=false] - Enable response time tracking
+	 */
 	constructor ({
 		autoindex = false,
 		cacheSize = INT_1e3,
@@ -178,10 +200,23 @@ export class Woodland extends EventEmitter {
 		}
 	}
 
+	/**
+	 * Checks if a method is allowed for a specific URI
+	 * @param {string} method - HTTP method
+	 * @param {string} uri - Request URI
+	 * @param {boolean} [override=false] - Skip cache lookup
+	 * @returns {boolean} True if method is allowed
+	 */
 	allowed (method, uri, override = false) {
 		return this.routes(uri, method, override).visible > INT_0;
 	}
 
+	/**
+	 * Gets allowed methods for a URI as a comma-separated string
+	 * @param {string} uri - Request URI
+	 * @param {boolean} [override=false] - Skip cache lookup
+	 * @returns {string} Comma-separated list of allowed methods
+	 */
 	allows (uri, override = false) {
 		let result = override === false ? this.permissions.get(uri) : void 0;
 
@@ -207,14 +242,30 @@ export class Woodland extends EventEmitter {
 		return result;
 	}
 
+	/**
+	 * Registers middleware that runs for all HTTP methods
+	 * @param {...Function} args - Middleware functions followed by optional method
+	 * @returns {Woodland} This instance for chaining
+	 */
 	always (...args) {
 		return this.use(...args, WILDCARD);
 	}
 
+	/**
+	 * Registers middleware for CONNECT method
+	 * @param {...Function} args - Middleware functions
+	 * @returns {Woodland} This instance for chaining
+	 */
 	connect (...args) {
 		return this.use(...args, CONNECT);
 	}
 
+	/**
+	 * Generates a Common Log Format entry for a request/response
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @returns {string} Formatted log entry
+	 */
 	clf (req, res) {
 		const date = new Date();
 
@@ -230,14 +281,29 @@ export class Woodland extends EventEmitter {
 			.replace(LOG_USER_AGENT, req.headers?.[USER_AGENT] ?? HYPHEN);
 	}
 
+	/**
+	 * Checks if a request should be handled with CORS
+	 * @param {Object} req - HTTP request object
+	 * @returns {boolean} True if CORS should be applied
+	 */
 	cors (req) {
 		return req.corsHost && (this.origins.includes(WILDCARD) || this.origins.includes(req.headers.origin));
 	}
 
+	/**
+	 * Determines if the request origin differs from the host
+	 * @param {Object} req - HTTP request object
+	 * @returns {boolean} True if cross-origin request
+	 */
 	corsHost (req) {
 		return ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host;
 	}
 
+	/**
+	 * Decorates request and response objects with additional properties and methods
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 */
 	decorate (req, res) {
 		if (this.time) {
 			req.precise = precise().start();
@@ -287,19 +353,27 @@ export class Woodland extends EventEmitter {
 		res.on(CLOSE, () => this.log(this.clf(req, res), INFO));
 	}
 
+	/**
+	 * Registers middleware for DELETE method
+	 * @param {...Function} args - Middleware functions
+	 * @returns {Woodland} This instance for chaining
+	 */
 	delete (...args) {
 		return this.use(...args, DELETE);
 	}
 
+	/**
+	 * Creates an error handler function for the response
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @returns {Function} Error handler function
+	 */
 	error (req, res) {
-		return (status = INT_500, body) => {
+		return (status = INT_500) => {
 			if (res.headersSent === false) {
-				const err = body instanceof Error ? body : new Error(body ?? STATUS_CODES[status]);
-				let output = err.message,
-					headers = {};
-
+				let output = STATUS_CODES[status] || "Error";
+				let headers = {};
 				[output, status, headers] = this.onReady(req, res, output, status, headers);
-
 				if (status === INT_404) {
 					res.removeHeader(ALLOW);
 					res.header(ALLOW, EMPTY);
@@ -309,32 +383,50 @@ export class Woodland extends EventEmitter {
 						res.header(ACCESS_CONTROL_ALLOW_METHODS, EMPTY);
 					}
 				}
-
 				res.removeHeader(CONTENT_LENGTH);
 				res.statusCode = status;
-
 				if (this.listenerCount(ERROR) > INT_0) {
-					this.emit(ERROR, req, res, err);
+					this.emit(ERROR, req, res, output);
 				}
-
 				this.log(`type=error, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ERROR_IP.replace(IP_TOKEN, req.ip)}"`);
 				this.onDone(req, res, output, headers);
 			}
 		};
 	}
 
+	/**
+	 * Generates an ETag for the given method and arguments
+	 * @param {string} method - HTTP method
+	 * @param {...*} args - Arguments to generate ETag from
+	 * @returns {string} Generated ETag or empty string
+	 */
 	etag (method, ...args) {
 		return (method === GET || method === HEAD || method === OPTIONS) && this.etags !== null ? this.etags.create(args.map(i => typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i).join(HYPHEN)) : EMPTY;
 	}
 
+	/**
+	 * Serves static files from a directory
+	 * @param {string} [root='/'] - URL root path
+	 * @param {string} [folder=process.cwd()] - File system folder to serve from
+	 */
 	files (root = SLASH, folder = process.cwd()) {
 		this.get(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) => this.serve(req, res, req.parsed.pathname.substring(1), folder));
 	}
 
+	/**
+	 * Registers middleware for GET method
+	 * @param {...Function} args - Middleware functions
+	 * @returns {Woodland} This instance for chaining
+	 */
 	get (...args) {
 		return this.use(...args, GET);
 	}
 
+	/**
+	 * Marks a middleware function to be ignored in route visibility calculations
+	 * @param {Function} fn - Middleware function to ignore
+	 * @returns {Woodland} This instance for chaining
+	 */
 	ignore (fn) {
 		this.ignored.add(fn);
 		this.log(`type=ignore, message="${MSG_IGNORED_FN}", name="${fn.name}"`);
@@ -342,16 +434,32 @@ export class Woodland extends EventEmitter {
 		return this;
 	}
 
+	/**
+	 * Extracts the client IP address from the request
+	 * @param {Object} req - HTTP request object
+	 * @returns {string} Client IP address
+	 */
 	ip (req) {
 		return X_FORWARDED_FOR in req.headers ? req.headers[X_FORWARDED_FOR].split(COMMA).pop().trim() : req.connection.remoteAddress;
 	}
 
+	/**
+	 * Creates a JSON response function for the response object
+	 * @param {Object} res - HTTP response object
+	 * @returns {Function} JSON response function
+	 */
 	json (res) {
 		return (arg, status = 200, headers = {[CONTENT_TYPE]: `${APPLICATION_JSON}; charset=${UTF_8}`}) => {
 			res.send(JSON.stringify(arg), status, headers);
 		};
 	}
 
+	/**
+	 * Lists registered routes for a specific method
+	 * @param {string} [method='get'] - HTTP method to list routes for
+	 * @param {string} [type='array'] - Return type: 'array' or 'object'
+	 * @returns {Array|Object} Array of route patterns or object with route details
+	 */
 	list (method = GET.toLowerCase(), type = ARRAY) {
 		let result;
 
@@ -370,6 +478,12 @@ export class Woodland extends EventEmitter {
 		return result;
 	}
 
+	/**
+	 * Logs a message at the specified level
+	 * @param {string} msg - Message to log
+	 * @param {string} [level='debug'] - Log level
+	 * @returns {Woodland} This instance for chaining
+	 */
 	log (msg, level = DEBUG) {
 		if (this.logging.enabled) {
 			const idx = LEVELS[level];
@@ -383,15 +497,31 @@ export class Woodland extends EventEmitter {
 		return this;
 	}
 
+	/**
+	 * Finalizes the response by setting headers and ending the response
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {string} body - Response body
+	 * @param {Object} headers - Additional headers to set
+	 */
 	onDone (req, res, body, headers) {
 		if (res.statusCode !== INT_204 && res.statusCode !== INT_304 && res.getHeader(CONTENT_LENGTH) === void 0) {
 			res.header(CONTENT_LENGTH, Buffer.byteLength(body));
 		}
-
+		res.header(X_CONTENT_TYPE_OPTIONS, "nosniff");
 		writeHead(res, headers);
 		res.end(body, this.charset);
 	}
 
+	/**
+	 * Prepares the response before sending, adding timing headers if enabled
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {string} body - Response body
+	 * @param {number} status - HTTP status code
+	 * @param {Object} headers - Response headers
+	 * @returns {Array} Array containing [body, status, headers]
+	 */
 	onReady (req, res, body, status, headers) {
 		if (this.time && res.getHeader(X_RESPONSE_TIME) === void 0) {
 			res.header(X_RESPONSE_TIME, `${ms(req.precise.stop().diff(), this.digit)}`);
@@ -400,37 +530,81 @@ export class Woodland extends EventEmitter {
 		return this.onSend(req, res, body, status, headers);
 	}
 
+	/**
+	 * Hook called before sending response, allows modification of response data
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {string} body - Response body
+	 * @param {number} status - HTTP status code
+	 * @param {Object} headers - Response headers
+	 * @returns {Array} Array containing [body, status, headers]
+	 */
 	/* istanbul ignore next */
 	onSend (req, res, body, status, headers) {
 		return [body, status, headers];
 	}
 
+	/**
+	 * Registers middleware for OPTIONS method
+	 * @param {...Function} args - Middleware functions
+	 * @returns {Woodland} This instance for chaining
+	 */
 	options (...args) {
 		return this.use(...args, OPTIONS);
 	}
 
+	/**
+	 * Registers middleware for PATCH method
+	 * @param {...Function} args - Middleware functions
+	 * @returns {Woodland} This instance for chaining
+	 */
 	patch (...args) {
 		return this.use(...args, PATCH);
 	}
 
+	/**
+	 * Converts a route path with parameters to a regex pattern
+	 * @param {string} [arg=''] - Route path with parameter placeholders
+	 * @returns {string} Regex pattern string
+	 */
 	path (arg = EMPTY) {
 		return arg.replace(/\/:([^/]+)/g, PARAMS_GROUP);
 	}
 
+	/**
+	 * Registers middleware for POST method
+	 * @param {...Function} args - Middleware functions
+	 * @returns {Woodland} This instance for chaining
+	 */
 	post (...args) {
 		return this.use(...args, POST);
 	}
 
+	/**
+	 * Registers middleware for PUT method
+	 * @param {...Function} args - Middleware functions
+	 * @returns {Woodland} This instance for chaining
+	 */
 	put (...args) {
 		return this.use(...args, PUT);
 	}
 
+	/**
+	 * Creates a redirect function for the response object
+	 * @param {Object} res - HTTP response object
+	 * @returns {Function} Redirect function
+	 */
 	redirect (res) {
 		return (uri, perm = true) => {
 			res.send(EMPTY, perm ? INT_308 : INT_307, {[LOCATION]: uri});
 		};
 	}
 
+	/**
+	 * Routes an incoming HTTP request through the middleware stack
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 */
 	route (req, res) {
 		const evc = CONNECT.toLowerCase(),
 			evf = FINISH;
@@ -470,6 +644,13 @@ export class Woodland extends EventEmitter {
 		}
 	}
 
+	/**
+	 * Retrieves route information for a URI and method
+	 * @param {string} uri - Request URI
+	 * @param {string} method - HTTP method
+	 * @param {boolean} [override=false] - Skip cache lookup
+	 * @returns {Object} Route information object
+	 */
 	routes (uri, method, override = false) {
 		const key = `${method}${DELIMITER}${uri}`,
 			cached = override === false ? this.cache.get(key) : void 0;
@@ -495,6 +676,12 @@ export class Woodland extends EventEmitter {
 		return result;
 	}
 
+	/**
+	 * Creates a send function for the response object
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @returns {Function} Send function
+	 */
 	send (req, res) {
 		return (body = EMPTY, status = res.statusCode, headers = {}) => {
 			if (res.headersSent === false) {
@@ -533,6 +720,11 @@ export class Woodland extends EventEmitter {
 		};
 	}
 
+	/**
+	 * Creates a function to set multiple headers on the response
+	 * @param {Object} res - HTTP response object
+	 * @returns {Function} Header setting function
+	 */
 	set (res) {
 		return (arg = {}) => {
 			res.setHeaders(arg instanceof Map || arg instanceof Headers ? arg : new Headers(arg));
@@ -541,6 +733,14 @@ export class Woodland extends EventEmitter {
 		};
 	}
 
+	/**
+	 * Serves a file or directory from the file system
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {string} arg - File path relative to folder
+	 * @param {string} [folder=process.cwd()] - Base directory to serve from
+	 * @returns {Promise<void>} Promise that resolves when serving is complete
+	 */
 	async serve (req, res, arg, folder = process.cwd()) {
 		const fp = join(folder, arg);
 		let valid = true;
@@ -599,6 +799,11 @@ export class Woodland extends EventEmitter {
 		}
 	}
 
+	/**
+	 * Creates a status code setting function for the response
+	 * @param {Object} res - HTTP response object
+	 * @returns {Function} Status setting function
+	 */
 	status (res) {
 		return (arg = INT_200) => {
 			res.statusCode = arg;
@@ -607,6 +812,16 @@ export class Woodland extends EventEmitter {
 		};
 	}
 
+	/**
+	 * Streams a file to the response with appropriate headers
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {Object} [file] - File information object
+	 * @param {string} [file.charset=''] - Character encoding
+	 * @param {string} [file.etag=''] - ETag value
+	 * @param {string} [file.path=''] - File system path
+	 * @param {Object} [file.stats] - File statistics
+	 */
 	stream (req, res, file = {
 		charset: EMPTY,
 		etag: EMPTY,
@@ -648,10 +863,22 @@ export class Woodland extends EventEmitter {
 		this.emit(STREAM, req, res);
 	}
 
+	/**
+	 * Registers middleware for TRACE method
+	 * @param {...Function} args - Middleware functions
+	 * @returns {Woodland} This instance for chaining
+	 */
 	trace (...args) {
 		return this.use(...args, TRACE);
 	}
 
+	/**
+	 * Registers middleware for a route pattern and HTTP method
+	 * @param {string|Function} rpath - Route pattern or middleware function
+	 * @param {...Function} fn - Middleware functions, optionally ending with method string
+	 * @returns {Woodland} This instance for chaining
+	 * @throws {TypeError} If invalid method or HEAD route is specified
+	 */
 	use (rpath, ...fn) {
 		if (typeof rpath === FUNCTION) {
 			fn = [rpath, ...fn];
@@ -700,6 +927,11 @@ export class Woodland extends EventEmitter {
 	}
 }
 
+/**
+ * Factory function to create a new Woodland instance
+ * @param {Object} [arg] - Configuration object passed to Woodland constructor
+ * @returns {Woodland} New Woodland instance with bound route method
+ */
 export function woodland (arg) {
 	const app = new Woodland(arg);
 

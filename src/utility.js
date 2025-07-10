@@ -13,7 +13,6 @@ import {
 	END,
 	ETAG,
 	EXTENSIONS,
-	FILES,
 	FUNCTION,
 	GET,
 	HEAD,
@@ -36,7 +35,6 @@ import {
 	STRING_00,
 	STRING_30,
 	TIME_MS,
-	TITLE,
 	TOKEN_N,
 	UTF8
 } from "./constants.js";
@@ -54,24 +52,75 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url)),
 		return a;
 	}, {});
 
-export function autoindex (title = EMPTY, files = []) {
-	return new Function(TITLE, FILES, `return \`${html}\`;`)(title, files);
+/**
+ * Escapes HTML special characters to prevent XSS attacks
+ * @param {string} [str=""] - The string to escape
+ * @returns {string} The escaped string with HTML entities
+ */
+function escapeHtml (str = EMPTY) {
+	return str
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#39;");
 }
 
+/**
+ * Generates an HTML autoindex page for directory listings
+ * @param {string} [title=""] - The title for the autoindex page
+ * @param {Array|string} [files=[]] - Array of files or string to display in the listing
+ * @returns {string} The complete HTML string for the autoindex page
+ */
+export function autoindex (title = EMPTY, files = []) {
+	let safeTitle = escapeHtml(title);
+	let safeFiles = Array.isArray(files) ?
+		files.map(f => escapeHtml(f)).join("") :
+		escapeHtml(String(files));
+
+	return html.replace(/\$\{\s*TITLE\s*\}/g, safeTitle)
+		.replace(/\$\{\s*FILES\s*\}/g, safeFiles);
+}
+
+/**
+ * Determines the appropriate HTTP status code based on request and response state
+ * @param {Object} req - The HTTP request object
+ * @param {Object} res - The HTTP response object
+ * @returns {number} The appropriate HTTP status code
+ */
 export function getStatus (req, res) {
 	return req.allow.length > INT_0 ? req.method !== GET ? INT_405 : req.allow.includes(GET) ? res.statusCode > INT_500 ? res.statusCode : INT_500 : INT_404 : INT_404;
 }
 
+/**
+ * Gets the MIME type for a file based on its extension
+ * @param {string} [arg=""] - The filename or path to get the MIME type for
+ * @returns {string} The MIME type or application/octet-stream as default
+ */
 export function mime (arg = EMPTY) {
 	const ext = extname(arg);
 
 	return ext in extensions ? extensions[ext].type : APPLICATION_OCTET_STREAM;
 }
 
+/**
+ * Formats a time value in milliseconds with specified precision
+ * @param {number} [arg=0] - The time value in nanoseconds
+ * @param {number} [digits=3] - Number of decimal places for precision
+ * @returns {string} Formatted time string with "ms" suffix
+ */
 export function ms (arg = INT_0, digits = INT_3) {
 	return TIME_MS.replace(TOKEN_N, Number(arg / INT_1e6).toFixed(digits));
 }
 
+/**
+ * Creates a next function for middleware processing with error handling
+ * @param {Object} req - The HTTP request object
+ * @param {Object} res - The HTTP response object
+ * @param {Iterator} middleware - The middleware iterator
+ * @param {boolean} [immediate=false] - Whether to execute immediately or on next tick
+ * @returns {Function} The next function for middleware chain
+ */
 export function next (req, res, middleware, immediate = false) {
 	const internalFn = (err, fn) => {
 		let obj = middleware.next();
@@ -101,23 +150,59 @@ export function next (req, res, middleware, immediate = false) {
 	return fn;
 }
 
+/**
+ * Pads a number with leading zeros to make it 2 digits
+ * @param {number} [arg=0] - The number to pad
+ * @returns {string} The padded string representation
+ */
 export function pad (arg = INT_0) {
 	return String(arg).padStart(INT_2, STRING_0);
 }
 
+/**
+ * Extracts and processes URL parameters from request path
+ * @param {Object} req - The HTTP request object
+ * @param {RegExp} getParams - Regular expression for parameter extraction
+ */
 export function params (req, getParams) {
 	getParams.lastIndex = INT_0;
 	req.params = getParams.exec(req.parsed.pathname)?.groups ?? {};
 
 	for (const [key, value] of Object.entries(req.params)) {
-		req.params[key] = coerce(decodeURIComponent(value));
+		let decoded = decodeURIComponent(value);
+		let safeValue = typeof decoded === "string" ? escapeHtml(decoded) : decoded;
+		req.params[key] = coerce(safeValue);
 	}
 }
 
+/**
+ * Parses a URL string or request object into a URL object with security checks
+ * @param {string|Object} arg - URL string or request object to parse
+ * @returns {URL} Parsed URL object
+ */
 export function parse (arg) {
-	return new URL(typeof arg === STRING ? arg : `http://${arg.headers.host || `localhost:${arg.socket.server._connectionKey.replace(/.*::/, EMPTY)}`}${arg.url}`);
+	const urlStr = typeof arg === STRING ?
+		arg :
+		`http://${arg.headers.host || `localhost:${arg.socket.server._connectionKey.replace(/.*::/, EMPTY)}`}${arg.url}`;
+	const urlObj = new URL(urlStr);
+	const allowedHosts = ["localhost", "127.0.0.1"];
+	if (!allowedHosts.includes(urlObj.hostname)) {
+		console.warn("parse(): Host not in allowed list. Potential SSRF risk.");
+	}
+
+	return urlObj;
 }
 
+/**
+ * Handles partial content headers for HTTP range requests
+ * @param {Object} req - The HTTP request object
+ * @param {Object} res - The HTTP response object
+ * @param {number} size - Total size of the content
+ * @param {number} status - HTTP status code
+ * @param {Object} [headers={}] - Response headers object
+ * @param {Object} [options={}] - Options for range processing
+ * @returns {Array} Array containing [headers, options]
+ */
 export function partialHeaders (req, res, size, status, headers = {}, options = {}) {
 	if ((req.headers.range || EMPTY).indexOf(KEY_BYTES) === INT_0) {
 		options = {};
@@ -155,10 +240,22 @@ export function partialHeaders (req, res, size, status, headers = {}, options = 
 	return [headers, options];
 }
 
+/**
+ * Checks if an object is pipeable (has 'on' method and is not null)
+ * @param {string} method - HTTP method
+ * @param {*} arg - Object to check for pipeability
+ * @returns {boolean} True if the object is pipeable
+ */
 export function pipeable (method, arg) {
-	return method !== HEAD && arg !== null && typeof arg.on === FUNCTION;
+	return method !== HEAD && arg !== null && arg !== undefined && typeof arg.on === FUNCTION;
 }
 
+/**
+ * Processes middleware map for a given URI and populates middleware array
+ * @param {string} uri - The URI to match against
+ * @param {Map} [map=new Map()] - Map of middleware handlers
+ * @param {Object} [arg={}] - Object containing middleware array and parameters
+ */
 export function reduce (uri, map = new Map(), arg = {}) {
 	Array.from(map.values()).filter(i => {
 		i.regex.lastIndex = INT_0;
@@ -176,6 +273,11 @@ export function reduce (uri, map = new Map(), arg = {}) {
 	});
 }
 
+/**
+ * Formats a time offset value into a string representation
+ * @param {number} [arg=0] - Time offset value
+ * @returns {string} Formatted time offset string
+ */
 export function timeOffset (arg = INT_0) {
 	const neg = arg < INT_0;
 
@@ -190,6 +292,11 @@ export function timeOffset (arg = INT_0) {
 	}, []).join(EMPTY)}`;
 }
 
+/**
+ * Writes HTTP response headers using writeHead method
+ * @param {Object} res - The HTTP response object
+ * @param {Object} [headers={}] - Headers object to write
+ */
 export function writeHead (res, headers = {}) {
 	res.writeHead(res.statusCode, STATUS_CODES[res.statusCode], headers);
 }

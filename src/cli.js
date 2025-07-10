@@ -31,6 +31,18 @@ const app = woodland({
 	ip = argv.ip ?? LOCALHOST,
 	port = argv.port ?? INT_8000;
 
+const allowedIPs = ["localhost", "127.0.0.1", "0.0.0.0"];
+let validPort = Number(port);
+if (!Number.isInteger(validPort) || validPort < 1024 || validPort > 65535) {
+	console.error("Invalid port: must be an integer between 1024 and 65535.");
+	process.exit(1);
+}
+let validIP = typeof ip === "string" && (allowedIPs.includes(ip) || (/^\d+\.\d+\.\d+\.\d+$/).test(ip));
+if (!validIP) {
+	console.error("Invalid IP: must be localhost, 127.0.0.1, or a valid IPv4 address.");
+	process.exit(1);
+}
+
 app.files();
-createServer(app.route).listen(port, ip);
-app.log(`id=woodland, hostname=localhost, ip=${ip}, port=${port}`, INFO);
+createServer(app.route).listen(validPort, ip);
+app.log(`id=woodland, hostname=localhost, ip=${ip}, port=${validPort}`, INFO);

@@ -2,9 +2,9 @@
 /**
  * woodland
  *
- * @copyright 2024 Jason Mulligan <jason.mulligan@avoidwork.com>
+ * @copyright 2025 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.1.2
+ * @version 20.1.5
  */
 'use strict';
 
@@ -16,28 +16,33 @@ var node_path = require('node:path');
 var node_url = require('node:url');
 
 var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
-const __dirname$1 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.src || new URL('cli.cjs', document.baseURI).href))));
-const require$1 = node_module.createRequire((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.src || new URL('cli.cjs', document.baseURI).href)));
-require$1(node_path.join(__dirname$1, "..", "package.json"));
+const __dirname$1 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('cli.cjs', document.baseURI).href))));
+const require$1 = node_module.createRequire((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('cli.cjs', document.baseURI).href)));
+const {name, version} = require$1(node_path.join(__dirname$1, "..", "package.json"));
 const CACHE_CONTROL = "cache-control";
-const CHAR_SET = "charset=utf-8";
 const CONTENT_TYPE = "content-type";
+const TEXT_PLAIN = "text/plain";
+const CHAR_SET = "charset=utf-8";
+`nodejs/${process.version}, ${process.platform}/${process.arch}`;
+const LOCALHOST = "127.0.0.1";
+const INT_8000 = 8000;
 const EQUAL = "=";
-const EN_US = "en-US";
 const HYPHEN = "-";
 const INFO = "info";
-const INT_8000 = 8000;
-const LOCALHOST = "127.0.0.1";
+const NO_CACHE = "no-cache";
+
+// =============================================================================
+// UTILITY & MISC
+// =============================================================================
+const EN_US = "en-US";
 const SHORT = "short";
+
 Object.freeze(Array.from(Array(12).values()).map((i, idx) => {
 	const d = new Date();
 	d.setMonth(idx);
 
 	return Object.freeze(d.toLocaleString(EN_US, {month: SHORT}));
 }));
-const NO_CACHE = "no-cache";
-const TEXT_PLAIN = "text/plain";
-`nodejs/${process.version}, ${process.platform}/${process.arch}`;
 
 const app = woodland.woodland({
 		autoindex: true,
@@ -54,6 +59,18 @@ const app = woodland.woodland({
 	ip = argv.ip ?? LOCALHOST,
 	port = argv.port ?? INT_8000;
 
+const allowedIPs = ["localhost", "127.0.0.1", "0.0.0.0"];
+let validPort = Number(port);
+if (!Number.isInteger(validPort) || validPort < 1024 || validPort > 65535) {
+	console.error("Invalid port: must be an integer between 1024 and 65535.");
+	process.exit(1);
+}
+let validIP = typeof ip === "string" && (allowedIPs.includes(ip) || (/^\d+\.\d+\.\d+\.\d+$/).test(ip));
+if (!validIP) {
+	console.error("Invalid IP: must be localhost, 127.0.0.1, or a valid IPv4 address.");
+	process.exit(1);
+}
+
 app.files();
-node_http.createServer(app.route).listen(port, ip);
-app.log(`id=woodland, hostname=localhost, ip=${ip}, port=${port}`, INFO);
+node_http.createServer(app.route).listen(validPort, ip);
+app.log(`id=woodland, hostname=localhost, ip=${ip}, port=${validPort}`, INFO);
