@@ -357,16 +357,7 @@ function params (req, getParams) {
  * @returns {URL} Parsed URL object
  */
 function parse (arg) {
-	const urlStr = typeof arg === STRING ?
-		arg :
-		`http://${arg.headers.host || `localhost:${arg.socket.server._connectionKey.replace(/.*::/, EMPTY)}`}${arg.url}`;
-	const urlObj = new URL(urlStr);
-	const allowedHosts = ["localhost", "127.0.0.1", "::1", "[::1]"];
-	if (!allowedHosts.includes(urlObj.hostname)) {
-		console.warn("parse(): Host not in allowed list. Potential SSRF risk.");
-	}
-
-	return urlObj;
+	return new URL(typeof arg === STRING ? arg : `http://${arg.headers.host || `localhost:${arg.socket.server._connectionKey.replace(/.*::/, EMPTY)}`}${arg.url}`);
 }
 
 /**
