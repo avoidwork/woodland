@@ -14,6 +14,17 @@ This benchmark suite provides detailed performance measurements for all critical
 
 ## Recent Improvements
 
+### v2.2 - Latest Benchmark Results Update
+
+**Fresh performance measurements:**
+
+- **✅ Updated all benchmark results**: Refreshed all performance measurements with latest Node.js 23.10.0 on Apple M4 Pro Mac Mini
+- **✅ Enhanced performance documentation**: Updated README.md and BENCHMARKS.md with current performance data
+- **✅ Comprehensive suite completion**: All 5 benchmark suites (HTTP, Middleware, Routing, Serving, Utility) completed successfully
+- **✅ Statistical accuracy**: 1000 iterations with 100 warmup cycles for statistical significance
+
+**Performance Highlights**: Top performers include utility padding (7.2M ops/sec), routing with cache (5.0M ops/sec), MIME detection (4.8M ops/sec), and middleware operations ranging from 85K to 626K ops/sec.
+
 ### v2.1 - Error Resolution & Security Improvements
 
 **Latest improvements to the benchmark suite:**
@@ -81,14 +92,16 @@ Tests the performance of core routing functions:
 
 **Example Output:**
 ```
-allows() - with cache: 6,635,920 ops/sec
-path conversion: 3,839,966 ops/sec
-allowed() - with cache: 3,626,552 ops/sec
-parameter routes: 3,108,853 ops/sec
-static routes: 3,508,316 ops/sec
-routes() - with cache: 1,947,514 ops/sec
-allows() - no cache: 390,721 ops/sec
-routes() - no cache: 796,318 ops/sec
+allows() - with cache: 5,041,822 ops/sec
+path conversion: 3,100,746 ops/sec
+allowed() - with cache: 2,972,828 ops/sec
+static routes: 2,744,501 ops/sec
+parameter routes: 2,540,767 ops/sec
+not found routes: 2,828,206 ops/sec
+routes() - with cache: 1,627,376 ops/sec
+routes() - no cache: 1,082,540 ops/sec
+allowed() - no cache: 1,108,997 ops/sec
+allows() - no cache: 239,316 ops/sec
 ```
 
 ### 2. Middleware Benchmarks (`benchmarks/middleware.js`)
@@ -107,19 +120,19 @@ Tests middleware registration and execution performance:
 
 **Example Output:**
 ```
-ignore middleware: 621,887 ops/sec
-always middleware registration: 296,611 ops/sec
-multiple handlers registration: 291,939 ops/sec
-middleware registration: 272,344 ops/sec
-specific method registration: 250,970 ops/sec
-response helpers: 210,351 ops/sec
-CORS handling: 169,067 ops/sec
-parameter extraction: 136,105 ops/sec
-error handling middleware: 129,066 ops/sec
-request decoration: 101,338 ops/sec
-complex middleware execution: 77,759 ops/sec
-route list: 76,858 ops/sec
-simple middleware execution: 72,650 ops/sec
+ignore middleware: 626,338 ops/sec
+always middleware registration: 603,038 ops/sec
+multiple handlers registration: 578,674 ops/sec
+specific method registration: 538,396 ops/sec
+middleware registration: 422,245 ops/sec
+response helpers: 216,023 ops/sec
+request decoration: 210,700 ops/sec
+simple middleware execution: 171,432 ops/sec
+error handling middleware: 166,471 ops/sec
+parameter extraction: 156,640 ops/sec
+CORS handling: 117,864 ops/sec
+complex middleware execution: 90,712 ops/sec
+route list: 85,435 ops/sec
 ```
 
 ### 3. Utility Benchmarks (`benchmarks/utility.js`)
@@ -138,16 +151,22 @@ Tests core utility functions:
 
 **Example Output:**
 ```
-pad() - number padding: 7,357,648 ops/sec
-mime() - basic files: 3,955,102 ops/sec
-ms() - time formatting: 3,449,715 ops/sec
-timeOffset() - timezone: 3,396,208 ops/sec
-parse() - URL strings: 2,992,175 ops/sec
-parse() - edge cases: 3,193,633 ops/sec
-next() - middleware chain: 3,660,630 ops/sec
-pipeable() - content check: 3,022,993 ops/sec
-autoindex() - directory listing: 375,023 ops/sec
-params() - parameter extraction: 807,853 ops/sec
+pad() - number padding: 7,244,277 ops/sec
+mime() - basic files: 4,818,255 ops/sec
+mime() - complex files: 4,189,903 ops/sec
+next() - middleware chain: 3,695,191 ops/sec
+parse() - edge cases: 3,436,698 ops/sec
+timeOffset() - timezone: 3,409,246 ops/sec
+pipeable() - content check: 3,119,259 ops/sec
+parse() - URL strings: 3,079,282 ops/sec
+getStatus() - status determination: 2,929,673 ops/sec
+reduce() - route reduction: 2,354,282 ops/sec
+parse() - request objects: 2,174,296 ops/sec
+writeHead() - header writing: 2,026,638 ops/sec
+ms() - time formatting: 1,510,289 ops/sec
+partialHeaders() - range headers: 1,480,891 ops/sec
+params() - parameter extraction: 757,850 ops/sec
+autoindex() - directory listing: 381,377 ops/sec
 ```
 
 ### 4. File Serving Benchmarks (`benchmarks/serving.js`)
@@ -165,18 +184,23 @@ Tests file serving and streaming performance:
 
 **Example Output:**
 ```
-files() - static serving: 520,618 ops/sec
-etag() - generation: 415,462 ops/sec
-stream() - with ETags: 359,182 ops/sec
-stream() - different methods: 313,579 ops/sec
-stream() - without ETags: 314,738 ops/sec
-stream() - small file: 291,010 ops/sec
-serve() - HEAD request: 76,642 ops/sec
-serve() - small file: 48,815 ops/sec
-serve() - medium file: 44,046 ops/sec
-serve() - large file: 43,411 ops/sec
-serve() - autoindex: 18,844 ops/sec
-serve() - directory: 20,433 ops/sec
+files() - static serving: 610,022 ops/sec
+stream() - with ETags: 374,608 ops/sec
+etag() - generation: 362,406 ops/sec
+stream() - without ETags: 335,149 ops/sec
+stream() - different methods: 333,760 ops/sec
+stream() - small file: 310,909 ops/sec
+serve() - directory redirect: 80,222 ops/sec
+serve() - HEAD request: 68,115 ops/sec
+serve() - OPTIONS request: 63,249 ops/sec
+serve() - not found: 54,729 ops/sec
+serve() - small file: 51,633 ops/sec
+serve() - different types: 40,110 ops/sec
+serve() - large file: 40,561 ops/sec
+serve() - medium file: 38,421 ops/sec
+serve() - range request: 38,185 ops/sec
+serve() - directory: 17,623 ops/sec
+serve() - autoindex: 17,304 ops/sec
 ```
 
 **Example Features:**
@@ -201,20 +225,20 @@ Tests end-to-end HTTP server performance with **individual request measurements*
 
 **Example Output:**
 ```
-server startup: 111,613 ops/sec
-DELETE requests: 15,800 ops/sec
-404 handling: 15,181 ops/sec
-JSON response: 13,633 ops/sec
-complex middleware: 13,912 ops/sec
-PUT requests: 12,736 ops/sec
-middleware chain: 11,226 ops/sec
-mixed workload: 11,268 ops/sec
-POST requests: 10,276 ops/sec
-simple GET: 9,683 ops/sec
-error handling: 13,261 ops/sec
-nested parameterized routes: 14,233 ops/sec
-parameterized routes: 14,154 ops/sec
-large response: 913 ops/sec
+server startup: 122,165 ops/sec
+DELETE requests: 15,004 ops/sec
+nested parameterized routes: 14,780 ops/sec
+complex middleware: 14,514 ops/sec
+JSON response: 13,643 ops/sec
+404 handling: 13,742 ops/sec
+parameterized routes: 13,691 ops/sec
+error handling: 12,911 ops/sec
+middleware chain: 12,035 ops/sec
+mixed workload: 10,614 ops/sec
+PUT requests: 10,403 ops/sec
+POST requests: 10,202 ops/sec
+simple GET: 9,563 ops/sec
+large response: 921 ops/sec
 ```
 
 **Architecture Notes:**
