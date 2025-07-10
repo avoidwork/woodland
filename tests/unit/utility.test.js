@@ -25,9 +25,9 @@ describe("utility", () => {
 
 		it("should replace TITLE placeholder with uppercase pattern", () => {
 			const result = autoindex("Test Title");
-			// The function looks for ${TITLE} not ${title}
-			assert.ok(result.includes("${title}")); // template is unchanged
-			assert.ok(!result.includes("Test Title")); // title not replaced
+			// The function should replace ${TITLE} with the actual title
+			assert.ok(result.includes("Test Title")); // title should be replaced
+			assert.ok(!result.includes("${ TITLE }")); // template placeholder should be replaced
 		});
 
 		it("should escape HTML in title parameter", () => {
@@ -38,17 +38,25 @@ describe("utility", () => {
 		});
 
 		it("should handle string files parameter", () => {
-			const result = autoindex("Test", "file1.txt");
-			// Since template replacement doesn't work as expected, just verify function runs
+			const result = autoindex("Test", []);
+			// Should handle empty array correctly
 			assert.ok(typeof result === "string");
 			assert.ok(result.includes("</html>"));
+			assert.ok(result.includes("Test"));
 		});
 
 		it("should process files parameter", () => {
-			const result = autoindex("Test", "<script>bad.js");
-			// Since template replacement doesn't work as expected, just verify function runs
+			const mockFiles = [
+				{ name: "safe-file.txt", isDirectory: () => false },
+				{ name: "test-dir", isDirectory: () => true }
+			];
+			const result = autoindex("Test", mockFiles);
+			// Should process file array correctly
 			assert.ok(typeof result === "string");
 			assert.ok(result.includes("</html>"));
+			assert.ok(result.includes("Test"));
+			assert.ok(result.includes("safe-file.txt"));
+			assert.ok(result.includes("test-dir/"));
 		});
 	});
 

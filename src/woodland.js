@@ -19,7 +19,6 @@ import {
 	CACHE_CONTROL,
 	CLOSE,
 	COLON,
-	COMMA,
 	COMMA_SPACE,
 	CONNECT,
 	CONTENT_LENGTH,
@@ -49,6 +48,7 @@ import {
 	INT_307,
 	INT_308,
 	INT_4,
+	INT_400,
 	INT_403,
 	INT_404,
 	INT_416,
@@ -112,7 +112,10 @@ import {
 } from "./constants.js";
 import {
 	autoindex as aindex,
+	extractForwardedIp,
 	getStatus,
+	isSafeFilePath,
+	isValidIpAddress,
 	mime,
 	ms,
 	next,
@@ -122,6 +125,7 @@ import {
 	partialHeaders,
 	pipeable,
 	reduce,
+	sanitizeFilePath,
 	timeOffset,
 	writeHead
 } from "./utility.js";
@@ -144,7 +148,7 @@ export class Woodland extends EventEmitter {
 	 * @param {boolean} [config.etags=true] - Enable ETag generation
 	 * @param {string[]} [config.indexes=['index.htm', 'index.html']] - Index file names
 	 * @param {Object} [config.logging={}] - Logging configuration
-	 * @param {string[]} [config.origins=['*']] - Allowed CORS origins
+	 * @param {string[]} [config.origins=[]] - Allowed CORS origins (empty array denies all cross-origin requests)
 	 * @param {boolean} [config.silent=false] - Disable default headers
 	 * @param {boolean} [config.time=false] - Enable response time tracking
 	 */
@@ -161,7 +165,7 @@ export class Woodland extends EventEmitter {
 			INDEX_HTML
 		],
 		logging = {},
-		origins = [WILDCARD],
+		origins = [],
 		silent = false,
 		time = false
 	} = {}) {
@@ -287,6 +291,11 @@ export class Woodland extends EventEmitter {
 	 * @returns {boolean} True if CORS should be applied
 	 */
 	cors (req) {
+		// Security: Only allow CORS if origins are explicitly configured
+		if (this.origins.length === 0) {
+			return false;
+		}
+
 		return req.corsHost && (this.origins.includes(WILDCARD) || this.origins.includes(req.headers.origin));
 	}
 
@@ -410,7 +419,26 @@ export class Woodland extends EventEmitter {
 	 * @param {string} [folder=process.cwd()] - File system folder to serve from
 	 */
 	files (root = SLASH, folder = process.cwd()) {
-		this.get(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) => this.serve(req, res, req.parsed.pathname.substring(1), folder));
+		this.get(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) => {
+			// Security: Extract and validate the file path
+			const rootPath = root.replace(/\/$/, EMPTY);
+			const requestPath = req.parsed.pathname.startsWith(rootPath) ?
+				req.parsed.pathname.substring(rootPath.length + 1) :
+				req.parsed.pathname.substring(1);
+
+			// Additional security: decode URI component safely
+			let decodedPath;
+			try {
+				decodedPath = decodeURIComponent(requestPath);
+			} catch {
+				this.log(`type=files, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Invalid URI encoding"`, ERROR);
+				res.error(INT_400);
+
+				return;
+			}
+
+			this.serve(req, res, decodedPath, folder);
+		});
 	}
 
 	/**
@@ -435,12 +463,31 @@ export class Woodland extends EventEmitter {
 	}
 
 	/**
-	 * Extracts the client IP address from the request
+	 * Extracts the client IP address from the request with security validation
 	 * @param {Object} req - HTTP request object
 	 * @returns {string} Client IP address
 	 */
 	ip (req) {
-		return X_FORWARDED_FOR in req.headers ? req.headers[X_FORWARDED_FOR].split(COMMA).pop().trim() : req.connection.remoteAddress;
+		// Security: Don't blindly trust X-Forwarded-For header
+		if (X_FORWARDED_FOR in req.headers) {
+			const forwardedIp = extractForwardedIp(req.headers[X_FORWARDED_FOR]);
+			if (forwardedIp !== null) {
+				return forwardedIp;
+			}
+			// If X-Forwarded-For is present but invalid, log a warning
+			this.log(`type=ip, message="Invalid X-Forwarded-For header", header="${req.headers[X_FORWARDED_FOR]}"`, ERROR);
+		}
+
+		// Fall back to connection remote address
+		const remoteAddress = req.connection.remoteAddress || req.socket.remoteAddress;
+
+		// Validate the remote address
+		if (remoteAddress && isValidIpAddress(remoteAddress)) {
+			return remoteAddress;
+		}
+
+		// Default fallback
+		return "127.0.0.1";
 	}
 
 	/**
@@ -742,7 +789,28 @@ export class Woodland extends EventEmitter {
 	 * @returns {Promise<void>} Promise that resolves when serving is complete
 	 */
 	async serve (req, res, arg, folder = process.cwd()) {
-		const fp = join(folder, arg);
+		// Security: Validate and sanitize file path to prevent directory traversal
+		if (!isSafeFilePath(arg)) {
+			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path traversal attempt blocked", path="${arg}"`, ERROR);
+			res.error(INT_403);
+
+			return;
+		}
+
+		const sanitizedPath = sanitizeFilePath(arg);
+		const fp = join(folder, sanitizedPath);
+
+		// Additional security check: ensure resolved path is within the base folder
+		const absoluteFolder = join(process.cwd(), folder);
+		const absoluteFilePath = join(process.cwd(), fp);
+
+		if (!absoluteFilePath.startsWith(absoluteFolder)) {
+			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path traversal attempt blocked", resolvedPath="${absoluteFilePath}"`, ERROR);
+			res.error(INT_403);
+
+			return;
+		}
+
 		let valid = true;
 		let stats;
 
@@ -750,8 +818,7 @@ export class Woodland extends EventEmitter {
 
 		try {
 			stats = await stat(fp, {bigint: false});
-			// eslint-disable-next-line no-unused-vars
-		} catch (e) {
+		} catch {
 			valid = false;
 		}
 

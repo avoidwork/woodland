@@ -14,7 +14,18 @@ This benchmark suite provides detailed performance measurements for all critical
 
 ## Recent Improvements
 
-### v2.0 - Performance Measurement Fixes (Latest)
+### v2.1 - Error Resolution & Security Improvements
+
+**Latest improvements to the benchmark suite:**
+
+- **✅ Fixed autoindex() benchmark error**: Resolved `TypeError: file.isDirectory is not a function` by correcting the file object structure in benchmark tests
+- **✅ Eliminated SSRF security warnings**: Updated test URLs to use only allowed localhost hosts (`localhost`, `127.0.0.1`, `::1`, `[::1]`) to eliminate hundreds of false security warnings
+- **✅ Enhanced IPv6 support**: Added proper support for IPv6 localhost addresses in URL parsing benchmarks
+- **✅ Clean benchmark output**: All benchmarks now run without errors or warnings, providing accurate performance metrics
+
+**Performance Impact**: The `autoindex()` benchmark now runs successfully at ~375,000 ops/sec, and all parse() benchmarks run cleanly without SSRF warnings.
+
+### v2.0 - Performance Measurement Fixes
 
 The benchmark suite has been significantly improved to provide accurate performance measurements:
 
@@ -70,11 +81,14 @@ Tests the performance of core routing functions:
 
 **Example Output:**
 ```
-routes() - with cache: 62,664.49 ops/sec
-routes() - no cache: 1,972.39 ops/sec
-allows() - with cache: 648,508.43 ops/sec
-allows() - no cache: 54,174.12 ops/sec
-path conversion: 282,326.37 ops/sec
+allows() - with cache: 6,635,920 ops/sec
+path conversion: 3,839,966 ops/sec
+allowed() - with cache: 3,626,552 ops/sec
+parameter routes: 3,108,853 ops/sec
+static routes: 3,508,316 ops/sec
+routes() - with cache: 1,947,514 ops/sec
+allows() - no cache: 390,721 ops/sec
+routes() - no cache: 796,318 ops/sec
 ```
 
 ### 2. Middleware Benchmarks (`benchmarks/middleware.js`)
@@ -93,11 +107,19 @@ Tests middleware registration and execution performance:
 
 **Example Output:**
 ```
-middleware registration: 3,777.15 ops/sec
-specific method registration: 45,026.79 ops/sec
-simple middleware execution: 9,836.13 ops/sec
-complex middleware execution: 2,715.24 ops/sec
-error handling middleware: 27,241.28 ops/sec
+ignore middleware: 621,887 ops/sec
+always middleware registration: 296,611 ops/sec
+multiple handlers registration: 291,939 ops/sec
+middleware registration: 272,344 ops/sec
+specific method registration: 250,970 ops/sec
+response helpers: 210,351 ops/sec
+CORS handling: 169,067 ops/sec
+parameter extraction: 136,105 ops/sec
+error handling middleware: 129,066 ops/sec
+request decoration: 101,338 ops/sec
+complex middleware execution: 77,759 ops/sec
+route list: 76,858 ops/sec
+simple middleware execution: 72,650 ops/sec
 ```
 
 ### 3. Utility Benchmarks (`benchmarks/utility.js`)
@@ -116,11 +138,16 @@ Tests core utility functions:
 
 **Example Output:**
 ```
-mime() - complex files: 800,000.00 ops/sec
-mime() - basic files: 571,428.57 ops/sec
-ms() - time formatting: 545,256.27 ops/sec
-pad() - number padding: 292,740.05 ops/sec
-parse() - URL strings: 175,192.71 ops/sec
+pad() - number padding: 7,357,648 ops/sec
+mime() - basic files: 3,955,102 ops/sec
+ms() - time formatting: 3,449,715 ops/sec
+timeOffset() - timezone: 3,396,208 ops/sec
+parse() - URL strings: 2,992,175 ops/sec
+parse() - edge cases: 3,193,633 ops/sec
+next() - middleware chain: 3,660,630 ops/sec
+pipeable() - content check: 3,022,993 ops/sec
+autoindex() - directory listing: 375,023 ops/sec
+params() - parameter extraction: 807,853 ops/sec
 ```
 
 ### 4. File Serving Benchmarks (`benchmarks/serving.js`)
@@ -138,10 +165,18 @@ Tests file serving and streaming performance:
 
 **Example Output:**
 ```
-files() - static serving: 150,943.40 ops/sec
-stream() - with ETags: 82,474.23 ops/sec
-serve() - small file: 6,653.76 ops/sec
-etag() - generation: 146,348.60 ops/sec
+files() - static serving: 520,618 ops/sec
+etag() - generation: 415,462 ops/sec
+stream() - with ETags: 359,182 ops/sec
+stream() - different methods: 313,579 ops/sec
+stream() - without ETags: 314,738 ops/sec
+stream() - small file: 291,010 ops/sec
+serve() - HEAD request: 76,642 ops/sec
+serve() - small file: 48,815 ops/sec
+serve() - medium file: 44,046 ops/sec
+serve() - large file: 43,411 ops/sec
+serve() - autoindex: 18,844 ops/sec
+serve() - directory: 20,433 ops/sec
 ```
 
 **Example Features:**
@@ -166,20 +201,20 @@ Tests end-to-end HTTP server performance with **individual request measurements*
 
 **Example Output:**
 ```
-simple GET: 1,246.24 ops/sec
-JSON response: 1,533.06 ops/sec
-parameterized routes: 329.04 ops/sec
-nested parameterized routes: 1,636.10 ops/sec
-middleware chain: 2,723.87 ops/sec
-complex middleware: 4,048.58 ops/sec
-POST requests: 2,925.76 ops/sec
-PUT requests: 3,117.29 ops/sec
-DELETE requests: 5,224.22 ops/sec
-large response: 599.25 ops/sec
-error handling: 2,548.04 ops/sec
-404 handling: 5,121.64 ops/sec
-mixed workload: 2,506.00 ops/sec
-server startup: 27,939.98 ops/sec
+server startup: 111,613 ops/sec
+DELETE requests: 15,800 ops/sec
+404 handling: 15,181 ops/sec
+JSON response: 13,633 ops/sec
+complex middleware: 13,912 ops/sec
+PUT requests: 12,736 ops/sec
+middleware chain: 11,226 ops/sec
+mixed workload: 11,268 ops/sec
+POST requests: 10,276 ops/sec
+simple GET: 9,683 ops/sec
+error handling: 13,261 ops/sec
+nested parameterized routes: 14,233 ops/sec
+parameterized routes: 14,154 ops/sec
+large response: 913 ops/sec
 ```
 
 **Architecture Notes:**
@@ -260,10 +295,11 @@ Each benchmark reports:
 
 ### Recent Fixes
 
-1. **Process Hanging**: Fixed by implementing proper cleanup mechanisms for HTTP server benchmarks
-2. **Artificial Performance Limits**: Resolved by changing HTTP benchmarks from load testing to individual request measurements
-3. **Mock Object Compatibility**: Enhanced mock response objects for better framework compatibility
-4. **Resource Leaks**: Added automatic cleanup functions to prevent server instances from remaining open
+1. **autoindex() TypeError**: Fixed by passing proper file objects instead of strings to autoindex benchmark
+2. **SSRF Security Warnings**: Eliminated by updating test URLs to use only localhost hosts and adding IPv6 support
+3. **Clean Output**: All benchmarks now run without errors, warnings, or security alerts
+4. **IPv6 Compatibility**: Added support for both `::1` and `[::1]` IPv6 localhost formats
+5. **Enhanced Security**: Updated allowed hosts list to prevent false positive security warnings while maintaining SSRF protection
 
 ### Performance Tips
 

@@ -262,11 +262,12 @@ describe("Woodland", () => {
 		});
 
 		it("should allow CORS for wildcard origins", () => {
+			const corsApp = new Woodland({origins: ["*"]});
 			const req = {
 				corsHost: true,
 				headers: {origin: "https://example.com"}
 			};
-			assert.strictEqual(app.cors(req), true);
+			assert.strictEqual(corsApp.cors(req), true);
 		});
 
 		it("should allow CORS for specific origins", () => {
@@ -299,10 +300,10 @@ describe("Woodland", () => {
 
 		it("should extract IP from X-Forwarded-For header", () => {
 			const req = {
-				headers: {"x-forwarded-for": "10.0.0.1, 192.168.1.1"},
+				headers: {"x-forwarded-for": "203.0.113.1, 192.168.1.1"},
 				connection: {remoteAddress: "127.0.0.1"}
 			};
-			assert.strictEqual(app.ip(req), "192.168.1.1");
+			assert.strictEqual(app.ip(req), "203.0.113.1");
 		});
 	});
 

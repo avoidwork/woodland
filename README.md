@@ -683,42 +683,64 @@ new Woodland(config)
 
 ```
 Routing Operations
-Route caching:      5,145,912 ops/sec  (0.0002ms avg)
-Static routes:      2,639,073 ops/sec  (0.0004ms avg)
-Parameter routes:   2,619,845 ops/sec  (0.0004ms avg)
-Path conversion:    2,602,405 ops/sec  (0.0004ms avg)
-Not found routes:   2,417,877 ops/sec  (0.0004ms avg)
+Route caching:      6,635,920 ops/sec  (0.0002ms avg)
+Path conversion:    3,839,966 ops/sec  (0.0003ms avg)
+Allowed methods:    3,626,552 ops/sec  (0.0003ms avg)
+Static routes:      3,508,316 ops/sec  (0.0003ms avg)
+Parameter routes:   3,108,853 ops/sec  (0.0003ms avg)
+Route matching:     1,947,514 ops/sec  (0.0005ms avg)
+Not found routes:   1,463,608 ops/sec  (0.0007ms avg)
 
 Utility Operations
-Number padding:     7,478,201 ops/sec  (0.0001ms avg)
-MIME detection:     5,032,561 ops/sec  (0.0002ms avg)
-Timezone offset:    3,914,522 ops/sec  (0.0003ms avg)
-Status determination: 2,972,440 ops/sec  (0.0003ms avg)
-Middleware chain:   946,746 ops/sec   (0.0011ms avg)
+Number padding:     7,357,648 ops/sec  (0.0001ms avg)
+MIME detection:     3,955,102 ops/sec  (0.0003ms avg)
+Time formatting:    3,449,715 ops/sec  (0.0003ms avg)
+Timezone offset:    3,396,208 ops/sec  (0.0003ms avg)
+URL parsing:        2,992,175 ops/sec  (0.0003ms avg)
+Content pipeability: 3,022,993 ops/sec  (0.0003ms avg)
+Middleware chain:   3,660,630 ops/sec  (0.0003ms avg)
+Parameter extraction: 807,853 ops/sec  (0.0012ms avg)
+Status determination: 1,313,434 ops/sec  (0.0008ms avg)
+Directory listing:  375,023 ops/sec    (0.0027ms avg)
 
 File Serving Operations
-Small files:        41,272 ops/sec  (0.024ms avg)
-Medium files:       43,517 ops/sec  (0.023ms avg)
-Large files:        42,839 ops/sec  (0.023ms avg)
-HEAD requests:      73,885 ops/sec  (0.014ms avg)
-Directory listing:  19,971 ops/sec  (0.050ms avg)
-Static file serving: 573,354 ops/sec  (0.0017ms avg)
+Static file serving: 520,618 ops/sec   (0.0019ms avg)
+ETag generation:    415,462 ops/sec    (0.0024ms avg)
+Stream with ETags:  359,182 ops/sec    (0.0028ms avg)
+Stream operations:  313,579 ops/sec    (0.0032ms avg)
+HEAD requests:      76,642 ops/sec     (0.013ms avg)
+Small files:        48,815 ops/sec     (0.020ms avg)
+Medium files:       44,046 ops/sec     (0.023ms avg)
+Large files:        43,411 ops/sec     (0.023ms avg)
+Directory listing:  20,433 ops/sec     (0.049ms avg)
+Directory autoindex: 18,844 ops/sec    (0.053ms avg)
 
 HTTP Operations
-URL parsing:        1,431,545 ops/sec  (0.0007ms avg)
-Parameter extraction: 842,269 ops/sec  (0.0012ms avg)
-Range headers:      970,166 ops/sec   (0.0010ms avg)
-Content pipeability: 2,655,930 ops/sec  (0.0004ms avg)
-Header writing:     566,052 ops/sec   (0.0018ms avg)
+Server startup:     111,613 ops/sec    (0.009ms avg)
+DELETE requests:    15,800 ops/sec     (0.063ms avg)
+404 handling:       15,181 ops/sec     (0.066ms avg)
+Complex middleware: 13,912 ops/sec     (0.072ms avg)
+JSON response:      13,633 ops/sec     (0.073ms avg)
+Error handling:     13,261 ops/sec     (0.075ms avg)
+PUT requests:       12,736 ops/sec     (0.078ms avg)
+Middleware chain:   11,226 ops/sec     (0.089ms avg)
+Mixed workload:     11,268 ops/sec     (0.089ms avg)
+POST requests:      10,276 ops/sec     (0.097ms avg)
+Simple GET:         9,683 ops/sec      (0.103ms avg)
+Large response:     913 ops/sec        (1.096ms avg)
 ```
 
 ### Performance Tips
 
-1. **Enable ETags**: Reduces bandwidth for unchanged resources
-2. **Use Caching**: Configure appropriate cache headers
-3. **Minimize Middleware**: Only use necessary middleware
-4. **Stream Large Files**: Use built-in streaming for large files
-5. **Optimize Routes**: Place frequent routes first
+1. **Enable Route Caching**: Route caching provides 3x+ performance improvement (6.6M vs 1.9M ops/sec)
+2. **Optimize Route Order**: Place frequently accessed routes first in your application
+3. **Use Static Routes**: Static routes outperform parameter routes (~3.5M vs ~3.1M ops/sec)
+4. **Enable ETags**: Reduces bandwidth for unchanged resources (359K ops/sec with ETags)
+5. **Stream Large Files**: Use built-in streaming for files (313K ops/sec streaming performance)
+6. **Minimize Middleware**: Only use necessary middleware - complex middleware reduces performance
+7. **Leverage Built-in Utilities**: Use woodland's optimized utility functions (7.3M+ ops/sec for common operations)
+8. **Configure Appropriate Caching**: Set proper cache headers and TTL values
+9. **Use Proper HTTP Methods**: DELETE requests show best performance (15.8K ops/sec) for CRUD operations
 
 ### Running Benchmarks
 
@@ -726,8 +748,27 @@ Header writing:     566,052 ops/sec   (0.0018ms avg)
 git clone https://github.com/avoidwork/woodland.git
 cd woodland
 npm install
+
+# Run all benchmarks
 npm run benchmark
+
+# Run specific benchmark suites
+node benchmark.js routing utility serving
+node benchmark.js http middleware
+
+# Run with custom settings
+node benchmark.js --iterations 2000 --warmup 200
+
+# Run specific suite with custom settings
+node benchmark.js utility -i 500 -w 50
 ```
+
+**Available benchmark suites:**
+- `http` - End-to-end HTTP server performance
+- `middleware` - Middleware registration and execution
+- `routing` - Route matching and resolution
+- `serving` - File serving and streaming
+- `utility` - Core utility functions
 
 ## 🧪 Testing
 

@@ -28,6 +28,7 @@ export const INT_206 = 206;
 export const INT_304 = 304;
 export const INT_307 = 307;
 export const INT_308 = 308;
+export const INT_400 = 400;
 export const INT_403 = 403;
 export const INT_404 = 404;
 export const INT_405 = 405;

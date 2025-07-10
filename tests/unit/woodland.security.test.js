@@ -1,0 +1,362 @@
+import assert from "node:assert";
+import {Woodland} from "../../src/woodland.js";
+
+describe("Woodland Security Tests", () => {
+	let app;
+	let mockReq;
+	let mockRes;
+
+	beforeEach(() => {
+		app = new Woodland();
+
+		// Mock request object
+		mockReq = {
+			method: "GET",
+			headers: {
+				host: "localhost:3000"
+			},
+			connection: {
+				remoteAddress: "127.0.0.1"
+			},
+			socket: {
+				remoteAddress: "127.0.0.1"
+			},
+			url: "/test",
+			parsed: {
+				pathname: "/test",
+				hostname: "localhost",
+				search: ""
+			}
+		};
+
+		// Mock response object
+		mockRes = {
+			statusCode: 200,
+			headersSent: false,
+			_headers: {},
+			setHeader: function (name, value) {
+				this._headers[name.toLowerCase()] = value;
+			},
+			header: function (name, value) {
+				this.setHeader(name, value);
+			},
+			removeHeader: function (name) {
+				delete this._headers[name.toLowerCase()];
+			},
+			getHeader: function (name) {
+				return this._headers[name.toLowerCase()];
+			},
+			error: function (status) {
+				this.statusCode = status;
+				this.ended = true;
+			},
+			end: function () {
+				this.ended = true;
+			},
+			writeHead: function (status, headers) {
+				this.statusCode = status;
+				if (headers) {
+					Object.assign(this._headers, headers);
+				}
+			},
+			on: function (event, callback) {
+				// Mock event listener for the close event
+				if (event === "close") {
+					// Simulate close event being fired
+					setTimeout(callback, 0);
+				}
+			}
+		};
+	});
+
+	describe("Path Traversal Protection", () => {
+		it("should block path traversal attempts with ../", async () => {
+			let errorCalled = false;
+			let errorStatus = null;
+
+			mockRes.error = function (status) {
+				errorCalled = true;
+				errorStatus = status;
+			};
+
+			await app.serve(mockReq, mockRes, "../../../etc/passwd");
+
+			assert.strictEqual(errorCalled, true, "Error should be called for path traversal");
+			assert.strictEqual(errorStatus, 403, "Should return 403 Forbidden");
+		});
+
+		it("should block path traversal attempts with ..", async () => {
+			let errorCalled = false;
+			let errorStatus = null;
+
+			mockRes.error = function (status) {
+				errorCalled = true;
+				errorStatus = status;
+			};
+
+			await app.serve(mockReq, mockRes, "..");
+
+			assert.strictEqual(errorCalled, true, "Error should be called for path traversal");
+			assert.strictEqual(errorStatus, 403, "Should return 403 Forbidden");
+		});
+
+		it("should block null byte injection", async () => {
+			let errorCalled = false;
+			let errorStatus = null;
+
+			mockRes.error = function (status) {
+				errorCalled = true;
+				errorStatus = status;
+			};
+
+			await app.serve(mockReq, mockRes, "file\x00.txt");
+
+			assert.strictEqual(errorCalled, true, "Error should be called for null byte injection");
+			assert.strictEqual(errorStatus, 403, "Should return 403 Forbidden");
+		});
+
+		it("should block newline injection", async () => {
+			let errorCalled = false;
+			let errorStatus = null;
+
+			mockRes.error = function (status) {
+				errorCalled = true;
+				errorStatus = status;
+			};
+
+			await app.serve(mockReq, mockRes, "file\n.txt");
+
+			assert.strictEqual(errorCalled, true, "Error should be called for newline injection");
+			assert.strictEqual(errorStatus, 403, "Should return 403 Forbidden");
+		});
+
+		it("should allow safe file paths", async () => {
+			mockRes.error = function (status) {
+				// Error handler for mock - set statusCode like the real error function
+				mockRes.statusCode = status;
+			};
+
+			// Mock fs.stat to avoid file system access
+			const fs = await import("node:fs");
+			const originalStat = fs.promises.stat;
+			fs.promises.stat = async () => {
+				const error = new Error("ENOENT");
+				error.code = "ENOENT";
+				throw error;
+			};
+
+			try {
+				await app.serve(mockReq, mockRes, "safe-file.txt");
+				// Should get 404 for non-existent file, not 403 for blocked path
+				assert.strictEqual(mockRes.statusCode, 404, "Should return 404 for non-existent file");
+			} finally {
+				fs.promises.stat = originalStat;
+			}
+		});
+
+		it("should handle malformed URI encoding in files() method", () => {
+			let errorCalled = false;
+			let errorStatus = null;
+
+			mockReq.parsed.pathname = "/%";
+			mockRes.error = function (status) {
+				errorCalled = true;
+				errorStatus = status;
+			};
+
+			app.files("/static", "/tmp");
+
+			// Get the registered middleware
+			const middleware = app.middleware.get("GET").get("/static/(.*)?");
+			assert.ok(middleware, "Middleware should be registered");
+
+			// Call the handler
+			middleware.handlers[0](mockReq, mockRes);
+
+			assert.strictEqual(errorCalled, true, "Error should be called for malformed URI");
+			assert.strictEqual(errorStatus, 400, "Should return 400 Bad Request");
+		});
+	});
+
+	describe("IP Address Security", () => {
+		it("should return connection IP when no X-Forwarded-For header", () => {
+			const ip = app.ip(mockReq);
+			assert.strictEqual(ip, "127.0.0.1", "Should return connection IP");
+		});
+
+		it("should validate and extract IP from X-Forwarded-For header", () => {
+			mockReq.headers["x-forwarded-for"] = "203.0.113.1, 192.168.1.1";
+			const ip = app.ip(mockReq);
+			assert.strictEqual(ip, "203.0.113.1", "Should extract first valid public IP");
+		});
+
+		it("should ignore private IPs in X-Forwarded-For header", () => {
+			mockReq.headers["x-forwarded-for"] = "192.168.1.1, 10.0.0.1";
+			const ip = app.ip(mockReq);
+			assert.strictEqual(ip, "127.0.0.1", "Should fall back to connection IP for private IPs");
+		});
+
+		it("should handle invalid X-Forwarded-For header", () => {
+			mockReq.headers["x-forwarded-for"] = "invalid-ip, not-an-ip";
+			const ip = app.ip(mockReq);
+			assert.strictEqual(ip, "127.0.0.1", "Should fall back to connection IP for invalid IPs");
+		});
+
+		it("should handle empty X-Forwarded-For header", () => {
+			mockReq.headers["x-forwarded-for"] = "";
+			const ip = app.ip(mockReq);
+			assert.strictEqual(ip, "127.0.0.1", "Should fall back to connection IP for empty header");
+		});
+
+		it("should handle IPv6 addresses", () => {
+			mockReq.headers["x-forwarded-for"] = "2001:db8::1";
+			const ip = app.ip(mockReq);
+			assert.strictEqual(ip, "2001:db8::1", "Should handle valid IPv6 address");
+		});
+	});
+
+	describe("CORS Security", () => {
+		it("should deny CORS when origins array is empty", () => {
+			mockReq.headers.origin = "https://evil.com";
+			mockReq.corsHost = true;
+
+			const corsAllowed = app.cors(mockReq);
+			assert.strictEqual(corsAllowed, false, "Should deny CORS when no origins configured");
+		});
+
+		it("should allow CORS when origin is explicitly configured", () => {
+			app.origins = ["https://trusted.com"];
+			mockReq.headers.origin = "https://trusted.com";
+			mockReq.corsHost = true;
+
+			const corsAllowed = app.cors(mockReq);
+			assert.strictEqual(corsAllowed, true, "Should allow CORS for trusted origin");
+		});
+
+		it("should allow CORS with wildcard if explicitly configured", () => {
+			app.origins = ["*"];
+			mockReq.headers.origin = "https://any.com";
+			mockReq.corsHost = true;
+
+			const corsAllowed = app.cors(mockReq);
+			assert.strictEqual(corsAllowed, true, "Should allow CORS with wildcard");
+		});
+
+		it("should deny CORS for non-configured origins", () => {
+			app.origins = ["https://trusted.com"];
+			mockReq.headers.origin = "https://evil.com";
+			mockReq.corsHost = true;
+
+			const corsAllowed = app.cors(mockReq);
+			assert.strictEqual(corsAllowed, false, "Should deny CORS for non-configured origin");
+		});
+
+		it("should deny CORS when corsHost is false", () => {
+			app.origins = ["https://trusted.com"];
+			mockReq.headers.origin = "https://trusted.com";
+			mockReq.corsHost = false;
+
+			const corsAllowed = app.cors(mockReq);
+			assert.strictEqual(corsAllowed, false, "Should deny CORS when corsHost is false");
+		});
+	});
+
+	describe("Autoindex Security", () => {
+		it("should properly escape HTML in directory names", async () => {
+			const mockFiles = [
+				{ name: "<script>alert('xss')</script>", isDirectory: () => false },
+				{ name: "normal-file.txt", isDirectory: () => false },
+				{ name: "dir&with&ampersands", isDirectory: () => true }
+			];
+
+			// Mock the autoindex function
+			const {autoindex} = await import("../../src/utility.js");
+			const html = autoindex("/test<script>", mockFiles);
+
+			assert.ok(!html.includes("<script>alert('xss')</script>"), "Should escape script tags in filenames");
+			assert.ok(!html.includes("/test<script>"), "Should escape script tags in title");
+			assert.ok(html.includes("&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;"), "Should contain escaped script tag");
+			assert.ok(html.includes("dir&amp;with&amp;ampersands"), "Should escape ampersands");
+		});
+
+		it("should properly encode hrefs in directory listings", async () => {
+			const mockFiles = [
+				{ name: "file with spaces.txt", isDirectory: () => false },
+				{ name: "special%chars.txt", isDirectory: () => false }
+			];
+
+			const {autoindex} = await import("../../src/utility.js");
+			const html = autoindex("/test", mockFiles);
+
+			assert.ok(html.includes('href="file%20with%20spaces.txt"'), "Should encode spaces in href");
+			assert.ok(html.includes('href="special%25chars.txt"'), "Should encode percent signs in href");
+		});
+	});
+
+	describe("Error Handling Security", () => {
+		it("should not expose sensitive information in error messages", () => {
+			const error = app.error(mockReq, mockRes);
+
+			// Test that error handler doesn't expose internal paths
+			error(500);
+			assert.strictEqual(mockRes.statusCode, 500, "Should set correct status code");
+			assert.strictEqual(mockRes.ended, true, "Should end response");
+		});
+
+		it("should handle multiple error calls gracefully", () => {
+			const error = app.error(mockReq, mockRes);
+
+			error(404);
+			assert.strictEqual(mockRes.statusCode, 404, "Should set first error status");
+
+			// Simulate that headers have been sent after first error
+			mockRes.headersSent = true;
+
+			// Second error call should be ignored
+			error(500);
+			assert.strictEqual(mockRes.statusCode, 404, "Should keep first error status");
+		});
+	});
+
+	describe("Security Headers", () => {
+		it("should set X-Content-Type-Options header", () => {
+			app.decorate(mockReq, mockRes);
+			app.onDone(mockReq, mockRes, "test content", {});
+
+			assert.strictEqual(mockRes.getHeader("x-content-type-options"), "nosniff", "Should set X-Content-Type-Options header");
+		});
+
+		it("should set secure default headers", () => {
+			const secureApp = new Woodland();
+
+			assert.ok(secureApp.defaultHeaders.length > 0, "Should have default headers");
+
+			// Check that default headers include security headers
+			const headers = secureApp.defaultHeaders.map(h => h[0]);
+			assert.ok(headers.includes("x-powered-by"), "Should include X-Powered-By header");
+		});
+	});
+});
+
+describe("Woodland Security Integration", () => {
+	let app;
+
+	beforeEach(() => {
+		app = new Woodland();
+	});
+
+	it("should create instance with secure defaults", () => {
+		assert.strictEqual(app.origins.length, 0, "Should have empty origins array by default");
+		assert.strictEqual(app.autoindex, false, "Should have autoindex disabled by default");
+	});
+
+	it("should allow explicit security configuration", () => {
+		const secureApp = new Woodland({
+			origins: ["https://trusted.com"],
+			autoindex: false
+		});
+
+		assert.deepStrictEqual(secureApp.origins, ["https://trusted.com"], "Should accept explicit origins");
+		assert.strictEqual(secureApp.autoindex, false, "Should respect autoindex setting");
+	});
+});

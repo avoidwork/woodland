@@ -30,7 +30,7 @@ const testUrls = [
 	"http://localhost:3000/api/v1/resource/123/nested/456?include=related",
 	"http://localhost:3000/admin/dashboard#section",
 	"http://localhost:8080/complex/path/with/many/segments",
-	"https://example.com:8443/secure/api/endpoint",
+	"http://localhost:8443/secure/api/endpoint",
 	"http://127.0.0.1:5000/local/service"
 ];
 
@@ -190,9 +190,8 @@ function benchmarkTimeOffset () {
 function benchmarkAutoindex () {
 	const title = "/test/directory";
 	const files = createMockFiles();
-	// Convert file objects to strings as expected by the autoindex function
-	const fileStrings = files.map(f => f.name);
-	return autoindex(title, fileStrings);
+	// Pass file objects directly as expected by the autoindex function
+	return autoindex(title, files);
 }
 
 /**
@@ -362,9 +361,9 @@ function benchmarkNext () {
 function benchmarkParseEdgeCases () {
 	const edgeCaseUrls = [
 		"http://localhost/",
-		"https://example.com:8080/path?query=value#fragment",
+		"http://localhost:8080/path?query=value#fragment",
 		"http://[::1]:3000/ipv6",
-		"http://user:pass@example.com/auth",
+		"http://localhost/auth",
 		"http://localhost/path with spaces",
 		"http://localhost/path%20with%20encoded%20spaces",
 		"http://localhost/path?multiple=queries&and=parameters",

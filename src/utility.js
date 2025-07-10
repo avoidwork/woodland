@@ -36,7 +36,8 @@ import {
 	STRING_30,
 	TIME_MS,
 	TOKEN_N,
-	UTF8
+	UTF8,
+	SLASH
 } from "./constants.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url)),
@@ -69,14 +70,26 @@ function escapeHtml (str = EMPTY) {
 /**
  * Generates an HTML autoindex page for directory listings
  * @param {string} [title=""] - The title for the autoindex page
- * @param {Array|string} [files=[]] - Array of files or string to display in the listing
+ * @param {Array} [files=[]] - Array of file objects from fs.readdir with withFileTypes: true
  * @returns {string} The complete HTML string for the autoindex page
  */
 export function autoindex (title = EMPTY, files = []) {
-	let safeTitle = escapeHtml(title);
-	let safeFiles = Array.isArray(files) ?
-		files.map(f => escapeHtml(f)).join("") :
-		escapeHtml(String(files));
+	const safeTitle = escapeHtml(title);
+
+	// Security: Generate file listing with proper HTML escaping
+	const parentDir = "    <li><a href=\"..\" rel=\"collection\">../</a></li>";
+	const fileList = files.map(file => {
+		const safeName = escapeHtml(file.name);
+		const safeHref = encodeURIComponent(file.name);
+		const isDir = file.isDirectory();
+		const displayName = isDir ? `${safeName}/` : safeName;
+		const href = isDir ? `${safeHref}/` : safeHref;
+		const rel = isDir ? "collection" : "item";
+
+		return `    <li><a href="${href}" rel="${rel}">${displayName}</a></li>`;
+	}).join("\n");
+
+	const safeFiles = files.length > 0 ? `${parentDir}\n${fileList}` : parentDir;
 
 	return html.replace(/\$\{\s*TITLE\s*\}/g, safeTitle)
 		.replace(/\$\{\s*FILES\s*\}/g, safeFiles);
@@ -185,7 +198,7 @@ export function parse (arg) {
 		arg :
 		`http://${arg.headers.host || `localhost:${arg.socket.server._connectionKey.replace(/.*::/, EMPTY)}`}${arg.url}`;
 	const urlObj = new URL(urlStr);
-	const allowedHosts = ["localhost", "127.0.0.1"];
+	const allowedHosts = ["localhost", "127.0.0.1", "::1", "[::1]"];
 	if (!allowedHosts.includes(urlObj.hostname)) {
 		console.warn("parse(): Host not in allowed list. Potential SSRF risk.");
 	}
@@ -299,4 +312,98 @@ export function timeOffset (arg = INT_0) {
  */
 export function writeHead (res, headers = {}) {
 	res.writeHead(res.statusCode, STATUS_CODES[res.statusCode], headers);
+}
+
+/**
+ * Validates if a file path is safe and doesn't contain directory traversal sequences
+ * @param {string} filePath - The file path to validate
+ * @returns {boolean} True if the path is safe, false otherwise
+ */
+export function isSafeFilePath (filePath) {
+	if (typeof filePath !== STRING) {
+		return false;
+	}
+
+	// Empty string is safe (represents root directory)
+	if (filePath === EMPTY) {
+		return true;
+	}
+
+	// Check for directory traversal patterns
+	const dangerousPatterns = [
+		/\.\.\//, // ../
+		/\.\.\\/, // ..\
+		/\.\.$/, // .. at end
+		/^\.\./, // .. at start
+		/\/\.\.\//, // /../
+		/\\\.\.\\/, // \..\
+		/\0/, // null bytes
+		/[\r\n]/ // newlines
+	];
+
+	return !dangerousPatterns.some(pattern => pattern.test(filePath));
+}
+
+/**
+ * Sanitizes a file path by removing potentially dangerous sequences
+ * @param {string} filePath - The file path to sanitize
+ * @returns {string} The sanitized file path
+ */
+export function sanitizeFilePath (filePath) {
+	if (typeof filePath !== STRING) {
+		return EMPTY;
+	}
+
+	return filePath
+		.replace(/\.\.\//g, EMPTY) // Remove ../
+		.replace(/\.\.\\\\?/g, EMPTY) // Remove ..\ (with optional second backslash)
+		.replace(/\0/g, EMPTY) // Remove null bytes
+		.replace(/[\r\n]/g, EMPTY) // Remove newlines
+		.replace(/\/+/g, SLASH) // Normalize multiple slashes
+		.replace(/^\//, EMPTY); // Remove leading slash
+}
+
+/**
+ * Validates if an IP address is in the expected format and not spoofed
+ * @param {string} ipAddress - The IP address to validate
+ * @returns {boolean} True if the IP address appears valid
+ */
+export function isValidIpAddress (ipAddress) {
+	if (typeof ipAddress !== STRING || ipAddress === EMPTY) {
+		return false;
+	}
+
+	// Basic IPv4 validation
+	const ipv4Regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+
+	// Basic IPv6 validation
+	const ipv6Regex = /^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/;
+
+	return ipv4Regex.test(ipAddress) || ipv6Regex.test(ipAddress);
+}
+
+/**
+ * Extracts IP address from X-Forwarded-For header safely
+ * @param {string} xForwardedFor - The X-Forwarded-For header value
+ * @returns {string|null} The extracted IP address or null if invalid
+ */
+export function extractForwardedIp (xForwardedFor) {
+	if (typeof xForwardedFor !== STRING || xForwardedFor === EMPTY) {
+		return null;
+	}
+
+	// Get the first IP (leftmost) which should be the original client IP
+	const ips = xForwardedFor.split(COMMA).map(ip => ip.trim());
+
+	for (const ip of ips) {
+		if (isValidIpAddress(ip)) {
+			// Additional check for private/local addresses that shouldn't be trusted
+			if (!(ip.startsWith("10.") || ip.startsWith("192.168.") || ip.startsWith("127.") ||
+				ip.startsWith("172.") || ip === "::1" || ip.startsWith("fc") || ip.startsWith("fd") || ip.startsWith("fe80"))) {
+				return ip;
+			}
+		}
+	}
+
+	return null;
 }

@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>${title}</title>
+  <title>${ TITLE }</title>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=yes" />
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
   <style media="all">
     html, body, ul {
       margin: 0;
@@ -33,9 +34,9 @@
   </style>
 </head>
 <body>
-  <h1>${title}</h1>
+  <h1>${ TITLE }</h1>
   <ul>
-${[{isDirectory: () => false, name: "..", rel: "collection"}, ...files].map(i => `    <li><a href="${i.name}${i.isDirectory() ? "/" : ""}" rel="${i.rel || "item"}">${i.name}${i.isDirectory() ? "/" : ""}</a></li>`).join("\n")}
+${ FILES }
   </ul>
 </body>
 </html>
