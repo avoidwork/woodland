@@ -679,7 +679,7 @@ new Woodland(config)
 
 ### Benchmark Results
 
-*Node.js 20.x on Apple M2 MacBook Pro (1000 iterations, 100 warmup)*
+*Node.js 23.10.0 on Apple M4 Pro Mac Mini (1000 iterations, 100 warmup)*
 
 ```
 Routing Operations
