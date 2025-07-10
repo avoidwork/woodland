@@ -19,6 +19,7 @@ import {
 	CACHE_CONTROL,
 	CLOSE,
 	COLON,
+	COMMA,
 	COMMA_SPACE,
 	CONNECT,
 	CONTENT_LENGTH,
@@ -112,10 +113,9 @@ import {
 } from "./constants.js";
 import {
 	autoindex as aindex,
-	extractForwardedIp,
 	getStatus,
 	isSafeFilePath,
-	isValidIpAddress,
+	isValidIP,
 	mime,
 	ms,
 	next,
@@ -456,26 +456,22 @@ export class Woodland extends EventEmitter {
 	 * @returns {string} Client IP address
 	 */
 	ip (req) {
-		// Security: Don't blindly trust X-Forwarded-For header
-		if (X_FORWARDED_FOR in req.headers) {
-			const forwardedIp = extractForwardedIp(req.headers[X_FORWARDED_FOR]);
-			if (forwardedIp !== null) {
-				return forwardedIp;
+		// If no X-Forwarded-For header, return connection IP
+		if (!(X_FORWARDED_FOR in req.headers) || !req.headers[X_FORWARDED_FOR].trim()) {
+			return req.connection.remoteAddress || req.socket.remoteAddress || "127.0.0.1";
+		}
+
+		// Parse X-Forwarded-For header and find first valid IP
+		const forwardedIPs = req.headers[X_FORWARDED_FOR].split(COMMA).map(ip => ip.trim());
+
+		for (const ip of forwardedIPs) {
+			if (isValidIP(ip)) {
+				return ip;
 			}
-			// If X-Forwarded-For is present but invalid, log a warning
-			this.log(`type=ip, message="Invalid X-Forwarded-For header", header="${req.headers[X_FORWARDED_FOR]}"`, ERROR);
 		}
 
-		// Fall back to connection remote address
-		const remoteAddress = req.connection.remoteAddress || req.socket.remoteAddress;
-
-		// Validate the remote address
-		if (remoteAddress && isValidIpAddress(remoteAddress)) {
-			return remoteAddress;
-		}
-
-		// Default fallback
-		return "127.0.0.1";
+		// Fall back to connection IP if no valid IP found
+		return req.connection.remoteAddress || req.socket.remoteAddress || "127.0.0.1";
 	}
 
 	/**

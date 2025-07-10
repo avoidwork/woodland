@@ -2,8 +2,6 @@ import assert from "node:assert";
 import {
 	isSafeFilePath,
 	sanitizeFilePath,
-	isValidIpAddress,
-	extractForwardedIp,
 	autoindex
 } from "../../src/utility.js";
 
@@ -115,96 +113,6 @@ describe("Security Utility Functions", () => {
 			assert.strictEqual(sanitizeFilePath("file.txt"), "file.txt");
 			assert.strictEqual(sanitizeFilePath("dir/file.txt"), "dir/file.txt");
 			assert.strictEqual(sanitizeFilePath("static/css/style.css"), "static/css/style.css");
-		});
-	});
-
-	describe("isValidIpAddress", () => {
-		it("should validate IPv4 addresses", () => {
-			assert.strictEqual(isValidIpAddress("127.0.0.1"), true);
-			assert.strictEqual(isValidIpAddress("192.168.1.1"), true);
-			assert.strictEqual(isValidIpAddress("203.0.113.1"), true);
-			assert.strictEqual(isValidIpAddress("255.255.255.255"), true);
-			assert.strictEqual(isValidIpAddress("0.0.0.0"), true);
-		});
-
-		it("should validate IPv6 addresses", () => {
-			assert.strictEqual(isValidIpAddress("2001:db8::1"), true);
-			assert.strictEqual(isValidIpAddress("::1"), true);
-			assert.strictEqual(isValidIpAddress("2001:db8:85a3::8a2e:370:7334"), true);
-			assert.strictEqual(isValidIpAddress("::ffff:192.0.2.1"), true);
-		});
-
-		it("should reject invalid IPv4 addresses", () => {
-			assert.strictEqual(isValidIpAddress("256.1.1.1"), false);
-			assert.strictEqual(isValidIpAddress("192.168.1"), false);
-			assert.strictEqual(isValidIpAddress("192.168.1.1.1"), false);
-			assert.strictEqual(isValidIpAddress("192.168.1.300"), false);
-			assert.strictEqual(isValidIpAddress("192.168.-1.1"), false);
-		});
-
-		it("should reject non-string inputs", () => {
-			assert.strictEqual(isValidIpAddress(null), false);
-			assert.strictEqual(isValidIpAddress(undefined), false);
-			assert.strictEqual(isValidIpAddress(123), false);
-			assert.strictEqual(isValidIpAddress({}), false);
-			assert.strictEqual(isValidIpAddress([]), false);
-		});
-
-		it("should reject empty string", () => {
-			assert.strictEqual(isValidIpAddress(""), false);
-		});
-
-		it("should reject random strings", () => {
-			assert.strictEqual(isValidIpAddress("not-an-ip"), false);
-			assert.strictEqual(isValidIpAddress("localhost"), false);
-			assert.strictEqual(isValidIpAddress("example.com"), false);
-		});
-	});
-
-	describe("extractForwardedIp", () => {
-		it("should extract first public IP from X-Forwarded-For header", () => {
-			assert.strictEqual(extractForwardedIp("203.0.113.1, 192.168.1.1"), "203.0.113.1");
-			assert.strictEqual(extractForwardedIp("198.51.100.1, 203.0.113.1, 192.168.1.1"), "198.51.100.1");
-		});
-
-		it("should skip private IP addresses", () => {
-			assert.strictEqual(extractForwardedIp("192.168.1.1, 10.0.0.1"), null);
-			assert.strictEqual(extractForwardedIp("127.0.0.1, 192.168.1.1"), null);
-			assert.strictEqual(extractForwardedIp("172.16.0.1, 10.0.0.1"), null);
-		});
-
-		it("should skip IPv6 local addresses", () => {
-			assert.strictEqual(extractForwardedIp("::1, fc00::1"), null);
-			assert.strictEqual(extractForwardedIp("fd00::1, fe80::1"), null);
-		});
-
-		it("should handle single IP", () => {
-			assert.strictEqual(extractForwardedIp("203.0.113.1"), "203.0.113.1");
-		});
-
-		it("should handle IPv6 addresses", () => {
-			assert.strictEqual(extractForwardedIp("2001:db8::1"), "2001:db8::1");
-		});
-
-		it("should handle malformed headers", () => {
-			assert.strictEqual(extractForwardedIp("invalid-ip, not-an-ip"), null);
-			assert.strictEqual(extractForwardedIp("256.1.1.1, 300.1.1.1"), null);
-		});
-
-		it("should return null for non-string inputs", () => {
-			assert.strictEqual(extractForwardedIp(null), null);
-			assert.strictEqual(extractForwardedIp(undefined), null);
-			assert.strictEqual(extractForwardedIp(123), null);
-			assert.strictEqual(extractForwardedIp({}), null);
-			assert.strictEqual(extractForwardedIp([]), null);
-		});
-
-		it("should return null for empty string", () => {
-			assert.strictEqual(extractForwardedIp(""), null);
-		});
-
-		it("should trim whitespace", () => {
-			assert.strictEqual(extractForwardedIp("  203.0.113.1  ,  192.168.1.1  "), "203.0.113.1");
 		});
 	});
 

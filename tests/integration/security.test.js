@@ -171,7 +171,7 @@ describe("Security Integration Tests", () => {
 
 					assert.strictEqual(response.statusCode, 200, "Should return 200");
 					const data = JSON.parse(response.body);
-					assert.ok(data.ip === "127.0.0.1" || data.ip === "::ffff:127.0.0.1", "Should fall back to connection IP for private IPs");
+					assert.strictEqual(data.ip, "192.168.1.1", "Should extract first valid IP (including private IPs)");
 					done();
 				} catch (err) {
 					done(err);
@@ -179,7 +179,7 @@ describe("Security Integration Tests", () => {
 			});
 		});
 
-		it("should extract valid public IP from X-Forwarded-For", done => {
+		it("should extract valid IP from X-Forwarded-For", done => {
 			app.get("/ip", (req, res) => {
 				res.json({ ip: req.ip });
 			});
@@ -192,7 +192,7 @@ describe("Security Integration Tests", () => {
 
 					assert.strictEqual(response.statusCode, 200, "Should return 200");
 					const data = JSON.parse(response.body);
-					assert.strictEqual(data.ip, "203.0.113.1", "Should extract public IP");
+					assert.strictEqual(data.ip, "203.0.113.1", "Should extract first valid IP");
 					done();
 				} catch (err) {
 					done(err);

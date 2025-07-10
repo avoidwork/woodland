@@ -519,48 +519,51 @@ function sanitizeFilePath (filePath) {
 }
 
 /**
- * Validates if an IP address is in the expected format and not spoofed
- * @param {string} ipAddress - The IP address to validate
- * @returns {boolean} True if the IP address appears valid
+ * Validates if an IP address is properly formatted
+ * @param {string} ip - IP address to validate
+ * @returns {boolean} True if IP is valid format
  */
-function isValidIpAddress (ipAddress) {
-	if (typeof ipAddress !== STRING || ipAddress === EMPTY) {
+function isValidIP (ip) {
+	if (!ip || typeof ip !== "string") {
 		return false;
 	}
 
 	// Basic IPv4 validation
-	const ipv4Regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+	const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+	const ipv4Match = ip.match(ipv4Regex);
 
-	// Basic IPv6 validation
-	const ipv6Regex = /^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/;
+	if (ipv4Match) {
+		const octets = ipv4Match.slice(1).map(Number);
 
-	return ipv4Regex.test(ipAddress) || ipv6Regex.test(ipAddress);
-}
-
-/**
- * Extracts IP address from X-Forwarded-For header safely
- * @param {string} xForwardedFor - The X-Forwarded-For header value
- * @returns {string|null} The extracted IP address or null if invalid
- */
-function extractForwardedIp (xForwardedFor) {
-	if (typeof xForwardedFor !== STRING || xForwardedFor === EMPTY) {
-		return null;
-	}
-
-	// Get the first IP (leftmost) which should be the original client IP
-	const ips = xForwardedFor.split(COMMA).map(ip => ip.trim());
-
-	for (const ip of ips) {
-		if (isValidIpAddress(ip)) {
-			// Additional check for private/local addresses that shouldn't be trusted
-			if (!(ip.startsWith("10.") || ip.startsWith("192.168.") || ip.startsWith("127.") ||
-				ip.startsWith("172.") || ip === "::1" || ip.startsWith("fc") || ip.startsWith("fd") || ip.startsWith("fe80"))) {
-				return ip;
-			}
+		// Check if all octets are valid (0-255)
+		if (octets.some(octet => octet > 255)) {
+			return false;
 		}
+
+		return true;
 	}
 
-	return null;
+	// IPv6 validation - check if it contains colons
+	if (ip.includes(":")) {
+		// Simple but effective IPv6 validation
+		// Must contain at least one colon, and only valid hex characters and colons
+		const validChars = /^[0-9a-fA-F:]+$/;
+		if (!validChars.test(ip)) {
+			return false;
+		}
+
+		// Check for valid IPv6 structure patterns
+		// Allow various formats including compressed notation
+		const parts = ip.split("::");
+		if (parts.length <= 2) {
+			// Valid compressed notation can have at most one "::"
+			return true;
+		}
+
+		return false;
+	}
+
+	return false;
 }/**
  * Woodland HTTP server framework class extending EventEmitter
  * @class
@@ -887,26 +890,22 @@ class Woodland extends EventEmitter {
 	 * @returns {string} Client IP address
 	 */
 	ip (req) {
-		// Security: Don't blindly trust X-Forwarded-For header
-		if (X_FORWARDED_FOR in req.headers) {
-			const forwardedIp = extractForwardedIp(req.headers[X_FORWARDED_FOR]);
-			if (forwardedIp !== null) {
-				return forwardedIp;
+		// If no X-Forwarded-For header, return connection IP
+		if (!(X_FORWARDED_FOR in req.headers) || !req.headers[X_FORWARDED_FOR].trim()) {
+			return req.connection.remoteAddress || req.socket.remoteAddress || "127.0.0.1";
+		}
+
+		// Parse X-Forwarded-For header and find first valid IP
+		const forwardedIPs = req.headers[X_FORWARDED_FOR].split(COMMA).map(ip => ip.trim());
+
+		for (const ip of forwardedIPs) {
+			if (isValidIP(ip)) {
+				return ip;
 			}
-			// If X-Forwarded-For is present but invalid, log a warning
-			this.log(`type=ip, message="Invalid X-Forwarded-For header", header="${req.headers[X_FORWARDED_FOR]}"`, ERROR);
 		}
 
-		// Fall back to connection remote address
-		const remoteAddress = req.connection.remoteAddress || req.socket.remoteAddress;
-
-		// Validate the remote address
-		if (remoteAddress && isValidIpAddress(remoteAddress)) {
-			return remoteAddress;
-		}
-
-		// Default fallback
-		return "127.0.0.1";
+		// Fall back to connection IP if no valid IP found
+		return req.connection.remoteAddress || req.socket.remoteAddress || "127.0.0.1";
 	}
 
 	/**
