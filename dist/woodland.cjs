@@ -3,7 +3,7 @@
  *
  * @copyright 2025 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.1.5
+ * @version 20.1.7
  */
 'use strict';
 
@@ -47,6 +47,7 @@ const INT_206 = 206;
 const INT_304 = 304;
 const INT_307 = 307;
 const INT_308 = 308;
+const INT_400 = 400;
 const INT_403 = 403;
 const INT_404 = 404;
 const INT_405 = 405;
@@ -251,14 +252,26 @@ function escapeHtml (str = EMPTY) {
 /**
  * Generates an HTML autoindex page for directory listings
  * @param {string} [title=""] - The title for the autoindex page
- * @param {Array|string} [files=[]] - Array of files or string to display in the listing
+ * @param {Array} [files=[]] - Array of file objects from fs.readdir with withFileTypes: true
  * @returns {string} The complete HTML string for the autoindex page
  */
 function autoindex (title = EMPTY, files = []) {
-	let safeTitle = escapeHtml(title);
-	let safeFiles = Array.isArray(files) ?
-		files.map(f => escapeHtml(f)).join("") :
-		escapeHtml(String(files));
+	const safeTitle = escapeHtml(title);
+
+	// Security: Generate file listing with proper HTML escaping
+	const parentDir = "    <li><a href=\"..\" rel=\"collection\">../</a></li>";
+	const fileList = files.map(file => {
+		const safeName = escapeHtml(file.name);
+		const safeHref = encodeURIComponent(file.name);
+		const isDir = file.isDirectory();
+		const displayName = isDir ? `${safeName}/` : safeName;
+		const href = isDir ? `${safeHref}/` : safeHref;
+		const rel = isDir ? "collection" : "item";
+
+		return `    <li><a href="${href}" rel="${rel}">${displayName}</a></li>`;
+	}).join("\n");
+
+	const safeFiles = files.length > 0 ? `${parentDir}\n${fileList}` : parentDir;
 
 	return html.replace(/\$\{\s*TITLE\s*\}/g, safeTitle)
 		.replace(/\$\{\s*FILES\s*\}/g, safeFiles);
@@ -367,7 +380,7 @@ function parse (arg) {
 		arg :
 		`http://${arg.headers.host || `localhost:${arg.socket.server._connectionKey.replace(/.*::/, EMPTY)}`}${arg.url}`;
 	const urlObj = new node_url.URL(urlStr);
-	const allowedHosts = ["localhost", "127.0.0.1"];
+	const allowedHosts = ["localhost", "127.0.0.1", "::1", "[::1]"];
 	if (!allowedHosts.includes(urlObj.hostname)) {
 		console.warn("parse(): Host not in allowed list. Potential SSRF risk.");
 	}
@@ -429,7 +442,7 @@ function partialHeaders (req, res, size, status, headers = {}, options = {}) {
  * @returns {boolean} True if the object is pipeable
  */
 function pipeable (method, arg) {
-	return method !== HEAD && arg !== null && typeof arg.on === FUNCTION;
+	return method !== HEAD && arg !== null && arg !== undefined && typeof arg.on === FUNCTION;
 }
 
 /**
@@ -484,6 +497,100 @@ function writeHead (res, headers = {}) {
 }
 
 /**
+ * Validates if a file path is safe and doesn't contain directory traversal sequences
+ * @param {string} filePath - The file path to validate
+ * @returns {boolean} True if the path is safe, false otherwise
+ */
+function isSafeFilePath (filePath) {
+	if (typeof filePath !== STRING) {
+		return false;
+	}
+
+	// Empty string is safe (represents root directory)
+	if (filePath === EMPTY) {
+		return true;
+	}
+
+	// Check for directory traversal patterns
+	const dangerousPatterns = [
+		/\.\.\//, // ../
+		/\.\.\\/, // ..\
+		/\.\.$/, // .. at end
+		/^\.\./, // .. at start
+		/\/\.\.\//, // /../
+		/\\\.\.\\/, // \..\
+		/\0/, // null bytes
+		/[\r\n]/ // newlines
+	];
+
+	return !dangerousPatterns.some(pattern => pattern.test(filePath));
+}
+
+/**
+ * Sanitizes a file path by removing potentially dangerous sequences
+ * @param {string} filePath - The file path to sanitize
+ * @returns {string} The sanitized file path
+ */
+function sanitizeFilePath (filePath) {
+	if (typeof filePath !== STRING) {
+		return EMPTY;
+	}
+
+	return filePath
+		.replace(/\.\.\//g, EMPTY) // Remove ../
+		.replace(/\.\.\\\\?/g, EMPTY) // Remove ..\ (with optional second backslash)
+		.replace(/\0/g, EMPTY) // Remove null bytes
+		.replace(/[\r\n]/g, EMPTY) // Remove newlines
+		.replace(/\/+/g, SLASH) // Normalize multiple slashes
+		.replace(/^\//, EMPTY); // Remove leading slash
+}
+
+/**
+ * Validates if an IP address is in the expected format and not spoofed
+ * @param {string} ipAddress - The IP address to validate
+ * @returns {boolean} True if the IP address appears valid
+ */
+function isValidIpAddress (ipAddress) {
+	if (typeof ipAddress !== STRING || ipAddress === EMPTY) {
+		return false;
+	}
+
+	// Basic IPv4 validation
+	const ipv4Regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+
+	// Basic IPv6 validation
+	const ipv6Regex = /^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/;
+
+	return ipv4Regex.test(ipAddress) || ipv6Regex.test(ipAddress);
+}
+
+/**
+ * Extracts IP address from X-Forwarded-For header safely
+ * @param {string} xForwardedFor - The X-Forwarded-For header value
+ * @returns {string|null} The extracted IP address or null if invalid
+ */
+function extractForwardedIp (xForwardedFor) {
+	if (typeof xForwardedFor !== STRING || xForwardedFor === EMPTY) {
+		return null;
+	}
+
+	// Get the first IP (leftmost) which should be the original client IP
+	const ips = xForwardedFor.split(COMMA).map(ip => ip.trim());
+
+	for (const ip of ips) {
+		if (isValidIpAddress(ip)) {
+			// Additional check for private/local addresses that shouldn't be trusted
+			if (!(ip.startsWith("10.") || ip.startsWith("192.168.") || ip.startsWith("127.") ||
+				ip.startsWith("172.") || ip === "::1" || ip.startsWith("fc") || ip.startsWith("fd") || ip.startsWith("fe80"))) {
+				return ip;
+			}
+		}
+	}
+
+	return null;
+}
+
+/**
  * Woodland HTTP server framework class extending EventEmitter
  * @class
  * @extends {EventEmitter}
@@ -501,7 +608,7 @@ class Woodland extends node_events.EventEmitter {
 	 * @param {boolean} [config.etags=true] - Enable ETag generation
 	 * @param {string[]} [config.indexes=['index.htm', 'index.html']] - Index file names
 	 * @param {Object} [config.logging={}] - Logging configuration
-	 * @param {string[]} [config.origins=['*']] - Allowed CORS origins
+	 * @param {string[]} [config.origins=[]] - Allowed CORS origins (empty array denies all cross-origin requests)
 	 * @param {boolean} [config.silent=false] - Disable default headers
 	 * @param {boolean} [config.time=false] - Enable response time tracking
 	 */
@@ -518,7 +625,7 @@ class Woodland extends node_events.EventEmitter {
 			INDEX_HTML
 		],
 		logging = {},
-		origins = [WILDCARD],
+		origins = [],
 		silent = false,
 		time = false
 	} = {}) {
@@ -644,6 +751,11 @@ class Woodland extends node_events.EventEmitter {
 	 * @returns {boolean} True if CORS should be applied
 	 */
 	cors (req) {
+		// Security: Only allow CORS if origins are explicitly configured
+		if (this.origins.length === 0) {
+			return false;
+		}
+
 		return req.corsHost && (this.origins.includes(WILDCARD) || this.origins.includes(req.headers.origin));
 	}
 
@@ -767,7 +879,26 @@ class Woodland extends node_events.EventEmitter {
 	 * @param {string} [folder=process.cwd()] - File system folder to serve from
 	 */
 	files (root = SLASH, folder = process.cwd()) {
-		this.get(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) => this.serve(req, res, req.parsed.pathname.substring(1), folder));
+		this.get(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) => {
+			// Security: Extract and validate the file path
+			const rootPath = root.replace(/\/$/, EMPTY);
+			const requestPath = req.parsed.pathname.startsWith(rootPath) ?
+				req.parsed.pathname.substring(rootPath.length + 1) :
+				req.parsed.pathname.substring(1);
+
+			// Additional security: decode URI component safely
+			let decodedPath;
+			try {
+				decodedPath = decodeURIComponent(requestPath);
+			} catch {
+				this.log(`type=files, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Invalid URI encoding"`, ERROR);
+				res.error(INT_400);
+
+				return;
+			}
+
+			this.serve(req, res, decodedPath, folder);
+		});
 	}
 
 	/**
@@ -792,12 +923,31 @@ class Woodland extends node_events.EventEmitter {
 	}
 
 	/**
-	 * Extracts the client IP address from the request
+	 * Extracts the client IP address from the request with security validation
 	 * @param {Object} req - HTTP request object
 	 * @returns {string} Client IP address
 	 */
 	ip (req) {
-		return X_FORWARDED_FOR in req.headers ? req.headers[X_FORWARDED_FOR].split(COMMA).pop().trim() : req.connection.remoteAddress;
+		// Security: Don't blindly trust X-Forwarded-For header
+		if (X_FORWARDED_FOR in req.headers) {
+			const forwardedIp = extractForwardedIp(req.headers[X_FORWARDED_FOR]);
+			if (forwardedIp !== null) {
+				return forwardedIp;
+			}
+			// If X-Forwarded-For is present but invalid, log a warning
+			this.log(`type=ip, message="Invalid X-Forwarded-For header", header="${req.headers[X_FORWARDED_FOR]}"`, ERROR);
+		}
+
+		// Fall back to connection remote address
+		const remoteAddress = req.connection.remoteAddress || req.socket.remoteAddress;
+
+		// Validate the remote address
+		if (remoteAddress && isValidIpAddress(remoteAddress)) {
+			return remoteAddress;
+		}
+
+		// Default fallback
+		return "127.0.0.1";
 	}
 
 	/**
@@ -1099,7 +1249,28 @@ class Woodland extends node_events.EventEmitter {
 	 * @returns {Promise<void>} Promise that resolves when serving is complete
 	 */
 	async serve (req, res, arg, folder = process.cwd()) {
-		const fp = node_path.join(folder, arg);
+		// Security: Validate and sanitize file path to prevent directory traversal
+		if (!isSafeFilePath(arg)) {
+			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path traversal attempt blocked", path="${arg}"`, ERROR);
+			res.error(INT_403);
+
+			return;
+		}
+
+		const sanitizedPath = sanitizeFilePath(arg);
+		const fp = node_path.join(folder, sanitizedPath);
+
+		// Additional security check: ensure resolved path is within the base folder
+		const absoluteFolder = node_path.join(process.cwd(), folder);
+		const absoluteFilePath = node_path.join(process.cwd(), fp);
+
+		if (!absoluteFilePath.startsWith(absoluteFolder)) {
+			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path traversal attempt blocked", resolvedPath="${absoluteFilePath}"`, ERROR);
+			res.error(INT_403);
+
+			return;
+		}
+
 		let valid = true;
 		let stats;
 
@@ -1107,8 +1278,7 @@ class Woodland extends node_events.EventEmitter {
 
 		try {
 			stats = await promises.stat(fp, {bigint: false});
-			// eslint-disable-next-line no-unused-vars
-		} catch (e) {
+		} catch {
 			valid = false;
 		}
 
