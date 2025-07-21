@@ -11,7 +11,7 @@ describe("Security Integration Tests", () => {
 	let testDir;
 
 	beforeEach(() => {
-		app = woodland();
+		app = woodland({ logging: { enabled: false }});
 		server = createServer((req, res) => {
 			app.route(req, res);
 		});

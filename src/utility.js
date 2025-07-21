@@ -140,11 +140,11 @@ export function next (req, res, middleware, immediate = false) {
 
 		if (obj.done === false) {
 			if (err !== void 0) {
-				while (obj.done === false && obj.value.length < 4) {
+				while (obj.done === false && obj.value && obj.value.length < 4) {
 					obj = middleware.next();
 				}
 
-				if (obj.done === false) {
+				if (obj.done === false && obj.value) {
 					obj.value(err, req, res, fn);
 				} else {
 					res.error(getStatus(req, res));
@@ -158,7 +158,7 @@ export function next (req, res, middleware, immediate = false) {
 			res.error(getStatus(req, res));
 		}
 	};
-	const fn = immediate ? () => internalFn(undefined, fn) : err => process.nextTick(() => internalFn(err, fn));
+	const fn = immediate ? err => internalFn(err, fn) : err => process.nextTick(() => internalFn(err, fn));
 
 	return fn;
 }

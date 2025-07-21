@@ -38,7 +38,8 @@ describe("Woodland", () => {
 				time: true,
 				silent: true,
 				indexes: ["home.html"],
-				origins: ["https://example.com"]
+				origins: ["https://example.com"],
+				logging: { enabled: false }
 			});
 
 			assert.strictEqual(customApp.autoindex, true);
@@ -56,7 +57,8 @@ describe("Woodland", () => {
 		});
 
 		it("should not set default headers when silent", () => {
-			const silentApp = new Woodland({silent: true});
+			const silentApp = new Woodland({silent: true,
+				logging: { enabled: false }});
 			assert.strictEqual(silentApp.defaultHeaders.length, 0);
 		});
 
@@ -65,7 +67,8 @@ describe("Woodland", () => {
 		});
 
 		it("should not initialize etags when disabled", () => {
-			const noEtagApp = new Woodland({etags: false});
+			const noEtagApp = new Woodland({etags: false,
+				logging: { enabled: false }});
 			assert.strictEqual(noEtagApp.etags, null);
 		});
 	});
@@ -322,7 +325,8 @@ describe("Woodland", () => {
 		});
 
 		it("should allow CORS for wildcard origins", () => {
-			const corsApp = new Woodland({origins: ["*"]});
+			const corsApp = new Woodland({origins: ["*"],
+				logging: { enabled: false }});
 			const req = {
 				corsHost: true,
 				headers: {origin: "https://example.com"}
@@ -331,7 +335,8 @@ describe("Woodland", () => {
 		});
 
 		it("should allow CORS for specific origins", () => {
-			const corsApp = new Woodland({origins: ["https://example.com"]});
+			const corsApp = new Woodland({origins: ["https://example.com"],
+				logging: { enabled: false }});
 			const req = {
 				corsHost: true,
 				headers: {origin: "https://example.com"}
@@ -340,7 +345,8 @@ describe("Woodland", () => {
 		});
 
 		it("should deny CORS for unlisted origins", () => {
-			const corsApp = new Woodland({origins: ["https://trusted.com"]});
+			const corsApp = new Woodland({origins: ["https://trusted.com"],
+				logging: { enabled: false }});
 			const req = {
 				corsHost: true,
 				headers: {origin: "https://untrusted.com"}
@@ -476,7 +482,8 @@ describe("Woodland", () => {
 		});
 
 		it("should return empty string when etags disabled", () => {
-			const noEtagApp = new Woodland({etags: false});
+			const noEtagApp = new Woodland({etags: false,
+				logging: { enabled: false }});
 			const result = noEtagApp.etag("GET", "test", "data");
 			assert.strictEqual(result, "");
 		});
@@ -706,18 +713,34 @@ describe("Woodland", () => {
 			let errorCalled = false;
 			let errorStatus = null;
 
-			// Setup request to be cross-origin but not allowed
-			mockReq.headers.origin = "https://evil.com";
-			mockReq.corsHost = true;
-			mockReq.cors = false;
-			mockReq.valid = true;
+			// Create a new app instance with empty origins to reject CORS
+			const corsApp = woodland({origins: [],
+				logging: { enabled: false }});
 
+			// Setup request to be cross-origin
+			mockReq.headers.origin = "https://evil.com";
+
+			// Store the original error function and capture calls
+			const originalError = mockRes.error;
 			mockRes.error = function (status) {
 				errorCalled = true;
 				errorStatus = status;
+				// Also call original to maintain compatibility
+				if (originalError) originalError.call(this, status);
 			};
 
-			app.route(mockReq, mockRes);
+			// Override the error method that gets set by decorate
+			const originalDecorate = corsApp.decorate;
+			corsApp.decorate = function (req, res) {
+				originalDecorate.call(this, req, res);
+				// Restore our test error handler after decorate overwrites it
+				res.error = function (status) {
+					errorCalled = true;
+					errorStatus = status;
+				};
+			};
+
+			corsApp.route(mockReq, mockRes);
 
 			assert.strictEqual(errorCalled, true, "Error should be called for CORS rejection");
 			assert.strictEqual(errorStatus, 403, "Should return 403 for CORS rejection");
@@ -727,12 +750,19 @@ describe("Woodland", () => {
 		it("should handle method not allowed", () => {
 			let errorCalled = false;
 
-			// Setup request with method not in allow list
+			// Setup request with method not supported by any routes
 			mockReq.method = "DELETE";
-			mockReq.allow = "GET, HEAD, OPTIONS"; // DELETE not allowed
+			mockReq.url = "/nonexistent";
+			mockReq.parsed.pathname = "/nonexistent";
 
-			mockRes.error = function () {
-				errorCalled = true;
+			// Override the error method that gets set by decorate
+			const originalDecorate = app.decorate;
+			app.decorate = function (req, res) {
+				originalDecorate.call(this, req, res);
+				// Restore our test error handler after decorate overwrites it
+				res.error = function () {
+					errorCalled = true;
+				};
 			};
 
 			app.route(mockReq, mockRes);
@@ -751,7 +781,6 @@ describe("Woodland", () => {
 				url: "/users/123",
 				headers: {host: "localhost"},
 				parsed: {pathname: "/users/123", hostname: "localhost", search: ""},
-				allow: "GET, HEAD, OPTIONS",
 				params: {},
 				socket: {server: {_connectionKey: "::8000"}, remoteAddress: "127.0.0.1"},
 				connection: {remoteAddress: "127.0.0.1"}
@@ -788,64 +817,93 @@ describe("Woodland", () => {
 			};
 		});
 
-		it("should extract parameters from parameterized routes", () => {
+		it("should extract parameters from parameterized routes", done => {
 			let handlerCalled = false;
 			let extractedParams = null;
 
-			app.get("/users/:id", (req, res) => {
+			// Create a new app instance to avoid conflicts with other tests
+			const paramApp = woodland({ logging: { enabled: false }});
+
+			paramApp.get("/users/:id", (req, res) => {
 				handlerCalled = true;
 				extractedParams = req.params;
 				res.send("OK");
+
+				// Check assertions after handler completes
+				try {
+					assert.strictEqual(handlerCalled, true, "Handler should be called");
+					assert.ok(extractedParams, "Parameters should be extracted");
+					assert.strictEqual(extractedParams.id, 123, "Parameter should be parsed as number");
+					done();
+				} catch (error) {
+					done(error);
+				}
 			});
 
-			app.route(mockReq, mockRes);
+			// Update mock request for GET method
+			mockReq.method = "GET";
 
-			assert.strictEqual(handlerCalled, true, "Handler should be called");
-			assert.ok(extractedParams, "Parameters should be extracted");
-			assert.strictEqual(extractedParams.id, 123, "Parameter should be parsed as number");
+			paramApp.route(mockReq, mockRes);
 		});
 
-		it("should handle middleware with exit functionality", () => {
+		it("should handle middleware with exit functionality", done => {
 			let middleware1Called = false;
 			let middleware2Called = false;
+			let doneCalled = false;
 
-			app.always((req, res, next) => {
+			// Create a new app instance to avoid conflicts with other tests
+			const middlewareApp = woodland({ logging: { enabled: false }});
+
+			middlewareApp.always((req, res, next) => {
 				middleware1Called = true;
 				next();
 			});
 
-			app.get("/users/:id", req => {
+			middlewareApp.get("/users/:id", (req, res) => {
 				middleware2Called = true;
 				// Call exit to skip remaining middleware
 				if (req.exit) {
 					req.exit();
 				}
+				res.send("OK");
+
+				// Check assertions after handler completes (only call done once)
+				if (!doneCalled) {
+					doneCalled = true;
+					try {
+						assert.strictEqual(middleware1Called, true, "First middleware should be called");
+						assert.strictEqual(middleware2Called, true, "Second middleware should be called");
+						// Exit functionality is set up by the route method
+						assert.ok(typeof mockReq.exit === "function", "Exit function should be available");
+						done();
+					} catch (error) {
+						done(error);
+					}
+				}
 			});
 
-			app.route(mockReq, mockRes);
+			// Update mock request for GET method
+			mockReq.method = "GET";
 
-			assert.strictEqual(middleware1Called, true, "First middleware should be called");
-			assert.strictEqual(middleware2Called, true, "Second middleware should be called");
-			// Exit functionality is set up by the route method
-			assert.ok(typeof mockReq.exit === "function", "Exit function should be available");
+			middlewareApp.route(mockReq, mockRes);
 		});
 	});
 });
 
 describe("woodland factory function", () => {
 	it("should create Woodland instance", () => {
-		const app = woodland();
+		const app = woodland({ logging: { enabled: false }});
 		assert.ok(app instanceof Woodland);
 	});
 
 	it("should pass configuration to constructor", () => {
-		const app = woodland({autoindex: true, time: true});
+		const app = woodland({autoindex: true, time: true, logging: { enabled: false }});
 		assert.strictEqual(app.autoindex, true);
 		assert.strictEqual(app.time, true);
 	});
 
 	it("should bind route method", () => {
-		const app = woodland();
+		const app = woodland({ logging: { enabled: false }});
 		assert.strictEqual(typeof app.route, "function");
 		// The route method should be bound to the instance
 		const routeFn = app.route;

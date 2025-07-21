@@ -7,7 +7,7 @@ describe("Woodland Security Tests", () => {
 	let mockRes;
 
 	beforeEach(() => {
-		app = new Woodland();
+		app = new Woodland({ logging: { enabled: false }});
 
 		// Mock request object
 		mockReq = {
@@ -327,7 +327,7 @@ describe("Woodland Security Tests", () => {
 		});
 
 		it("should set secure default headers", () => {
-			const secureApp = new Woodland();
+			const secureApp = new Woodland({ logging: { enabled: false }});
 
 			assert.ok(secureApp.defaultHeaders.length > 0, "Should have default headers");
 
@@ -342,7 +342,7 @@ describe("Woodland Security Integration", () => {
 	let app;
 
 	beforeEach(() => {
-		app = new Woodland();
+		app = new Woodland({ logging: { enabled: false }});
 	});
 
 	it("should create instance with secure defaults", () => {
@@ -352,6 +352,7 @@ describe("Woodland Security Integration", () => {
 
 	it("should allow explicit security configuration", () => {
 		const secureApp = new Woodland({
+			logging: { enabled: false },
 			origins: ["https://trusted.com"],
 			autoindex: false
 		});
