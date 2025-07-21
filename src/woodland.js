@@ -228,14 +228,14 @@ export class Woodland extends EventEmitter {
 			const allMethods = this.routes(uri, WILDCARD, override).visible > INT_0,
 				list = allMethods ? structuredClone(METHODS) : this.methods.filter(i => this.allowed(i, uri, override));
 
-			if (list.includes(GET)) {
-				if (list.includes(HEAD) === false) {
-					list.push(HEAD);
-				}
+			// Add HEAD when GET is present
+			if (list.includes(GET) && list.includes(HEAD) === false) {
+				list.push(HEAD);
+			}
 
-				if (list.includes(OPTIONS) === false) {
-					list.push(OPTIONS);
-				}
+			// Add OPTIONS for any route that has methods defined
+			if (list.length > INT_0 && list.includes(OPTIONS) === false) {
+				list.push(OPTIONS);
 			}
 
 			result = list.sort().join(COMMA_SPACE);

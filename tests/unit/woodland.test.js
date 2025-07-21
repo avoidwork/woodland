@@ -224,8 +224,62 @@ describe("Woodland", () => {
 			assert.ok(typeof result === "string");
 			assert.ok(result.includes("GET"));
 			assert.ok(result.includes("POST"));
-			assert.ok(result.includes("HEAD")); // Should be added automatically
-			assert.ok(result.includes("OPTIONS")); // Should be added automatically
+			assert.ok(result.includes("HEAD")); // Should be added automatically when GET is present
+			assert.ok(result.includes("OPTIONS")); // Should be added automatically for any route with methods
+		});
+
+		it("should include OPTIONS for routes without GET", () => {
+			app.post("/api", () => {});
+			app.put("/api", () => {});
+			app.delete("/api", () => {});
+
+			const result = app.allows("/api");
+			assert.ok(typeof result === "string");
+			assert.ok(result.includes("POST"));
+			assert.ok(result.includes("PUT"));
+			assert.ok(result.includes("DELETE"));
+			assert.ok(result.includes("OPTIONS")); // Should be added for non-GET routes
+			assert.ok(!result.includes("HEAD")); // HEAD should only be added when GET is present
+		});
+
+		it("should include OPTIONS for single non-GET method routes", () => {
+			app.post("/single", () => {});
+
+			const result = app.allows("/single");
+			assert.ok(result.includes("POST"));
+			assert.ok(result.includes("OPTIONS"));
+			assert.ok(!result.includes("HEAD"));
+			assert.ok(!result.includes("GET"));
+		});
+
+		it("should include HEAD only when GET is present", () => {
+			app.post("/no-get", () => {});
+			const resultNoGet = app.allows("/no-get");
+			assert.ok(!resultNoGet.includes("HEAD"));
+
+			app.get("/with-get", () => {});
+			const resultWithGet = app.allows("/with-get");
+			assert.ok(resultWithGet.includes("HEAD"));
+		});
+
+		it("should not include duplicate OPTIONS", () => {
+			app.options("/explicit", () => {});
+			app.post("/explicit", () => {});
+
+			const result = app.allows("/explicit");
+			const methods = result.split(", ");
+			const optionsCount = methods.filter(method => method === "OPTIONS").length;
+			assert.strictEqual(optionsCount, 1, "OPTIONS should appear only once");
+		});
+
+		it("should not include duplicate HEAD", () => {
+			app.get("/explicit-head", () => {});
+			// Note: HEAD routes are not allowed in use() method, so we test with GET only
+
+			const result = app.allows("/explicit-head");
+			const methods = result.split(", ");
+			const headCount = methods.filter(method => method === "HEAD").length;
+			assert.strictEqual(headCount, 1, "HEAD should appear only once");
 		});
 
 		it("should cache results", () => {
@@ -237,6 +291,11 @@ describe("Woodland", () => {
 		it("should handle override parameter", () => {
 			const result = app.allows("/test", true);
 			assert.ok(typeof result === "string");
+		});
+
+		it("should return empty for routes with no methods", () => {
+			const result = app.allows("/nonexistent");
+			assert.strictEqual(result, "");
 		});
 	});
 

@@ -3,7 +3,7 @@
  *
  * @copyright 2025 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.1.8
+ * @version 20.1.9
  */
 import {STATUS_CODES,METHODS}from'node:http';import {join,extname}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {createRequire}from'node:module';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const __dirname$1 = fileURLToPath(new URL(".", import.meta.url));
 const require = createRequire(import.meta.url);
@@ -662,14 +662,14 @@ class Woodland extends EventEmitter {
 			const allMethods = this.routes(uri, WILDCARD, override).visible > INT_0,
 				list = allMethods ? structuredClone(METHODS) : this.methods.filter(i => this.allowed(i, uri, override));
 
-			if (list.includes(GET)) {
-				if (list.includes(HEAD) === false) {
-					list.push(HEAD);
-				}
+			// Add HEAD when GET is present
+			if (list.includes(GET) && list.includes(HEAD) === false) {
+				list.push(HEAD);
+			}
 
-				if (list.includes(OPTIONS) === false) {
-					list.push(OPTIONS);
-				}
+			// Add OPTIONS for any route that has methods defined
+			if (list.length > INT_0 && list.includes(OPTIONS) === false) {
+				list.push(OPTIONS);
 			}
 
 			result = list.sort().join(COMMA_SPACE);

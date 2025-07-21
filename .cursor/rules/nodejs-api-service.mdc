@@ -10,3 +10,4 @@ alwaysApply: true
 - Create integration tests in 'tests/integration' that use node-assert, which run with mocha.
 - Create unit tests in 'tests/unit' that use node-assert, which run with mocha.
 - Use node.js community "Best Practices".
+- Fix lint errors by running 'npm run fix'
