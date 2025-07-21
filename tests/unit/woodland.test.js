@@ -7,7 +7,7 @@ describe("Woodland", () => {
 	let app;
 
 	beforeEach(() => {
-		app = new Woodland();
+		app = new Woodland({ logging: { enabled: false }});
 	});
 
 	describe("constructor", () => {

@@ -244,7 +244,7 @@ describe("Security Integration Tests", () => {
 		});
 
 		it("should allow CORS when explicitly configured", done => {
-			const corsApp = woodland({ origins: ["https://trusted.com"] });
+			const corsApp = woodland({ origins: ["https://trusted.com"], logging: { enabled: false } });
 			corsApp.get("/test", (req, res) => {
 				res.json({ message: "test" });
 			});
@@ -269,7 +269,7 @@ describe("Security Integration Tests", () => {
 		});
 
 		it("should deny CORS for non-configured origins", done => {
-			const corsApp = woodland({ origins: ["https://trusted.com"] });
+			const corsApp = woodland({ origins: ["https://trusted.com"], logging: { enabled: false } });
 			corsApp.get("/test", (req, res) => {
 				res.json({ message: "test" });
 			});
@@ -305,7 +305,7 @@ describe("Security Integration Tests", () => {
 			writeFileSync(join(autoindexDir, "static", "script-alert-xss.txt"), "test");
 			writeFileSync(join(autoindexDir, "static", "file&name.txt"), "test");
 
-			const autoindexApp = woodland({ autoindex: true });
+			const autoindexApp = woodland({ autoindex: true, logging: { enabled: false } });
 			autoindexApp.files("/static", autoindexDir);
 
 			const autoindexServer = createServer((req, res) => {
@@ -342,7 +342,7 @@ describe("Security Integration Tests", () => {
 			writeFileSync(join(autoindexDir, "static", "file with spaces.txt"), "test");
 			writeFileSync(join(autoindexDir, "static", "file%percent.txt"), "test");
 
-			const autoindexApp = woodland({ autoindex: true });
+			const autoindexApp = woodland({ autoindex: true, logging: { enabled: false } });
 			autoindexApp.files("/static", autoindexDir);
 
 			const autoindexServer = createServer((req, res) => {
@@ -427,7 +427,7 @@ describe("Security Integration Tests", () => {
 		});
 
 		it("should allow disabling default headers", done => {
-			const silentApp = woodland({ silent: true });
+			const silentApp = woodland({ silent: true, logging: { enabled: false } });
 			silentApp.get("/test", (req, res) => {
 				res.send("test content");
 			});
