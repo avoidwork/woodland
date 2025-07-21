@@ -334,6 +334,56 @@ describe("utility", () => {
 			fn("test error");
 			assert.strictEqual(errorCalled, true);
 		});
+
+		it("should handle error when middleware is done and no error handler found", () => {
+			let errorCalled = false;
+			let errorStatus = null;
+			const middleware = {
+				next: () => ({done: true})
+			};
+			const req = {allow: ["GET"]};
+			const res = {
+				statusCode: 200,
+				error: status => {
+					errorCalled = true;
+					errorStatus = status;
+				}
+			};
+			const fn = next(req, res, middleware, true);
+			fn("test error");
+			assert.strictEqual(errorCalled, true);
+			assert.strictEqual(errorStatus, 500); // Should get 500 from getStatus
+		});
+
+		it("should handle error when no error middleware available", () => {
+			let errorCalled = false;
+			// Create middleware that doesn't have error handling
+			const regularMiddleware = function (req, res, nextFn) {}; // eslint-disable-line no-unused-vars
+			const middlewareStack = [regularMiddleware];
+			let currentIndex = 0;
+
+			const middleware = {
+				next: () => {
+					if (currentIndex < middlewareStack.length) {
+						const value = middlewareStack[currentIndex++];
+						// Skip this middleware because it doesn't have 4 params (not error middleware)
+
+						return {done: false, value};
+					}
+
+					return {done: true};
+				}
+			};
+
+			const req = {allow: ["GET"]};
+			const res = {
+				statusCode: 200,
+				error: () => { errorCalled = true; }
+			};
+			const fn = next(req, res, middleware, true);
+			fn("test error");
+			assert.strictEqual(errorCalled, true);
+		});
 	});
 
 	describe("pad", () => {
@@ -1186,6 +1236,39 @@ describe("utility", () => {
 			assert.strictEqual(isValidIP("xyz:abc"), false); // non-hex characters
 			// Test something the basic implementation actually rejects
 			assert.strictEqual(isValidIP("1:xyz"), false); // non-hex characters
+		});
+
+		it("should handle IPv6 addresses with multiple double colons", () => {
+			// IPv6 addresses can only have one "::" sequence
+			assert.strictEqual(isValidIP("2001::db8::1"), false);
+			assert.strictEqual(isValidIP("::1::2"), false);
+			assert.strictEqual(isValidIP("2001::1::"), false);
+		});
+
+		it("should handle IPv6 addresses with too many groups", () => {
+			// IPv6 addresses can have at most 8 groups
+			assert.strictEqual(isValidIP("1:2:3:4:5:6:7:8:9"), false);
+			assert.strictEqual(isValidIP("2001:0db8:85a3:0000:0000:8a2e:0370:7334:extra"), false);
+		});
+
+		it("should handle IPv6 addresses with invalid characters", () => {
+			assert.strictEqual(isValidIP("2001:gggg::1"), false);
+			assert.strictEqual(isValidIP("2001:db8:xyz::1"), false);
+			assert.strictEqual(isValidIP("2001:db8:85a3::8a2e:0370:73zz"), false);
+		});
+
+		it("should handle IPv6 addresses with groups too long", () => {
+			// Each group in IPv6 can be at most 4 hex digits
+			assert.strictEqual(isValidIP("2001:12345::1"), false);
+			assert.strictEqual(isValidIP("2001:db8:123456::1"), false);
+		});
+
+		it("should handle compressed IPv6 addresses correctly", () => {
+			// Test various valid compressed notations
+			assert.strictEqual(isValidIP("::"), true); // all zeros
+			assert.strictEqual(isValidIP("::1"), true); // loopback
+			assert.strictEqual(isValidIP("::ffff:192.0.2.1"), true); // IPv4-mapped IPv6
+			assert.strictEqual(isValidIP("2001:db8::"), true); // trailing compression
 		});
 	});
 });
