@@ -599,9 +599,12 @@ describe("Woodland", () => {
 		beforeEach(() => {
 			mockReq = {
 				method: "OPTIONS",
-				headers: {},
+				url: "/test",
+				headers: {host: "localhost"},
 				parsed: {pathname: "/test", hostname: "localhost", search: ""},
-				allow: "GET, HEAD, OPTIONS"
+				allow: "GET, HEAD, OPTIONS",
+				socket: {server: {_connectionKey: "::8000"}, remoteAddress: "127.0.0.1"},
+				connection: {remoteAddress: "127.0.0.1"}
 			};
 			mockRes = {
 				headersSent: false,
@@ -626,6 +629,12 @@ describe("Woodland", () => {
 					if (event === "finish") {
 						setTimeout(callback, 0);
 					}
+				},
+				writeHead: function () {
+					// Mock implementation
+				},
+				end: function () {
+					// Mock implementation
 				},
 				send: function () {},
 				error: function () {}
@@ -739,10 +748,13 @@ describe("Woodland", () => {
 		beforeEach(() => {
 			mockReq = {
 				method: "GET",
-				headers: {},
+				url: "/users/123",
+				headers: {host: "localhost"},
 				parsed: {pathname: "/users/123", hostname: "localhost", search: ""},
 				allow: "GET, HEAD, OPTIONS",
-				params: {}
+				params: {},
+				socket: {server: {_connectionKey: "::8000"}, remoteAddress: "127.0.0.1"},
+				connection: {remoteAddress: "127.0.0.1"}
 			};
 			mockRes = {
 				headersSent: false,
@@ -764,6 +776,12 @@ describe("Woodland", () => {
 					if (event === "close") {
 						setTimeout(callback, 0);
 					}
+				},
+				writeHead: function () {
+					// Mock implementation
+				},
+				end: function () {
+					// Mock implementation
 				},
 				send: function () {},
 				error: function () {}

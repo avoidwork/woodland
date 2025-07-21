@@ -194,7 +194,7 @@ export function params (req, getParams) {
  * @returns {URL} Parsed URL object
  */
 export function parse (arg) {
-	return new URL(typeof arg === STRING ? arg : `http://${arg.headers.host || `localhost:${arg.socket.server._connectionKey.replace(/.*::/, EMPTY)}`}${arg.url}`);
+	return new URL(typeof arg === STRING ? arg : `http://${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || "8000"}`}${arg.url}`);
 }
 
 /**
@@ -379,24 +379,63 @@ export function isValidIP (ip) {
 		return true;
 	}
 
-	// IPv6 validation - check if it contains colons
+	// IPv6 validation
 	if (ip.includes(":")) {
-		// Simple but effective IPv6 validation
-		// Must contain at least one colon, and only valid hex characters and colons
-		const validChars = /^[0-9a-fA-F:]+$/;
-		if (!validChars.test(ip)) {
+		// Check for valid characters (hex digits, colons, and dots for IPv4-mapped addresses)
+		if (!(/^[0-9a-fA-F:.]+$/).test(ip)) {
 			return false;
 		}
 
-		// Check for valid IPv6 structure patterns
-		// Allow various formats including compressed notation
-		const parts = ip.split("::");
-		if (parts.length <= 2) {
-			// Valid compressed notation can have at most one "::"
-			return true;
+		// Handle IPv4-mapped IPv6 addresses (e.g., ::ffff:192.0.2.1)
+		const ipv4MappedMatch = ip.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i);
+		if (ipv4MappedMatch) {
+			return isValidIP(ipv4MappedMatch[1]);
 		}
 
-		return false;
+		// Split on "::" to handle compressed notation
+		const parts = ip.split("::");
+		if (parts.length > 2) {
+			return false; // More than one "::" is invalid
+		}
+
+		let leftPart = parts[0] || "";
+		let rightPart = parts[1] || "";
+
+		// Split each part by ":"
+		const leftGroups = leftPart ? leftPart.split(":") : [];
+		const rightGroups = rightPart ? rightPart.split(":") : [];
+
+		// Check each group
+		const allGroups = [...leftGroups, ...rightGroups];
+		for (const group of allGroups) {
+			if (group === "") {
+				// Empty groups are only allowed in compressed notation context
+				if (parts.length === 1) {
+					return false; // Empty group without "::" compression
+				}
+			} else if (!(/^[0-9a-fA-F]{1,4}$/).test(group)) {
+				// Each group must be 1-4 hex digits
+				return false;
+			}
+		}
+
+		// Calculate total number of groups
+		const totalGroups = leftGroups.length + rightGroups.length;
+
+		if (parts.length === 2) {
+			// Compressed notation: total groups should be less than 8
+			// Special case: "::" alone represents all zeros
+			if (ip === "::") {
+				return true;
+			}
+			// Remove empty groups from count (they represent compressed zeros)
+			const nonEmptyGroups = allGroups.filter(g => g !== "").length;
+
+			return nonEmptyGroups <= 8 && nonEmptyGroups < 8; // Must be compressed (< 8 groups)
+		} else {
+			// Full notation: must have exactly 8 groups
+			return totalGroups === 8 && allGroups.every(g => g !== "");
+		}
 	}
 
 	return false;

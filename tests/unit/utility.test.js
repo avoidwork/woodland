@@ -341,7 +341,7 @@ describe("utility", () => {
 			const middleware = {
 				next: () => ({done: true})
 			};
-			const req = {allow: ["GET"]};
+			const req = {allow: ["GET"], method: "GET"};
 			const res = {
 				statusCode: 200,
 				error: status => {
@@ -357,25 +357,24 @@ describe("utility", () => {
 
 		it("should handle error when no error middleware available", () => {
 			let errorCalled = false;
+			let callCount = 0;
 			// Create middleware that doesn't have error handling
 			const regularMiddleware = function (req, res, nextFn) {}; // eslint-disable-line no-unused-vars
-			const middlewareStack = [regularMiddleware];
-			let currentIndex = 0;
 
 			const middleware = {
 				next: () => {
-					if (currentIndex < middlewareStack.length) {
-						const value = middlewareStack[currentIndex++];
-						// Skip this middleware because it doesn't have 4 params (not error middleware)
-
-						return {done: false, value};
+					callCount++;
+					if (callCount === 1) {
+						// First call returns the non-error middleware (3 params)
+						return {done: false, value: regularMiddleware};
 					}
+					// Second call returns done=true since no more middleware
 
-					return {done: true};
+					return {done: true, value: undefined};
 				}
 			};
 
-			const req = {allow: ["GET"]};
+			const req = {allow: ["GET"], method: "GET"};
 			const res = {
 				statusCode: 200,
 				error: () => { errorCalled = true; }
