@@ -99,12 +99,13 @@ const createMockRequest = (method = "GET", url = "/", headers = {}) => ({
 
 const createMockResponse = () => {
 	const headers = new Map();
+
 	return {
 		statusCode: 200,
 		headersSent: false,
 		setHeader: (name, value) => headers.set(name.toLowerCase(), value),
-		getHeader: (name) => headers.get(name.toLowerCase()),
-		removeHeader: (name) => headers.delete(name.toLowerCase()),
+		getHeader: name => headers.get(name.toLowerCase()),
+		removeHeader: name => headers.delete(name.toLowerCase()),
 		header: (name, value) => headers.set(name.toLowerCase(), value),
 		writeHead: (statusCode, statusMessage, headerObj) => {
 			if (headerObj) {
@@ -137,6 +138,7 @@ const createMockFiles = () => [
  */
 function benchmarkParse () {
 	const url = testUrls[Math.floor(Math.random() * testUrls.length)];
+
 	return parse(url);
 }
 
@@ -145,9 +147,10 @@ function benchmarkParse () {
  */
 function benchmarkParseRequest () {
 	const request = createMockRequest(
-		"GET", 
-		testUrls[Math.floor(Math.random() * testUrls.length)].replace(/^https?:\/\/[^\/]+/, "")
+		"GET",
+		testUrls[Math.floor(Math.random() * testUrls.length)].replace(/^https?:\/\/[^/]+/, "")
 	);
+
 	return parse(request);
 }
 
@@ -156,6 +159,7 @@ function benchmarkParseRequest () {
  */
 function benchmarkMime () {
 	const filename = testFiles[Math.floor(Math.random() * testFiles.length)];
+
 	return mime(filename);
 }
 
@@ -165,6 +169,7 @@ function benchmarkMime () {
 function benchmarkMs () {
 	const time = testTimeValues[Math.floor(Math.random() * testTimeValues.length)];
 	const digits = Math.floor(Math.random() * 5) + 1;
+
 	return ms(time, digits);
 }
 
@@ -173,6 +178,7 @@ function benchmarkMs () {
  */
 function benchmarkPad () {
 	const num = testNumbers[Math.floor(Math.random() * testNumbers.length)];
+
 	return pad(num);
 }
 
@@ -181,6 +187,7 @@ function benchmarkPad () {
  */
 function benchmarkTimeOffset () {
 	const offset = testTimezoneOffsets[Math.floor(Math.random() * testTimezoneOffsets.length)];
+
 	return timeOffset(offset);
 }
 
@@ -191,6 +198,7 @@ function benchmarkAutoindex () {
 	const title = "/test/directory";
 	const files = createMockFiles();
 	// Pass file objects directly as expected by the autoindex function
+
 	return autoindex(title, files);
 }
 
@@ -200,7 +208,7 @@ function benchmarkAutoindex () {
 function benchmarkGetStatus () {
 	const req = createMockRequest();
 	const res = createMockResponse();
-	
+
 	// Set up various scenarios
 	const scenarios = [
 		{allow: "GET, POST, PUT, DELETE", method: "GET"},
@@ -209,14 +217,14 @@ function benchmarkGetStatus () {
 		{allow: "GET", method: "GET"},
 		{allow: "POST", method: "GET"}
 	];
-	
+
 	const scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
 	req.allow = scenario.allow;
 	req.method = scenario.method;
-	
+
 	// Randomize response status
 	res.statusCode = Math.random() > 0.5 ? 200 : 500;
-	
+
 	return getStatus(req, res);
 }
 
@@ -227,10 +235,10 @@ function benchmarkParams () {
 	const req = createMockRequest();
 	req.parsed = {pathname: "/users/123/posts/456/comments/789"};
 	req.params = {};
-	
+
 	// Create a regex similar to what woodland uses
-	const regex = /^\/users\/(?<userId>[^\/]+)\/posts\/(?<postId>[^\/]+)\/comments\/(?<commentId>[^\/]+)$/;
-	
+	const regex = /^\/users\/(?<userId>[^/]+)\/posts\/(?<postId>[^/]+)\/comments\/(?<commentId>[^/]+)$/;
+
 	return params(req, regex);
 }
 
@@ -240,15 +248,15 @@ function benchmarkParams () {
 function benchmarkPartialHeaders () {
 	const req = createMockRequest();
 	const res = createMockResponse();
-	
+
 	// Set up range request
 	req.headers.range = "bytes=0-1023";
-	
+
 	const size = 10000;
 	const status = 200;
 	const headers = {};
 	const options = {};
-	
+
 	return partialHeaders(req, res, size, status, headers, options);
 }
 
@@ -258,7 +266,7 @@ function benchmarkPartialHeaders () {
 function benchmarkPipeable () {
 	const methods = ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"];
 	const method = methods[Math.floor(Math.random() * methods.length)];
-	
+
 	// Test with different types of content
 	const contents = [
 		"string content",
@@ -268,9 +276,9 @@ function benchmarkPipeable () {
 		null,
 		{toString: () => "object with toString"}
 	];
-	
+
 	const content = contents[Math.floor(Math.random() * contents.length)];
-	
+
 	return pipeable(method, content);
 }
 
@@ -280,26 +288,26 @@ function benchmarkPipeable () {
 function benchmarkReduce () {
 	const uri = "/api/users/123/posts";
 	const map = new Map();
-	
+
 	// Add some sample middleware
 	map.set("/.∗", {
-		handlers: [(req, res, next) => next()],
+		handlers: [(req, res, nextFn) => nextFn()],
 		params: false,
 		regex: /^\/\.∗$/
 	});
-	
+
 	map.set("/api/users/:id/posts", {
-		handlers: [(req, res, next) => next()],
+		handlers: [(req, res, nextFn) => nextFn()],
 		params: true,
-		regex: /^\/api\/users\/([^\/]+)\/posts$/
+		regex: /^\/api\/users\/([^/]+)\/posts$/
 	});
-	
+
 	map.set("/api/users", {
-		handlers: [(req, res, next) => next()],
+		handlers: [(req, res, nextFn) => nextFn()],
 		params: false,
 		regex: /^\/api\/users$/
 	});
-	
+
 	const arg = {
 		getParams: null,
 		middleware: [],
@@ -307,7 +315,7 @@ function benchmarkReduce () {
 		visible: 0,
 		exit: -1
 	};
-	
+
 	return reduce(uri, map, arg);
 }
 
@@ -322,7 +330,7 @@ function benchmarkWriteHead () {
 		"X-Custom-Header": "test-value",
 		"Access-Control-Allow-Origin": "*"
 	};
-	
+
 	return writeHead(res, headers);
 }
 
@@ -332,26 +340,26 @@ function benchmarkWriteHead () {
 function benchmarkNext () {
 	const req = createMockRequest();
 	const res = createMockResponse();
-	
+
 	// Create a simple middleware iterator
 	const middleware = [
-		(req, res, next) => {
-			req.step1 = true;
-			next();
+		(request, response, nextFn) => {
+			request.step1 = true;
+			nextFn();
 		},
-		(req, res, next) => {
-			req.step2 = true;
-			next();
+		(request, response, nextFn) => {
+			request.step2 = true;
+			nextFn();
 		},
-		(req, res, next) => {
-			req.step3 = true;
-			res.send("OK");
+		(request, response) => {
+			request.step3 = true;
+			response.send("OK");
 		}
 	];
-	
+
 	const iterator = middleware[Symbol.iterator]();
 	const immediate = Math.random() > 0.5;
-	
+
 	return next(req, res, iterator, immediate);
 }
 
@@ -370,8 +378,9 @@ function benchmarkParseEdgeCases () {
 		"http://localhost/path#fragment-only",
 		"http://localhost:8080/port-specified"
 	];
-	
+
 	const url = edgeCaseUrls[Math.floor(Math.random() * edgeCaseUrls.length)];
+
 	return parse(url);
 }
 
@@ -401,8 +410,9 @@ function benchmarkComplexMime () {
 		"vector.svg",
 		"3d-model.obj"
 	];
-	
+
 	const filename = complexFiles[Math.floor(Math.random() * complexFiles.length)];
+
 	return mime(filename);
 }
 
@@ -424,4 +434,4 @@ export default {
 	"writeHead() - header writing": benchmarkWriteHead,
 	"next() - middleware chain": benchmarkNext,
 	"parse() - edge cases": benchmarkParseEdgeCases
-}; 
+};

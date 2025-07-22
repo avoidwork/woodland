@@ -137,7 +137,7 @@ function createTestApp () {
  */
 async function startSharedTestServer () {
 	if (testServer) {
-		return; // Already started
+		return Promise.resolve(); // Already started
 	}
 
 	const app = createTestApp();
@@ -160,10 +160,10 @@ async function startSharedTestServer () {
  */
 async function stopSharedTestServer () {
 	if (!testServer) {
-		return;
+		return Promise.resolve();
 	}
 
-	return new Promise((resolve) => {
+	return new Promise(resolve => {
 		testServer.close(() => {
 			testServer = null;
 			testServerUrl = null;
@@ -191,6 +191,7 @@ async function ensureTestServer () {
 async function performHttpRequest (path, options = {}) {
 	await ensureTestServer();
 	const url = `${testServerUrl}${path}`;
+
 	return await fetch(url, options);
 }
 
@@ -202,6 +203,7 @@ async function performHttpRequest (path, options = {}) {
 async function benchmarkSimpleGet () {
 	const response = await performHttpRequest("/");
 	await response.text(); // Consume response
+
 	return response.status;
 }
 
@@ -211,6 +213,7 @@ async function benchmarkSimpleGet () {
 async function benchmarkJsonResponse () {
 	const response = await performHttpRequest("/health");
 	await response.json(); // Consume response
+
 	return response.status;
 }
 
@@ -220,6 +223,7 @@ async function benchmarkJsonResponse () {
 async function benchmarkParameterizedRoutes () {
 	const response = await performHttpRequest("/users/123");
 	await response.json(); // Consume response
+
 	return response.status;
 }
 
@@ -229,6 +233,7 @@ async function benchmarkParameterizedRoutes () {
 async function benchmarkNestedParameterizedRoutes () {
 	const response = await performHttpRequest("/users/123/posts/456");
 	await response.json(); // Consume response
+
 	return response.status;
 }
 
@@ -238,6 +243,7 @@ async function benchmarkNestedParameterizedRoutes () {
 async function benchmarkMiddlewareChain () {
 	const response = await performHttpRequest("/api/data");
 	await response.json(); // Consume response
+
 	return response.status;
 }
 
@@ -247,6 +253,7 @@ async function benchmarkMiddlewareChain () {
 async function benchmarkComplexMiddleware () {
 	const response = await performHttpRequest("/api/protected/secret");
 	await response.json(); // Consume response
+
 	return response.status;
 }
 
@@ -262,6 +269,7 @@ async function benchmarkPostRequests () {
 		body: JSON.stringify({name: "Test User"})
 	});
 	await response.json(); // Consume response
+
 	return response.status;
 }
 
@@ -277,6 +285,7 @@ async function benchmarkPutRequests () {
 		body: JSON.stringify({name: "Updated User"})
 	});
 	await response.json(); // Consume response
+
 	return response.status;
 }
 
@@ -288,6 +297,7 @@ async function benchmarkDeleteRequests () {
 		method: "DELETE"
 	});
 	await response.text(); // Consume response
+
 	return response.status;
 }
 
@@ -297,6 +307,7 @@ async function benchmarkDeleteRequests () {
 async function benchmarkLargeResponse () {
 	const response = await performHttpRequest("/large");
 	await response.json(); // Consume response
+
 	return response.status;
 }
 
@@ -306,6 +317,7 @@ async function benchmarkLargeResponse () {
 async function benchmarkErrorHandling () {
 	const response = await performHttpRequest("/error");
 	await response.text(); // Consume response
+
 	return response.status;
 }
 
@@ -315,6 +327,7 @@ async function benchmarkErrorHandling () {
 async function benchmarkNotFoundHandling () {
 	const response = await performHttpRequest("/not-found");
 	await response.text(); // Consume response
+
 	return response.status;
 }
 
@@ -330,6 +343,7 @@ async function benchmarkMixedWorkload () {
 	} else {
 		await response.text();
 	}
+
 	return response.status;
 }
 
@@ -338,6 +352,7 @@ async function benchmarkMixedWorkload () {
  */
 async function benchmarkServerStartup () {
 	const app = createTestApp();
+
 	return app ? 1 : 0; // Return success indicator
 }
 
@@ -376,4 +391,4 @@ process.on("SIGINT", () => {
 		testServer.close();
 	}
 	process.exit(0);
-}); 
+});
