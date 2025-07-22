@@ -9,6 +9,7 @@
   [![Node.js Version](https://img.shields.io/node/v/woodland.svg)](https://nodejs.org/)
   [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
   [![Build Status](https://github.com/avoidwork/woodland/actions/workflows/ci.yml/badge.svg)](https://github.com/avoidwork/woodland/actions)
+  [![Test Coverage](https://img.shields.io/badge/coverage-98.6%25-brightgreen.svg)](https://github.com/avoidwork/woodland)
   
 </div>
 
@@ -774,7 +775,7 @@ node benchmark.js utility -i 500 -w 50
 
 ### Test Coverage
 
-Woodland maintains **99.79%** code coverage across all features:
+Woodland maintains **98.6%** statement coverage with comprehensive testing across all features:
 
 ```bash
 npm test
@@ -783,10 +784,32 @@ npm test
 ### Test Results
 
 ```
-utility: 44 passing
-Woodland: 70 passing
-Total: 114 passing (41ms)
+379 passing (322ms)
+1 pending
+
+--------------|---------|----------|---------|---------|-----------------------------------------
+File          | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                       
+--------------|---------|----------|---------|---------|-----------------------------------------
+All files     |    98.6 |    94.76 |     100 |    98.6 |                                         
+ constants.js |     100 |      100 |     100 |     100 |                                         
+ utility.js   |   99.09 |    97.76 |     100 |   99.09 | 412-415                                 
+ woodland.js  |   98.09 |    92.59 |     100 |   98.09 | 395-397,520-526,730-731,792-796,883-884 
+--------------|---------|----------|---------|---------|-----------------------------------------
 ```
+
+### Test Categories
+
+- **Security Integration Tests** - Path traversal, IP security, CORS, autoindex security, security headers
+- **Constants Tests** - HTTP methods, status codes, headers, content types, server info
+- **Security Utility Functions** - File path validation, sanitization, HTML escaping
+- **Utility Functions** - Autoindex, status resolution, MIME detection, parameter parsing, URL processing
+- **Woodland Core Tests** - Constructor, HTTP method handlers, middleware, routing, CORS
+- **Stream Method Tests** - File headers, different file types, range requests, ETags
+- **Range Request Tests** - String content, invalid ranges, streams, partial content
+- **Cache Functionality** - Route caching, allows caching, cache eviction, permissions
+- **Serve Method Tests** - Text files, HTML files, binary files, 404 handling, directory redirection, index files, autoindex, nested paths, large files
+- **Middleware Tests** - Execution order, error propagation, parameterized routes, exit functionality
+- **Response Helper Tests** - JSON responses, redirects, header manipulation, status codes, error handling
 
 ### Writing Tests
 
