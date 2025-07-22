@@ -35,13 +35,13 @@ const setupRoutes = () => {
 	app.get("/search", (req, res) => res.json([]));
 	app.get("/health", (req, res) => res.send("OK"));
 	app.get("/metrics", (req, res) => res.json({}));
-	
+
 	// Add middleware for all routes
 	app.always((req, res, next) => {
 		req.startTime = Date.now();
 		next();
 	});
-	
+
 	// Add some complex nested routes
 	for (let i = 0; i < 10; i++) {
 		app.get(`/api/v${i}/resource/:id/nested/:nestedId`, (req, res) => res.json({}));
@@ -86,7 +86,7 @@ setupRoutes();
 function benchmarkRoutes () {
 	const uri = testUris[Math.floor(Math.random() * testUris.length)];
 	const method = ["GET", "POST", "PUT", "DELETE"][Math.floor(Math.random() * 4)];
-	
+
 	return app.routes(uri, method);
 }
 
@@ -96,7 +96,7 @@ function benchmarkRoutes () {
 function benchmarkRoutesNoCache () {
 	const uri = testUris[Math.floor(Math.random() * testUris.length)];
 	const method = ["GET", "POST", "PUT", "DELETE"][Math.floor(Math.random() * 4)];
-	
+
 	return app.routes(uri, method, true); // override cache
 }
 
@@ -105,7 +105,7 @@ function benchmarkRoutesNoCache () {
  */
 function benchmarkAllows () {
 	const uri = testUris[Math.floor(Math.random() * testUris.length)];
-	
+
 	return app.allows(uri);
 }
 
@@ -114,7 +114,7 @@ function benchmarkAllows () {
  */
 function benchmarkAllowsNoCache () {
 	const uri = testUris[Math.floor(Math.random() * testUris.length)];
-	
+
 	return app.allows(uri, true); // override cache
 }
 
@@ -124,7 +124,7 @@ function benchmarkAllowsNoCache () {
 function benchmarkAllowed () {
 	const uri = testUris[Math.floor(Math.random() * testUris.length)];
 	const method = ["GET", "POST", "PUT", "DELETE"][Math.floor(Math.random() * 4)];
-	
+
 	return app.allowed(method, uri);
 }
 
@@ -134,7 +134,7 @@ function benchmarkAllowed () {
 function benchmarkAllowedNoCache () {
 	const uri = testUris[Math.floor(Math.random() * testUris.length)];
 	const method = ["GET", "POST", "PUT", "DELETE"][Math.floor(Math.random() * 4)];
-	
+
 	return app.allowed(method, uri, true); // override cache
 }
 
@@ -151,10 +151,10 @@ function benchmarkParameterRoutes () {
 		"/api/v1/resource/123/nested/456",
 		"/api/v5/resource/789/nested/012"
 	];
-	
+
 	const uri = parameterizerdUris[Math.floor(Math.random() * parameterizerdUris.length)];
 	const method = ["GET", "POST", "PUT", "DELETE"][Math.floor(Math.random() * 4)];
-	
+
 	return app.routes(uri, method);
 }
 
@@ -175,10 +175,10 @@ function benchmarkStaticRoutes () {
 		"/health",
 		"/metrics"
 	];
-	
+
 	const uri = staticUris[Math.floor(Math.random() * staticUris.length)];
 	const method = ["GET", "POST", "PUT", "DELETE"][Math.floor(Math.random() * 4)];
-	
+
 	return app.routes(uri, method);
 }
 
@@ -195,10 +195,10 @@ function benchmarkNotFoundRoutes () {
 		"/category/not-found/posts",
 		"/api/v99/resource/123/nested/456"
 	];
-	
+
 	const uri = notFoundUris[Math.floor(Math.random() * notFoundUris.length)];
 	const method = ["GET", "POST", "PUT", "DELETE"][Math.floor(Math.random() * 4)];
-	
+
 	return app.routes(uri, method);
 }
 
@@ -215,9 +215,9 @@ function benchmarkPathConversion () {
 		"/api/v:version/resource/:id/nested/:nestedId",
 		"/users/:userId/posts/:postId/comments/:commentId/replies/:replyId"
 	];
-	
+
 	const path = paths[Math.floor(Math.random() * paths.length)];
-	
+
 	return app.path(path);
 }
 
@@ -233,4 +233,4 @@ export default {
 	"static routes": benchmarkStaticRoutes,
 	"not found routes": benchmarkNotFoundRoutes,
 	"path conversion": benchmarkPathConversion
-}; 
+};

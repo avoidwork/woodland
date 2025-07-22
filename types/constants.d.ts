@@ -99,6 +99,7 @@ export const MSG_ROUTING_FILE: "Routing request to file system";
 export const MSG_RETRIEVED_MIDDLEWARE: "Retrieved middleware for request";
 export const MSG_REGISTERING_MIDDLEWARE: "Registering middleware";
 export const NO_CACHE: "no-cache";
+export const NO_SNIFF: "nosniff";
 export const OBJECT: "object";
 export const OPTIONS: "OPTIONS";
 export const OPTIONS_BODY: "Make a GET request to retrieve the file";
