@@ -1592,51 +1592,280 @@ describe("Woodland Cache Functionality", () => {
 
 
 describe("Woodland Serve Method", () => {
-	// All serve method tests are skipped due to fs module mocking conflicts
+	let app;
+	let mockReq;
+	let mockRes;
 
-	it.skip("should serve existing files", async () => {
-		// Skip this test as it requires complex fs module mocking
-		// that conflicts with read-only module properties
+	beforeEach(() => {
+		app = new Woodland({
+			indexes: ["index.html", "index.htm"],
+			autoindex: false,
+			logging: { enabled: false }
+		});
+
+		mockReq = {
+			method: "GET",
+			headers: { host: "localhost" },
+			parsed: {
+				pathname: "/test",
+				search: "?query=1"
+			},
+			ip: "127.0.0.1"
+		};
+
+		mockRes = {
+			statusCode: 200,
+			_headers: {},
+			setHeader: function (name, value) {
+				this._headers[name.toLowerCase()] = value;
+			},
+			header: function (name, value) {
+				this.setHeader(name, value);
+			},
+			getHeader: function (name) {
+				return this._headers[name.toLowerCase()];
+			},
+			removeHeader: function (name) {
+				delete this._headers[name.toLowerCase()];
+			},
+			error: function (status) {
+				this.statusCode = status;
+				this.errorCalled = true;
+			},
+			redirect: function (url) {
+				this.redirectUrl = url;
+				this.redirectCalled = true;
+			},
+			send: function (body) {
+				this.sentBody = body;
+				this.sendCalled = true;
+			},
+			writeHead: function () {},
+			end: function () {}
+		};
 	});
 
-	it.skip("should return 404 for non-existent files", async () => {
-		// Skip this test due to fs module mocking conflicts
+	it("should serve existing text files", async () => {
+		let streamCalled = false;
+		let fileInfo = null;
+
+		// Mock the stream method to capture file info
+		app.stream = function (req, res, info) {
+			streamCalled = true;
+			fileInfo = info;
+			res.send("File content served");
+		};
+
+		await app.serve(mockReq, mockRes, "small.txt", "./test-files");
+
+		assert.strictEqual(streamCalled, true, "Should call stream method");
+		assert.ok(fileInfo.path.includes("small.txt"), "Should construct correct file path");
+		assert.strictEqual(typeof fileInfo.etag, "string", "Should generate etag");
+		assert.ok(fileInfo.etag.length > 0, "ETag should not be empty");
+		assert.strictEqual(fileInfo.stats.size, 11, "Should get correct file size");
+		assert.strictEqual(mockRes.sendCalled, true, "Should send file content");
 	});
 
-	it.skip("should redirect directories without trailing slash", async () => {
-		// Skip this test due to fs module mocking conflicts
+	it("should serve HTML files with correct MIME type", async () => {
+		let fileInfo = null;
+
+		app.stream = function (req, res, info) {
+			fileInfo = info;
+			res.send("HTML content");
+		};
+
+		await app.serve(mockReq, mockRes, "test.html", "./test-files");
+
+		assert.ok(fileInfo.path.includes("test.html"), "Should serve HTML file");
+		assert.strictEqual(fileInfo.charset, "utf-8", "Should set UTF-8 charset for HTML");
 	});
 
-	it.skip("should serve index files from directories", async () => {
-		// Skip this test due to fs module mocking conflicts
+	it("should serve binary files", async () => {
+		let fileInfo = null;
+
+		app.stream = function (req, res, info) {
+			fileInfo = info;
+			res.send("Binary content");
+		};
+
+		await app.serve(mockReq, mockRes, "binary.dat", "./test-files");
+
+		assert.ok(fileInfo.path.includes("binary.dat"), "Should serve binary file");
+		// Binary .dat files might get a default charset, so let's be more flexible
+		assert.ok(typeof fileInfo.charset === "string", "Should have charset property");
+		assert.strictEqual(fileInfo.stats.size, 1000, "Should get correct binary file size");
 	});
 
-	it.skip("should serve autoindex when enabled and no index file", async () => {
-		// Skip this test due to fs module mocking conflicts
+	it("should return 404 for non-existent files", async () => {
+		await app.serve(mockReq, mockRes, "nonexistent.txt", "./test-files");
+
+		assert.strictEqual(mockRes.statusCode, 404, "Should return 404 for non-existent file");
+		assert.strictEqual(mockRes.errorCalled, true, "Should call error handler");
 	});
 
-	it.skip("should return 404 for directories when autoindex disabled and no index", async () => {
-		// Skip this test due to fs module mocking conflicts
+	it("should redirect directories without trailing slash", async () => {
+		// Test with subdir which exists
+		mockReq.parsed.pathname = "/subdir";
+
+		await app.serve(mockReq, mockRes, "subdir", "./test-files");
+
+		assert.strictEqual(mockRes.redirectCalled, true, "Should redirect");
+		assert.ok(mockRes.redirectUrl.includes("/subdir/"), "Should redirect to path with trailing slash");
+		assert.ok(mockRes.redirectUrl.includes("?query=1"), "Should preserve query string");
 	});
 
-	it.skip("should prioritize first matching index file", async () => {
-		// Skip this test due to fs module mocking conflicts
+	it("should serve index files from directories", async () => {
+		let fileInfo = null;
+
+		app.stream = function (req, res, info) {
+			fileInfo = info;
+			res.send("Index content");
+		};
+
+		// Request directory with trailing slash
+		mockReq.parsed.pathname = "/subdir/";
+
+		await app.serve(mockReq, mockRes, "subdir", "./test-files");
+
+		assert.ok(fileInfo.path.includes("index.html"), "Should serve index.html");
+		assert.strictEqual(mockRes.sendCalled, true, "Should serve index file");
 	});
 
-	it.skip("should handle custom folder parameter", async () => {
-		// Skip this test due to fs module mocking conflicts
+	it("should serve autoindex when enabled and no index file", async () => {
+		const autoindexApp = new Woodland({
+			autoindex: true,
+			logging: { enabled: false }
+		});
+
+		// Request the test-files directory itself which has no index
+		mockReq.parsed.pathname = "/test-files/";
+
+		await autoindexApp.serve(mockReq, mockRes, "", "./test-files");
+
+		assert.strictEqual(mockRes.sendCalled, true, "Should send autoindex");
+		assert.ok(mockRes.sentBody.includes("small.txt"), "Should include files in autoindex");
+		assert.ok(mockRes.sentBody.includes("subdir"), "Should include subdirectories in autoindex");
+		assert.strictEqual(mockRes.getHeader("content-type"), "text/html; charset=utf-8", "Should set HTML content type");
 	});
 
-	it.skip("should use default folder when not specified", async () => {
-		// Skip this test due to fs module mocking conflicts
+	it("should return 404 for directories when autoindex disabled and no index", async () => {
+		// Create a temporary directory without index files for testing
+		mockReq.parsed.pathname = "/test-files/";
+
+		await app.serve(mockReq, mockRes, "", "./test-files");
+
+		assert.strictEqual(mockRes.statusCode, 404, "Should return 404 when no index file and autoindex disabled");
+		assert.strictEqual(mockRes.errorCalled, true, "Should call error handler");
 	});
 
-	it.skip("should generate etag based on file stats", async () => {
-		// Skip this test due to fs module mocking conflicts
+	it("should handle different file types correctly", async () => {
+		const testFiles = [
+			{ file: "test.css", expectedCharset: "utf-8" },
+			{ file: "test.js", expectedCharset: "utf-8" },
+			{ file: "test.json", expectedCharset: "utf-8" },
+			{ file: "test.xml", expectedCharset: "utf-8" }
+		];
+
+		for (const test of testFiles) {
+			let fileInfo = null;
+
+			app.stream = function (req, res, info) {
+				fileInfo = info;
+				res.send("Content");
+			};
+
+			await app.serve(mockReq, mockRes, test.file, "./test-files");
+
+			assert.ok(fileInfo.path.includes(test.file), `Should serve ${test.file}`);
+			assert.strictEqual(fileInfo.charset, test.expectedCharset, `Should set correct charset for ${test.file}`);
+		}
 	});
 
-	it.skip("should handle fs errors gracefully", async () => {
-		// Skip this test due to fs module mocking conflicts
+	it("should use default folder when not specified", async () => {
+		let fileInfo = null;
+
+		app.stream = function (req, res, info) {
+			fileInfo = info;
+			res.send("Content");
+		};
+
+		// Use ES module import syntax
+		const { resolve, relative } = await import("node:path");
+		const testFilePath = resolve("./test-files/small.txt");
+
+		await app.serve(mockReq, mockRes, relative(process.cwd(), testFilePath));
+
+		assert.ok(fileInfo.path.includes("small.txt"), "Should serve file from resolved path");
+		assert.strictEqual(mockRes.sendCalled, true, "Should serve file");
+	});
+
+	it("should generate etag based on file stats", async () => {
+		let fileInfo = null;
+
+		app.stream = function (req, res, info) {
+			fileInfo = info;
+			res.send("Content");
+		};
+
+		await app.serve(mockReq, mockRes, "medium.txt", "./test-files");
+
+		assert.ok(fileInfo.etag.length > 0, "Should generate etag");
+		assert.strictEqual(typeof fileInfo.etag, "string", "ETag should be a string");
+
+		// ETag should be consistent for the same file
+		let fileInfo2 = null;
+		app.stream = function (req, res, info) {
+			fileInfo2 = info;
+			res.send("Content");
+		};
+
+		await app.serve(mockReq, mockRes, "medium.txt", "./test-files");
+		assert.strictEqual(fileInfo.etag, fileInfo2.etag, "ETag should be consistent for same file");
+	});
+
+	it("should handle nested directory paths", async () => {
+		let fileInfo = null;
+
+		app.stream = function (req, res, info) {
+			fileInfo = info;
+			res.send("Nested content");
+		};
+
+		await app.serve(mockReq, mockRes, "subdir/nested.txt", "./test-files");
+
+		assert.ok(fileInfo.path.includes("nested.txt"), "Should serve nested file");
+		assert.ok(fileInfo.path.includes("subdir"), "Should include subdirectory in path");
+		assert.strictEqual(mockRes.sendCalled, true, "Should serve nested file");
+	});
+
+	it("should handle large files", async () => {
+		let fileInfo = null;
+
+		app.stream = function (req, res, info) {
+			fileInfo = info;
+			res.send("Large content");
+		};
+
+		await app.serve(mockReq, mockRes, "large.txt", "./test-files");
+
+		assert.ok(fileInfo.path.includes("large.txt"), "Should serve large file");
+		assert.strictEqual(fileInfo.stats.size, 10000, "Should get correct large file size");
+		assert.strictEqual(mockRes.sendCalled, true, "Should serve large file");
+	});
+
+	it("should handle custom folder parameter", async () => {
+		let fileInfo = null;
+
+		app.stream = function (req, res, info) {
+			fileInfo = info;
+			res.send("Custom folder content");
+		};
+
+		await app.serve(mockReq, mockRes, "small.txt", "./test-files");
+
+		assert.ok(fileInfo.path.includes("test-files"), "Should use custom folder path");
+		assert.ok(fileInfo.path.includes("small.txt"), "Should append file to custom folder");
+		assert.strictEqual(mockRes.sendCalled, true, "Should serve from custom folder");
 	});
 });
 
