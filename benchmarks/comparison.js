@@ -1,4 +1,5 @@
 import {createServer} from "node:http";
+import express from "express";
 import {woodland} from "../dist/woodland.js";
 
 // Test server configuration
@@ -10,8 +11,10 @@ const SERVER_CONFIG = {
 // Server instances
 let rawServer = null;
 let woodlandServer = null;
+let expressServer = null;
 let rawServerUrl = null;
 let woodlandServerUrl = null;
+let expressServerUrl = null;
 
 /**
  * Creates a raw Node.js HTTP server for JSON responses
@@ -47,6 +50,24 @@ function createWoodlandServer () {
 		logging: {enabled: false}, // Disable logging for benchmarks
 		time: false // Disable timing for fair comparison
 	});
+
+	app.get("/", (req, res) => {
+		res.json({
+			message: "Hello World",
+			timestamp: Date.now(),
+			success: true
+		});
+	});
+
+	return app;
+}
+
+/**
+ * Creates an Express server for JSON responses
+ * @returns {Object} Express app instance
+ */
+function createExpressServer () {
+	const app = express();
 
 	app.get("/", (req, res) => {
 		res.json({
@@ -141,6 +162,47 @@ async function stopWoodlandServer () {
 }
 
 /**
+ * Starts the Express server
+ * @returns {Promise<void>}
+ */
+async function startExpressServer () {
+	if (expressServer) {
+		return Promise.resolve(); // Already started
+	}
+
+	const app = createExpressServer();
+	expressServer = createServer(app);
+
+	return new Promise((resolve, reject) => {
+		expressServer.listen(SERVER_CONFIG.port, SERVER_CONFIG.host, () => {
+			const address = expressServer.address();
+			expressServerUrl = `http://${address.address}:${address.port}`;
+			resolve();
+		});
+
+		expressServer.on("error", reject);
+	});
+}
+
+/**
+ * Stops the Express server
+ * @returns {Promise<void>}
+ */
+async function stopExpressServer () {
+	if (!expressServer) {
+		return Promise.resolve();
+	}
+
+	return new Promise(resolve => {
+		expressServer.close(() => {
+			expressServer = null;
+			expressServerUrl = null;
+			resolve();
+		});
+	});
+}
+
+/**
  * Makes an HTTP request to a server
  * @param {string} url - Server URL
  * @returns {Promise<Object>} Response data
@@ -169,13 +231,21 @@ function benchmarkWoodlandServer () {
 }
 
 /**
+ * Benchmark Express JSON response
+ */
+function benchmarkExpressServer () {
+	return makeRequest(expressServerUrl);
+}
+
+/**
  * Initialize servers for comparison benchmarks
  * @returns {Promise<void>}
  */
 async function initializeComparisonServers () {
 	await Promise.all([
 		startRawServer(),
-		startWoodlandServer()
+		startWoodlandServer(),
+		startExpressServer()
 	]);
 }
 
@@ -186,7 +256,8 @@ async function initializeComparisonServers () {
 async function cleanupComparisonServers () {
 	await Promise.all([
 		stopRawServer(),
-		stopWoodlandServer()
+		stopWoodlandServer(),
+		stopExpressServer()
 	]);
 }
 
@@ -196,6 +267,7 @@ await initializeComparisonServers();
 // Export benchmark functions
 const benchmarks = {
 	"raw Node.js HTTP server": benchmarkRawServer,
+	"Express.js framework": benchmarkExpressServer,
 	"Woodland framework": benchmarkWoodlandServer
 };
 
