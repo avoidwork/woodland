@@ -1,5 +1,6 @@
 import {createServer} from "node:http";
 import express from "express";
+import fastify from "fastify";
 import {woodland} from "../dist/woodland.js";
 
 // Test server configuration
@@ -12,9 +13,11 @@ const SERVER_CONFIG = {
 let rawServer = null;
 let woodlandServer = null;
 let expressServer = null;
+let fastifyServer = null;
 let rawServerUrl = null;
 let woodlandServerUrl = null;
 let expressServerUrl = null;
+let fastifyServerUrl = null;
 
 /**
  * Creates a raw Node.js HTTP server for JSON responses
@@ -75,6 +78,26 @@ function createExpressServer () {
 			timestamp: Date.now(),
 			success: true
 		});
+	});
+
+	return app;
+}
+
+/**
+ * Creates a Fastify server for JSON responses
+ * @returns {Object} Fastify app instance
+ */
+function createFastifyServer () {
+	const app = fastify({
+		logger: false // Disable logging for benchmarks
+	});
+
+	app.get("/", async () => {
+		return {
+			message: "Hello World",
+			timestamp: Date.now(),
+			success: true
+		};
 	});
 
 	return app;
@@ -185,6 +208,28 @@ async function startExpressServer () {
 }
 
 /**
+ * Starts the Fastify server
+ * @returns {Promise<void>}
+ */
+async function startFastifyServer () {
+	if (fastifyServer) {
+		return Promise.resolve(); // Already started
+	}
+
+	fastifyServer = createFastifyServer();
+
+	await fastifyServer.listen({
+		port: SERVER_CONFIG.port,
+		host: SERVER_CONFIG.host
+	});
+
+	const address = fastifyServer.server.address();
+	fastifyServerUrl = `http://${address.address}:${address.port}`;
+
+	return Promise.resolve();
+}
+
+/**
  * Stops the Express server
  * @returns {Promise<void>}
  */
@@ -200,6 +245,26 @@ async function stopExpressServer () {
 			resolve();
 		});
 	});
+}
+
+/**
+ * Stops the Fastify server
+ * @returns {Promise<void>}
+ */
+async function stopFastifyServer () {
+	if (!fastifyServer) {
+		return Promise.resolve();
+	}
+
+	try {
+		await fastifyServer.close();
+		fastifyServer = null;
+		fastifyServerUrl = null;
+	} catch {
+		// Ignore errors during shutdown
+	}
+
+	return Promise.resolve();
 }
 
 /**
@@ -238,6 +303,13 @@ function benchmarkExpressServer () {
 }
 
 /**
+ * Benchmark Fastify JSON response
+ */
+function benchmarkFastifyServer () {
+	return makeRequest(fastifyServerUrl);
+}
+
+/**
  * Initialize servers for comparison benchmarks
  * @returns {Promise<void>}
  */
@@ -245,7 +317,8 @@ async function initializeComparisonServers () {
 	await Promise.all([
 		startRawServer(),
 		startWoodlandServer(),
-		startExpressServer()
+		startExpressServer(),
+		startFastifyServer()
 	]);
 }
 
@@ -257,7 +330,8 @@ async function cleanupComparisonServers () {
 	await Promise.all([
 		stopRawServer(),
 		stopWoodlandServer(),
-		stopExpressServer()
+		stopExpressServer(),
+		stopFastifyServer()
 	]);
 }
 
@@ -268,6 +342,7 @@ await initializeComparisonServers();
 const benchmarks = {
 	"raw Node.js HTTP server": benchmarkRawServer,
 	"Express.js framework": benchmarkExpressServer,
+	"Fastify framework": benchmarkFastifyServer,
 	"Woodland framework": benchmarkWoodlandServer
 };
 

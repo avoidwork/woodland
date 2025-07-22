@@ -17,7 +17,7 @@
     "types"
   ],
   "scripts": {
-    "benchmark": "npm install express --no-save && node benchmark.js",
+    "benchmark": "npm install express fastify --no-save && node benchmark.js",
     "build": "npm run lint && npm run rollup && npm run mocha",
     "changelog": "auto-changelog -p",
     "fix": "eslint --fix *.js src/*.js tests/**/*.test.js benchmarks/*.js",
