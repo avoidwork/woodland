@@ -14,7 +14,7 @@
   "files": [
     "dist",
     "tpl",
-    "types/woodland.d.ts"
+    "types"
   ],
   "scripts": {
     "benchmark": "node benchmark.js",
