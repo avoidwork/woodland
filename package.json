@@ -1,7 +1,7 @@
 {
   "name": "woodland",
-  "version": "20.1.9",
-  "description": "Lightweight HTTP framework with automatic headers",
+  "version": "20.1.10",
+  "description": "High-performance HTTP framework",
   "type": "module",
   "types": "types/woodland.d.ts",
   "source": "src/woodland.js",
@@ -17,7 +17,7 @@
     "types"
   ],
   "scripts": {
-    "benchmark": "node benchmark.js",
+    "benchmark": "npm install express fastify --no-save && node benchmark.js",
     "build": "npm run lint && npm run rollup && npm run mocha",
     "changelog": "auto-changelog -p",
     "fix": "eslint --fix *.js src/*.js tests/**/*.test.js benchmarks/*.js",
