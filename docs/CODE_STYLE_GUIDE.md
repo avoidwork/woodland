@@ -26,7 +26,7 @@
 - **Documentation**: Code should be self-documenting with appropriate comments
 
 ### Formatting
-- Use **2 spaces** for indentation (no tabs)
+- Use **tabs** for indentation.
 - Maximum line length: **100 characters**
 - Use **semicolons** consistently
 - Trailing commas in multiline objects and arrays
