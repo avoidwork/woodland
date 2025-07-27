@@ -39,6 +39,7 @@ Woodland is a lightweight, security-focused HTTP server framework for Node.js th
 - **Real-time** applications with EventEmitter integration
 - **Container-based** deployments
 - **Development servers** with auto-indexing
+- **CLI tool** with comprehensive test coverage
 
 ---
 
@@ -637,6 +638,8 @@ This deployment pattern is ideal for:
 - Static site previewing
 - Testing and prototyping
 
+The CLI module itself is comprehensively tested with unit tests covering argument parsing, validation logic, server configuration, and error handling scenarios.
+
 ### Container Deployment
 
 ```mermaid
@@ -755,7 +758,7 @@ spec:
 ### Development Best Practices
 
 1. **Logging**: Use structured logging for debugging
-2. **Testing**: Implement comprehensive test coverage
+2. **Testing**: Implement comprehensive test coverage (407 tests with 98.6% coverage including CLI)
 3. **Monitoring**: Add health checks and metrics
 4. **Documentation**: Maintain API documentation
 5. **Versioning**: Use semantic versioning for APIs

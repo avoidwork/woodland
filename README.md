@@ -614,6 +614,8 @@ woodland --logging=false
 cd /path/to/files && woodland
 ```
 
+The CLI is fully tested with comprehensive unit tests covering argument parsing, validation, server configuration, and error handling scenarios.
+
 ### CLI Options
 
 | Option | Default | Description |
@@ -825,7 +827,7 @@ npm test
 ### Test Results
 
 ```
-379 passing (322ms)
+407 passing (319ms)
 1 pending
 
 --------------|---------|----------|---------|---------|-----------------------------------------
@@ -840,6 +842,7 @@ All files     |    98.6 |    94.76 |     100 |    98.6 |
 
 ### Test Categories
 
+- **CLI Tests** - Argument parsing, port/IP validation, server startup, error handling, mock verification
 - **Security Integration Tests** - Path traversal, IP security, CORS, autoindex security, security headers
 - **Constants Tests** - HTTP methods, status codes, headers, content types, server info
 - **Security Utility Functions** - File path validation, sanitization, HTML escaping
