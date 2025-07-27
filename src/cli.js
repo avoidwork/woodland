@@ -8,6 +8,7 @@ import {
 	CHAR_SET,
 	CONTENT_TYPE,
 	EQUAL,
+	ERROR,
 	HYPHEN,
 	INFO,
 	INT_0,
@@ -18,12 +19,7 @@ import {
 	TEXT_PLAIN
 } from "./constants.js";
 
-const app = woodland({
-		autoindex: true,
-		defaultHeaders: {[CACHE_CONTROL]: NO_CACHE, [CONTENT_TYPE]: `${TEXT_PLAIN}; ${CHAR_SET}`},
-		time: true
-	}),
-	argv = process.argv.filter(i => i.charAt(0) === HYPHEN && i.charAt(1) === HYPHEN).reduce((a, v) => {
+const argv = process.argv.filter(i => i.charAt(0) === HYPHEN && i.charAt(1) === HYPHEN).reduce((a, v) => {
 		const x = v.split(`${HYPHEN}${HYPHEN}`)[1].split(EQUAL);
 
 		a[x[0]] = coerce(x[1]);
@@ -31,16 +27,25 @@ const app = woodland({
 		return a;
 	}, {}),
 	ip = argv.ip ?? LOCALHOST,
-	port = argv.port ?? INT_8000;
+	logging = argv.logging ?? true,
+	port = argv.port ?? INT_8000,
+	app = woodland({
+		autoindex: true,
+		defaultHeaders: {[CACHE_CONTROL]: NO_CACHE, [CONTENT_TYPE]: `${TEXT_PLAIN}; ${CHAR_SET}`},
+		logging: {
+			enabled: logging
+		},
+		time: true
+	});
 
 let validPort = Number(port);
 if (!Number.isInteger(validPort) || validPort < INT_0 || validPort > INT_65535) {
-	app.log("Invalid port: must be an integer between 0 and 65535.", "error");
+	app.log("Invalid port: must be an integer between 0 and 65535.", ERROR);
 	process.exit(1);
 }
 let validIP = typeof ip === "string" && (/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/).test(ip);
 if (!validIP) {
-	app.log("Invalid IP: must be a valid IPv4 address.", "error");
+	app.log("Invalid IP: must be a valid IPv4 address.", ERROR);
 	process.exit(1);
 }
 
