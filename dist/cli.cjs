@@ -4,7 +4,7 @@
  *
  * @copyright 2025 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.1.10
+ * @version 20.1.11
  */
 'use strict';
 
@@ -26,8 +26,15 @@ const CHAR_SET = "charset=utf-8";
 `nodejs/${process.version}, ${process.platform}/${process.arch}`;
 const LOCALHOST = "127.0.0.1";
 const INT_8000 = 8000;
+
+// =============================================================================
+// NUMERIC CONSTANTS
+// =============================================================================
+const INT_0 = 0;
+const INT_65535 = 65535;
 const EQUAL = "=";
 const HYPHEN = "-";
+const ERROR = "error";
 const INFO = "info";
 const NO_CACHE = "no-cache";
 
@@ -44,12 +51,7 @@ Object.freeze(Array.from(Array(12).values()).map((i, idx) => {
 	return Object.freeze(d.toLocaleString(EN_US, {month: SHORT}));
 }));
 
-const app = woodland.woodland({
-		autoindex: true,
-		defaultHeaders: {[CACHE_CONTROL]: NO_CACHE, [CONTENT_TYPE]: `${TEXT_PLAIN}; ${CHAR_SET}`},
-		time: true
-	}),
-	argv = process.argv.filter(i => i.charAt(0) === HYPHEN && i.charAt(1) === HYPHEN).reduce((a, v) => {
+const argv = process.argv.filter(i => i.charAt(0) === HYPHEN && i.charAt(1) === HYPHEN).reduce((a, v) => {
 		const x = v.split(`${HYPHEN}${HYPHEN}`)[1].split(EQUAL);
 
 		a[x[0]] = tinyCoerce.coerce(x[1]);
@@ -57,17 +59,25 @@ const app = woodland.woodland({
 		return a;
 	}, {}),
 	ip = argv.ip ?? LOCALHOST,
-	port = argv.port ?? INT_8000;
+	logging = argv.logging ?? true,
+	port = argv.port ?? INT_8000,
+	app = woodland.woodland({
+		autoindex: true,
+		defaultHeaders: {[CACHE_CONTROL]: NO_CACHE, [CONTENT_TYPE]: `${TEXT_PLAIN}; ${CHAR_SET}`},
+		logging: {
+			enabled: logging
+		},
+		time: true
+	});
 
-const allowedIPs = ["localhost", "127.0.0.1", "0.0.0.0"];
 let validPort = Number(port);
-if (!Number.isInteger(validPort) || validPort < 1024 || validPort > 65535) {
-	console.error("Invalid port: must be an integer between 1024 and 65535.");
+if (!Number.isInteger(validPort) || validPort < INT_0 || validPort > INT_65535) {
+	app.log("Invalid port: must be an integer between 0 and 65535.", ERROR);
 	process.exit(1);
 }
-let validIP = typeof ip === "string" && (allowedIPs.includes(ip) || (/^\d+\.\d+\.\d+\.\d+$/).test(ip));
+let validIP = typeof ip === "string" && (/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/).test(ip);
 if (!validIP) {
-	console.error("Invalid IP: must be localhost, 127.0.0.1, or a valid IPv4 address.");
+	app.log("Invalid IP: must be a valid IPv4 address.", ERROR);
 	process.exit(1);
 }
 
