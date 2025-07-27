@@ -3,7 +3,7 @@
  *
  * @copyright 2025 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.1.13
+ * @version 20.1.14
  */
 import {STATUS_CODES,METHODS}from'node:http';import {join,extname}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {createRequire}from'node:module';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const __dirname$1 = fileURLToPath(new URL(".", import.meta.url));
 const require = createRequire(import.meta.url);
@@ -64,6 +64,7 @@ const X_CONTENT_TYPE_OPTIONS = "x-content-type-options";
 const X_FORWARDED_FOR = "x-forwarded-for";
 const X_POWERED_BY = "x-powered-by";
 const X_RESPONSE_TIME = "x-response-time";
+const CONTENT_SECURITY_POLICY = "content-security-policy";
 
 // =============================================================================
 // CONTENT TYPES & MEDIA
@@ -78,6 +79,7 @@ const UTF_8 = "utf-8";
 // =============================================================================
 const SERVER_VALUE = `${name}/${version}`;
 const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform}/${process.arch}`;
+const CONTENT_SECURITY_POLICY_VALUE = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none';";
 
 // =============================================================================
 // FILE SYSTEM & ROUTING
@@ -603,6 +605,75 @@ function isValidIP (ip) {
 	}
 
 	return false;
+}
+
+/**
+ * Validates if an Origin header value is safe to use in response headers
+ * @param {string} origin - Origin header value to validate
+ * @returns {boolean} True if origin is valid and safe
+ */
+function isValidOrigin (origin) {
+	if (!origin || typeof origin !== "string") {
+		return false;
+	}
+
+	// Check for dangerous characters that could enable header injection
+	// Check for \r, \n, null, backspace, vertical tab, form feed
+	const hasCarriageReturn = origin.includes("\r");
+	const hasNewline = origin.includes("\n");
+	const hasNull = origin.includes("\u0000");
+	const hasControlChars = origin.includes(String.fromCharCode(8)) ||
+		origin.includes(String.fromCharCode(11)) ||
+		origin.includes(String.fromCharCode(12));
+	if (hasCarriageReturn || hasNewline || hasNull || hasControlChars) {
+		return false;
+	}
+
+	// Basic URL validation - should start with http:// or https://
+	return origin.startsWith("http://") || origin.startsWith("https://");
+}
+
+/**
+ * Sanitizes a header value by removing potentially dangerous characters
+ * @param {string} headerValue - Header value to sanitize
+ * @returns {string} Sanitized header value
+ */
+function sanitizeHeaderValue (headerValue) {
+	if (!headerValue || typeof headerValue !== "string") {
+		return EMPTY;
+	}
+
+	// Remove characters that could enable header injection
+	// Removes \r, \n, null, backspace, vertical tab, form feed
+	return headerValue
+		.replace(/[\r\n]/g, EMPTY)
+		.replace(new RegExp(String.fromCharCode(0), "g"), EMPTY)
+		.replace(new RegExp(String.fromCharCode(8), "g"), EMPTY)
+		.replace(new RegExp(String.fromCharCode(11), "g"), EMPTY)
+		.replace(new RegExp(String.fromCharCode(12), "g"), EMPTY)
+		.trim();
+}
+
+/**
+ * Validates if a header value is safe for use in HTTP headers
+ * @param {string} headerValue - Header value to validate
+ * @returns {boolean} True if header value is safe
+ */
+function isValidHeaderValue (headerValue) {
+	if (!headerValue || typeof headerValue !== "string") {
+		return false;
+	}
+
+	// Check for characters that could enable header injection
+	// Check for \r, \n, null, backspace, vertical tab, form feed
+	const hasCarriageReturn = headerValue.includes("\r");
+	const hasNewline = headerValue.includes("\n");
+	const hasNull = headerValue.includes("\u0000");
+	const hasControlChars = headerValue.includes(String.fromCharCode(8)) ||
+		headerValue.includes(String.fromCharCode(11)) ||
+		headerValue.includes(String.fromCharCode(12));
+
+	return !(hasCarriageReturn || hasNewline || hasNull || hasControlChars);
 }/**
  * Woodland HTTP server framework class extending EventEmitter
  * @class
@@ -650,6 +721,10 @@ class Woodland extends EventEmitter {
 			}
 
 			defaultHeaders[X_POWERED_BY] = X_POWERED_BY_VALUE;
+
+			if (CONTENT_SECURITY_POLICY in defaultHeaders === false) {
+				defaultHeaders[CONTENT_SECURITY_POLICY] = CONTENT_SECURITY_POLICY_VALUE;
+			}
 		}
 
 		this.autoindex = autoindex;
@@ -821,12 +896,18 @@ class Woodland extends EventEmitter {
 		if (req.cors) {
 			const headers = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
 
-			res.header(ACCESS_CONTROL_ALLOW_ORIGIN, req.headers.origin);
-			res.header(TIMING_ALLOW_ORIGIN, req.headers.origin);
+			// Validate and sanitize the origin header before using it
+			const origin = req.headers.origin;
+			if (isValidOrigin(origin)) {
+				res.header(ACCESS_CONTROL_ALLOW_ORIGIN, origin);
+				res.header(TIMING_ALLOW_ORIGIN, origin);
+			}
+
 			res.header(ACCESS_CONTROL_ALLOW_CREDENTIALS, TRUE);
 
-			if (headers !== void 0) {
-				res.header(req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS, headers);
+			if (headers !== void 0 && isValidHeaderValue(headers)) {
+				const sanitizedHeaders = sanitizeHeaderValue(headers);
+				res.header(req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS, sanitizedHeaders);
 			}
 
 			res.header(ACCESS_CONTROL_ALLOW_METHODS, req.allow);
