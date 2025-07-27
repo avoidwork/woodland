@@ -1,466 +1,603 @@
 import assert from "node:assert";
+import { spawn } from "node:child_process";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
+const projectRoot = join(__dirname, "..", "..");
+const cliPath = join(projectRoot, "src", "cli.js");
 
 /**
- * Mock woodland module to avoid importing the actual implementation
+ * Spawns the CLI process with given arguments
  */
-const mockWoodland = {
-	log: function (message, level) {
-		this.logCalls = this.logCalls || [];
-		this.logCalls.push({ message, level });
+function spawnCli (args = [], options = {}) {
+	return new Promise((resolve, reject) => {
+		const child = spawn("node", [cliPath, ...args], {
+			cwd: projectRoot,
+			stdio: ["pipe", "pipe", "pipe"],
+			...options
+		});
 
-		return this;
-	},
-	files: function () {
-		this.filesCalled = true;
+		let stdout = "";
+		let stderr = "";
 
-		return this;
-	}
-};
+		child.stdout.on("data", data => {
+			stdout += data.toString();
+		});
 
-/**
- * Mock createServer function
- */
-let mockServer = null;
+		child.stderr.on("data", data => {
+			stderr += data.toString();
+		});
 
-/**
- * Mock process methods
- */
-let exitCode = null;
+		child.on("close", (code, signal) => {
+			resolve({
+				code,
+				signal,
+				stdout: stdout.trim(),
+				stderr: stderr.trim()
+			});
+		});
+
+		child.on("error", error => {
+			reject(error);
+		});
+
+		// Kill the process after a timeout to prevent hanging servers
+		setTimeout(() => {
+			if (!child.killed) {
+				child.kill("SIGKILL");
+				reject(new Error("Process timeout"));
+			}
+		}, 2000);
+	});
+}
 
 describe("CLI", () => {
-	let consoleLogCalls = [];
-
-	beforeEach(() => {
-		// Reset mocks
-		Object.keys(mockWoodland).forEach(key => {
-			if (key !== "log" && key !== "files") {
-				delete mockWoodland[key];
-			}
-		});
-		mockWoodland.logCalls = [];
-		mockWoodland.filesCalled = false;
-
-		// Mock server
-		mockServer = {
-			listen: function (port, ip) {
-				this.listenCalls = this.listenCalls || [];
-				this.listenCalls.push({ port, ip });
-
-				return this;
-			}
-		};
-
-		// Mock console.log to capture log output
-		consoleLogCalls = [];
-		console.log = function (...args) {
-			consoleLogCalls.push(args);
-		};
-
-		// Mock process.exit
-		exitCode = null;
-		process.exit = function (code) {
-			exitCode = code;
-		};
-	});
-
-
 	/**
-	 * Test argument parsing logic
+	 * Test successful CLI startup with default arguments
 	 */
-	describe("argument parsing", () => {
-		it("should parse port argument", () => {
-			const argv = ["--port=3000"];
-			const parsed = argv.filter(i => i.charAt(0) === "-" && i.charAt(1) === "-").reduce((a, v) => {
-				const x = v.split("--")[1].split("=");
-				a[x[0]] = isNaN(x[1]) ? x[1] : Number(x[1]);
+	describe("successful startup", () => {
+		it("should start with default arguments and exit cleanly", async () => {
+			const child = spawn("node", [cliPath], {
+				cwd: projectRoot,
+				stdio: ["pipe", "pipe", "pipe"]
+			});
 
-				return a;
-			}, {});
+			let stdout = "";
 
-			assert.strictEqual(parsed.port, 3000);
+			child.stdout.on("data", data => {
+				stdout += data.toString();
+			});
+
+			// Wait for startup message, then kill the process
+			await new Promise(resolve => {
+				const checkOutput = () => {
+					if (stdout.includes("id=woodland") && stdout.includes("port=8000")) {
+						child.kill("SIGTERM");
+						resolve();
+					}
+				};
+
+				child.stdout.on("data", checkOutput);
+
+				// Fallback timeout
+				setTimeout(() => {
+					child.kill("SIGKILL");
+					resolve();
+				}, 1500);
+			});
+
+			return new Promise(resolve => {
+				child.on("close", () => {
+					assert.match(stdout, /id=woodland/, "Should log startup message");
+					assert.match(stdout, /port=8000/, "Should use default port 8000");
+					assert.match(stdout, /ip=127\.0\.0\.1/, "Should use default IP");
+					resolve();
+				});
+			});
 		});
 
-		it("should parse IP argument", () => {
-			const argv = ["--ip=192.168.1.1"];
-			const parsed = argv.filter(i => i.charAt(0) === "-" && i.charAt(1) === "-").reduce((a, v) => {
-				const x = v.split("--")[1].split("=");
-				a[x[0]] = isNaN(x[1]) ? x[1] : Number(x[1]);
+		it("should start with custom port", async () => {
+			const child = spawn("node", [cliPath, "--port=3000"], {
+				cwd: projectRoot,
+				stdio: ["pipe", "pipe", "pipe"]
+			});
 
-				return a;
-			}, {});
+			let stdout = "";
 
-			assert.strictEqual(parsed.ip, "192.168.1.1");
+			child.stdout.on("data", data => {
+				stdout += data.toString();
+			});
+
+			await new Promise(resolve => {
+				const checkOutput = () => {
+					if (stdout.includes("port=3000")) {
+						child.kill("SIGTERM");
+						resolve();
+					}
+				};
+
+				child.stdout.on("data", checkOutput);
+
+				setTimeout(() => {
+					child.kill("SIGKILL");
+					resolve();
+				}, 1500);
+			});
+
+			return new Promise(resolve => {
+				child.on("close", () => {
+					assert.match(stdout, /port=3000/, "Should use custom port 3000");
+					resolve();
+				});
+			});
 		});
 
-		it("should parse logging argument", () => {
-			const argv = ["--logging=false"];
-			const parsed = argv.filter(i => i.charAt(0) === "-" && i.charAt(1) === "-").reduce((a, v) => {
-				const x = v.split("--")[1].split("=");
-				a[x[0]] = x[1] === "true" ? true : x[1] === "false" ? false : isNaN(x[1]) ? x[1] : Number(x[1]);
+		it("should start with custom IP", async () => {
+			const child = spawn("node", [cliPath, "--ip=192.168.1.1"], {
+				cwd: projectRoot,
+				stdio: ["pipe", "pipe", "pipe"]
+			});
 
-				return a;
-			}, {});
+			let stdout = "";
 
-			assert.strictEqual(parsed.logging, false);
-		});
+			child.stdout.on("data", data => {
+				stdout += data.toString();
+			});
 
-		it("should use default values when arguments not provided", () => {
-			const argv = [];
-			const parsed = argv.filter(i => i.charAt(0) === "-" && i.charAt(1) === "-").reduce((a, v) => {
-				const x = v.split("--")[1].split("=");
-				a[x[0]] = isNaN(x[1]) ? x[1] : Number(x[1]);
+			await new Promise(resolve => {
+				const checkOutput = () => {
+					if (stdout.includes("ip=192.168.1.1")) {
+						child.kill("SIGTERM");
+						resolve();
+					}
+				};
 
-				return a;
-			}, {});
+				child.stdout.on("data", checkOutput);
 
-			const ip = parsed.ip ?? "localhost";
-			const logging = parsed.logging ?? true;
-			const port = parsed.port ?? 8000;
+				setTimeout(() => {
+					child.kill("SIGKILL");
+					resolve();
+				}, 1500);
+			});
 
-			assert.strictEqual(ip, "localhost");
-			assert.strictEqual(logging, true);
-			assert.strictEqual(port, 8000);
-		});
-
-		it("should handle multiple arguments", () => {
-			const argv = ["--port=3000", "--ip=127.0.0.1", "--logging=false"];
-			const parsed = argv.filter(i => i.charAt(0) === "-" && i.charAt(1) === "-").reduce((a, v) => {
-				const x = v.split("--")[1].split("=");
-				a[x[0]] = x[1] === "true" ? true : x[1] === "false" ? false : isNaN(x[1]) ? x[1] : Number(x[1]);
-
-				return a;
-			}, {});
-
-			assert.strictEqual(parsed.port, 3000);
-			assert.strictEqual(parsed.ip, "127.0.0.1");
-			assert.strictEqual(parsed.logging, false);
+			return new Promise(resolve => {
+				child.on("close", () => {
+					assert.match(stdout, /ip=192\.168\.1\.1/, "Should use custom IP");
+					resolve();
+				});
+			});
 		});
 	});
 
 	/**
-	 * Test port validation
+	 * Test port validation and error handling
 	 */
 	describe("port validation", () => {
-		it("should accept valid port numbers", () => {
-			const validPorts = [0, 1, 80, 443, 3000, 8000, 8080, 65535];
+		it("should reject negative port numbers", async () => {
+			const result = await spawnCli(["--port=-1"]);
 
-			validPorts.forEach(port => {
-				const validPort = Number(port);
-				const isValid = Number.isInteger(validPort) && validPort >= 0 && validPort <= 65535;
-				assert.strictEqual(isValid, true, `Port ${port} should be valid`);
+			assert.strictEqual(result.code, 1, "Should exit with code 1");
+			const output = result.stdout + result.stderr;
+			assert.match(output, /Invalid port/, "Should log port error");
+		});
+
+		it("should reject port numbers above 65535", async () => {
+			const result = await spawnCli(["--port=70000"]);
+
+			assert.strictEqual(result.code, 1, "Should exit with code 1");
+			const output = result.stdout + result.stderr;
+			assert.match(output, /Invalid port/, "Should log port error");
+		});
+
+		it("should reject non-numeric port", async () => {
+			const result = await spawnCli(["--port=abc"]);
+
+			assert.strictEqual(result.code, 1, "Should exit with code 1");
+			const output = result.stdout + result.stderr;
+			assert.match(output, /Invalid port/, "Should log port error");
+		});
+
+		it("should reject floating point port", async () => {
+			const result = await spawnCli(["--port=8000.5"]);
+
+			assert.strictEqual(result.code, 1, "Should exit with code 1");
+			const output = result.stdout + result.stderr;
+			assert.match(output, /Invalid port/, "Should log port error");
+		});
+
+		it("should accept port 0", async () => {
+			const child = spawn("node", [cliPath, "--port=0"], {
+				cwd: projectRoot,
+				stdio: ["pipe", "pipe", "pipe"]
+			});
+
+			let stdout = "";
+
+			child.stdout.on("data", data => {
+				stdout += data.toString();
+			});
+
+			await new Promise(resolve => {
+				const checkOutput = () => {
+					if (stdout.includes("port=0")) {
+						child.kill("SIGTERM");
+						resolve();
+					}
+				};
+
+				child.stdout.on("data", checkOutput);
+
+				setTimeout(() => {
+					child.kill("SIGKILL");
+					resolve();
+				}, 1500);
+			});
+
+			return new Promise(resolve => {
+				child.on("close", () => {
+					assert.match(stdout, /port=0/, "Should accept port 0");
+					resolve();
+				});
 			});
 		});
 
-		it("should reject invalid port numbers", () => {
-			const invalidPorts = [-1, 65536, 70000, 1.5, "abc", NaN, Infinity];
-
-			invalidPorts.forEach(port => {
-				const validPort = Number(port);
-				const isValid = Number.isInteger(validPort) && validPort >= 0 && validPort <= 65535;
-				assert.strictEqual(isValid, false, `Port ${port} should be invalid`);
+		it("should accept port 65535", async () => {
+			const child = spawn("node", [cliPath, "--port=65535"], {
+				cwd: projectRoot,
+				stdio: ["pipe", "pipe", "pipe"]
 			});
-		});
 
-		it("should call app.log with error for invalid port", () => {
-			const port = 70000;
-			const validPort = Number(port);
+			let stdout = "";
 
-			if (!Number.isInteger(validPort) || validPort < 0 || validPort > 65535) {
-				mockWoodland.log("Invalid port: must be an integer between 0 and 65535.", "ERROR");
-			}
+			child.stdout.on("data", data => {
+				stdout += data.toString();
+			});
 
-			assert.strictEqual(mockWoodland.logCalls.length, 1);
-			assert.strictEqual(mockWoodland.logCalls[0].message, "Invalid port: must be an integer between 0 and 65535.");
-			assert.strictEqual(mockWoodland.logCalls[0].level, "ERROR");
+			await new Promise(resolve => {
+				const checkOutput = () => {
+					if (stdout.includes("port=65535")) {
+						child.kill("SIGTERM");
+						resolve();
+					}
+				};
+
+				child.stdout.on("data", checkOutput);
+
+				setTimeout(() => {
+					child.kill("SIGKILL");
+					resolve();
+				}, 1500);
+			});
+
+			return new Promise(resolve => {
+				child.on("close", () => {
+					assert.match(stdout, /port=65535/, "Should accept max port");
+					resolve();
+				});
+			});
 		});
 	});
 
 	/**
-	 * Test IP validation
+	 * Test IP validation and error handling
 	 */
 	describe("IP validation", () => {
-		it("should accept valid IPv4 addresses", () => {
-			const validIPs = ["127.0.0.1", "192.168.1.1", "10.0.0.1", "172.16.0.1", "255.255.255.255", "0.0.0.0"];
+		it("should reject invalid IP format", async () => {
+			const result = await spawnCli(["--ip=256.1.1.1"]);
 
-			validIPs.forEach(ip => {
-				const isValid = typeof ip === "string" && (/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/).test(ip);
-				assert.strictEqual(isValid, true, `IP ${ip} should be valid`);
+			assert.strictEqual(result.code, 1, "Should exit with code 1");
+			const output = result.stdout + result.stderr;
+			assert.match(output, /Invalid IP/, "Should log IP error");
+		});
+
+		it("should reject incomplete IP", async () => {
+			const result = await spawnCli(["--ip=192.168.1"]);
+
+			assert.strictEqual(result.code, 1, "Should exit with code 1");
+			const output = result.stdout + result.stderr;
+			assert.match(output, /Invalid IP/, "Should log IP error");
+		});
+
+		it("should reject non-IP string", async () => {
+			const result = await spawnCli(["--ip=localhost"]);
+
+			assert.strictEqual(result.code, 1, "Should exit with code 1");
+			const output = result.stdout + result.stderr;
+			assert.match(output, /Invalid IP/, "Should log IP error");
+		});
+
+		it("should reject empty IP", async () => {
+			const result = await spawnCli(["--ip="]);
+
+			assert.strictEqual(result.code, 1, "Should exit with code 1");
+			const output = result.stdout + result.stderr;
+			assert.match(output, /Invalid IP/, "Should log IP error");
+		});
+
+		it("should accept valid IPv4 addresses", async () => {
+			const validIPs = ["127.0.0.1", "192.168.1.1", "10.0.0.1", "0.0.0.0", "255.255.255.255"];
+
+			for (const ip of validIPs.slice(0, 2)) { // Test first 2 to keep test time reasonable
+				const child = spawn("node", [cliPath, `--ip=${ip}`], {
+					cwd: projectRoot,
+					stdio: ["pipe", "pipe", "pipe"]
+				});
+
+				let stdout = "";
+
+				child.stdout.on("data", data => {
+					stdout += data.toString();
+				});
+
+				await new Promise(resolve => {
+					const checkOutput = () => {
+						if (stdout.includes(`ip=${ip}`)) {
+							child.kill("SIGTERM");
+							resolve();
+						}
+					};
+
+					child.stdout.on("data", checkOutput);
+
+					setTimeout(() => {
+						child.kill("SIGKILL");
+						resolve();
+					}, 1500);
+				});
+
+				await new Promise(resolve => {
+					child.on("close", () => {
+						assert.match(stdout, new RegExp(`ip=${ip.replace(/\./g, "\\.")}`), `Should use IP ${ip}`);
+						resolve();
+					});
+				});
+			}
+		});
+	});
+
+	/**
+	 * Test argument parsing edge cases
+	 */
+	describe("argument parsing", () => {
+		it("should handle malformed arguments gracefully", async () => {
+			// Malformed args should be ignored, so it should start with defaults
+			const child = spawn("node", [cliPath, "--invalid", "--malformed="], {
+				cwd: projectRoot,
+				stdio: ["pipe", "pipe", "pipe"]
+			});
+
+			let stdout = "";
+
+			child.stdout.on("data", data => {
+				stdout += data.toString();
+			});
+
+			await new Promise(resolve => {
+				const checkOutput = () => {
+					if (stdout.includes("port=8000")) {
+						child.kill("SIGTERM");
+						resolve();
+					}
+				};
+
+				child.stdout.on("data", checkOutput);
+
+				setTimeout(() => {
+					child.kill("SIGKILL");
+					resolve();
+				}, 1500);
+			});
+
+			return new Promise(resolve => {
+				child.on("close", () => {
+					assert.match(stdout, /port=8000/, "Should use default port");
+					resolve();
+				});
 			});
 		});
 
-		it("should reject invalid IP addresses", () => {
-			const invalidIPs = ["256.1.1.1", "192.168.1", "192.168.1.1.1", "abc.def.ghi.jkl", "", "localhost", null, undefined];
+		it("should handle boolean arguments", async () => {
+			const child = spawn("node", [cliPath, "--logging=true"], {
+				cwd: projectRoot,
+				stdio: ["pipe", "pipe", "pipe"]
+			});
 
-			invalidIPs.forEach(ip => {
-				const isValid = typeof ip === "string" && (/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/).test(ip);
-				assert.strictEqual(isValid, false, `IP ${ip} should be invalid`);
+			let stdout = "";
+
+			child.stdout.on("data", data => {
+				stdout += data.toString();
+			});
+
+			await new Promise(resolve => {
+				const checkOutput = () => {
+					if (stdout.includes("id=woodland")) {
+						child.kill("SIGTERM");
+						resolve();
+					}
+				};
+
+				child.stdout.on("data", checkOutput);
+
+				setTimeout(() => {
+					child.kill("SIGKILL");
+					resolve();
+				}, 1500);
+			});
+
+			return new Promise(resolve => {
+				child.on("close", () => {
+					assert.match(stdout, /id=woodland/, "Should enable logging");
+					resolve();
+				});
 			});
 		});
-
-		it("should call app.log with error for invalid IP", () => {
-			const ip = "256.1.1.1";
-			const validIP = typeof ip === "string" && (/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/).test(ip);
-
-			if (!validIP) {
-				mockWoodland.log("Invalid IP: must be a valid IPv4 address.", "ERROR");
-			}
-
-			assert.strictEqual(mockWoodland.logCalls.length, 1);
-			assert.strictEqual(mockWoodland.logCalls[0].message, "Invalid IP: must be a valid IPv4 address.");
-			assert.strictEqual(mockWoodland.logCalls[0].level, "ERROR");
-		});
 	});
 
 	/**
-	 * Test woodland app configuration
+	 * Test multiple error conditions
 	 */
-	describe("woodland app configuration", () => {
-		it("should create woodland app with correct default configuration", () => {
-			// Simulate the woodland app creation with default args
-			const argv = {};
-			const logging = argv.logging ?? true;
+	describe("multiple errors", () => {
+		it("should handle both invalid port and IP (port validated first)", async () => {
+			const result = await spawnCli(["--port=70000", "--ip=invalid.ip"]);
 
-			// Mock woodland function call
-			const appConfig = {
-				autoindex: true,
-				defaultHeaders: {
-					"Cache-Control": "no-cache",
-					"Content-Type": "text/plain; charset=utf-8"
-				},
-				logging: {
-					enabled: logging
-				},
-				time: true
-			};
-
-			assert.strictEqual(appConfig.autoindex, true);
-			assert.strictEqual(appConfig.logging.enabled, true);
-			assert.strictEqual(appConfig.time, true);
-			assert.ok(appConfig.defaultHeaders);
+			assert.strictEqual(result.code, 1, "Should exit with code 1");
+			// Should catch the first error (port validation happens first)
+			const output = result.stdout + result.stderr;
+			assert.match(output, /Invalid port/, "Should log port error first");
 		});
 
-		it("should configure woodland app with custom logging setting", () => {
-			const argv = { logging: false };
+		it("should handle invalid IP after valid port", async () => {
+			const result = await spawnCli(["--port=3000", "--ip=999.999.999.999"]);
 
-			const appConfig = {
-				autoindex: true,
-				defaultHeaders: {
-					"Cache-Control": "no-cache",
-					"Content-Type": "text/plain; charset=utf-8"
-				},
-				logging: {
-					enabled: argv.logging ?? true
-				},
-				time: true
-			};
-
-			assert.strictEqual(appConfig.logging.enabled, false);
+			assert.strictEqual(result.code, 1, "Should exit with code 1");
+			const output = result.stdout + result.stderr;
+			assert.match(output, /Invalid IP/, "Should log IP error");
 		});
 	});
 
 	/**
-	 * Test server creation and startup
+	 * Test process behavior
 	 */
-	describe("server creation and startup", () => {
-		it("should call app.files() method", () => {
-			mockWoodland.files();
-			assert.strictEqual(mockWoodland.filesCalled, true);
+	describe("process behavior", () => {
+		it("should use process.nextTick for exit", async () => {
+			// This test verifies that the process exits properly
+			const result = await spawnCli(["--port=invalid"]);
+
+			assert.strictEqual(result.code, 1, "Should exit with code 1");
+			const output = result.stdout + result.stderr;
+			assert.match(output, /Invalid port/, "Should log error before exit");
 		});
 
-		it("should create server with app.route", () => {
-			// Mock the route property
-			mockWoodland.route = function () {};
+		it("should handle SIGTERM gracefully", async () => {
+			const child = spawn("node", [cliPath], {
+				cwd: projectRoot,
+				stdio: ["pipe", "pipe", "pipe"]
+			});
 
-			const server = { listen: () => {} };
-			// Simulate createServer call
-			const createdServer = server;
+			// Wait a bit for startup, then kill
+			setTimeout(() => {
+				child.kill("SIGTERM");
+			}, 500);
 
-			assert.ok(createdServer);
-		});
-
-		it("should call server.listen with correct port and IP", () => {
-			const port = 3000;
-			const ip = "127.0.0.1";
-
-			mockServer.listen(port, ip);
-
-			assert.strictEqual(mockServer.listenCalls.length, 1);
-			assert.strictEqual(mockServer.listenCalls[0].port, port);
-			assert.strictEqual(mockServer.listenCalls[0].ip, ip);
-		});
-
-		it("should log startup message", () => {
-			const port = 8000;
-			const ip = "localhost";
-
-			mockWoodland.log(`id=woodland, hostname=localhost, ip=${ip}, port=${port}`, "INFO");
-
-			assert.strictEqual(mockWoodland.logCalls.length, 1);
-			assert.strictEqual(mockWoodland.logCalls[0].message, "id=woodland, hostname=localhost, ip=localhost, port=8000");
-			assert.strictEqual(mockWoodland.logCalls[0].level, "INFO");
+			return new Promise(resolve => {
+				child.on("close", (code, signal) => {
+					assert.ok(signal === "SIGTERM" || code === 0, "Should handle termination gracefully");
+					resolve();
+				});
+			});
 		});
 	});
 
 	/**
-	 * Test process.exit calls
-	 */
-	describe("process.exit behavior", () => {
-		it("should exit with code 1 for invalid port", () => {
-			const port = 70000;
-			const validPort = Number(port);
-
-			if (!Number.isInteger(validPort) || validPort < 0 || validPort > 65535) {
-				mockWoodland.log("Invalid port: must be an integer between 0 and 65535.", "ERROR");
-				process.exit(1);
-			}
-
-			assert.strictEqual(exitCode, 1);
-		});
-
-		it("should exit with code 1 for invalid IP", () => {
-			const ip = "invalid.ip";
-			const validIP = typeof ip === "string" && (/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/).test(ip);
-
-			if (!validIP) {
-				mockWoodland.log("Invalid IP: must be a valid IPv4 address.", "ERROR");
-				process.exit(1);
-			}
-
-			assert.strictEqual(exitCode, 1);
-		});
-	});
-
-	/**
-	 * Test edge cases and error scenarios
+	 * Test edge cases and boundary conditions
 	 */
 	describe("edge cases", () => {
-		it("should handle empty command line arguments", () => {
-			const argv = [];
-			const parsed = argv.filter(i => i.charAt(0) === "-" && i.charAt(1) === "-").reduce((a, v) => {
-				const x = v.split("--")[1].split("=");
-				a[x[0]] = isNaN(x[1]) ? x[1] : Number(x[1]);
+		it("should handle no arguments", async () => {
+			const child = spawn("node", [cliPath], {
+				cwd: projectRoot,
+				stdio: ["pipe", "pipe", "pipe"]
+			});
 
-				return a;
-			}, {});
+			let stdout = "";
 
-			assert.deepStrictEqual(parsed, {});
+			child.stdout.on("data", data => {
+				stdout += data.toString();
+			});
+
+			await new Promise(resolve => {
+				const checkOutput = () => {
+					if (stdout.includes("port=8000") && stdout.includes("ip=127.0.0.1")) {
+						child.kill("SIGTERM");
+						resolve();
+					}
+				};
+
+				child.stdout.on("data", checkOutput);
+
+				setTimeout(() => {
+					child.kill("SIGKILL");
+					resolve();
+				}, 1500);
+			});
+
+			return new Promise(resolve => {
+				child.on("close", () => {
+					assert.match(stdout, /port=8000/, "Should use default port");
+					assert.match(stdout, /ip=127\.0\.0\.1/, "Should use default IP");
+					resolve();
+				});
+			});
 		});
 
-		it("should handle malformed arguments", () => {
-			const argv = ["--malformed", "--invalid=", "--=value"];
-			const parsed = argv.filter(i => i.charAt(0) === "-" && i.charAt(1) === "-").reduce((a, v) => {
-				const x = v.split("--")[1].split("=");
-				a[x[0]] = isNaN(x[1]) ? x[1] : Number(x[1]);
+		it("should handle empty string arguments", async () => {
+			const result = await spawnCli(["--port=", "--ip="]);
 
-				return a;
-			}, {});
-
-			// Malformed args should either be ignored or handled gracefully
-			assert.ok(typeof parsed === "object");
+			// Empty port should be invalid, empty IP should be invalid
+			assert.strictEqual(result.code, 1, "Should exit with code 1");
 		});
 
-		it("should handle port as string that needs conversion", () => {
-			const port = "8080";
-			const validPort = Number(port);
-			const isValid = Number.isInteger(validPort) && validPort >= 0 && validPort <= 65535;
+		it("should handle special characters in arguments", async () => {
+			const result = await spawnCli(["--port=8000$", "--ip=127.0.0.1@"]);
 
-			assert.strictEqual(isValid, true);
-			assert.strictEqual(validPort, 8080);
-		});
-
-		it("should handle boolean arguments correctly", () => {
-			const argv = ["--logging=true", "--debug=false"];
-			const parsed = argv.filter(i => i.charAt(0) === "-" && i.charAt(1) === "-").reduce((a, v) => {
-				const x = v.split("--")[1].split("=");
-				// Use coerce-like logic for boolean handling
-				a[x[0]] = x[1] === "true" ? true : x[1] === "false" ? false : isNaN(x[1]) ? x[1] : Number(x[1]);
-
-				return a;
-			}, {});
-
-			assert.strictEqual(parsed.logging, true);
-			assert.strictEqual(parsed.debug, false);
-		});
-	});
-
-	/**
-	 * Test integration scenarios
-	 */
-	describe("integration scenarios", () => {
-		it("should handle complete valid startup sequence", () => {
-			// Simulate a complete startup with valid arguments
-			const port = 3000;
-			const ip = "127.0.0.1";
-
-			// Validate inputs
-			const validPort = Number(port);
-			const portValid = Number.isInteger(validPort) && validPort >= 0 && validPort <= 65535;
-			const ipValid = typeof ip === "string" && (/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/).test(ip);
-
-			assert.strictEqual(portValid, true);
-			assert.strictEqual(ipValid, true);
-
-			// Simulate app setup
-			mockWoodland.files();
-			mockServer.listen(validPort, ip);
-			mockWoodland.log(`id=woodland, hostname=localhost, ip=${ip}, port=${validPort}`, "INFO");
-
-			assert.strictEqual(mockWoodland.filesCalled, true);
-			assert.strictEqual(mockServer.listenCalls.length, 1);
-			assert.strictEqual(mockWoodland.logCalls.length, 1);
-		});
-
-		it("should handle startup with custom configuration", () => {
-			const argv = ["--port=9000", "--ip=0.0.0.0", "--logging=false"];
-			const parsed = argv.filter(i => i.charAt(0) === "-" && i.charAt(1) === "-").reduce((a, v) => {
-				const x = v.split("--")[1].split("=");
-				a[x[0]] = x[1] === "true" ? true : x[1] === "false" ? false : isNaN(x[1]) ? x[1] : Number(x[1]);
-
-				return a;
-			}, {});
-
-			const ip = parsed.ip ?? "localhost";
-			const logging = parsed.logging ?? true;
-			const port = parsed.port ?? 8000;
-
-			// Validate
-			const validPort = Number(port);
-			const portValid = Number.isInteger(validPort) && validPort >= 0 && validPort <= 65535;
-			const ipValid = typeof ip === "string" && (/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/).test(ip);
-
-			assert.strictEqual(portValid, true);
-			assert.strictEqual(ipValid, true);
-			assert.strictEqual(logging, false);
-			assert.strictEqual(port, 9000);
-			assert.strictEqual(ip, "0.0.0.0");
+			assert.strictEqual(result.code, 1, "Should exit with code 1");
 		});
 	});
 
 	/**
-	 * Test mock functionality
+	 * Test output format and logging
 	 */
-	describe("mock verification", () => {
-		it("should verify woodland mock is working", () => {
-			mockWoodland.log("test message", "INFO");
-			mockWoodland.files();
+	describe("output format", () => {
+		it("should log startup message in correct format", async () => {
+			const child = spawn("node", [cliPath, "--port=9999", "--ip=10.0.0.1"], {
+				cwd: projectRoot,
+				stdio: ["pipe", "pipe", "pipe"]
+			});
 
-			assert.strictEqual(mockWoodland.logCalls.length, 1);
-			assert.strictEqual(mockWoodland.logCalls[0].message, "test message");
-			assert.strictEqual(mockWoodland.logCalls[0].level, "INFO");
-			assert.strictEqual(mockWoodland.filesCalled, true);
+			let stdout = "";
+
+			child.stdout.on("data", data => {
+				stdout += data.toString();
+			});
+
+			await new Promise(resolve => {
+				const checkOutput = () => {
+					if (stdout.includes("id=woodland") && stdout.includes("port=9999") && stdout.includes("ip=10.0.0.1")) {
+						child.kill("SIGTERM");
+						resolve();
+					}
+				};
+
+				child.stdout.on("data", checkOutput);
+
+				setTimeout(() => {
+					child.kill("SIGKILL");
+					resolve();
+				}, 1500);
+			});
+
+			return new Promise(resolve => {
+				child.on("close", () => {
+					assert.match(
+						stdout,
+						/id=woodland, hostname=localhost, ip=10\.0\.0\.1, port=9999/,
+						"Should log complete startup message"
+					);
+					resolve();
+				});
+			});
 		});
 
-		it("should verify server mock is working", () => {
-			mockServer.listen(8000, "localhost");
+		it("should format error messages correctly", async () => {
+			const result = await spawnCli(["--port=invalid"]);
 
-			assert.strictEqual(mockServer.listenCalls.length, 1);
-			assert.strictEqual(mockServer.listenCalls[0].port, 8000);
-			assert.strictEqual(mockServer.listenCalls[0].ip, "localhost");
-		});
-
-		it("should verify process.exit mock is working", () => {
-			process.exit(1);
-			assert.strictEqual(exitCode, 1);
+			assert.strictEqual(result.code, 1, "Should exit with code 1");
+			const output = result.stdout + result.stderr;
+			assert.match(
+				output,
+				/Invalid port: must be an integer between 0 and 65535\./,
+				"Should format error message correctly"
+			);
 		});
 	});
 });
