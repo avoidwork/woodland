@@ -2363,6 +2363,42 @@ describe("Woodland Decorate Method and Header Manipulation", () => {
 		}
 	});
 
+	it("should set CORS allow headers for OPTIONS requests with valid request headers", () => {
+		const corsApp = new Woodland({
+			origins: ["*"],
+			logging: { enabled: false }
+		});
+
+		mockReq.method = "OPTIONS";
+		mockReq.headers.origin = "https://example.com";
+		mockReq.headers.host = "api.mysite.com"; // Different host to make it cross-origin
+		mockReq.headers["access-control-request-headers"] = "content-type,authorization";
+
+		corsApp.decorate(mockReq, mockRes);
+
+		// Should set access-control-allow-headers for OPTIONS requests
+		const allowHeaders = mockRes.getHeader("access-control-allow-headers");
+		assert.strictEqual(allowHeaders, "content-type,authorization", "Should set allow headers for OPTIONS requests with valid request headers");
+	});
+
+	it("should set CORS expose headers for non-OPTIONS requests with valid corsExpose", () => {
+		const corsApp = new Woodland({
+			origins: ["*"],
+			logging: { enabled: false }
+		});
+
+		corsApp.corsExpose = "x-custom-header,x-response-time";
+		mockReq.method = "GET";
+		mockReq.headers.origin = "https://example.com";
+		mockReq.headers.host = "api.mysite.com"; // Different host to make it cross-origin
+
+		corsApp.decorate(mockReq, mockRes);
+
+		// Should set access-control-expose-headers for non-OPTIONS requests
+		const exposeHeaders = mockRes.getHeader("access-control-expose-headers");
+		assert.strictEqual(exposeHeaders, "x-custom-header,x-response-time", "Should set expose headers for non-OPTIONS requests with valid corsExpose");
+	});
+
 	it("should initialize precise timer when timing enabled", () => {
 		app.decorate(mockReq, mockRes);
 
