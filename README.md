@@ -992,7 +992,7 @@ npm test
 ### Test Results
 
 ```
-460 passing (6s)
+463 passing (6s)
 1 pending
 
 --------------|---------|----------|---------|---------|-------------------
@@ -1008,7 +1008,7 @@ All files     |     100 |      100 |     100 |     100 |
 
 ### Test Categories
 
-- **CLI Tests (100% coverage)** - Argument parsing, port/IP validation, server startup with HTTP verification, error handling, logging configuration, edge cases
+- **CLI Tests (100% coverage)** - Argument parsing, IPv4/IPv6 validation, server startup with HTTP verification, error handling, logging configuration, edge cases
 - **Security Integration Tests** - Path traversal protection, IP security, CORS enforcement, autoindex security, security headers
 - **Constants Tests** - HTTP methods, status codes, headers, content types, server info, export validation
 - **Security Utility Functions** - Canonical path validation, HTML escaping, IPv4/IPv6 validation, header sanitization
@@ -1020,6 +1020,14 @@ All files     |     100 |      100 |     100 |     100 |
 - **Serve Method Tests** - Text files, HTML files, binary files, 404 handling, directory redirection, index files, autoindex, nested paths, large files
 - **Middleware Tests** - Execution order, error propagation, parameterized routes, exit functionality, wildcard middleware
 - **Response Helper Tests** - JSON responses, redirects, header manipulation, status codes, error handling
+
+### Recent Test Improvements
+
+- **Enhanced CLI Testing**: Added comprehensive IPv6 address validation tests covering valid addresses (`::1`, `2001:db8::1`, `fe80::1`) and invalid addresses (`:::`, `2001:db8::1::2`, `gggg::1`)
+- **IP Validation Security**: Fixed and tested IPv6 validation logic to prevent malformed addresses like `:::`
+- **Error Message Coverage**: Complete testing of updated error messages for IPv4/IPv6 support
+- **Process Integration**: Real HTTP server testing with actual request verification ensures functional correctness
+- **Security Edge Cases**: Comprehensive testing of path traversal protection, header injection prevention, and CORS validation
 
 ### Writing Tests
 
