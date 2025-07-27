@@ -398,7 +398,7 @@ graph TB
     end
     
     subgraph "New Canonical Path Approach ✅"
-        A2[Input: %2E%2E%2F] --> B2[resolve() + join()]
+        A2[Input: %2E%2E%2F] --> B2[resolve + join]
         B2 --> C2[Canonical: /etc/passwd]
         C2 --> D2[Containment Check]
         D2 --> E2[🛡️ Attack Blocked]
