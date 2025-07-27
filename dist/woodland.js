@@ -750,6 +750,10 @@ class Woodland extends EventEmitter {
 		if (this.etags !== null) {
 			this.get(this.etags.middleware).ignore(this.etags.middleware);
 		}
+
+		if (this.origins.length > INT_0) {
+			this.options((req, res) => res.stats(204).send(EMPTY));
+		}
 	}
 
 	/**
@@ -1203,10 +1207,6 @@ class Woodland extends EventEmitter {
 
 		if (this.listenerCount(evf) > INT_0) {
 			res.on(evf, () => this.emit(evf, req, res));
-		}
-
-		if (method === OPTIONS && this.allowed(method, req.parsed.pathname) === false) {
-			method = GET; // Changing an OPTIONS request to GET due to absent route
 		}
 
 		this.log(`type=route, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ROUTING}"`);
