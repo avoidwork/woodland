@@ -1216,8 +1216,8 @@ class Woodland extends node_events.EventEmitter {
 	 */
 	route (req, res) {
 		const evc = CONNECT.toLowerCase(),
-			evf = FINISH;
-		let method = req.method === HEAD ? GET : req.method;
+			evf = FINISH,
+			method = req.method === HEAD ? GET : req.method;
 
 		this.decorate(req, res);
 

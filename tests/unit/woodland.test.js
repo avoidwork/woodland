@@ -2322,6 +2322,26 @@ describe("Woodland Middleware Execution and Error Propagation", () => {
 
 		app.route(mockReq, mockRes);
 	});
+
+	it("should convert HEAD request to GET for routing", done => {
+		// Track which method was used internally
+		let routedMethod = null;
+
+		// Set up a GET route
+		app.get("/test", (req, res) => {
+			// This should be called even for HEAD requests
+			routedMethod = req.method; // This should still be HEAD
+			res.send("Test response");
+
+			// Verify that HEAD request gets routed to GET handler
+			assert.strictEqual(routedMethod, "HEAD", "Original request method should be preserved");
+			done();
+		});
+
+		// Make a HEAD request
+		mockReq.method = "HEAD";
+		app.route(mockReq, mockRes);
+	});
 });
 
 
