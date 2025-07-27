@@ -101,8 +101,8 @@ export const INT_10 = 10;
 export const INT_60 = 60;
 export const INT_1e3 = 1e3;
 export const INT_1e4 = 1e4;
-export const INT_65535 = 65535;
 export const INT_1e6 = 1e6;
+export const INT_65535 = 65535;
 
 // =============================================================================
 // STRING & CHARACTER CONSTANTS
