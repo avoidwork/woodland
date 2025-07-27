@@ -607,6 +607,9 @@ woodland
 # Custom IP and port
 woodland --ip=0.0.0.0 --port=3000
 
+# Disable logging
+woodland --logging=false
+
 # Serve specific directory
 cd /path/to/files && woodland
 ```
@@ -617,6 +620,7 @@ cd /path/to/files && woodland
 |--------|---------|-------------|
 | `--ip` | `127.0.0.1` | Server IP address |
 | `--port` | `8000` | Server port |
+| `--logging` | `true` | Enable/disable request logging |
 
 ### Example Output
 

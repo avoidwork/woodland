@@ -608,6 +608,35 @@ app.list(method, type);
 
 ## Deployment Patterns
 
+### CLI Deployment
+
+For quick development, testing, or simple static file serving, Woodland includes a built-in CLI:
+
+```bash
+# Basic usage - serve current directory
+woodland
+
+# Custom configuration
+woodland --ip=0.0.0.0 --port=3000 --logging=false
+
+# Available options
+# --ip: Server IP address (default: 127.0.0.1)
+# --port: Server port (default: 8000)  
+# --logging: Enable/disable request logging (default: true)
+```
+
+The CLI automatically configures Woodland with:
+- Auto-indexing enabled for directory browsing
+- Security headers and CORS protection
+- File serving with proper MIME types
+- Request logging in Common Log Format
+
+This deployment pattern is ideal for:
+- Local development servers
+- Quick file sharing
+- Static site previewing
+- Testing and prototyping
+
 ### Container Deployment
 
 ```mermaid
