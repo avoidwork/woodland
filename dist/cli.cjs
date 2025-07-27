@@ -4,7 +4,7 @@
  *
  * @copyright 2025 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.1.11
+ * @version 20.1.12
  */
 'use strict';
 
@@ -73,12 +73,12 @@ const argv = process.argv.filter(i => i.charAt(0) === HYPHEN && i.charAt(1) === 
 let validPort = Number(port);
 if (!Number.isInteger(validPort) || validPort < INT_0 || validPort > INT_65535) {
 	app.log("Invalid port: must be an integer between 0 and 65535.", ERROR);
-	process.exit(1);
+	process.nextTick(() => process.exit(1));
 }
 let validIP = typeof ip === "string" && (/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/).test(ip);
 if (!validIP) {
 	app.log("Invalid IP: must be a valid IPv4 address.", ERROR);
-	process.exit(1);
+	process.nextTick(() => process.exit(1));
 }
 
 app.files();
