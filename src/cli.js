@@ -2,7 +2,7 @@
 
 import {createServer} from "node:http";
 import {coerce} from "tiny-coerce";
-import {woodland} from "./woodland";
+import {woodland} from "woodland";
 import {
 	CACHE_CONTROL,
 	CHAR_SET,
