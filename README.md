@@ -9,7 +9,7 @@
   [![Node.js Version](https://img.shields.io/node/v/woodland.svg)](https://nodejs.org/)
   [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
   [![Build Status](https://github.com/avoidwork/woodland/actions/workflows/ci.yml/badge.svg)](https://github.com/avoidwork/woodland/actions)
-  [![Test Coverage](https://img.shields.io/badge/coverage-98.6%25-brightgreen.svg)](https://github.com/avoidwork/woodland)
+  [![Test Coverage](https://img.shields.io/badge/coverage-98.65%25-brightgreen.svg)](https://github.com/avoidwork/woodland)
   
 </div>
 
@@ -31,7 +31,7 @@
 
 🏆 **Proven Performance**: Comprehensive benchmarks show Woodland **outperforms raw Node.js by 29%, Express.js by 63%, and even Fastify by 1.6%**  
 ⚡ **Zero Compromise**: Get all the framework features you need with better performance than hand-coding  
-🚀 **Battle-Tested**: 98.6% test coverage, production-ready security, and enterprise-grade reliability  
+🚀 **Battle-Tested**: 98.65% test coverage with 407 comprehensive tests, production-ready security, and enterprise-grade reliability  
 🔧 **Developer Experience**: Express-compatible API means zero learning curve for your team  
 
 **The Result?** Your applications run faster, your servers handle more traffic, and your infrastructure costs less.
@@ -614,7 +614,7 @@ woodland --logging=false
 cd /path/to/files && woodland
 ```
 
-The CLI is fully tested with comprehensive unit tests covering argument parsing, validation, server configuration, and error handling scenarios.
+The CLI achieves **100% test coverage** with comprehensive unit tests covering argument parsing, validation, server configuration, error handling scenarios, and actual HTTP request serving verification.
 
 ### CLI Options
 
@@ -818,7 +818,7 @@ node benchmark.js utility -i 500 -w 50
 
 ### Test Coverage
 
-Woodland maintains **98.6%** statement coverage with comprehensive testing across all features:
+Woodland maintains **98.65%** statement coverage with comprehensive testing across all features. The CLI module achieves **100% coverage** with rigorous testing of all code paths including successful server startup.
 
 ```bash
 npm test
@@ -827,13 +827,14 @@ npm test
 ### Test Results
 
 ```
-407 passing (319ms)
+407 passing (5s)
 1 pending
 
 --------------|---------|----------|---------|---------|-----------------------------------------
 File          | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                       
 --------------|---------|----------|---------|---------|-----------------------------------------
-All files     |    98.6 |    94.76 |     100 |    98.6 |                                         
+All files     |   98.65 |    94.97 |     100 |   98.65 |                                         
+ cli.js       |     100 |      100 |     100 |     100 |                                         
  constants.js |     100 |      100 |     100 |     100 |                                         
  utility.js   |   99.09 |    97.76 |     100 |   99.09 | 412-415                                 
  woodland.js  |   98.09 |    92.59 |     100 |   98.09 | 395-397,520-526,730-731,792-796,883-884 
@@ -842,17 +843,17 @@ All files     |    98.6 |    94.76 |     100 |    98.6 |
 
 ### Test Categories
 
-- **CLI Tests** - Argument parsing, port/IP validation, server startup, error handling, mock verification
-- **Security Integration Tests** - Path traversal, IP security, CORS, autoindex security, security headers
-- **Constants Tests** - HTTP methods, status codes, headers, content types, server info
-- **Security Utility Functions** - File path validation, sanitization, HTML escaping
-- **Utility Functions** - Autoindex, status resolution, MIME detection, parameter parsing, URL processing
-- **Woodland Core Tests** - Constructor, HTTP method handlers, middleware, routing, CORS
-- **Stream Method Tests** - File headers, different file types, range requests, ETags
-- **Range Request Tests** - String content, invalid ranges, streams, partial content
-- **Cache Functionality** - Route caching, allows caching, cache eviction, permissions
+- **CLI Tests (100% coverage)** - Argument parsing, port/IP validation, server startup with HTTP verification, error handling, logging configuration, edge cases
+- **Security Integration Tests** - Path traversal protection, IP security, CORS enforcement, autoindex security, security headers
+- **Constants Tests** - HTTP methods, status codes, headers, content types, server info, export validation
+- **Security Utility Functions** - File path validation, sanitization, HTML escaping, IPv4/IPv6 validation
+- **Utility Functions** - Autoindex generation, status resolution, MIME detection, parameter parsing, URL processing, timing utilities
+- **Woodland Core Tests** - Constructor configuration, HTTP method handlers, middleware registration, routing, CORS handling
+- **Stream Method Tests** - File headers, different file types, range requests, ETags, binary files
+- **Range Request Tests** - String content, invalid ranges, streams, partial content delivery
+- **Cache Functionality** - Route caching, allows caching, cache eviction, permissions caching
 - **Serve Method Tests** - Text files, HTML files, binary files, 404 handling, directory redirection, index files, autoindex, nested paths, large files
-- **Middleware Tests** - Execution order, error propagation, parameterized routes, exit functionality
+- **Middleware Tests** - Execution order, error propagation, parameterized routes, exit functionality, wildcard middleware
 - **Response Helper Tests** - JSON responses, redirects, header manipulation, status codes, error handling
 
 ### Writing Tests
