@@ -15,7 +15,10 @@ import {
 	writeHead,
 	isSafeFilePath,
 	sanitizeFilePath,
-	isValidIP
+	isValidIP,
+	isValidOrigin,
+	sanitizeHeaderValue,
+	isValidHeaderValue
 } from "../../src/utility.js";
 
 describe("utility", () => {
@@ -648,6 +651,22 @@ describe("utility", () => {
 			assert.ok(result instanceof URL);
 			assert.strictEqual(result.hostname, "localhost");
 			assert.strictEqual(result.port, "3000");
+		});
+
+		it("should handle connection key that results in empty string after regex", () => {
+			const req = {
+				headers: {},
+				url: "/test",
+				socket: {
+					server: {
+						_connectionKey: "::" // This will result in empty string after replace, triggering fallback
+					}
+				}
+			};
+			const result = parse(req);
+			assert.ok(result instanceof URL);
+			assert.strictEqual(result.hostname, "localhost");
+			assert.strictEqual(result.port, "8000"); // Should fallback to default when replace results in empty string
 		});
 	});
 
@@ -1317,6 +1336,193 @@ describe("utility", () => {
 			assert.strictEqual(isValidIP("2001:db8::1"), true); // this should be valid
 			assert.strictEqual(isValidIP("2001:db8:1:"), false); // trailing colon creates empty group
 			assert.strictEqual(isValidIP(":2001:db8:1"), false); // leading colon creates empty group
+		});
+	});
+
+	describe("isValidOrigin", () => {
+		it("should return true for valid HTTP origins", () => {
+			assert.strictEqual(isValidOrigin("http://example.com"), true);
+			assert.strictEqual(isValidOrigin("http://localhost:3000"), true);
+			assert.strictEqual(isValidOrigin("http://192.168.1.1:8080"), true);
+		});
+
+		it("should return true for valid HTTPS origins", () => {
+			assert.strictEqual(isValidOrigin("https://example.com"), true);
+			assert.strictEqual(isValidOrigin("https://secure.example.com"), true);
+			assert.strictEqual(isValidOrigin("https://api.example.com:443"), true);
+		});
+
+		it("should return false for non-string inputs", () => {
+			assert.strictEqual(isValidOrigin(null), false);
+			assert.strictEqual(isValidOrigin(undefined), false);
+			assert.strictEqual(isValidOrigin(123), false);
+			assert.strictEqual(isValidOrigin({}), false);
+			assert.strictEqual(isValidOrigin([]), false);
+		});
+
+		it("should return false for empty string", () => {
+			assert.strictEqual(isValidOrigin(""), false);
+		});
+
+		it("should return false for origins with carriage return", () => {
+			assert.strictEqual(isValidOrigin("http://example.com\r"), false);
+			assert.strictEqual(isValidOrigin("http://example\r.com"), false);
+		});
+
+		it("should return false for origins with newline", () => {
+			assert.strictEqual(isValidOrigin("http://example.com\n"), false);
+			assert.strictEqual(isValidOrigin("http://example\n.com"), false);
+		});
+
+		it("should return false for origins with null bytes", () => {
+			assert.strictEqual(isValidOrigin("http://example.com\u0000"), false);
+			assert.strictEqual(isValidOrigin("http://example\u0000.com"), false);
+		});
+
+		it("should return false for origins with control characters", () => {
+			// Backspace (8)
+			assert.strictEqual(isValidOrigin("http://example.com" + String.fromCharCode(8)), false);
+			// Vertical tab (11)
+			assert.strictEqual(isValidOrigin("http://example.com" + String.fromCharCode(11)), false);
+			// Form feed (12)
+			assert.strictEqual(isValidOrigin("http://example.com" + String.fromCharCode(12)), false);
+		});
+
+		it("should return false for origins not starting with http:// or https://", () => {
+			assert.strictEqual(isValidOrigin("ftp://example.com"), false);
+			assert.strictEqual(isValidOrigin("ws://example.com"), false);
+			assert.strictEqual(isValidOrigin("example.com"), false);
+			assert.strictEqual(isValidOrigin("://example.com"), false);
+			assert.strictEqual(isValidOrigin("file://path/to/file"), false);
+		});
+
+		it("should handle complex valid origins", () => {
+			assert.strictEqual(isValidOrigin("https://subdomain.example.com:8443/path"), true);
+			assert.strictEqual(isValidOrigin("http://user:pass@example.com:8080"), true);
+		});
+	});
+
+	describe("sanitizeHeaderValue", () => {
+		it("should return empty string for non-string inputs", () => {
+			assert.strictEqual(sanitizeHeaderValue(null), "");
+			assert.strictEqual(sanitizeHeaderValue(undefined), "");
+			assert.strictEqual(sanitizeHeaderValue(123), "");
+			assert.strictEqual(sanitizeHeaderValue({}), "");
+			assert.strictEqual(sanitizeHeaderValue([]), "");
+		});
+
+		it("should return empty string for empty string input", () => {
+			assert.strictEqual(sanitizeHeaderValue(""), "");
+		});
+
+		it("should remove carriage return characters", () => {
+			assert.strictEqual(sanitizeHeaderValue("value\rwith\rcarriage"), "valuewithcarriage");
+			assert.strictEqual(sanitizeHeaderValue("start\rend"), "startend");
+		});
+
+		it("should remove newline characters", () => {
+			assert.strictEqual(sanitizeHeaderValue("value\nwith\nnewline"), "valuewithnewline");
+			assert.strictEqual(sanitizeHeaderValue("start\nend"), "startend");
+		});
+
+		it("should remove both carriage return and newline", () => {
+			assert.strictEqual(sanitizeHeaderValue("value\r\nwith\r\nboth"), "valuewithboth");
+		});
+
+		it("should remove null bytes", () => {
+			assert.strictEqual(sanitizeHeaderValue("value\u0000with\u0000null"), "valuewithnull");
+			assert.strictEqual(sanitizeHeaderValue("start\u0000end"), "startend");
+		});
+
+		it("should remove control characters", () => {
+			// Backspace (8)
+			assert.strictEqual(sanitizeHeaderValue("value" + String.fromCharCode(8) + "test"), "valuetest");
+			// Vertical tab (11)
+			assert.strictEqual(sanitizeHeaderValue("value" + String.fromCharCode(11) + "test"), "valuetest");
+			// Form feed (12)
+			assert.strictEqual(sanitizeHeaderValue("value" + String.fromCharCode(12) + "test"), "valuetest");
+		});
+
+		it("should trim whitespace", () => {
+			assert.strictEqual(sanitizeHeaderValue("  value  "), "value");
+			assert.strictEqual(sanitizeHeaderValue("\t value \t"), "value");
+		});
+
+		it("should preserve normal header values", () => {
+			assert.strictEqual(sanitizeHeaderValue("application/json"), "application/json");
+			assert.strictEqual(sanitizeHeaderValue("Bearer token123"), "Bearer token123");
+			assert.strictEqual(sanitizeHeaderValue("text/html; charset=utf-8"), "text/html; charset=utf-8");
+		});
+
+		it("should handle complex malicious input", () => {
+			const malicious = "value\r\nSet-Cookie: evil=true\r\n\u0000";
+			const result = sanitizeHeaderValue(malicious);
+			assert.strictEqual(result, "valueSet-Cookie: evil=true");
+			assert.ok(!result.includes("\r"));
+			assert.ok(!result.includes("\n"));
+			assert.ok(!result.includes("\u0000"));
+		});
+	});
+
+	describe("isValidHeaderValue", () => {
+		it("should return false for non-string inputs", () => {
+			assert.strictEqual(isValidHeaderValue(null), false);
+			assert.strictEqual(isValidHeaderValue(undefined), false);
+			assert.strictEqual(isValidHeaderValue(123), false);
+			assert.strictEqual(isValidHeaderValue({}), false);
+			assert.strictEqual(isValidHeaderValue([]), false);
+		});
+
+		it("should return false for empty string", () => {
+			assert.strictEqual(isValidHeaderValue(""), false);
+		});
+
+		it("should return false for values with carriage return", () => {
+			assert.strictEqual(isValidHeaderValue("value\rwith\rcarriage"), false);
+			assert.strictEqual(isValidHeaderValue("start\rend"), false);
+		});
+
+		it("should return false for values with newline", () => {
+			assert.strictEqual(isValidHeaderValue("value\nwith\nnewline"), false);
+			assert.strictEqual(isValidHeaderValue("start\nend"), false);
+		});
+
+		it("should return false for values with both carriage return and newline", () => {
+			assert.strictEqual(isValidHeaderValue("value\r\nwith\r\nboth"), false);
+		});
+
+		it("should return false for values with null bytes", () => {
+			assert.strictEqual(isValidHeaderValue("value\u0000with\u0000null"), false);
+			assert.strictEqual(isValidHeaderValue("start\u0000end"), false);
+		});
+
+		it("should return false for values with control characters", () => {
+			// Backspace (8)
+			assert.strictEqual(isValidHeaderValue("value" + String.fromCharCode(8) + "test"), false);
+			// Vertical tab (11)
+			assert.strictEqual(isValidHeaderValue("value" + String.fromCharCode(11) + "test"), false);
+			// Form feed (12)
+			assert.strictEqual(isValidHeaderValue("value" + String.fromCharCode(12) + "test"), false);
+		});
+
+		it("should return true for valid header values", () => {
+			assert.strictEqual(isValidHeaderValue("application/json"), true);
+			assert.strictEqual(isValidHeaderValue("Bearer token123"), true);
+			assert.strictEqual(isValidHeaderValue("text/html; charset=utf-8"), true);
+			assert.strictEqual(isValidHeaderValue("Mozilla/5.0 (compatible)"), true);
+		});
+
+		it("should return true for values with spaces and normal punctuation", () => {
+			assert.strictEqual(isValidHeaderValue("value with spaces"), true);
+			assert.strictEqual(isValidHeaderValue("value-with-dashes"), true);
+			assert.strictEqual(isValidHeaderValue("value_with_underscores"), true);
+			assert.strictEqual(isValidHeaderValue("value.with.dots"), true);
+		});
+
+		it("should handle complex header injection attempts", () => {
+			assert.strictEqual(isValidHeaderValue("value\r\nSet-Cookie: evil=true"), false);
+			assert.strictEqual(isValidHeaderValue("value\nLocation: http://evil.com"), false);
+			assert.strictEqual(isValidHeaderValue("value\u0000\r\nX-Evil: true"), false);
 		});
 	});
 });
