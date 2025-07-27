@@ -324,6 +324,38 @@ describe("CLI", () => {
 				assert.match(result.stdout, new RegExp(`ip=${ip.replace(/\./g, "\\.")}`), `Should use IP ${ip}`);
 			}
 		});
+
+		it("should accept valid IPv6 addresses", async () => {
+			const validIPv6s = ["::1", "2001:db8::1", "fe80::1"];
+
+			for (const ip of validIPv6s) {
+				const result = await spawnCliAndWaitForServer([`--ip=${ip}`]);
+				assert.match(result.stdout, new RegExp(`ip=${ip.replace(/[:.]/g, "\\$&")}`), `Should use IPv6 ${ip}`);
+			}
+		});
+
+		it("should reject invalid IPv6 addresses", async () => {
+			const invalidIPv6s = [":::", "2001:db8::1::2", "gggg::1", "2001:db8:1:2:3:4:5:6:7"];
+
+			for (const ip of invalidIPv6s) {
+				const result = await spawnCli([`--ip=${ip}`]);
+				assert.strictEqual(result.code, 1, `Should reject invalid IPv6 ${ip}`);
+				const output = result.stdout + result.stderr;
+				assert.match(output, /Invalid IP/, "Should log IP error");
+			}
+		});
+
+		it("should format IP error message correctly", async () => {
+			const result = await spawnCli(["--ip=invalid.ip"]);
+
+			assert.strictEqual(result.code, 1, "Should exit with code 1");
+			const output = result.stdout + result.stderr;
+			assert.match(
+				output,
+				/Invalid IP: must be a valid IPv4 or IPv6 address\./,
+				"Should format IP error message correctly"
+			);
+		});
 	});
 
 	/**

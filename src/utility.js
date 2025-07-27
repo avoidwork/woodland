@@ -380,6 +380,11 @@ export function isValidIP (ip) {
 			return false;
 		}
 
+		// Check for three or more consecutive colons (invalid)
+		if (ip.includes(":::")) {
+			return false;
+		}
+
 		// Handle IPv4-mapped IPv6 addresses (e.g., ::ffff:192.0.2.1)
 		const ipv4MappedMatch = ip.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i);
 		if (ipv4MappedMatch) {
