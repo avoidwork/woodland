@@ -17,10 +17,10 @@
 
 - **🏆 Performance Leader**: **29% faster than raw Node.js, 63% faster than Express.js, 1.6% faster than Fastify** - proven by benchmarks
 - **⚡ Zero Overhead**: Framework features with performance gains, not costs
-- **🔒 Security First**: Built-in CORS, ETags, and comprehensive security headers
+- **🔒 Security First**: Built-in CORS, canonical path validation, and comprehensive security headers
 - **🛤️ Smart Routing**: Parameter syntax (`/users/:id`) and RegExp support with caching
 - **🔧 Express Compatible**: Familiar middleware with `req, res, next` pattern
-- **📁 File Serving**: High-performance static file server with streaming
+- **📁 File Serving**: High-performance static file server with streaming and canonical path security
 - **📘 TypeScript Ready**: Full TypeScript definitions included
 - **📊 Production Logging**: Common Log Format with customizable levels
 - **🚀 Modern Architecture**: ES6+ modules optimized for Node.js 17+
@@ -125,6 +125,7 @@ const api = new MyAPI();
 - [Routing](#-routing)
 - [Middleware](#-middleware)
 - [Static Files](#-static-files)
+- [ETags & Caching](#-etags--caching)
 - [CORS](#-cors)
 - [Error Handling](#-error-handling)
 - [Response Helpers](#-response-helpers)
@@ -369,10 +370,31 @@ app.files("/static", "./public");
 // Serve with custom options
 app.get("/downloads/(.*)", (req, res) => {
   const filename = req.params[0];
-  const filepath = path.join("./downloads", filename);
   
-  // Custom file serving logic
+  // Enhanced security: serve() uses canonical path validation
+  // to prevent directory traversal attacks and symlink exploits
   app.serve(req, res, filename, "./downloads");
+});
+```
+
+### Enhanced Security Features
+
+Woodland's `serve()` method implements **canonical path validation** for robust security:
+
+```javascript
+// All file serving automatically includes:
+// ✅ Canonical path resolution (resolve() + containment validation)
+// ✅ Directory traversal protection (prevents ../../../etc/passwd)
+// ✅ Symlink attack prevention (follows symlinks before validation)
+// ✅ Cross-platform security (Windows, macOS, Linux)
+// ✅ Comprehensive logging of security events
+
+app.get("/secure-files/(.*)", (req, res) => {
+  const filename = req.params[0];
+  
+  // Woodland automatically validates that the resolved path
+  // stays within the base directory - no additional security needed
+  app.serve(req, res, filename, "./secure-directory");
 });
 ```
 
@@ -385,6 +407,149 @@ const app = woodland({
 });
 
 app.files("/", "./public");
+```
+
+## 🏷️ ETags & Caching
+
+### What are ETags?
+
+**ETags (Entity Tags)** are HTTP response headers that provide efficient caching by uniquely identifying resource versions. When a file changes, its ETag changes, allowing browsers and CDNs to cache resources intelligently.
+
+**Benefits:**
+- **Reduce Bandwidth**: Skip transferring unchanged files (HTTP 304 responses)
+- **Improve Performance**: Faster page loads with efficient caching
+- **Save Server Resources**: Less processing for unchanged content
+- **Automatic Management**: Woodland handles ETag generation automatically
+
+### ETag Configuration
+
+```javascript
+const app = woodland({
+  etags: true,  // Enable ETag generation (default: true)
+  time: true    // Add response time headers
+});
+
+// ETags are automatically generated for:
+// ✅ File serving (based on file stats: size, mtime, inode)
+// ✅ Static content responses
+// ✅ JSON responses
+// ✅ All GET and HEAD requests
+```
+
+### How ETags Work
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Woodland
+    participant FileSystem
+    
+    Note over Client,FileSystem: First Request
+    Client->>Woodland: GET /file.js
+    Woodland->>FileSystem: Read file stats
+    FileSystem->>Woodland: {size, mtime, inode}
+    Woodland->>Woodland: Generate ETag: "123-456-789"
+    Woodland->>Client: 200 OK + ETag: "123-456-789"
+    
+    Note over Client,FileSystem: Subsequent Request
+    Client->>Woodland: GET /file.js<br/>If-None-Match: "123-456-789"
+    Woodland->>FileSystem: Check file stats
+    FileSystem->>Woodland: {size, mtime, inode} (unchanged)
+    Woodland->>Woodland: ETag matches!
+    Woodland->>Client: 304 Not Modified
+```
+
+### ETag Usage Examples
+
+```javascript
+// Automatic ETag generation for file serving
+app.files("/static", "./public");
+// Generates ETags like: "1024-1703123456789-98765"
+//                       ^^^^  ^^^^^^^^^^^^^ ^^^^^
+//                       size  modified-time inode
+
+// Custom ETag handling
+app.get("/api/data/:id", async (req, res) => {
+  const data = await getData(req.params.id);
+  
+  // Woodland automatically generates ETag for JSON responses
+  res.json(data);
+  // ETag based on stringified content hash
+});
+
+// Conditional requests with ETags
+app.get("/api/expensive-data", async (req, res) => {
+  const ifNoneMatch = req.headers['if-none-match'];
+  const data = await getExpensiveData();
+  const currentETag = generateETag(data);
+  
+  if (ifNoneMatch === currentETag) {
+    return res.status(304).send(); // Not Modified
+  }
+  
+  res.set({'ETag': currentETag});
+  res.json(data);
+});
+```
+
+### ETag Performance Impact
+
+```javascript
+// Performance comparison (Woodland benchmarks)
+Stream with ETags:    370,153 ops/sec  (0.0027ms avg)
+ETag generation:      366,024 ops/sec  (0.0027ms avg)
+Stream without ETags: ~340,000 ops/sec  (0.0029ms avg)
+
+// ETags provide net performance gain through:
+// ✅ Reduced bandwidth usage (304 responses)
+// ✅ Faster subsequent requests
+// ✅ Lower server processing for cached content
+// ✅ Improved user experience
+```
+
+### Advanced ETag Configuration
+
+```javascript
+// Fine-tune ETag behavior
+const app = woodland({
+  etags: true,
+  
+  // Custom ETag generation hook
+  onSend: (req, res, body, status, headers) => {
+    if (status === 200 && req.method === 'GET') {
+      // Custom ETag logic for specific content types
+      if (headers['content-type']?.includes('application/json')) {
+        headers.etag = `"custom-${hash(body)}"`;
+      }
+    }
+    return [body, status, headers];
+  }
+});
+
+// ETags work automatically with:
+app.get("/cached-content", (req, res) => {
+  res.json({data: "This will have an ETag"}); // ✅ Auto ETag
+});
+
+app.files("/assets", "./static"); // ✅ Auto ETags for all files
+```
+
+### ETag Best Practices
+
+1. **Keep ETags Enabled**: Default `etags: true` provides automatic optimization
+2. **Use with Cache Headers**: Combine ETags with `Cache-Control` for optimal caching
+3. **Monitor 304 Responses**: Track cache hit rates in your analytics
+4. **Test Conditional Requests**: Verify ETags work with your CDN/proxy setup
+
+```javascript
+// Optimal caching setup
+const app = woodland({
+  etags: true,
+  defaultHeaders: {
+    "Cache-Control": "public, max-age=3600", // 1 hour cache
+    "Vary": "Accept-Encoding"
+  }
+});
 ```
 
 ## 🌐 CORS
@@ -846,7 +1011,7 @@ All files     |     100 |      100 |     100 |     100 |
 - **CLI Tests (100% coverage)** - Argument parsing, port/IP validation, server startup with HTTP verification, error handling, logging configuration, edge cases
 - **Security Integration Tests** - Path traversal protection, IP security, CORS enforcement, autoindex security, security headers
 - **Constants Tests** - HTTP methods, status codes, headers, content types, server info, export validation
-- **Security Utility Functions** - File path validation, sanitization, HTML escaping, IPv4/IPv6 validation
+- **Security Utility Functions** - Canonical path validation, HTML escaping, IPv4/IPv6 validation, header sanitization
 - **Utility Functions** - Autoindex generation, status resolution, MIME detection, parameter parsing, URL processing, timing utilities
 - **Woodland Core Tests** - Constructor configuration, HTTP method handlers, middleware registration, routing, CORS handling
 - **Stream Method Tests** - File headers, different file types, range requests, ETags, binary files
