@@ -464,13 +464,7 @@ export function isValidOrigin (origin) {
 	}
 
 	// Basic URL validation - should start with http:// or https://
-	try {
-		const url = new URL(origin);
-
-		return url.protocol === "http:" || url.protocol === "https:";
-	} catch {
-		return false;
-	}
+	return origin.startsWith("http://") || origin.startsWith("https://");
 }
 
 /**
