@@ -440,3 +440,78 @@ export function isValidIP (ip) {
 
 	return false;
 }
+
+/**
+ * Validates if an Origin header value is safe to use in response headers
+ * @param {string} origin - Origin header value to validate
+ * @returns {boolean} True if origin is valid and safe
+ */
+export function isValidOrigin (origin) {
+	if (!origin || typeof origin !== "string") {
+		return false;
+	}
+
+	// Check for dangerous characters that could enable header injection
+	// Check for \r, \n, null, backspace, vertical tab, form feed
+	const hasCarriageReturn = origin.includes("\r");
+	const hasNewline = origin.includes("\n");
+	const hasNull = origin.includes("\u0000");
+	const hasControlChars = origin.includes(String.fromCharCode(8)) ||
+		origin.includes(String.fromCharCode(11)) ||
+		origin.includes(String.fromCharCode(12));
+	if (hasCarriageReturn || hasNewline || hasNull || hasControlChars) {
+		return false;
+	}
+
+	// Basic URL validation - should start with http:// or https://
+	try {
+		const url = new URL(origin);
+
+		return url.protocol === "http:" || url.protocol === "https:";
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Sanitizes a header value by removing potentially dangerous characters
+ * @param {string} headerValue - Header value to sanitize
+ * @returns {string} Sanitized header value
+ */
+export function sanitizeHeaderValue (headerValue) {
+	if (!headerValue || typeof headerValue !== "string") {
+		return EMPTY;
+	}
+
+	// Remove characters that could enable header injection
+	// Removes \r, \n, null, backspace, vertical tab, form feed
+	return headerValue
+		.replace(/[\r\n]/g, EMPTY)
+		.replace(new RegExp(String.fromCharCode(0), "g"), EMPTY)
+		.replace(new RegExp(String.fromCharCode(8), "g"), EMPTY)
+		.replace(new RegExp(String.fromCharCode(11), "g"), EMPTY)
+		.replace(new RegExp(String.fromCharCode(12), "g"), EMPTY)
+		.trim();
+}
+
+/**
+ * Validates if a header value is safe for use in HTTP headers
+ * @param {string} headerValue - Header value to validate
+ * @returns {boolean} True if header value is safe
+ */
+export function isValidHeaderValue (headerValue) {
+	if (!headerValue || typeof headerValue !== "string") {
+		return false;
+	}
+
+	// Check for characters that could enable header injection
+	// Check for \r, \n, null, backspace, vertical tab, form feed
+	const hasCarriageReturn = headerValue.includes("\r");
+	const hasNewline = headerValue.includes("\n");
+	const hasNull = headerValue.includes("\u0000");
+	const hasControlChars = headerValue.includes(String.fromCharCode(8)) ||
+		headerValue.includes(String.fromCharCode(11)) ||
+		headerValue.includes(String.fromCharCode(12));
+
+	return !(hasCarriageReturn || hasNewline || hasNull || hasControlChars);
+}

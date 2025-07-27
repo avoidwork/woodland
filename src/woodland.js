@@ -24,6 +24,8 @@ import {
 	CONNECT,
 	CONTENT_LENGTH,
 	CONTENT_RANGE,
+	CONTENT_SECURITY_POLICY,
+	CONTENT_SECURITY_POLICY_VALUE,
 	CONTENT_TYPE,
 	DEBUG,
 	DELETE,
@@ -115,7 +117,9 @@ import {
 	autoindex as aindex,
 	getStatus,
 	isSafeFilePath,
+	isValidHeaderValue,
 	isValidIP,
+	isValidOrigin,
 	mime,
 	ms,
 	next,
@@ -126,6 +130,7 @@ import {
 	pipeable,
 	reduce,
 	sanitizeFilePath,
+	sanitizeHeaderValue,
 	timeOffset,
 	writeHead
 } from "./utility.js";
@@ -177,6 +182,10 @@ export class Woodland extends EventEmitter {
 			}
 
 			defaultHeaders[X_POWERED_BY] = X_POWERED_BY_VALUE;
+
+			if (CONTENT_SECURITY_POLICY in defaultHeaders === false) {
+				defaultHeaders[CONTENT_SECURITY_POLICY] = CONTENT_SECURITY_POLICY_VALUE;
+			}
 		}
 
 		this.autoindex = autoindex;
@@ -348,12 +357,18 @@ export class Woodland extends EventEmitter {
 		if (req.cors) {
 			const headers = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
 
-			res.header(ACCESS_CONTROL_ALLOW_ORIGIN, req.headers.origin);
-			res.header(TIMING_ALLOW_ORIGIN, req.headers.origin);
+			// Validate and sanitize the origin header before using it
+			const origin = req.headers.origin;
+			if (isValidOrigin(origin)) {
+				res.header(ACCESS_CONTROL_ALLOW_ORIGIN, origin);
+				res.header(TIMING_ALLOW_ORIGIN, origin);
+			}
+
 			res.header(ACCESS_CONTROL_ALLOW_CREDENTIALS, TRUE);
 
-			if (headers !== void 0) {
-				res.header(req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS, headers);
+			if (headers !== void 0 && isValidHeaderValue(headers)) {
+				const sanitizedHeaders = sanitizeHeaderValue(headers);
+				res.header(req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS, sanitizedHeaders);
 			}
 
 			res.header(ACCESS_CONTROL_ALLOW_METHODS, req.allow);

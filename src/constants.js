@@ -62,6 +62,7 @@ export const X_CONTENT_TYPE_OPTIONS = "x-content-type-options";
 export const X_FORWARDED_FOR = "x-forwarded-for";
 export const X_POWERED_BY = "x-powered-by";
 export const X_RESPONSE_TIME = "x-response-time";
+export const CONTENT_SECURITY_POLICY = "content-security-policy";
 
 // =============================================================================
 // CONTENT TYPES & MEDIA
@@ -78,6 +79,7 @@ export const UTF_8 = "utf-8";
 // =============================================================================
 export const SERVER_VALUE = `${name}/${version}`;
 export const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform}/${process.arch}`;
+export const CONTENT_SECURITY_POLICY_VALUE = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none';";
 export const LOCALHOST = "127.0.0.1";
 export const INT_8000 = 8000;
 
