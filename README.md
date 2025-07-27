@@ -9,7 +9,7 @@
   [![Node.js Version](https://img.shields.io/node/v/woodland.svg)](https://nodejs.org/)
   [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
   [![Build Status](https://github.com/avoidwork/woodland/actions/workflows/ci.yml/badge.svg)](https://github.com/avoidwork/woodland/actions)
-  [![Test Coverage](https://img.shields.io/badge/coverage-98.89%25-brightgreen.svg)](https://github.com/avoidwork/woodland)
+  [![Test Coverage](https://img.shields.io/badge/coverage-99.7%25-brightgreen.svg)](https://github.com/avoidwork/woodland)
   
 </div>
 
@@ -31,7 +31,7 @@
 
 🏆 **Proven Performance**: Comprehensive benchmarks show Woodland **outperforms raw Node.js by 29%, Express.js by 63%, and even Fastify by 1.6%**  
 ⚡ **Zero Compromise**: Get all the framework features you need with better performance than hand-coding  
-🚀 **Battle-Tested**: 98.89% test coverage with 410 comprehensive tests, production-ready security, and enterprise-grade reliability  
+🚀 **Battle-Tested**: 99.7% test coverage with 416 comprehensive tests, production-ready security, and enterprise-grade reliability  
 🔧 **Developer Experience**: Express-compatible API means zero learning curve for your team  
 
 **The Result?** Your applications run faster, your servers handle more traffic, and your infrastructure costs less.
@@ -818,7 +818,7 @@ node benchmark.js utility -i 500 -w 50
 
 ### Test Coverage
 
-Woodland maintains **98.89%** statement coverage with comprehensive testing across all features. The CLI module achieves **100% coverage** with rigorous testing of all code paths including successful server startup, and the utility module achieves **100% line coverage** with comprehensive edge case testing.
+Woodland maintains **99.7%** statement coverage with comprehensive testing across all features. The CLI module achieves **100% coverage** with rigorous testing of all code paths including successful server startup, and the utility module achieves **100% line coverage** with comprehensive edge case testing.
 
 ```bash
 npm test
@@ -827,18 +827,18 @@ npm test
 ### Test Results
 
 ```
-410 passing (5s)
+416 passing (5s)
 1 pending
 
---------------|---------|----------|---------|---------|-----------------------------------------
-File          | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                       
---------------|---------|----------|---------|---------|-----------------------------------------
-All files     |   98.89 |    95.58 |     100 |   98.89 |                                         
- cli.js       |     100 |      100 |     100 |     100 |                                         
- constants.js |     100 |      100 |     100 |     100 |                                         
- utility.js   |     100 |    99.26 |     100 |     100 |                                         
- woodland.js  |   98.09 |    92.59 |     100 |   98.09 | 395-397,520-526,730-731,792-796,883-884 
---------------|---------|----------|---------|---------|-----------------------------------------
+--------------|---------|----------|---------|---------|-------------------
+File          | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+--------------|---------|----------|---------|---------|-------------------
+All files     |    99.7 |    96.83 |     100 |    99.7 |                   
+ cli.js       |     100 |      100 |     100 |     100 |                   
+ constants.js |     100 |      100 |     100 |     100 |                   
+ utility.js   |     100 |    99.26 |     100 |     100 | 197               
+ woodland.js  |   99.49 |    94.92 |     100 |   99.49 | 792-796           
+--------------|---------|----------|---------|---------|-------------------
 ```
 
 ### Test Categories
