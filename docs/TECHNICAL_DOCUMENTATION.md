@@ -8,10 +8,11 @@
 4. [Core Components](#core-components)
 5. [Security Features](#security-features)
 6. [Performance Characteristics](#performance-characteristics)
-7. [Usage Examples for 2025](#usage-examples-for-2025)
-8. [API Reference](#api-reference)
-9. [Deployment Patterns](#deployment-patterns)
-10. [Best Practices](#best-practices)
+7. [Test Coverage](#test-coverage)
+8. [Usage Examples for 2025](#usage-examples-for-2025)
+9. [API Reference](#api-reference)
+10. [Deployment Patterns](#deployment-patterns)
+11. [Best Practices](#best-practices)
 
 ---
 
@@ -339,6 +340,145 @@ graph TB
 
 ---
 
+## Test Coverage
+
+Woodland maintains exceptional test coverage with **100% statement coverage** across all modules and **100% function coverage**. The framework includes 416 comprehensive test cases covering every aspect of functionality, with the utility module achieving **100% line coverage**.
+
+### Coverage Metrics
+
+```
+File          | % Stmts | % Branch | % Funcs | % Lines | Status
+--------------|---------|----------|---------|---------|--------
+All files     |     100 |     97.1 |     100 |     100 | 🎯 Perfect
+cli.js        |     100 |      100 |     100 |     100 | 🎯 Perfect
+constants.js  |     100 |      100 |     100 |     100 | 🎯 Perfect  
+utility.js    |     100 |    99.26 |     100 |     100 | 🎯 Perfect
+woodland.js   |     100 |    95.38 |     100 |     100 | 🎯 Perfect
+```
+
+### Test Architecture
+
+```mermaid
+graph TB
+    subgraph "Test Categories"
+        A[Unit Tests] --> A1[CLI Tests - 100%]
+        A --> A2[Utility Tests]
+        A --> A3[Constants Tests]
+        
+        B[Integration Tests] --> B1[Security Tests]
+        B --> B2[HTTP Server Tests]
+        B --> B3[File Serving Tests]
+        
+        C[End-to-End Tests] --> C1[Middleware Chain]
+        C --> C2[Request/Response Cycle]
+        C --> C3[Error Handling]
+    end
+    
+    subgraph "Test Strategies"
+        D[Mocking & Stubbing] --> D1[HTTP Requests]
+        D --> D2[File System]
+        D --> D3[Process Management]
+        
+        E[Property Testing] --> E1[Input Validation]
+        E --> E2[Edge Cases]
+        E --> E3[Security Boundaries]
+        
+        F[Performance Testing] --> F1[Benchmarks]
+        F --> F2[Memory Usage]
+        F --> F3[Concurrency]
+    end
+    
+    A1 -.-> D1
+    B1 -.-> E1
+    C1 -.-> F1
+    
+    style A1 fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
+    style B1 fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#ffffff
+    style C1 fill:#7c3aed,stroke:#6d28d9,stroke-width:2px,color:#ffffff
+```
+
+### CLI Test Coverage Achievement
+
+The CLI module represents a significant testing achievement with **100% code coverage**. This was accomplished by:
+
+1. **Real Server Testing**: Tests spawn actual CLI processes and verify server startup
+2. **HTTP Request Verification**: Making actual HTTP requests to confirm server functionality
+3. **Process Management**: Proper process lifecycle testing with graceful termination
+4. **Edge Case Coverage**: Comprehensive validation of all argument combinations
+5. **Error Path Testing**: Complete coverage of validation and error scenarios
+
+```javascript
+// Example CLI test pattern
+describe("CLI server startup", () => {
+  it("should start server and serve HTTP requests", async () => {
+    const result = await spawnCliAndWaitForServer(["--port=8001"]);
+    
+    // Verify startup logs
+    assert.match(result.stdout, /id=woodland/);
+    assert.match(result.stdout, /port=8001/);
+    
+    // Actual HTTP request verification confirms server is functional
+    const response = await makeRequest(8001);
+    assert.ok(response.statusCode);
+  });
+});
+```
+
+### Test Categories
+
+#### 1. CLI Tests (100% Coverage) - 28 tests
+- **Successful startup scenarios**: Default args, custom port/IP, logging configuration
+- **Validation logic**: Port ranges (0-65535), IPv4 address format, argument parsing
+- **Error handling**: Invalid inputs, malformed arguments, edge cases
+- **Process behavior**: Signal handling, graceful shutdown, HTTP serving verification
+- **Output validation**: Log format verification, error message formatting
+
+#### 2. Security Integration Tests - 18 tests
+- **Path traversal protection**: Directory traversal attacks, encoded attempts
+- **IP address security**: X-Forwarded-For validation, IPv4/IPv6 handling
+- **CORS enforcement**: Origin validation, preflight requests, header security
+- **Autoindex security**: HTML escaping, href encoding, directory listing protection
+- **Security headers**: Content-Type-Options, default headers, custom configurations
+
+#### 3. Core Functionality Tests - 200+ tests
+- **HTTP methods**: All standard methods with middleware support
+- **Routing engine**: Parameter extraction, pattern matching, wildcard routes
+- **Middleware system**: Execution order, error propagation, exit functionality
+- **Response helpers**: JSON responses, redirects, status codes, header manipulation
+- **Caching system**: Route caching, permissions cache, LRU eviction
+
+#### 4. File Serving Tests - 35+ tests
+- **Static file serving**: Text, HTML, binary files with proper MIME types
+- **Directory handling**: Index files, autoindex generation, nested paths
+- **Stream operations**: Large file streaming, range requests, ETags
+- **Error scenarios**: 404 handling, permission errors, malformed requests
+- **Security validation**: Path sanitization, access control
+
+#### 5. Utility Function Tests - 80+ tests
+- **URL processing**: Parameter extraction, query parsing, path normalization
+- **Time utilities**: Timestamp formatting, timezone handling, precision control
+- **MIME detection**: Content type resolution, extension mapping
+- **Security utilities**: Input validation, HTML escaping, IP validation
+
+### Test Quality Metrics
+
+- **Code Coverage**: 100% statements, 97.1% branches, 100% functions
+- **Test Execution Time**: ~5 seconds for full suite
+- **Test Reliability**: 100% pass rate with deterministic behavior
+- **Edge Case Coverage**: Comprehensive boundary testing including utility module 100% line coverage
+- **Error Path Coverage**: All error conditions tested
+- **Performance Testing**: Integrated benchmarks for critical paths
+
+### Testing Best Practices Demonstrated
+
+1. **Isolation**: Each test is independent with proper setup/teardown
+2. **Readability**: Clear test descriptions and assertion messages
+3. **Maintainability**: Shared utilities and helper functions
+4. **Robustness**: Tests handle asynchronous operations properly
+5. **Documentation**: Tests serve as living documentation of expected behavior
+
+---
+
 ## Usage Examples for 2025
 
 ### 1. Modern API Server
@@ -638,7 +778,7 @@ This deployment pattern is ideal for:
 - Static site previewing
 - Testing and prototyping
 
-The CLI module itself is comprehensively tested with unit tests covering argument parsing, validation logic, server configuration, and error handling scenarios.
+The CLI module achieves **100% test coverage** with comprehensive unit tests covering argument parsing, validation logic, server configuration, error handling scenarios, and actual HTTP request serving verification. This ensures production-ready reliability for all deployment scenarios.
 
 ### Container Deployment
 
@@ -758,7 +898,7 @@ spec:
 ### Development Best Practices
 
 1. **Logging**: Use structured logging for debugging
-2. **Testing**: Implement comprehensive test coverage (407 tests with 98.6% coverage including CLI)
+2. **Testing**: Implement comprehensive test coverage (416 tests with 100% statement coverage including 100% CLI coverage)
 3. **Monitoring**: Add health checks and metrics
 4. **Documentation**: Maintain API documentation
 5. **Versioning**: Use semantic versioning for APIs

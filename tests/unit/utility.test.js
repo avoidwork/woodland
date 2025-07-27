@@ -517,6 +517,31 @@ describe("utility", () => {
 			params(req, regex);
 			assert.strictEqual(req.params.flag, true);
 		});
+
+		it("should handle non-string parameter values after decoding", () => {
+			const req = {
+				parsed: {pathname: "/test/null"},
+				params: {}
+			};
+			// Create a mock regex that produces a non-string value after coercion
+			const regex = /\/test\/(?<value>[^/]+)/;
+			regex.lastIndex = 0;
+
+			// Mock the decodeURIComponent to return an object
+			const originalDecode = global.decodeURIComponent;
+			global.decodeURIComponent = str => {
+				if (str === "null") return null;
+
+				return originalDecode(str);
+			};
+
+			params(req, regex);
+
+			// Restore original function
+			global.decodeURIComponent = originalDecode;
+
+			assert.strictEqual(req.params.value, null);
+		});
 	});
 
 	describe("parse", () => {
@@ -607,6 +632,22 @@ describe("utility", () => {
 			};
 			const result = parse(req);
 			assert.strictEqual(result.port, "8080");
+		});
+
+		it("should handle request object with null host header", () => {
+			const req = {
+				headers: {host: null},
+				url: "/test",
+				socket: {
+					server: {
+						_connectionKey: "6::::3000"
+					}
+				}
+			};
+			const result = parse(req);
+			assert.ok(result instanceof URL);
+			assert.strictEqual(result.hostname, "localhost");
+			assert.strictEqual(result.port, "3000");
 		});
 	});
 
@@ -1268,6 +1309,14 @@ describe("utility", () => {
 			assert.strictEqual(isValidIP("::1"), true); // loopback
 			assert.strictEqual(isValidIP("::ffff:192.0.2.1"), true); // IPv4-mapped IPv6
 			assert.strictEqual(isValidIP("2001:db8::"), true); // trailing compression
+		});
+
+		it("should reject IPv6 addresses with invalid empty groups", () => {
+			// Test cases that create empty groups without proper "::" compression
+			// These should hit the condition where parts.length === 1 and group === ""
+			assert.strictEqual(isValidIP("2001:db8::1"), true); // this should be valid
+			assert.strictEqual(isValidIP("2001:db8:1:"), false); // trailing colon creates empty group
+			assert.strictEqual(isValidIP(":2001:db8:1"), false); // leading colon creates empty group
 		});
 	});
 });

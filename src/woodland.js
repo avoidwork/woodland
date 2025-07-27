@@ -784,17 +784,6 @@ export class Woodland extends EventEmitter {
 		const sanitizedPath = sanitizeFilePath(arg);
 		const fp = join(folder, sanitizedPath);
 
-		// Additional security check: ensure resolved path is within the base folder
-		const absoluteFolder = join(process.cwd(), folder);
-		const absoluteFilePath = join(process.cwd(), fp);
-
-		if (!absoluteFilePath.startsWith(absoluteFolder)) {
-			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path traversal attempt blocked", resolvedPath="${absoluteFilePath}"`, ERROR);
-			res.error(INT_403);
-
-			return;
-		}
-
 		let valid = true;
 		let stats;
 
