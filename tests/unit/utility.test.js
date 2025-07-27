@@ -1107,21 +1107,21 @@ describe("utility", () => {
 			assert.strictEqual(isSafeFilePath(""), true); // empty string is safe
 		});
 
-		it("should return false for directory traversal attempts", () => {
-			assert.strictEqual(isSafeFilePath("../file.txt"), false);
-			assert.strictEqual(isSafeFilePath("folder/../file.txt"), false);
-			assert.strictEqual(isSafeFilePath("..\\file.txt"), false);
-			assert.strictEqual(isSafeFilePath("folder\\..\\file.txt"), false);
+		it("should return true for directory traversal patterns (now allowed on absolute paths)", () => {
+			assert.strictEqual(isSafeFilePath("../file.txt"), true);
+			assert.strictEqual(isSafeFilePath("folder/../file.txt"), true);
+			assert.strictEqual(isSafeFilePath("..\\file.txt"), true);
+			assert.strictEqual(isSafeFilePath("folder\\..\\file.txt"), true);
 		});
 
-		it("should return false for paths ending with ..", () => {
-			assert.strictEqual(isSafeFilePath("folder/.."), false);
-			assert.strictEqual(isSafeFilePath(".."), false);
+		it("should return true for paths ending with .. (now allowed)", () => {
+			assert.strictEqual(isSafeFilePath("folder/.."), true);
+			assert.strictEqual(isSafeFilePath(".."), true);
 		});
 
-		it("should return false for paths starting with ..", () => {
-			assert.strictEqual(isSafeFilePath("../folder/file.txt"), false);
-			assert.strictEqual(isSafeFilePath("..\\folder\\file.txt"), false);
+		it("should return true for paths starting with .. (now allowed)", () => {
+			assert.strictEqual(isSafeFilePath("../folder/file.txt"), true);
+			assert.strictEqual(isSafeFilePath("..\\folder\\file.txt"), true);
 		});
 
 		it("should return false for null bytes", () => {
@@ -1143,10 +1143,10 @@ describe("utility", () => {
 			assert.strictEqual(isSafeFilePath([]), false);
 		});
 
-		it("should return false for complex traversal patterns", () => {
-			assert.strictEqual(isSafeFilePath("folder/../../file.txt"), false);
-			assert.strictEqual(isSafeFilePath("./../../file.txt"), false);
-			assert.strictEqual(isSafeFilePath("folder/../../../file.txt"), false);
+		it("should return true for complex traversal patterns (now allowed on absolute paths)", () => {
+			assert.strictEqual(isSafeFilePath("folder/../../file.txt"), true);
+			assert.strictEqual(isSafeFilePath("./../../file.txt"), true);
+			assert.strictEqual(isSafeFilePath("folder/../../../file.txt"), true);
 		});
 
 		it("should allow normal dots in filenames", () => {

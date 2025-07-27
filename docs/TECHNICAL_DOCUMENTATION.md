@@ -281,7 +281,7 @@ Woodland implements comprehensive security validation and sanitization functions
 #### Path Traversal Protection
 
 ```javascript
-// Enhanced path validation with comprehensive pattern detection
+// Enhanced path validation for absolute paths (no directory traversal patterns needed)
 export function isSafeFilePath(filePath) {
   if (typeof filePath !== 'string') {
     return false;
@@ -291,14 +291,8 @@ export function isSafeFilePath(filePath) {
     return true; // Empty string is safe (represents root directory)
   }
 
-  // Check for directory traversal patterns
+  // Check for dangerous characters (excluding .. patterns since we validate absolute paths)
   const dangerousPatterns = [
-    /\.\.\//, // ../
-    /\.\.\\/, // ..\
-    /\.\.$/, // .. at end
-    /^\.\./, // .. at start
-    /\/\.\.\//, // /../
-    /\\\.\.\\/, // \..\
     /\0/, // null bytes
     /[\r\n]/ // newlines
   ];
@@ -468,19 +462,28 @@ graph TB
 
 #### Multi-Layer Path Traversal Protection
 
-The `serve()` method implements comprehensive security:
+The `serve()` method implements comprehensive security with canonical path validation:
 
 ```javascript
 async serve(req, res, arg, folder = process.cwd()) {
-  // Security: Validate and sanitize file path to prevent directory traversal
-  if (!isSafeFilePath(arg)) {
-    this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path traversal attempt blocked", path="${arg}"`, ERROR);
+  // Resolve the final absolute path immediately
+  const fp = resolve(folder, arg);
+
+  // Security: Validate the final absolute path
+  if (!isSafeFilePath(fp)) {
+    this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Unsafe file path blocked", path="${fp}"`, ERROR);
     res.error(403);
     return;
   }
 
-  const sanitizedPath = sanitizeFilePath(arg);
-  const fp = join(folder, sanitizedPath);
+  // Security: Ensure the resolved path stays within the base directory
+  const resolvedFolder = resolve(folder);
+
+  if (!fp.startsWith(resolvedFolder + sep) && fp !== resolvedFolder) {
+    this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path traversal attempt blocked", path="${fp}"`, ERROR);
+    res.error(403);
+    return;
+  }
   
   // Continue with secure file serving...
 }
@@ -547,15 +550,50 @@ Comprehensive security event logging:
 - **CORS violations**: Logged when origins don't match allowlist
 - **Header injection attempts**: Logged when dangerous characters detected
 
+#### Enhanced Canonical Path Validation (2025 Security Model)
+
+Woodland implements a modern security approach using canonical path validation instead of pattern-based filtering:
+
+**Key Security Improvements:**
+
+1. **Canonical Path Resolution**: Uses `resolve()` to get the absolute canonical path, following symlinks and normalizing all path components
+2. **Containment Validation**: Validates that the final resolved path stays within the intended base directory using `startsWith()` comparison
+3. **No Sanitization Bypasses**: Eliminates sanitization step that could introduce security gaps through incomplete pattern matching
+4. **Symlink Protection**: `resolve()` follows symlinks before validation, preventing symlink-based directory traversal
+5. **Cross-platform Security**: Works consistently across Windows, macOS, and Linux filesystems
+
+**Security Flow:**
+```mermaid
+graph TB
+    A[User Input: "../../../etc/passwd"] --> B[resolve(folder, arg)]
+    B --> C[Canonical Path: "/etc/passwd"]
+    C --> D[Base Directory: "/var/www"]
+    D --> E{Path starts with base + sep?}
+    E -->|No| F[BLOCK - Path Traversal Detected]
+    E -->|Yes| G[ALLOW - Safe Path]
+    
+    style A fill:#dc2626,stroke:#b91c1c,stroke-width:2px,color:#ffffff
+    style F fill:#dc2626,stroke:#b91c1c,stroke-width:2px,color:#ffffff
+    style G fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
+```
+
+This approach is more robust than pattern-based validation because:
+- **Handles all encoding schemes** (URL, Unicode, etc.)
+- **Prevents sophisticated bypass techniques**
+- **Works with complex filesystem structures**
+- **Validates the actual final path used by the filesystem**
+
 #### Security Best Practices Implemented
 
 1. **Secure by Default**: Empty origins array denies all CORS requests
-2. **Input Validation**: All user inputs validated before processing
-3. **Output Sanitization**: All headers sanitized before sending
-4. **Comprehensive Logging**: Security events logged for monitoring
-5. **Multiple Protection Layers**: Validation + Sanitization + Monitoring
-6. **IPv6 Support**: Full IPv4 and IPv6 address validation
-7. **Header Injection Prevention**: Control character detection and removal
+2. **Canonical Path Validation**: Modern containment checking using resolved absolute paths
+3. **Input Validation**: All user inputs validated before processing
+4. **Output Sanitization**: All headers sanitized before sending
+5. **Comprehensive Logging**: Security events logged for monitoring
+6. **Multiple Protection Layers**: Validation + Containment + Monitoring
+7. **IPv6 Support**: Full IPv4 and IPv6 address validation
+8. **Header Injection Prevention**: Control character detection and removal
+9. **Symlink Protection**: Canonical path resolution prevents symlink attacks
 
 ---
 

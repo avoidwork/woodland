@@ -1,5 +1,5 @@
 import {METHODS, STATUS_CODES} from "node:http";
-import {join} from "node:path";
+import {join, resolve, sep} from "node:path";
 import {EventEmitter} from "node:events";
 import {readdir, stat} from "node:fs/promises";
 import {createReadStream} from "node:fs";
@@ -129,7 +129,6 @@ import {
 	partialHeaders,
 	pipeable,
 	reduce,
-	sanitizeFilePath,
 	sanitizeHeaderValue,
 	timeOffset,
 	writeHead
@@ -788,16 +787,25 @@ export class Woodland extends EventEmitter {
 	 * @returns {Promise<void>} Promise that resolves when serving is complete
 	 */
 	async serve (req, res, arg, folder = process.cwd()) {
-		// Security: Validate and sanitize file path to prevent directory traversal
-		if (!isSafeFilePath(arg)) {
-			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path traversal attempt blocked", path="${arg}"`, ERROR);
+		const fp = resolve(folder, arg);
+
+		// Security: Validate the final absolute path
+		if (!isSafeFilePath(fp)) {
+			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Unsafe file path blocked", path="${fp}"`, ERROR);
 			res.error(INT_403);
 
 			return;
 		}
 
-		const sanitizedPath = sanitizeFilePath(arg);
-		const fp = join(folder, sanitizedPath);
+		// Security: Ensure the resolved path stays within the base directory
+		const resolvedFolder = resolve(folder);
+
+		if (!fp.startsWith(resolvedFolder + sep) && fp !== resolvedFolder) {
+			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path traversal attempt blocked", path="${fp}"`, ERROR);
+			res.error(INT_403);
+
+			return;
+		}
 
 		let valid = true;
 		let stats;

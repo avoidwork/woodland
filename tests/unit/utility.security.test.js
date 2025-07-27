@@ -7,25 +7,25 @@ import {
 
 describe("Security Utility Functions", () => {
 	describe("isSafeFilePath", () => {
-		it("should return false for paths with ../", () => {
-			assert.strictEqual(isSafeFilePath("../../../etc/passwd"), false);
-			assert.strictEqual(isSafeFilePath("dir/../file.txt"), false);
-			assert.strictEqual(isSafeFilePath("./../../file.txt"), false);
+		it("should return true for paths with ../ (now allowed on absolute paths)", () => {
+			assert.strictEqual(isSafeFilePath("../../../etc/passwd"), true);
+			assert.strictEqual(isSafeFilePath("dir/../file.txt"), true);
+			assert.strictEqual(isSafeFilePath("./../../file.txt"), true);
 		});
 
-		it("should return false for paths with ..\\ (Windows)", () => {
-			assert.strictEqual(isSafeFilePath("..\\..\\file.txt"), false);
-			assert.strictEqual(isSafeFilePath("dir\\..\\file.txt"), false);
+		it("should return true for paths with ..\\ (Windows, now allowed)", () => {
+			assert.strictEqual(isSafeFilePath("..\\..\\file.txt"), true);
+			assert.strictEqual(isSafeFilePath("dir\\..\\file.txt"), true);
 		});
 
-		it("should return false for paths ending with ..", () => {
-			assert.strictEqual(isSafeFilePath("dir/.."), false);
-			assert.strictEqual(isSafeFilePath(".."), false);
+		it("should return true for paths ending with .. (now allowed)", () => {
+			assert.strictEqual(isSafeFilePath("dir/.."), true);
+			assert.strictEqual(isSafeFilePath(".."), true);
 		});
 
-		it("should return false for paths starting with ..", () => {
-			assert.strictEqual(isSafeFilePath("../file.txt"), false);
-			assert.strictEqual(isSafeFilePath("..\\file.txt"), false);
+		it("should return true for paths starting with .. (now allowed)", () => {
+			assert.strictEqual(isSafeFilePath("../file.txt"), true);
+			assert.strictEqual(isSafeFilePath("..\\file.txt"), true);
 		});
 
 		it("should return false for paths with null bytes", () => {

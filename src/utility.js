@@ -306,7 +306,7 @@ export function writeHead (res, headers = {}) {
 }
 
 /**
- * Validates if a file path is safe and doesn't contain directory traversal sequences
+ * Validates if a file path is safe and doesn't contain dangerous characters
  * @param {string} filePath - The file path to validate
  * @returns {boolean} True if the path is safe, false otherwise
  */
@@ -320,14 +320,8 @@ export function isSafeFilePath (filePath) {
 		return true;
 	}
 
-	// Check for directory traversal patterns
+	// Check for dangerous characters (excluding .. patterns since join() normalizes absolute paths)
 	const dangerousPatterns = [
-		/\.\.\//, // ../
-		/\.\.\\/, // ..\
-		/\.\.$/, // .. at end
-		/^\.\./, // .. at start
-		/\/\.\.\//, // /../
-		/\\\.\.\\/, // \..\
 		/\0/, // null bytes
 		/[\r\n]/ // newlines
 	];
