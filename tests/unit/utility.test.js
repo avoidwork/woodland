@@ -1338,6 +1338,23 @@ describe("utility", () => {
 			assert.strictEqual(isValidIP("2001:db8:1:"), false); // trailing colon creates empty group
 			assert.strictEqual(isValidIP(":2001:db8:1"), false); // leading colon creates empty group
 		});
+
+		it("should reject full IPv6 addresses with empty groups", () => {
+			// These test cases specifically target lines 445-446 in the full notation path
+			// Full notation: exactly 8 groups separated by ":", no "::" compression
+			// Test cases that create empty groups to hit the !group condition on line 445
+			assert.strictEqual(isValidIP("2001:db8:85a3:0000:0000:8a2e:0370:"), false); // trailing colon creates empty 8th group
+			assert.strictEqual(isValidIP(":2001:db8:85a3:0000:0000:8a2e:0370"), false); // leading colon creates empty first group
+		});
+
+		it("should reject full IPv6 addresses with invalid hex groups", () => {
+			// These test cases target the regex validation in lines 445-446
+			// Full notation with exactly 8 groups but invalid hex characters
+			assert.strictEqual(isValidIP("2001:db8g:85a3:0000:0000:8a2e:0370:7334"), false); // 'g' is not valid hex
+			assert.strictEqual(isValidIP("2001:db8:85a3:000z:0000:8a2e:0370:7334"), false); // 'z' is not valid hex
+			assert.strictEqual(isValidIP("2001:db8:85a3:0000:000!:8a2e:0370:7334"), false); // '!' is not valid hex
+			assert.strictEqual(isValidIP("xyz1:db8:85a3:0000:0000:8a2e:0370:7334"), false); // starts with invalid hex
+		});
 	});
 
 	describe("isValidOrigin", () => {

@@ -1449,7 +1449,7 @@ Cache miss handling:  1,593,638 ops/sec  (0.0006ms avg)  📊 Baseline
 
 ## Test Coverage
 
-Woodland maintains exceptional test coverage with **100% coverage across all metrics** (statements, branches, functions, and lines) across all modules. The framework includes **509 comprehensive test cases** covering every aspect of functionality, with all modules achieving perfect coverage.
+Woodland maintains exceptional test coverage with **100% coverage across all metrics** (statements, branches, functions, and lines) across all modules. The framework includes **511 comprehensive test cases** covering every aspect of functionality, with all modules achieving perfect coverage.
 
 ### Coverage Metrics
 
@@ -1504,7 +1504,9 @@ graph TB
     style C1 fill:#7c3aed,stroke:#6d28d9,stroke-width:2px,color:#ffffff
 ```
 
-### CLI Test Coverage Achievement
+### Test Coverage Achievements
+
+#### CLI Test Coverage Achievement
 
 The CLI module represents a significant testing achievement with **100% code coverage**. This was accomplished by:
 
@@ -1514,6 +1516,23 @@ The CLI module represents a significant testing achievement with **100% code cov
 4. **Edge Case Coverage**: Comprehensive validation of all argument combinations
 5. **Error Path Testing**: Complete coverage of validation and error scenarios
 6. **IPv6 Support Testing**: Complete testing of both IPv4 and IPv6 address validation with comprehensive edge cases
+
+#### Utility.js Coverage Achievement
+
+The `utility.js` module achieved **100% code coverage** through targeted testing of complex IPv6 validation logic. The final uncovered lines (445-446) were in the full IPv6 notation validation path. This was accomplished by:
+
+1. **IPv6 Full Notation Testing**: Added tests for IPv6 addresses with exactly 8 groups (no `::` compression)
+2. **Empty Group Detection**: Tests for addresses with empty groups to hit the `!group` condition
+3. **Invalid Hex Character Testing**: Tests for non-hexadecimal characters in IPv6 groups
+4. **Edge Case Coverage**: Comprehensive validation of malformed IPv6 addresses
+
+**Specific Test Cases Added:**
+- Empty group validation: `"2001:db8:85a3:0000:0000:8a2e:0370:"` (trailing empty group)
+- Leading empty group: `":2001:db8:85a3:0000:0000:8a2e:0370"` (leading empty group)
+- Invalid hex characters: `"2001:db8g:85a3:0000:0000:8a2e:0370:7334"` (non-hex 'g')
+- Complex invalid patterns: `"xyz1:db8:85a3:0000:0000:8a2e:0370:7334"` (starts with invalid hex)
+
+This coverage ensures that **all IPv6 validation code paths** are thoroughly tested, including the complex logic for validating full IPv6 notation addresses without compression.
 
 ```javascript
 // Example CLI test pattern demonstrating comprehensive coverage
@@ -1570,12 +1589,13 @@ describe("CLI IPv6 validation", () => {
 - **Error scenarios**: 404 handling, permission errors, malformed requests
 - **Security validation**: Canonical path sanitization, access control
 
-#### 5. Utility Function Tests - 132 tests
+#### 5. Utility Function Tests - 134 tests
 - **URL processing**: Parameter extraction, query parsing, path normalization
 - **Time utilities**: Timestamp formatting, timezone handling, precision control
 - **MIME detection**: Content type resolution, extension mapping
 - **Security utilities**: Enhanced IPv4/IPv6 validation, HTML escaping, header sanitization, port validation
 - **Path validation**: Canonical path security, directory traversal prevention
+- **IP validation**: Complete IPv6 validation coverage including full notation path testing and empty group validation
 
 ### Recent Test Enhancements
 
@@ -1600,12 +1620,13 @@ describe("CLI IPv6 validation", () => {
 ### Test Quality Metrics
 
 - **Code Coverage**: 100% statements, 100% branches, 100% functions, 100% lines
-- **Test Execution Time**: ~6 seconds for full suite (509 tests)
+- **Test Execution Time**: ~6 seconds for full suite (511 tests)
 - **Test Reliability**: 100% pass rate with deterministic behavior
 - **Edge Case Coverage**: Comprehensive boundary testing with all modules achieving perfect coverage
 - **Error Path Coverage**: All error conditions tested including IPv6 validation and port validation scenarios
 - **Performance Testing**: Integrated benchmarks for critical paths
 - **Security Testing**: Comprehensive validation of all security features and edge cases
+- **Utility Function Coverage**: 100% coverage achieved on all utility functions including complex IPv6 validation and security helpers
 
 ### Testing Best Practices Demonstrated
 

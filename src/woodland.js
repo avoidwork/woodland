@@ -689,9 +689,12 @@ export class Woodland extends EventEmitter {
 	requestSizeLimit () {
 		const limit = this.maxUpload.byteSize;
 
+		// Optimized set for methods that don't have bodies
+		const noBodyMethods = new Set([GET, HEAD, OPTIONS]);
+
 		return (req, res, nextHandler) => { // eslint-disable-line consistent-return
 			// Skip validation for methods that don't typically have bodies
-			if (req.method === GET || req.method === HEAD || req.method === OPTIONS) {
+			if (noBodyMethods.has(req.method)) {
 				return nextHandler();
 			}
 
@@ -713,39 +716,47 @@ export class Woodland extends EventEmitter {
 				}
 			}
 
-			// Set up body size tracking for streaming requests without Content-Length
+			// Optimized streaming validation with early bailout
 			let bodySize = 0;
-			let sizeExceeded = false;
+			let isActive = true; // Single flag for all states
 
-			// Add our own event listeners without overriding req.on
-			req.on("data", chunk => {
-				if (sizeExceeded) {
-					return; // Already handling size exceeded
-				}
+			const cleanup = () => {
+				isActive = false;
+			};
+
+			// Optimized data handler with early return
+			const onData = chunk => {
+				if (!isActive) return;
 
 				bodySize += chunk.length;
 
 				if (bodySize > limit) {
-					sizeExceeded = true;
+					cleanup();
 					this.log(`type=requestSizeLimit, method=${req.method}, ip=${req.ip || "unknown"}, size=${bodySize}, limit=${limit}, message="Streaming request body size limit exceeded"`, ERROR);
 
-					// Destroy the request stream to stop reading
 					req.destroy();
-					res.error(INT_413); // 413 Payload Too Large
+					res.error(INT_413);
 				}
-			});
+			};
 
-			req.on("error", err => {
-				if (!sizeExceeded) {
+			const onError = err => {
+				if (isActive) {
+					cleanup();
 					res.error(INT_500, err);
 				}
-			});
+			};
 
-			req.on("end", () => {
-				if (!sizeExceeded) {
+			const onEnd = () => {
+				if (isActive) {
+					cleanup();
 					nextHandler();
 				}
-			});
+			};
+
+			// Attach optimized event handlers
+			req.on("data", onData);
+			req.on("error", onError);
+			req.on("end", onEnd);
 		};
 	}
 

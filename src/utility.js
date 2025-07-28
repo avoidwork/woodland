@@ -3,6 +3,7 @@ import {readFileSync} from "node:fs";
 import {STATUS_CODES} from "node:http";
 import {fileURLToPath, URL} from "node:url";
 import {coerce} from "tiny-coerce";
+import {lru} from "tiny-lru";
 import mimeDb from "mime-db";
 import {
 	APPLICATION_OCTET_STREAM,
@@ -50,7 +51,9 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url)),
 		}
 
 		return a;
-	}, {});
+	}, {}),
+	// Optimized caching for frequently called validation functions
+	ipValidationCache = lru(500, 300000); // Cache 500 IPs for 5 minutes
 
 /**
  * Escapes HTML special characters to prevent XSS attacks
@@ -320,6 +323,9 @@ export function writeHead (res, headers = {}) {
 	res.writeHead(res.statusCode, STATUS_CODES[res.statusCode], headers);
 }
 
+// Optimized dangerous character detection for file path validation - non-global for test, global for replace
+const DANGEROUS_PATH_CHARS = /[\r\n\0]/;
+
 /**
  * Validates if a file path is safe and doesn't contain dangerous characters
  * @param {string} filePath - The file path to validate
@@ -335,11 +341,9 @@ export function isSafeFilePath (filePath) {
 		return true;
 	}
 
-	// Check for dangerous characters (excluding .. patterns since join() normalizes absolute paths)
-	// Test for null bytes and newlines
-	return filePath.indexOf("\0") === -1 &&
-		filePath.indexOf("\r") === -1 &&
-		filePath.indexOf("\n") === -1;
+	// Check for dangerous characters using optimized regex test
+	// Test for null bytes and newlines (using non-global regex to avoid lastIndex issues)
+	return !DANGEROUS_PATH_CHARS.test(filePath);
 }
 
 /**
@@ -352,17 +356,101 @@ export function sanitizeFilePath (filePath) {
 		return EMPTY;
 	}
 
+	// Optimized single-pass sanitization using fresh regex instances to avoid state issues
 	return filePath
 		.replace(/\.\.\//g, EMPTY) // Remove ../
 		.replace(/\.\.\\\\?/g, EMPTY) // Remove ..\ (with optional second backslash)
-		.replace(/\0/g, EMPTY) // Remove null bytes
-		.replace(/[\r\n]/g, EMPTY) // Remove newlines
+		.replace(/[\r\n\0]/g, EMPTY) // Remove dangerous chars (fresh global regex instance)
 		.replace(/\/+/g, SLASH) // Normalize multiple slashes
 		.replace(/^\//, EMPTY); // Remove leading slash
 }
 
 /**
- * Validates if an IP address is properly formatted
+ * Internal function that performs the actual IP validation without caching
+ * @param {string} ip - IP address to validate
+ * @returns {boolean} True if IP is valid format
+ */
+function validateIPInternal (ip) {
+	// IPv4 validation - optimized with combined validation
+	if (!ip.includes(":")) {
+		const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+		const ipv4Match = ip.match(ipv4Regex);
+
+		if (ipv4Match) {
+			// Validate octets inline to avoid array creation and iteration
+			for (let i = 1; i <= 4; i++) {
+				const octet = parseInt(ipv4Match[i], 10);
+				if (octet > 255) {
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
+	// IPv6 validation - optimized for performance
+	// Early check for invalid patterns
+	if (ip.includes(":::") || !(/^[0-9a-fA-F:.]+$/).test(ip)) {
+		return false;
+	}
+
+	// Handle IPv4-mapped IPv6 addresses first (most common case)
+	const ipv4MappedMatch = ip.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i);
+	if (ipv4MappedMatch) {
+		return validateIPInternal(ipv4MappedMatch[1]);
+	}
+
+	// Special case for all-zeros
+	if (ip === "::") {
+		return true;
+	}
+
+	// Optimized IPv6 validation
+	const parts = ip.split("::");
+	if (parts.length > 2) {
+		return false;
+	}
+
+	// For compressed notation (::)
+	if (parts.length === 2) {
+		const leftGroups = parts[0] ? parts[0].split(":") : [];
+		const rightGroups = parts[1] ? parts[1].split(":") : [];
+
+		// Check group validity and count non-empty groups in single pass
+		let nonEmptyCount = 0;
+		for (const group of [...leftGroups, ...rightGroups]) {
+			if (group !== "") {
+				if (!(/^[0-9a-fA-F]{1,4}$/).test(group)) {
+					return false;
+				}
+				nonEmptyCount++;
+			}
+		}
+
+		return nonEmptyCount < 8; // Must be compressed
+	}
+
+	// Full notation (no ::)
+	const groups = ip.split(":");
+	if (groups.length !== 8) {
+		return false;
+	}
+
+	// Validate all groups in single pass
+	for (const group of groups) {
+		if (!group || !(/^[0-9a-fA-F]{1,4}$/).test(group)) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+/**
+ * Validates if an IP address is properly formatted with caching for performance
  * @param {string} ip - IP address to validate
  * @returns {boolean} True if IP is valid format
  */
@@ -371,86 +459,17 @@ export function isValidIP (ip) {
 		return false;
 	}
 
-	// Basic IPv4 validation
-	const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-	const ipv4Match = ip.match(ipv4Regex);
-
-	if (ipv4Match) {
-		const octets = ipv4Match.slice(1).map(Number);
-
-		// Check if all octets are valid (0-255)
-		if (octets.some(octet => octet > 255)) {
-			return false;
-		}
-
-		return true;
+	// Check cache first for performance optimization
+	const cached = ipValidationCache.get(ip);
+	if (cached !== undefined) {
+		return cached;
 	}
 
-	// IPv6 validation
-	if (ip.includes(":")) {
-		// Check for valid characters (hex digits, colons, and dots for IPv4-mapped addresses)
-		if (!(/^[0-9a-fA-F:.]+$/).test(ip)) {
-			return false;
-		}
+	// Perform validation and cache result
+	const result = validateIPInternal(ip);
+	ipValidationCache.set(ip, result);
 
-		// Check for three or more consecutive colons (invalid)
-		if (ip.includes(":::")) {
-			return false;
-		}
-
-		// Handle IPv4-mapped IPv6 addresses (e.g., ::ffff:192.0.2.1)
-		const ipv4MappedMatch = ip.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i);
-		if (ipv4MappedMatch) {
-			return isValidIP(ipv4MappedMatch[1]);
-		}
-
-		// Split on "::" to handle compressed notation
-		const parts = ip.split("::");
-		if (parts.length > 2) {
-			return false; // More than one "::" is invalid
-		}
-
-		let leftPart = parts[0] || "";
-		let rightPart = parts[1] || "";
-
-		// Split each part by ":"
-		const leftGroups = leftPart ? leftPart.split(":") : [];
-		const rightGroups = rightPart ? rightPart.split(":") : [];
-
-		// Check each group
-		const allGroups = [...leftGroups, ...rightGroups];
-		for (const group of allGroups) {
-			if (group === "") {
-				// Empty groups are only allowed in compressed notation context
-				if (parts.length === 1) {
-					return false; // Empty group without "::" compression
-				}
-			} else if (!(/^[0-9a-fA-F]{1,4}$/).test(group)) {
-				// Each group must be 1-4 hex digits
-				return false;
-			}
-		}
-
-		// Calculate total number of groups
-		const totalGroups = leftGroups.length + rightGroups.length;
-
-		if (parts.length === 2) {
-			// Compressed notation: total groups should be less than 8
-			// Special case: "::" alone represents all zeros
-			if (ip === "::") {
-				return true;
-			}
-			// Remove empty groups from count (they represent compressed zeros)
-			const nonEmptyGroups = allGroups.filter(g => g !== "").length;
-
-			return nonEmptyGroups <= 8 && nonEmptyGroups < 8; // Must be compressed (< 8 groups)
-		} else {
-			// Full notation: must have exactly 8 groups
-			return totalGroups === 8 && allGroups.every(g => g !== "");
-		}
-	}
-
-	return false;
+	return result;
 }
 
 /**
@@ -475,6 +494,19 @@ export function isValidOrigin (origin) {
 	return origin.startsWith("http://") || origin.startsWith("https://");
 }
 
+// Optimized dangerous character detection for header validation - non-global for test
+// eslint-disable-next-line no-control-regex
+const DANGEROUS_HEADER_CHARS = /[\r\n\0\x08\x0B\x0C]/;
+
+/**
+ * Checks if a header value contains dangerous characters that could enable header injection
+ * @param {string} headerValue - Header value to check
+ * @returns {boolean} True if dangerous characters are found
+ */
+function hasDangerousHeaderChars (headerValue) {
+	return DANGEROUS_HEADER_CHARS.test(headerValue);
+}
+
 /**
  * Sanitizes a header value by removing potentially dangerous characters
  * @param {string} headerValue - Header value to sanitize
@@ -485,15 +517,10 @@ export function sanitizeHeaderValue (headerValue) {
 		return EMPTY;
 	}
 
-	// Remove characters that could enable header injection
+	// Remove characters that could enable header injection using fresh regex instance to avoid state issues
 	// Removes \r, \n, null, backspace, vertical tab, form feed
-	return headerValue
-		.replace(/[\r\n]/g, EMPTY)
-		.replace(/\0/g, EMPTY)
-		.replace(new RegExp(String.fromCharCode(8), "g"), EMPTY) // backspace
-		.replace(new RegExp(String.fromCharCode(11), "g"), EMPTY) // vertical tab
-		.replace(new RegExp(String.fromCharCode(12), "g"), EMPTY) // form feed
-		.trim();
+	// eslint-disable-next-line no-control-regex
+	return headerValue.replace(/[\r\n\0\x08\x0B\x0C]/g, EMPTY).trim();
 }
 
 /**
@@ -506,11 +533,8 @@ export function isValidHeaderValue (headerValue) {
 		return false;
 	}
 
-	// Check for characters that could enable header injection
-	// Check for \r, \n, null, backspace, vertical tab, form feed
-	return headerValue.indexOf("\r") === -1 && headerValue.indexOf("\n") === -1 &&
-		headerValue.indexOf("\0") === -1 && headerValue.indexOf(String.fromCharCode(8)) === -1 &&
-		headerValue.indexOf(String.fromCharCode(11)) === -1 && headerValue.indexOf(String.fromCharCode(12)) === -1;
+	// Check for characters that could enable header injection using optimized regex
+	return !hasDangerousHeaderChars(headerValue);
 }
 
 /**
