@@ -136,39 +136,28 @@ node benchmark.js comparison -i 500 -w 50
 
 ### 1. Framework Comparison Benchmarks (`benchmarks/comparison.js`)
 
-**Revolutionary discovery**: Compares Woodland framework performance against all major Node.js HTTP frameworks including raw Node.js HTTP module, Express.js framework, and Fastify framework to measure framework overhead and optimizations.
+Tests the performance of Woodland against other popular Node.js web frameworks:
 
-**Key Findings:**
-- Fastify framework: **14,367 ops/sec** (0.070ms avg) 🥇 **FASTEST**
-- Woodland framework: **13,169 ops/sec** (0.076ms avg) 🥈 **Close second**
-- Raw Node.js HTTP: **10,342 ops/sec** (0.097ms avg) 🥉 **Third place**
-- Express.js framework: **8,114 ops/sec** (0.123ms avg)
-- **Woodland performance: +27% faster than raw Node.js, +62% faster than Express.js, -8% slower than Fastify**
+- Raw Node.js HTTP server
+- Express.js 
+- Fastify
+- Woodland
 
-**Test Methodology:**
-- Identical JSON response scenarios across all four frameworks for fair comparison
-- All servers configured with equivalent functionality
-- Woodland optimizations (ETags, logging, timing) disabled for fair testing
-- Same response payload: `{message: "Hello World", timestamp: Date.now(), success: true}`
-- Express.js and Fastify tested with default configurations (no optimizations disabled)
-
-**Why Woodland Delivers Top-Tier Performance:**
-- **vs Raw Node.js**: Optimized request/response pipeline that eliminates common inefficiencies (+27% performance)
-- **vs Express.js**: Lightweight middleware system without Express's overhead and legacy bloat (+62% performance)
-- **vs Fastify**: Competitive performance with similar optimization strategies (-8% performance difference)
-- Built-in JSON response optimization with smart serialization
-- Efficient header management and intelligent caching strategies
-- Performance-first architecture designed from the ground up for speed
-
-**Example Output:**
+**Latest Results (Node.js 23.10.0, Apple M4 Pro - 3-run average):**
 ```
-raw Node.js HTTP server: 10,342 ops/sec
-Express.js framework: 8,114 ops/sec
-Fastify framework: 14,367 ops/sec
-Woodland framework: 13,169 ops/sec
+Framework Comparison (JSON Response)
+Fastify framework:        14,600 ops/sec  (0.068ms avg)
+Woodland framework:       13,916 ops/sec  (0.072ms avg)
+Raw Node.js HTTP module:  11,141 ops/sec  (0.090ms avg)
+Express.js framework:      9,406 ops/sec  (0.106ms avg)
 ```
 
-**Strategic Impact:** This benchmark places Woodland in the **top-tier of Node.js HTTP frameworks**, delivering competitive performance alongside Fastify while significantly outperforming Express.js and raw Node.js. Woodland demonstrates that framework convenience and high performance can coexist, providing excellent performance characteristics with superior developer experience compared to lower-level alternatives.
+**Performance Analysis:**
+- Woodland delivers competitive performance against industry leaders
+- 25% faster than raw Node.js HTTP module
+- 48% faster than Express.js framework
+- Only 5% slower than Fastify (the fastest framework)
+- Consistent sub-100ms response times across all test scenarios
 
 ### 2. Routing Benchmarks (`benchmarks/routing.js`)
 
@@ -183,16 +172,16 @@ Tests the performance of core routing functions:
 
 **Example Output:**
 ```
-allows() - with cache: 4,509,725 ops/sec
-path conversion: 2,741,333 ops/sec
-not found routes: 2,567,388 ops/sec
-static routes: 2,496,044 ops/sec
-allowed() - with cache: 2,450,464 ops/sec
-parameter routes: 2,388,676 ops/sec
-routes() - with cache: 1,584,771 ops/sec
-allowed() - no cache: 940,558 ops/sec
-routes() - no cache: 946,537 ops/sec
-allows() - no cache: 213,644 ops/sec
+allows() - with cache: 4,858,100 ops/sec
+static routes: 2,575,273 ops/sec
+path conversion: 2,777,294 ops/sec
+not found routes: 2,507,253 ops/sec
+parameter routes: 2,414,066 ops/sec
+allowed() - with cache: 2,359,465 ops/sec
+routes() - with cache: 1,387,639 ops/sec
+allowed() - no cache: 622,900 ops/sec
+routes() - no cache: 1,074,673 ops/sec
+allows() - no cache: 282,839 ops/sec
 ```
 
 ### 3. Middleware Benchmarks (`benchmarks/middleware.js`)
@@ -211,19 +200,19 @@ Tests middleware registration and execution performance:
 
 **Example Output:**
 ```
-multiple handlers registration: 595,969 ops/sec
-ignore middleware: 557,790 ops/sec
-always middleware registration: 532,328 ops/sec
-specific method registration: 526,337 ops/sec
-middleware registration: 484,948 ops/sec
-request decoration: 212,562 ops/sec
-simple middleware execution: 183,935 ops/sec
-parameter extraction: 119,042 ops/sec
-response helpers: 108,300 ops/sec
-CORS handling: 93,870 ops/sec
-error handling middleware: 81,471 ops/sec
-route list: 65,043 ops/sec
-complex middleware execution: 36,138 ops/sec
+ignore middleware: 633,956 ops/sec
+always middleware registration: 602,761 ops/sec
+multiple handlers registration: 551,383 ops/sec
+specific method registration: 506,262 ops/sec
+middleware registration: 509,837 ops/sec
+request decoration: 212,078 ops/sec
+error handling middleware: 140,414 ops/sec
+simple middleware execution: 160,897 ops/sec
+response helpers: 166,605 ops/sec
+CORS handling: 134,566 ops/sec
+parameter extraction: 127,498 ops/sec
+complex middleware execution: 90,609 ops/sec
+route list: 80,601 ops/sec
 ```
 
 ### 4. Utility Benchmarks (`benchmarks/utility.js`)
@@ -242,22 +231,20 @@ Tests core utility functions:
 
 **Example Output:**
 ```
-pad() - number padding: 7,109,443 ops/sec
-mime() - basic files: 5,626,639 ops/sec
-next() - middleware chain: 3,712,297 ops/sec
-getStatus() - status determination: 3,419,821 ops/sec
-parse() - edge cases: 3,382,721 ops/sec
-parse() - URL strings: 3,322,623 ops/sec
-timeOffset() - timezone: 3,298,044 ops/sec
-ms() - time formatting: 3,277,270 ops/sec
-pipeable() - content check: 3,172,227 ops/sec
-parse() - request objects: 2,217,084 ops/sec
-reduce() - route reduction: 2,206,356 ops/sec
-writeHead() - header writing: 1,875,304 ops/sec
-partialHeaders() - range headers: 1,383,756 ops/sec
-mime() - complex files: 1,201,442 ops/sec
-params() - parameter extraction: 666,445 ops/sec
-autoindex() - directory listing: 384,653 ops/sec
+pad() - number padding: 7,328,512 ops/sec
+mime() - basic files: 4,918,995 ops/sec
+next() - middleware chain: 4,074,708 ops/sec
+mime() - complex files: 4,118,775 ops/sec
+pipeable() - content check: 3,294,160 ops/sec
+parse() - edge cases: 3,513,223 ops/sec
+getStatus() - status determination: 2,810,073 ops/sec
+parse() - URL strings: 3,099,511 ops/sec
+reduce() - route reduction: 2,781,405 ops/sec
+parse() - request objects: 2,220,948 ops/sec
+writeHead() - header writing: 2,122,052 ops/sec
+partialHeaders() - range headers: 1,441,378 ops/sec
+params() - parameter extraction: 736,920 ops/sec
+autoindex() - directory listing: 458,043 ops/sec
 ```
 
 ### 5. File Serving Benchmarks (`benchmarks/serving.js`)
@@ -275,23 +262,23 @@ Tests file serving and streaming performance:
 
 **Example Output:**
 ```
-files() - static serving: 538,379 ops/sec
-etag() - generation: 383,040 ops/sec
-stream() - without ETags: 330,529 ops/sec
-stream() - different methods: 319,996 ops/sec
-stream() - with ETags: 315,185 ops/sec
-stream() - small file: 253,954 ops/sec
-serve() - directory redirect: 79,140 ops/sec
-serve() - HEAD request: 61,176 ops/sec
-serve() - not found: 60,287 ops/sec
-serve() - OPTIONS request: 60,170 ops/sec
-serve() - different types: 45,438 ops/sec
-serve() - large file: 44,398 ops/sec
-serve() - medium file: 41,062 ops/sec
-serve() - range request: 39,659 ops/sec
-serve() - small file: 38,189 ops/sec
-serve() - directory: 18,689 ops/sec
-serve() - autoindex: 17,573 ops/sec
+files() - static serving: 562,858 ops/sec
+stream() - with ETags: 365,913 ops/sec
+etag() - generation: 335,304 ops/sec
+stream() - different methods: 319,924 ops/sec
+stream() - without ETags: 349,075 ops/sec
+stream() - small file: 290,681 ops/sec
+serve() - directory redirect: 88,478 ops/sec
+serve() - HEAD request: 69,900 ops/sec
+serve() - OPTIONS request: 67,205 ops/sec
+serve() - not found: 66,297 ops/sec
+serve() - different types: 43,561 ops/sec
+serve() - large file: 42,892 ops/sec
+serve() - medium file: 42,223 ops/sec
+serve() - range request: 39,176 ops/sec
+serve() - small file: 42,454 ops/sec
+serve() - directory: 19,285 ops/sec
+serve() - autoindex: 17,935 ops/sec
 ```
 
 **Example Features:**
@@ -316,145 +303,18 @@ Tests end-to-end HTTP server performance with **individual request measurements*
 
 **Example Output:**
 ```
-server startup: 114,408 ops/sec
-DELETE requests: 15,278 ops/sec
-complex middleware: 14,454 ops/sec
-404 handling: 13,503 ops/sec
-nested parameterized routes: 13,426 ops/sec
-parameterized routes: 13,622 ops/sec
-error handling: 12,714 ops/sec
-simple GET: 11,976 ops/sec
-JSON response: 11,466 ops/sec
-PUT requests: 11,006 ops/sec
-mixed workload: 10,966 ops/sec
-middleware chain: 10,416 ops/sec
-POST requests: 10,085 ops/sec
-large response: 871 ops/sec
+server startup: 118,337 ops/sec
+DELETE requests: 15,469 ops/sec
+complex middleware: 14,634 ops/sec
+nested parameterized routes: 14,351 ops/sec
+parameterized routes: 13,865 ops/sec
+404 handling: 13,491 ops/sec
+JSON response: 12,916 ops/sec
+error handling: 12,831 ops/sec
+PUT requests: 11,122 ops/sec
+middleware chain: 10,821 ops/sec
+mixed workload: 10,780 ops/sec
+simple GET: 10,866 ops/sec
+POST requests: 10,640 ops/sec
+large response: 935 ops/sec
 ```
-
-**Architecture Notes:**
-- Uses a shared test server for efficient resource management
-- Measures individual HTTP request performance, not load testing
-- Automatically cleans up server resources after benchmark completion
-- Realistic request/response cycles with actual HTTP traffic
-
-## Architecture
-
-### Node.js Best Practices
-
-The benchmark suite follows Node.js best practices:
-
-1. **Built-in Performance APIs**: Uses `perf_hooks` for accurate timing
-2. **Proper Warmup**: Runs warmup iterations before measuring
-3. **Statistical Analysis**: Calculates mean, median, min, max, and standard deviation
-4. **Realistic Scenarios**: Uses real-world route patterns and request types
-5. **Isolated Testing**: Each benchmark runs in isolation to avoid interference
-6. **Error Handling**: Graceful error handling with detailed error reporting
-7. **Production Code**: Benchmarks test the built distribution version (`dist/woodland.js`) for realistic performance measurements
-8. **Resource Management**: Proper cleanup mechanisms prevent resource leaks and hanging processes
-
-### Benchmark Process
-
-1. **Warmup Phase**: Runs specified number of warmup iterations to stabilize performance
-2. **Measurement Phase**: Runs actual benchmark iterations with precise timing
-3. **Statistical Analysis**: Calculates comprehensive performance statistics
-4. **Cleanup Phase**: Ensures all resources are properly freed after completion
-5. **Results Reporting**: Formats and displays results with operations per second
-
-### Output Format
-
-Each benchmark reports:
-- **Mean**: Average execution time in milliseconds
-- **Median**: Middle value execution time
-- **Min/Max**: Fastest and slowest execution times
-- **Std Dev**: Standard deviation showing consistency
-- **Ops/sec**: Operations per second (higher is better)
-- **Total**: Total execution time for all iterations
-
-## Best Practices for Benchmarking
-
-### Running Benchmarks
-
-1. **Stable Environment**: Run benchmarks on a stable system with minimal background processes
-2. **Multiple Runs**: Run benchmarks multiple times to verify consistency
-3. **Warm System**: Ensure the system is warmed up before running benchmarks
-4. **Appropriate Iterations**: Use enough iterations for statistical significance (default 1000)
-5. **Realistic Workloads**: The benchmarks simulate realistic usage patterns
-
-### Interpreting Results
-
-1. **Operations per Second**: Higher values indicate better performance
-2. **Standard Deviation**: Lower values indicate more consistent performance
-3. **Caching Effects**: Compare cached vs non-cached performance
-4. **Relative Performance**: Compare between different approaches or configurations
-5. **Performance Ranges**: Expect different performance characteristics:
-   - Framework comparison: 8,000-15,000 ops/sec (Express.js: ~8.1K, Raw Node.js: ~10.3K, Woodland: ~13.2K, Fastify: ~14.4K ops/sec)
-   - Utility functions: 100,000+ ops/sec (top performers: 7M+ ops/sec)
-   - Middleware operations: 30,000-600,000 ops/sec
-   - HTTP requests: 900-15,000 ops/sec (depends on complexity)
-
-### Using Results
-
-1. **Performance Optimization**: Identify bottlenecks and areas for improvement
-2. **Regression Testing**: Ensure performance doesn't degrade over time
-3. **Configuration Tuning**: Optimize cache sizes and other parameters
-4. **Scaling Decisions**: Understand performance characteristics under load
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Port Conflicts**: HTTP benchmarks use random ports to avoid conflicts
-2. **File System Access**: Ensure proper permissions for file serving benchmarks
-3. **Memory Usage**: Large benchmarks may require sufficient available memory
-4. **Timing Accuracy**: Results may vary between runs due to system conditions
-
-### Recent Fixes
-
-1. **autoindex() TypeError**: Fixed by passing proper file objects instead of strings to autoindex benchmark
-2. **SSRF Security Warnings**: Eliminated by updating test URLs to use only localhost hosts and adding IPv6 support
-3. **Clean Output**: All benchmarks now run without errors, warnings, or security alerts
-4. **IPv6 Compatibility**: Added support for both `::1` and `[::1]` IPv6 localhost formats
-5. **Enhanced Security**: Updated allowed hosts list to prevent false positive security warnings while maintaining SSRF protection
-
-### Performance Tips
-
-1. **Disable Logging**: Benchmarks disable logging for accurate measurements
-2. **Fresh Instances**: Each benchmark uses fresh app instances
-3. **Proper Cleanup**: Resources are cleaned up after each benchmark
-4. **Realistic Test Data**: Uses varied and realistic test data
-5. **Shared Resources**: HTTP benchmarks use shared test servers for efficiency
-
-## Contributing
-
-When adding new benchmarks:
-
-1. Follow the existing pattern in benchmark files
-2. Include both cached and non-cached scenarios where applicable
-3. Use realistic test data and scenarios
-4. Include proper JSDoc documentation
-5. Test with various iteration counts
-6. Ensure proper cleanup of resources
-7. Add cleanup functions for benchmarks that create persistent resources
-8. Test that benchmarks exit cleanly without hanging
-
-## Example Usage
-
-```javascript
-// Custom benchmark usage
-import {runBenchmark} from './benchmark.js';
-
-const customBenchmark = () => {
-    // Your code to benchmark
-    return someFunction();
-};
-
-const results = await runBenchmark('Custom Test', customBenchmark, {
-    iterations: 1000,
-    warmup: 100
-});
-
-console.log(`Performance: ${results.opsPerSecond} ops/sec`);
-```
-
-This benchmark suite provides comprehensive performance insights for the Woodland framework, helping developers understand performance characteristics and optimize their applications accordingly. The recent improvements ensure accurate measurements and reliable benchmark execution. 
