@@ -14,6 +14,7 @@ var woodland = require('woodland');
 var node_path = require('node:path');
 var node_fs = require('node:fs');
 var node_url = require('node:url');
+var tinyLru = require('tiny-lru');
 var mimeDb = require('mime-db');
 var node_module = require('node:module');
 
@@ -35,9 +36,29 @@ const EXTENSIONS = "extensions";
 // NUMERIC CONSTANTS
 // =============================================================================
 const INT_0 = 0;
+const INT_1 = 1;
+const INT_4 = 4;
+const INT_8 = 8;
+const INT_10 = 10;
+const INT_255 = 255;
 const INT_65535 = 65535;
+
+// =============================================================================
+// STRING & CHARACTER CONSTANTS
+// =============================================================================
+const COLON = ":";
+const EMPTY = "";
 const EQUAL = "=";
 const HYPHEN = "-";
+
+// =============================================================================
+// IP ADDRESS CONSTANTS
+// =============================================================================
+const IPV6_ALL_ZEROS = "::";
+const IPV6_IPV4_MAPPED_PREFIX = "::ffff:";
+const IPV6_INVALID_TRIPLE_COLON = ":::";
+const IPV6_DOUBLE_COLON = "::";
+const STRING = "string";
 const INFO = "info";
 const NO_CACHE = "no-cache";
 
@@ -66,97 +87,123 @@ const __dirname$1 = node_url.fileURLToPath(new node_url.URL(".", (typeof documen
 
 		return a;
 	}, {});
+	const // Optimized caching for frequently called validation functions
+	ipValidationCache = tinyLru.lru(500, 300000); // Cache 500 IPs for 5 minutes
 
 /**
- * Validates if an IP address is properly formatted
+ * Internal function that performs the actual IP validation without caching
+ * @param {string} ip - IP address to validate
+ * @returns {boolean} True if IP is valid format
+ */
+function validateIPInternal (ip) {
+	// IPv4 validation - optimized with combined validation
+	if (!ip.includes(COLON)) {
+		const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+		const ipv4Match = ip.match(ipv4Regex);
+
+		if (ipv4Match) {
+			// Validate octets inline to avoid array creation and iteration
+			for (let i = INT_1; i <= INT_4; i++) {
+				const octet = parseInt(ipv4Match[i], INT_10);
+				if (octet > INT_255) {
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
+	// IPv6 validation - optimized for performance
+	// Early check for invalid patterns
+	if (ip.includes(IPV6_INVALID_TRIPLE_COLON) || !(/^[0-9a-fA-F:.]+$/).test(ip)) {
+		return false;
+	}
+
+	// Handle IPv4-mapped IPv6 addresses first (most common case)
+	const ipv4MappedMatch = ip.match(new RegExp(`^${IPV6_IPV4_MAPPED_PREFIX.replace(/:/g, "\\:")}(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})$`, "i"));
+	if (ipv4MappedMatch) {
+		return validateIPInternal(ipv4MappedMatch[1]);
+	}
+
+	// Special case for all-zeros
+	if (ip === IPV6_ALL_ZEROS) {
+		return true;
+	}
+
+	// Optimized IPv6 validation
+	const parts = ip.split(IPV6_DOUBLE_COLON);
+	if (parts.length > 2) {
+		return false;
+	}
+
+	// For compressed notation (::)
+	if (parts.length === 2) {
+		const leftGroups = parts[0] ? parts[0].split(COLON) : [];
+		const rightGroups = parts[1] ? parts[1].split(COLON) : [];
+
+		// Check group validity and count non-empty groups in single pass
+		let nonEmptyCount = 0;
+		for (const group of [...leftGroups, ...rightGroups]) {
+			if (group !== EMPTY) {
+				if (!(/^[0-9a-fA-F]{1,4}$/).test(group)) {
+					return false;
+				}
+				nonEmptyCount++;
+			}
+		}
+
+		return nonEmptyCount < INT_8; // Must be compressed
+	}
+
+	// Full notation (no ::)
+	const groups = ip.split(COLON);
+	if (groups.length !== INT_8) {
+		return false;
+	}
+
+	// Validate all groups in single pass
+	for (const group of groups) {
+		if (!group || !(/^[0-9a-fA-F]{1,4}$/).test(group)) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+/**
+ * Validates if an IP address is properly formatted with caching for performance
  * @param {string} ip - IP address to validate
  * @returns {boolean} True if IP is valid format
  */
 function isValidIP (ip) {
-	if (!ip || typeof ip !== "string") {
+	if (!ip || typeof ip !== STRING) {
 		return false;
 	}
 
-	// Basic IPv4 validation
-	const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-	const ipv4Match = ip.match(ipv4Regex);
-
-	if (ipv4Match) {
-		const octets = ipv4Match.slice(1).map(Number);
-
-		// Check if all octets are valid (0-255)
-		if (octets.some(octet => octet > 255)) {
-			return false;
-		}
-
-		return true;
+	// Check cache first for performance optimization
+	const cached = ipValidationCache.get(ip);
+	if (cached !== undefined) {
+		return cached;
 	}
 
-	// IPv6 validation
-	if (ip.includes(":")) {
-		// Check for valid characters (hex digits, colons, and dots for IPv4-mapped addresses)
-		if (!(/^[0-9a-fA-F:.]+$/).test(ip)) {
-			return false;
-		}
+	// Perform validation and cache result
+	const result = validateIPInternal(ip);
+	ipValidationCache.set(ip, result);
 
-		// Check for three or more consecutive colons (invalid)
-		if (ip.includes(":::")) {
-			return false;
-		}
+	return result;
+}
 
-		// Handle IPv4-mapped IPv6 addresses (e.g., ::ffff:192.0.2.1)
-		const ipv4MappedMatch = ip.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i);
-		if (ipv4MappedMatch) {
-			return isValidIP(ipv4MappedMatch[1]);
-		}
-
-		// Split on "::" to handle compressed notation
-		const parts = ip.split("::");
-		if (parts.length > 2) {
-			return false; // More than one "::" is invalid
-		}
-
-		let leftPart = parts[0] || "";
-		let rightPart = parts[1] || "";
-
-		// Split each part by ":"
-		const leftGroups = leftPart ? leftPart.split(":") : [];
-		const rightGroups = rightPart ? rightPart.split(":") : [];
-
-		// Check each group
-		const allGroups = [...leftGroups, ...rightGroups];
-		for (const group of allGroups) {
-			if (group === "") {
-				// Empty groups are only allowed in compressed notation context
-				if (parts.length === 1) {
-					return false; // Empty group without "::" compression
-				}
-			} else if (!(/^[0-9a-fA-F]{1,4}$/).test(group)) {
-				// Each group must be 1-4 hex digits
-				return false;
-			}
-		}
-
-		// Calculate total number of groups
-		const totalGroups = leftGroups.length + rightGroups.length;
-
-		if (parts.length === 2) {
-			// Compressed notation: total groups should be less than 8
-			// Special case: "::" alone represents all zeros
-			if (ip === "::") {
-				return true;
-			}
-			// Remove empty groups from count (they represent compressed zeros)
-			const nonEmptyGroups = allGroups.filter(g => g !== "").length;
-
-			return nonEmptyGroups <= 8 && nonEmptyGroups < 8; // Must be compressed (< 8 groups)
-		} else {
-			// Full notation: must have exactly 8 groups
-			return totalGroups === 8 && allGroups.every(g => g !== "");
-		}
-	}
-
-	return false;
+/**
+ * Validates if a port number is valid
+ * @param {number} port - Port number to validate
+ * @returns {boolean} True if port is valid (integer between 0 and 65535)
+ */
+function isValidPort (port) {
+	return Number.isInteger(port) && port >= INT_0 && port <= INT_65535;
 }
 
 const argv = process.argv.filter(i => i.charAt(0) === HYPHEN && i.charAt(1) === HYPHEN).reduce((a, v) => {
@@ -168,7 +215,7 @@ const argv = process.argv.filter(i => i.charAt(0) === HYPHEN && i.charAt(1) === 
 	}, {}),
 	ip = argv.ip ?? LOCALHOST,
 	logging = argv.logging ?? true,
-	port = argv.port ?? INT_8000,
+	port = Number(argv.port ?? INT_8000),
 	app = woodland.woodland({
 		autoindex: true,
 		defaultHeaders: {[CACHE_CONTROL]: NO_CACHE, [CONTENT_TYPE]: `${TEXT_PLAIN}; ${CHAR_SET}`},
@@ -178,17 +225,15 @@ const argv = process.argv.filter(i => i.charAt(0) === HYPHEN && i.charAt(1) === 
 		time: true
 	});
 
-const validPort = Number(port);
-if (!Number.isInteger(validPort) || validPort < INT_0 || validPort > INT_65535) {
+if (!isValidPort(port)) {
 	console.error("Invalid port: must be an integer between 0 and 65535.");
 	process.exit(1);
 }
-const validIP = isValidIP(ip);
-if (!validIP) {
+if (!isValidIP(ip)) {
 	console.error("Invalid IP: must be a valid IPv4 or IPv6 address.");
 	process.exit(1);
 }
 
 app.files();
-node_http.createServer(app.route).listen(validPort, ip);
-app.log(`id=woodland, hostname=localhost, ip=${ip}, port=${validPort}`, INFO);
+node_http.createServer(app.route).listen(port, ip);
+app.log(`id=woodland, hostname=localhost, ip=${ip}, port=${port}`, INFO);

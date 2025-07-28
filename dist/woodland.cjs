@@ -89,6 +89,7 @@ const CONTENT_SECURITY_POLICY = "content-security-policy";
 // =============================================================================
 const APPLICATION_JSON = "application/json";
 const APPLICATION_OCTET_STREAM = "application/octet-stream";
+const TEXT_PLAIN = "text/plain";
 const UTF8 = "utf8";
 const UTF_8 = "utf-8";
 
@@ -98,6 +99,7 @@ const UTF_8 = "utf-8";
 const SERVER_VALUE = `${name}/${version}`;
 const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform}/${process.arch}`;
 const CONTENT_SECURITY_POLICY_VALUE = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none';";
+const LOCALHOST = "127.0.0.1";
 
 // =============================================================================
 // FILE SYSTEM & ROUTING
@@ -111,15 +113,18 @@ const PARAMS_GROUP = "/(?<$1>[^/]+)";
 // NUMERIC CONSTANTS
 // =============================================================================
 const INT_0 = 0;
+const INT_1 = 1;
 const INT_2 = 2;
 const INT_3 = 3;
 const INT_4 = 4;
+const INT_8 = 8;
 const INT_10 = 10;
 const INT_60 = 60;
+const INT_255 = 255;
 const INT_1e3 = 1e3;
 const INT_1e4 = 1e4;
 const INT_1e6 = 1e6;
-const INT_14336 = 14336; // 14 KiB default max individual header value size
+const INT_16384 = 16384; // 16 KiB default max individual header value size
 const INT_51200 = 51200; // 50 KiB default max upload size
 
 // =============================================================================
@@ -138,6 +143,21 @@ const STRING_0 = "0";
 const STRING_00 = "00";
 const STRING_30 = "30";
 const WILDCARD = "*";
+const UNKNOWN = "unknown";
+
+// =============================================================================
+// PROTOCOL CONSTANTS
+// =============================================================================
+const HTTP_PROTOCOL = "http://";
+const HTTPS_PROTOCOL = "https://";
+
+// =============================================================================
+// IP ADDRESS CONSTANTS
+// =============================================================================
+const IPV6_ALL_ZEROS = "::";
+const IPV6_IPV4_MAPPED_PREFIX = "::ffff:";
+const IPV6_INVALID_TRIPLE_COLON = ":::";
+const IPV6_DOUBLE_COLON = "::";
 
 // =============================================================================
 // DATA TYPES
@@ -237,7 +257,9 @@ const __dirname$1 = node_url.fileURLToPath(new node_url.URL(".", (typeof documen
 		}
 
 		return a;
-	}, {});
+	}, {}),
+	// Optimized caching for frequently called validation functions
+	ipValidationCache = tinyLru.lru(500, 300000); // Cache 500 IPs for 5 minutes
 
 /**
  * Escapes HTML special characters to prevent XSS attacks
@@ -385,7 +407,7 @@ function params (req, getParams) {
 
 	for (const [key, value] of Object.entries(req.params)) {
 		let decoded = decodeURIComponent(value);
-		let safeValue = typeof decoded === "string" ? escapeHtml(decoded) : decoded;
+		let safeValue = typeof decoded === STRING ? escapeHtml(decoded) : decoded;
 		req.params[key] = tinyCoerce.coerce(safeValue);
 	}
 }
@@ -507,6 +529,9 @@ function writeHead (res, headers = {}) {
 	res.writeHead(res.statusCode, node_http.STATUS_CODES[res.statusCode], headers);
 }
 
+// Optimized dangerous character detection for file path validation - non-global for test, global for replace
+const DANGEROUS_PATH_CHARS = /[\r\n\0]/;
+
 /**
  * Validates if a file path is safe and doesn't contain dangerous characters
  * @param {string} filePath - The file path to validate
@@ -522,103 +547,116 @@ function isSafeFilePath (filePath) {
 		return true;
 	}
 
-	// Check for dangerous characters (excluding .. patterns since join() normalizes absolute paths)
-	// Test for null bytes and newlines
-	return filePath.indexOf("\0") === -1 &&
-		filePath.indexOf("\r") === -1 &&
-		filePath.indexOf("\n") === -1;
+	// Check for dangerous characters using optimized regex test
+	// Test for null bytes and newlines (using non-global regex to avoid lastIndex issues)
+	return !DANGEROUS_PATH_CHARS.test(filePath);
 }
 
 /**
- * Validates if an IP address is properly formatted
+ * Internal function that performs the actual IP validation without caching
+ * @param {string} ip - IP address to validate
+ * @returns {boolean} True if IP is valid format
+ */
+function validateIPInternal (ip) {
+	// IPv4 validation - optimized with combined validation
+	if (!ip.includes(COLON)) {
+		const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+		const ipv4Match = ip.match(ipv4Regex);
+
+		if (ipv4Match) {
+			// Validate octets inline to avoid array creation and iteration
+			for (let i = INT_1; i <= INT_4; i++) {
+				const octet = parseInt(ipv4Match[i], INT_10);
+				if (octet > INT_255) {
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
+	// IPv6 validation - optimized for performance
+	// Early check for invalid patterns
+	if (ip.includes(IPV6_INVALID_TRIPLE_COLON) || !(/^[0-9a-fA-F:.]+$/).test(ip)) {
+		return false;
+	}
+
+	// Handle IPv4-mapped IPv6 addresses first (most common case)
+	const ipv4MappedMatch = ip.match(new RegExp(`^${IPV6_IPV4_MAPPED_PREFIX.replace(/:/g, "\\:")}(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})$`, "i"));
+	if (ipv4MappedMatch) {
+		return validateIPInternal(ipv4MappedMatch[1]);
+	}
+
+	// Special case for all-zeros
+	if (ip === IPV6_ALL_ZEROS) {
+		return true;
+	}
+
+	// Optimized IPv6 validation
+	const parts = ip.split(IPV6_DOUBLE_COLON);
+	if (parts.length > 2) {
+		return false;
+	}
+
+	// For compressed notation (::)
+	if (parts.length === 2) {
+		const leftGroups = parts[0] ? parts[0].split(COLON) : [];
+		const rightGroups = parts[1] ? parts[1].split(COLON) : [];
+
+		// Check group validity and count non-empty groups in single pass
+		let nonEmptyCount = 0;
+		for (const group of [...leftGroups, ...rightGroups]) {
+			if (group !== EMPTY) {
+				if (!(/^[0-9a-fA-F]{1,4}$/).test(group)) {
+					return false;
+				}
+				nonEmptyCount++;
+			}
+		}
+
+		return nonEmptyCount < INT_8; // Must be compressed
+	}
+
+	// Full notation (no ::)
+	const groups = ip.split(COLON);
+	if (groups.length !== INT_8) {
+		return false;
+	}
+
+	// Validate all groups in single pass
+	for (const group of groups) {
+		if (!group || !(/^[0-9a-fA-F]{1,4}$/).test(group)) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+/**
+ * Validates if an IP address is properly formatted with caching for performance
  * @param {string} ip - IP address to validate
  * @returns {boolean} True if IP is valid format
  */
 function isValidIP (ip) {
-	if (!ip || typeof ip !== "string") {
+	if (!ip || typeof ip !== STRING) {
 		return false;
 	}
 
-	// Basic IPv4 validation
-	const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-	const ipv4Match = ip.match(ipv4Regex);
-
-	if (ipv4Match) {
-		const octets = ipv4Match.slice(1).map(Number);
-
-		// Check if all octets are valid (0-255)
-		if (octets.some(octet => octet > 255)) {
-			return false;
-		}
-
-		return true;
+	// Check cache first for performance optimization
+	const cached = ipValidationCache.get(ip);
+	if (cached !== undefined) {
+		return cached;
 	}
 
-	// IPv6 validation
-	if (ip.includes(":")) {
-		// Check for valid characters (hex digits, colons, and dots for IPv4-mapped addresses)
-		if (!(/^[0-9a-fA-F:.]+$/).test(ip)) {
-			return false;
-		}
+	// Perform validation and cache result
+	const result = validateIPInternal(ip);
+	ipValidationCache.set(ip, result);
 
-		// Check for three or more consecutive colons (invalid)
-		if (ip.includes(":::")) {
-			return false;
-		}
-
-		// Handle IPv4-mapped IPv6 addresses (e.g., ::ffff:192.0.2.1)
-		const ipv4MappedMatch = ip.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i);
-		if (ipv4MappedMatch) {
-			return isValidIP(ipv4MappedMatch[1]);
-		}
-
-		// Split on "::" to handle compressed notation
-		const parts = ip.split("::");
-		if (parts.length > 2) {
-			return false; // More than one "::" is invalid
-		}
-
-		let leftPart = parts[0] || "";
-		let rightPart = parts[1] || "";
-
-		// Split each part by ":"
-		const leftGroups = leftPart ? leftPart.split(":") : [];
-		const rightGroups = rightPart ? rightPart.split(":") : [];
-
-		// Check each group
-		const allGroups = [...leftGroups, ...rightGroups];
-		for (const group of allGroups) {
-			if (group === "") {
-				// Empty groups are only allowed in compressed notation context
-				if (parts.length === 1) {
-					return false; // Empty group without "::" compression
-				}
-			} else if (!(/^[0-9a-fA-F]{1,4}$/).test(group)) {
-				// Each group must be 1-4 hex digits
-				return false;
-			}
-		}
-
-		// Calculate total number of groups
-		const totalGroups = leftGroups.length + rightGroups.length;
-
-		if (parts.length === 2) {
-			// Compressed notation: total groups should be less than 8
-			// Special case: "::" alone represents all zeros
-			if (ip === "::") {
-				return true;
-			}
-			// Remove empty groups from count (they represent compressed zeros)
-			const nonEmptyGroups = allGroups.filter(g => g !== "").length;
-
-			return nonEmptyGroups <= 8 && nonEmptyGroups < 8; // Must be compressed (< 8 groups)
-		} else {
-			// Full notation: must have exactly 8 groups
-			return totalGroups === 8 && allGroups.every(g => g !== "");
-		}
-	}
-
-	return false;
+	return result;
 }
 
 /**
@@ -627,7 +665,7 @@ function isValidIP (ip) {
  * @returns {boolean} True if origin is valid and safe
  */
 function isValidOrigin (origin) {
-	if (!origin || typeof origin !== "string") {
+	if (!origin || typeof origin !== STRING) {
 		return false;
 	}
 
@@ -640,7 +678,20 @@ function isValidOrigin (origin) {
 	}
 
 	// Basic URL validation - should start with http:// or https://
-	return origin.startsWith("http://") || origin.startsWith("https://");
+	return origin.startsWith(HTTP_PROTOCOL) || origin.startsWith(HTTPS_PROTOCOL);
+}
+
+// Optimized dangerous character detection for header validation - non-global for test
+// eslint-disable-next-line no-control-regex
+const DANGEROUS_HEADER_CHARS = /[\r\n\0\x08\x0B\x0C]/;
+
+/**
+ * Checks if a header value contains dangerous characters that could enable header injection
+ * @param {string} headerValue - Header value to check
+ * @returns {boolean} True if dangerous characters are found
+ */
+function hasDangerousHeaderChars (headerValue) {
+	return DANGEROUS_HEADER_CHARS.test(headerValue);
 }
 
 /**
@@ -649,19 +700,14 @@ function isValidOrigin (origin) {
  * @returns {string} Sanitized header value
  */
 function sanitizeHeaderValue (headerValue) {
-	if (!headerValue || typeof headerValue !== "string") {
+	if (!headerValue || typeof headerValue !== STRING) {
 		return EMPTY;
 	}
 
-	// Remove characters that could enable header injection
+	// Remove characters that could enable header injection using fresh regex instance to avoid state issues
 	// Removes \r, \n, null, backspace, vertical tab, form feed
-	return headerValue
-		.replace(/[\r\n]/g, EMPTY)
-		.replace(/\0/g, EMPTY)
-		.replace(new RegExp(String.fromCharCode(8), "g"), EMPTY) // backspace
-		.replace(new RegExp(String.fromCharCode(11), "g"), EMPTY) // vertical tab
-		.replace(new RegExp(String.fromCharCode(12), "g"), EMPTY) // form feed
-		.trim();
+	// eslint-disable-next-line no-control-regex
+	return headerValue.replace(/[\r\n\0\x08\x0B\x0C]/g, EMPTY).trim();
 }
 
 /**
@@ -670,15 +716,12 @@ function sanitizeHeaderValue (headerValue) {
  * @returns {boolean} True if header value is safe
  */
 function isValidHeaderValue (headerValue) {
-	if (!headerValue || typeof headerValue !== "string") {
+	if (!headerValue || typeof headerValue !== STRING) {
 		return false;
 	}
 
-	// Check for characters that could enable header injection
-	// Check for \r, \n, null, backspace, vertical tab, form feed
-	return headerValue.indexOf("\r") === -1 && headerValue.indexOf("\n") === -1 &&
-		headerValue.indexOf("\0") === -1 && headerValue.indexOf(String.fromCharCode(8)) === -1 &&
-		headerValue.indexOf(String.fromCharCode(11)) === -1 && headerValue.indexOf(String.fromCharCode(12)) === -1;
+	// Check for characters that could enable header injection using optimized regex
+	return !hasDangerousHeaderChars(headerValue);
 }
 
 /**
@@ -694,6 +737,7 @@ class Woodland extends node_events.EventEmitter {
 	 * @param {number} [config.cacheSize=1000] - Size of internal cache
 	 * @param {number} [config.cacheTTL=10000] - Cache time-to-live in milliseconds
 	 * @param {string} [config.charset='utf-8'] - Default character encoding
+	 * @param {string} [config.corsExpose=''] - Default CORS expose headers value
 	 * @param {Object} [config.defaultHeaders={}] - Default HTTP headers
 	 * @param {number} [config.digit=3] - Number of digits for timing precision
 	 * @param {boolean} [config.etags=true] - Enable ETag generation
@@ -701,7 +745,7 @@ class Woodland extends node_events.EventEmitter {
 	 * @param {Object} [config.logging={}] - Logging configuration
 	 * @param {Object} [config.maxHeader] - HTTP header size limits configuration
 	 * @param {boolean} [config.maxHeader.enabled=true] - Enable header size validation
-	 * @param {number} [config.maxHeader.byteSize=14336] - Maximum individual header value size in bytes
+	 * @param {number} [config.maxHeader.byteSize=16384] - Maximum individual header value size in bytes
 	 * @param {Object} [config.maxUpload] - Request body size limits configuration
 	 * @param {boolean} [config.maxUpload.enabled=true] - Enable request body size validation
 	 * @param {number} [config.maxUpload.byteSize=51200] - Maximum request body size in bytes
@@ -714,6 +758,7 @@ class Woodland extends node_events.EventEmitter {
 		cacheSize = INT_1e3,
 		cacheTTL = INT_1e4,
 		charset = UTF_8,
+		corsExpose = EMPTY,
 		defaultHeaders = {},
 		digit = INT_3,
 		etags = true,
@@ -724,7 +769,7 @@ class Woodland extends node_events.EventEmitter {
 		logging = {},
 		maxHeader = {
 			enabled: true,
-			byteSize: INT_14336
+			byteSize: INT_16384
 		},
 		maxUpload = {
 			enabled: true,
@@ -752,7 +797,7 @@ class Woodland extends node_events.EventEmitter {
 		this.ignored = new Set();
 		this.cache = tinyLru.lru(cacheSize, cacheTTL);
 		this.charset = charset;
-		this.corsExpose = EMPTY;
+		this.corsExpose = corsExpose;
 		this.defaultHeaders = Reflect.ownKeys(defaultHeaders).map(key => [key.toLowerCase(), defaultHeaders[key]]);
 		this.digit = digit;
 		this.etags = etags ? tinyEtag.etag({cacheSize, cacheTTL}) : null;
@@ -765,7 +810,7 @@ class Woodland extends node_events.EventEmitter {
 		};
 		this.maxHeader = {
 			enabled: (maxHeader?.enabled ?? true) !== false,
-			byteSize: maxHeader.byteSize ?? INT_14336
+			byteSize: maxHeader.byteSize ?? INT_16384
 		};
 		this.maxUpload = {
 			enabled: (maxUpload?.enabled ?? true) !== false,
@@ -786,7 +831,8 @@ class Woodland extends node_events.EventEmitter {
 		}
 
 		if (this.origins.length > INT_0) {
-			this.options((req, res) => res.stats(204).send(EMPTY));
+			const fnCorsRoute = this.corsRoute();
+			this.options(fnCorsRoute).ignore(fnCorsRoute);
 		}
 	}
 
@@ -891,7 +937,15 @@ class Woodland extends node_events.EventEmitter {
 	 * @returns {boolean} True if cross-origin request
 	 */
 	corsHost (req) {
-		return ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host;
+		return ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, EMPTY) !== req.headers.host;
+	}
+
+	/**
+	 * Creates a CORS route handler that responds with 204 No Content
+	 * @returns {Function} Middleware function that sends empty 204 response
+	 */
+	corsRoute () {
+		return (req, res) => res.stats(204).send(EMPTY);
 	}
 
 	/**
@@ -1050,7 +1104,7 @@ class Woodland extends node_events.EventEmitter {
 	ip (req) {
 		// If no X-Forwarded-For header, return connection IP
 		if (!(X_FORWARDED_FOR in req.headers) || !req.headers[X_FORWARDED_FOR].trim()) {
-			return req.connection.remoteAddress || req.socket.remoteAddress || "127.0.0.1";
+			return req.connection.remoteAddress || req.socket.remoteAddress || LOCALHOST;
 		}
 
 		// Parse X-Forwarded-For header and find first valid IP
@@ -1063,7 +1117,7 @@ class Woodland extends node_events.EventEmitter {
 		}
 
 		// Fall back to connection IP if no valid IP found
-		return req.connection.remoteAddress || req.socket.remoteAddress || "127.0.0.1";
+		return req.connection.remoteAddress || req.socket.remoteAddress || LOCALHOST;
 	}
 
 	/**
@@ -1072,7 +1126,7 @@ class Woodland extends node_events.EventEmitter {
 	 * @returns {Function} JSON response function
 	 */
 	json (res) {
-		return (arg, status = 200, headers = {[CONTENT_TYPE]: `${APPLICATION_JSON}; charset=${UTF_8}`}) => {
+		return (arg, status = INT_200, headers = {[CONTENT_TYPE]: `${APPLICATION_JSON}; charset=${UTF_8}`}) => {
 			res.send(JSON.stringify(arg), status, headers);
 		};
 	}
@@ -1225,69 +1279,79 @@ class Woodland extends node_events.EventEmitter {
 
 	/**
 	 * Creates middleware to validate request body size limits
-	 * @param {number} [customLimit] - Custom size limit in bytes (defaults to instance maxUpload.byteSize)
 	 * @returns {Function} Middleware function that validates request body size
 	 */
-	requestSizeLimit (customLimit) {
-		const limit = customLimit ?? this.maxUpload.byteSize;
+	requestSizeLimit () {
+		const limit = this.maxUpload.byteSize;
+
+		// Optimized set for methods that don't have bodies
+		const noBodyMethods = new Set([GET, HEAD, OPTIONS]);
 
 		return (req, res, nextHandler) => { // eslint-disable-line consistent-return
 			// Skip validation for methods that don't typically have bodies
-			if (this.maxUpload.enabled === false || req.method === GET || req.method === HEAD || req.method === OPTIONS) {
+			if (noBodyMethods.has(req.method)) {
 				return nextHandler();
 			}
 
 			const contentLength = req.headers["content-length"];
 
 			if (contentLength !== undefined) {
-				const size = parseInt(contentLength, 10);
+				const size = parseInt(contentLength, INT_10);
 
 				if (isNaN(size) || size < 0) {
-					this.log(`type=requestSizeLimit, method=${req.method}, ip=${req.ip || "unknown"}, contentLength="${contentLength}", message="Invalid Content-Length header"`, ERROR);
+					this.log(`type=requestSizeLimit, method=${req.method}, ip=${req.ip || UNKNOWN}, contentLength="${contentLength}", message="Invalid Content-Length header"`, ERROR);
 
 					return res.error(INT_400);
 				}
 
 				if (size > limit) {
-					this.log(`type=requestSizeLimit, method=${req.method}, ip=${req.ip || "unknown"}, size=${size}, limit=${limit}, message="Request body size limit exceeded"`, ERROR);
+					this.log(`type=requestSizeLimit, method=${req.method}, ip=${req.ip || UNKNOWN}, size=${size}, limit=${limit}, message="Request body size limit exceeded"`, ERROR);
 
 					return res.error(INT_413); // 413 Payload Too Large
 				}
 			}
 
-			// Set up body size tracking for streaming requests without Content-Length
+			// Optimized streaming validation with early bailout
 			let bodySize = 0;
-			let sizeExceeded = false;
+			let isActive = true; // Single flag for all states
 
-			// Add our own event listeners without overriding req.on
-			req.on("data", chunk => {
-				if (sizeExceeded) {
-					return; // Already handling size exceeded
-				}
+			const cleanup = () => {
+				isActive = false;
+			};
+
+			// Optimized data handler with early return
+			const onData = chunk => {
+				if (!isActive) return;
 
 				bodySize += chunk.length;
 
 				if (bodySize > limit) {
-					sizeExceeded = true;
-					this.log(`type=requestSizeLimit, method=${req.method}, ip=${req.ip || "unknown"}, size=${bodySize}, limit=${limit}, message="Streaming request body size limit exceeded"`, ERROR);
+					cleanup();
+					this.log(`type=requestSizeLimit, method=${req.method}, ip=${req.ip || UNKNOWN}, size=${bodySize}, limit=${limit}, message="Streaming request body size limit exceeded"`, ERROR);
 
-					// Destroy the request stream to stop reading
 					req.destroy();
-					res.error(INT_413); // 413 Payload Too Large
+					res.error(INT_413);
 				}
-			});
+			};
 
-			req.on("error", err => {
-				if (!sizeExceeded) {
+			const onError = err => {
+				if (isActive) {
+					cleanup();
 					res.error(INT_500, err);
 				}
-			});
+			};
 
-			req.on("end", () => {
-				if (!sizeExceeded) {
+			const onEnd = () => {
+				if (isActive) {
+					cleanup();
 					nextHandler();
 				}
-			});
+			};
+
+			// Attach optimized event handlers
+			req.on("data", onData);
+			req.on("error", onError);
+			req.on("end", onEnd);
 		};
 	}
 
@@ -1305,12 +1369,12 @@ class Woodland extends node_events.EventEmitter {
 		if (this.maxHeader.enabled) {
 			const maxHeaderByteSize = this.maxHeader.byteSize;
 			for (const [name, value] of Object.entries(req.headers)) {
-				if (typeof name === "string" && typeof value === "string") {
-					const headerValueSize = Buffer.byteLength(value, "utf8");
+				if (typeof name === STRING && typeof value === STRING) {
+					const headerValueSize = Buffer.byteLength(value, UTF8);
 
 					if (headerValueSize > maxHeaderByteSize) {
-						this.log(`type=route, method=${req.method}, ip=${req.connection?.remoteAddress || "unknown"}, header="${name}", headerSize=${headerValueSize}, maxSize=${maxHeaderByteSize}, message="Individual header value size limit exceeded"`, ERROR);
-						res.writeHead(INT_400, {"Content-Type": "text/plain"});
+						this.log(`type=route, method=${req.method}, ip=${req.connection?.remoteAddress || UNKNOWN}, header="${name}", headerSize=${headerValueSize}, maxSize=${maxHeaderByteSize}, message="Individual header value size limit exceeded"`, ERROR);
+						res.writeHead(INT_400, {[CONTENT_TYPE]: TEXT_PLAIN});
 						res.end("Request header value too large");
 
 						return;

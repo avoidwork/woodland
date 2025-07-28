@@ -249,7 +249,8 @@ export class Woodland extends EventEmitter {
 		}
 
 		if (this.origins.length > INT_0) {
-			this.options((req, res) => res.stats(204).send(EMPTY));
+			const fnCorsRoute = this.corsRoute();
+			this.options(fnCorsRoute).ignore(fnCorsRoute);
 		}
 	}
 
@@ -355,6 +356,14 @@ export class Woodland extends EventEmitter {
 	 */
 	corsHost (req) {
 		return ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, EMPTY) !== req.headers.host;
+	}
+
+	/**
+	 * Creates a CORS route handler that responds with 204 No Content
+	 * @returns {Function} Middleware function that sends empty 204 response
+	 */
+	corsRoute () {
+		return (req, res) => res.stats(204).send(EMPTY);
 	}
 
 	/**
