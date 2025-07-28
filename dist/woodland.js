@@ -3,9 +3,9 @@
  *
  * @copyright 2025 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.1.14
+ * @version 20.1.15
  */
-import {STATUS_CODES,METHODS}from'node:http';import {join,extname}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {createRequire}from'node:module';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const __dirname$1 = fileURLToPath(new URL(".", import.meta.url));
+import {STATUS_CODES,METHODS}from'node:http';import {join,extname,resolve}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {createRequire}from'node:module';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const __dirname$1 = fileURLToPath(new URL(".", import.meta.url));
 const require = createRequire(import.meta.url);
 const {name, version} = require(join(__dirname$1, "..", "package.json"));
 
@@ -110,11 +110,8 @@ const DELIMITER = "|";
 const EMPTY = "";
 const HYPHEN = "-";
 const LEFT_PAREN = "(";
-const PERIOD = ".";
 const SLASH = "/";
 const STRING_0 = "0";
-const STRING_00 = "00";
-const STRING_30 = "30";
 const WILDCARD = "*";
 
 // =============================================================================
@@ -183,9 +180,7 @@ const KEY_BYTES = "bytes=";
 // EVENT & STREAM CONSTANTS
 // =============================================================================
 const CLOSE = "close";
-const END = "end";
 const FINISH = "finish";
-const START = "start";
 const STREAM = "stream";
 
 // =============================================================================
@@ -223,12 +218,16 @@ const MONTHS = Object.freeze(Array.from(Array(12).values()).map((i, idx) => {
  * @returns {string} The escaped string with HTML entities
  */
 function escapeHtml (str = EMPTY) {
-	return str
-		.replace(/&/g, "&amp;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;")
-		.replace(/"/g, "&quot;")
-		.replace(/'/g, "&#39;");
+	// Use lookup table for single-pass replacement
+	const htmlEscapes = {
+		"&": "&amp;",
+		"<": "&lt;",
+		">": "&gt;",
+		'"': "&quot;",
+		"'": "&#39;"
+	};
+
+	return str.replace(/[&<>"']/g, match => htmlEscapes[match]);
 }
 
 /**
@@ -266,7 +265,23 @@ function autoindex (title = EMPTY, files = []) {
  * @returns {number} The appropriate HTTP status code
  */
 function getStatus (req, res) {
-	return req.allow.length > INT_0 ? req.method !== GET ? INT_405 : req.allow.includes(GET) ? res.statusCode > INT_500 ? res.statusCode : INT_500 : INT_404 : INT_404;
+	// No allowed methods - always 404
+	if (req.allow.length === INT_0) {
+		return INT_404;
+	}
+
+	// Method not allowed
+	if (req.method !== GET) {
+		return INT_405;
+	}
+
+	// GET method not allowed
+	if (!req.allow.includes(GET)) {
+		return INT_404;
+	}
+
+	// Return existing error status or default 500
+	return res.statusCode > INT_500 ? res.statusCode : INT_500;
 }
 
 /**
@@ -343,12 +358,18 @@ function pad (arg = INT_0) {
  */
 function params (req, getParams) {
 	getParams.lastIndex = INT_0;
-	req.params = getParams.exec(req.parsed.pathname)?.groups ?? {};
+	const match = getParams.exec(req.parsed.pathname);
+	req.params = match?.groups ?? {};
 
+	// Process parameters in a single loop
 	for (const [key, value] of Object.entries(req.params)) {
-		let decoded = decodeURIComponent(value);
-		let safeValue = typeof decoded === "string" ? escapeHtml(decoded) : decoded;
-		req.params[key] = coerce(safeValue);
+		try {
+			const decoded = decodeURIComponent(value);
+			req.params[key] = coerce(escapeHtml(decoded));
+		} catch {
+			// If decoding fails, escape the original value
+			req.params[key] = coerce(escapeHtml(value));
+		}
 	}
 }
 
@@ -372,40 +393,55 @@ function parse (arg) {
  * @returns {Array} Array containing [headers, options]
  */
 function partialHeaders (req, res, size, status, headers = {}, options = {}) {
-	if ((req.headers.range || EMPTY).indexOf(KEY_BYTES) === INT_0) {
-		options = {};
+	const rangeHeader = req.headers.range;
 
-		for (const [idx, i] of req.headers.range.replace(KEY_BYTES, EMPTY).split(COMMA)[0].split(HYPHEN).entries()) {
-			options[idx === INT_0 ? START : END] = i ? parseInt(i, INT_10) : void 0;
-		}
-
-		// Byte offsets
-		if (isNaN(options.start) && isNaN(options.end) === false) {
-			options.start = size - options.end;
-			options.end = size;
-		} else if (isNaN(options.end)) {
-			options.end = size;
-		}
-
-		res.removeHeader(CONTENT_RANGE);
-		res.removeHeader(CONTENT_LENGTH);
-		res.removeHeader(ETAG);
-		delete headers.etag;
-
-		if (isNaN(options.start) === false && isNaN(options.end) === false && options.start < options.end && options.end <= size) {
-			req.range = options;
-			headers[CONTENT_RANGE] = `bytes ${options.start}-${options.end}/${size}`;
-			headers[CONTENT_LENGTH] = options.end - options.start;
-			res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
-			res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
-			res.statusCode = INT_206;
-		} else {
-			headers[CONTENT_RANGE] = `bytes */${size}`;
-			res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
-		}
+	if (!rangeHeader || !rangeHeader.startsWith(KEY_BYTES)) {
+		return [headers, options];
 	}
 
-	return [headers, options];
+	// Parse range header more efficiently
+	const rangePart = rangeHeader.slice(KEY_BYTES.length);
+	const [rangeSpec] = rangePart.split(COMMA);
+	const [startStr, endStr] = rangeSpec.split(HYPHEN);
+
+	let start = startStr ? parseInt(startStr, INT_10) : NaN;
+	let end = endStr ? parseInt(endStr, INT_10) : NaN;
+
+	// Handle suffix-byte-range-spec (e.g., "-500" means last 500 bytes)
+	if (isNaN(start) && !isNaN(end)) {
+		start = size - end;
+		end = size - 1;
+	} else if (!isNaN(start) && isNaN(end)) {
+		end = size - 1;
+	}
+
+	// Clean up headers once
+	res.removeHeader(CONTENT_RANGE);
+	res.removeHeader(CONTENT_LENGTH);
+	res.removeHeader(ETAG);
+	delete headers.etag;
+
+	// Validate range
+	if (!isNaN(start) && !isNaN(end) && start <= end && start >= 0 && end < size) {
+		const rangeOptions = { start, end };
+		req.range = rangeOptions;
+		const contentLength = end - start + 1;
+
+		headers[CONTENT_RANGE] = `bytes ${start}-${end}/${size}`;
+		headers[CONTENT_LENGTH] = contentLength;
+
+		res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
+		res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
+		res.statusCode = INT_206;
+
+		return [headers, rangeOptions];
+	} else {
+		// Invalid range
+		headers[CONTENT_RANGE] = `bytes */${size}`;
+		res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
+
+		return [headers, options];
+	}
 }
 
 /**
@@ -425,20 +461,21 @@ function pipeable (method, arg) {
  * @param {Object} [arg={}] - Object containing middleware array and parameters
  */
 function reduce (uri, map = new Map(), arg = {}) {
-	Array.from(map.values()).filter(i => {
-		i.regex.lastIndex = INT_0;
+	// Iterate directly over map values without creating intermediate array
+	for (const middleware of map.values()) {
+		middleware.regex.lastIndex = INT_0;
 
-		return i.regex.test(uri);
-	}).forEach(i => {
-		for (const fn of i.handlers) {
-			arg.middleware.push(fn);
-		}
+		if (middleware.regex.test(uri)) {
+			// Add all handlers at once using spread operator
+			arg.middleware.push(...middleware.handlers);
 
-		if (i.params && arg.params === false) {
-			arg.params = true;
-			arg.getParams = i.regex;
+			// Set params info if needed
+			if (middleware.params && arg.params === false) {
+				arg.params = true;
+				arg.getParams = middleware.regex;
+			}
 		}
-	});
+	}
 }
 
 /**
@@ -447,17 +484,20 @@ function reduce (uri, map = new Map(), arg = {}) {
  * @returns {string} Formatted time offset string
  */
 function timeOffset (arg = INT_0) {
-	const neg = arg < INT_0;
+	const isNegative = arg < INT_0;
+	const absValue = isNegative ? -arg : arg;
+	const offsetMinutes = absValue / INT_60;
 
-	return `${neg ? EMPTY : HYPHEN}${String((neg ? -arg : arg) / INT_60).split(PERIOD).reduce((a, v, idx, arr) => {
-		a.push(idx === INT_0 ? pad(v) : STRING_30);
+	// Convert to hours and minutes
+	const hours = Math.floor(offsetMinutes);
+	const minutes = Math.floor((offsetMinutes - hours) * INT_60);
 
-		if (arr.length === 1) {
-			a.push(STRING_00);
-		}
+	// Format with zero padding
+	const sign = isNegative ? EMPTY : HYPHEN;
+	const hoursStr = pad(hours);
+	const minutesStr = pad(minutes);
 
-		return a;
-	}, []).join(EMPTY)}`;
+	return `${sign}${hoursStr}${minutesStr}`;
 }
 
 /**
@@ -470,55 +510,6 @@ function writeHead (res, headers = {}) {
 }
 
 /**
- * Validates if a file path is safe and doesn't contain directory traversal sequences
- * @param {string} filePath - The file path to validate
- * @returns {boolean} True if the path is safe, false otherwise
- */
-function isSafeFilePath (filePath) {
-	if (typeof filePath !== STRING) {
-		return false;
-	}
-
-	// Empty string is safe (represents root directory)
-	if (filePath === EMPTY) {
-		return true;
-	}
-
-	// Check for directory traversal patterns
-	const dangerousPatterns = [
-		/\.\.\//, // ../
-		/\.\.\\/, // ..\
-		/\.\.$/, // .. at end
-		/^\.\./, // .. at start
-		/\/\.\.\//, // /../
-		/\\\.\.\\/, // \..\
-		/\0/, // null bytes
-		/[\r\n]/ // newlines
-	];
-
-	return !dangerousPatterns.some(pattern => pattern.test(filePath));
-}
-
-/**
- * Sanitizes a file path by removing potentially dangerous sequences
- * @param {string} filePath - The file path to sanitize
- * @returns {string} The sanitized file path
- */
-function sanitizeFilePath (filePath) {
-	if (typeof filePath !== STRING) {
-		return EMPTY;
-	}
-
-	return filePath
-		.replace(/\.\.\//g, EMPTY) // Remove ../
-		.replace(/\.\.\\\\?/g, EMPTY) // Remove ..\ (with optional second backslash)
-		.replace(/\0/g, EMPTY) // Remove null bytes
-		.replace(/[\r\n]/g, EMPTY) // Remove newlines
-		.replace(/\/+/g, SLASH) // Normalize multiple slashes
-		.replace(/^\//, EMPTY); // Remove leading slash
-}
-
-/**
  * Validates if an IP address is properly formatted
  * @param {string} ip - IP address to validate
  * @returns {boolean} True if IP is valid format
@@ -528,82 +519,72 @@ function isValidIP (ip) {
 		return false;
 	}
 
-	// Basic IPv4 validation
-	const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-	const ipv4Match = ip.match(ipv4Regex);
+	// IPv4 validation
+	if (!ip.includes(":")) {
+		const ipv4Pattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+		const match = ip.match(ipv4Pattern);
 
-	if (ipv4Match) {
-		const octets = ipv4Match.slice(1).map(Number);
-
-		// Check if all octets are valid (0-255)
-		if (octets.some(octet => octet > 255)) {
+		if (!match) {
 			return false;
 		}
 
-		return true;
+		// Check octets are in valid range (0-255)
+		return match.slice(1).every(octet => {
+			const num = parseInt(octet, 10);
+
+			return num >= 0 && num <= 255;
+		});
 	}
 
 	// IPv6 validation
-	if (ip.includes(":")) {
-		// Check for valid characters (hex digits, colons, and dots for IPv4-mapped addresses)
-		if (!(/^[0-9a-fA-F:.]+$/).test(ip)) {
+	// Quick check for valid characters
+	if (!(/^[0-9a-fA-F:.]+$/).test(ip)) {
+		return false;
+	}
+
+	// Handle IPv4-mapped IPv6 addresses
+	const ipv4MappedMatch = ip.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i);
+	if (ipv4MappedMatch) {
+		return isValidIP(ipv4MappedMatch[1]);
+	}
+
+	// Handle "::" compression
+	const doublColonParts = ip.split("::");
+	if (doublColonParts.length > 2) {
+		return false;
+	}
+
+	// Special case for "::" alone
+	if (ip === "::") {
+		return true;
+	}
+
+	const isCompressed = doublColonParts.length === 2;
+	let groups;
+
+	if (isCompressed) {
+		const leftGroups = doublColonParts[0] ? doublColonParts[0].split(":") : [];
+		const rightGroups = doublColonParts[1] ? doublColonParts[1].split(":") : [];
+		groups = [...leftGroups, ...rightGroups].filter(g => g !== "");
+
+		// Must be compressed (less than 8 groups)
+		if (groups.length >= 8) {
 			return false;
 		}
-
-		// Handle IPv4-mapped IPv6 addresses (e.g., ::ffff:192.0.2.1)
-		const ipv4MappedMatch = ip.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i);
-		if (ipv4MappedMatch) {
-			return isValidIP(ipv4MappedMatch[1]);
-		}
-
-		// Split on "::" to handle compressed notation
-		const parts = ip.split("::");
-		if (parts.length > 2) {
-			return false; // More than one "::" is invalid
-		}
-
-		let leftPart = parts[0] || "";
-		let rightPart = parts[1] || "";
-
-		// Split each part by ":"
-		const leftGroups = leftPart ? leftPart.split(":") : [];
-		const rightGroups = rightPart ? rightPart.split(":") : [];
-
-		// Check each group
-		const allGroups = [...leftGroups, ...rightGroups];
-		for (const group of allGroups) {
-			if (group === "") {
-				// Empty groups are only allowed in compressed notation context
-				if (parts.length === 1) {
-					return false; // Empty group without "::" compression
-				}
-			} else if (!(/^[0-9a-fA-F]{1,4}$/).test(group)) {
-				// Each group must be 1-4 hex digits
-				return false;
-			}
-		}
-
-		// Calculate total number of groups
-		const totalGroups = leftGroups.length + rightGroups.length;
-
-		if (parts.length === 2) {
-			// Compressed notation: total groups should be less than 8
-			// Special case: "::" alone represents all zeros
-			if (ip === "::") {
-				return true;
-			}
-			// Remove empty groups from count (they represent compressed zeros)
-			const nonEmptyGroups = allGroups.filter(g => g !== "").length;
-
-			return nonEmptyGroups <= 8 && nonEmptyGroups < 8; // Must be compressed (< 8 groups)
-		} else {
-			// Full notation: must have exactly 8 groups
-			return totalGroups === 8 && allGroups.every(g => g !== "");
+	} else {
+		groups = ip.split(":");
+		// Full notation must have exactly 8 groups
+		if (groups.length !== 8) {
+			return false;
 		}
 	}
 
-	return false;
-}/**
+	// Validate each group (1-4 hex digits)
+	return groups.every(group => group && (/^[0-9a-fA-F]{1,4}$/).test(group));
+}// Optimized: Cache regex for corsHost method to avoid recompilation
+const PROTOCOL_REGEX = /^http(s)?:\/\//;
+
+/**
  * Woodland HTTP server framework class extending EventEmitter
  * @class
  * @extends {EventEmitter}
@@ -698,16 +679,35 @@ class Woodland extends EventEmitter {
 		let result = override === false ? this.permissions.get(uri) : void 0;
 
 		if (override || result === void 0) {
-			const allMethods = this.routes(uri, WILDCARD, override).visible > INT_0,
-				list = allMethods ? structuredClone(METHODS) : this.methods.filter(i => this.allowed(i, uri, override));
+			const allMethods = this.routes(uri, WILDCARD, override).visible > INT_0;
+			let list;
+
+			if (allMethods) {
+				// Optimized: Use array spread instead of structuredClone for simple array
+				list = [...METHODS];
+			} else {
+				// Optimized: Use Set for faster lookups and dedupe, then convert to array
+				const methodSet = new Set();
+
+				for (const method of this.methods) {
+					if (this.allowed(method, uri, override)) {
+						methodSet.add(method);
+					}
+				}
+
+				list = Array.from(methodSet);
+			}
+
+			// Optimized: Use Set for O(1) lookup instead of includes()
+			const methodSet = new Set(list);
 
 			// Add HEAD when GET is present
-			if (list.includes(GET) && list.includes(HEAD) === false) {
+			if (methodSet.has(GET) && !methodSet.has(HEAD)) {
 				list.push(HEAD);
 			}
 
 			// Add OPTIONS for any route that has methods defined
-			if (list.length > INT_0 && list.includes(OPTIONS) === false) {
+			if (list.length > INT_0 && !methodSet.has(OPTIONS)) {
 				list.push(OPTIONS);
 			}
 
@@ -746,16 +746,35 @@ class Woodland extends EventEmitter {
 	clf (req, res) {
 		const date = new Date();
 
-		return this.logging.format.replace(LOG_V, req.headers?.host ?? HYPHEN)
-			.replace(LOG_H, req?.ip ?? HYPHEN)
+		// Optimized: Cache date parts and avoid repeated property access
+		const month = MONTHS[date.getMonth()];
+		const day = date.getDate();
+		const year = date.getFullYear();
+		const hours = pad(date.getHours());
+		const minutes = pad(date.getMinutes());
+		const seconds = pad(date.getSeconds());
+		const timezone = timeOffset(date.getTimezoneOffset());
+		const dateStr = `[${day}/${month}/${year}:${hours}:${minutes}:${seconds} ${timezone}]`;
+
+		const host = req.headers?.host ?? HYPHEN;
+		const ip = req?.ip ?? HYPHEN;
+		const username = req?.parsed?.username ?? HYPHEN;
+		const requestLine = `${req.method} ${req.parsed.pathname}${req.parsed.search} HTTP/1.1`;
+		const contentLength = res?.getHeader(CONTENT_LENGTH) ?? HYPHEN;
+		const referer = req.headers?.referer ?? HYPHEN;
+		const userAgent = req.headers?.[USER_AGENT] ?? HYPHEN;
+
+		return this.logging.format
+			.replace(LOG_V, host)
+			.replace(LOG_H, ip)
 			.replace(LOG_L, HYPHEN)
-			.replace(LOG_U, req?.parsed?.username ?? HYPHEN)
-			.replace(LOG_T, `[${date.getDate()}/${MONTHS[date.getMonth()]}/${date.getFullYear()}:${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${timeOffset(date.getTimezoneOffset())}]`)
-			.replace(LOG_R, `${req.method} ${req.parsed.pathname}${req.parsed.search} HTTP/1.1`)
+			.replace(LOG_U, username)
+			.replace(LOG_T, dateStr)
+			.replace(LOG_R, requestLine)
 			.replace(LOG_S, res.statusCode)
-			.replace(LOG_B, res?.getHeader(CONTENT_LENGTH) ?? HYPHEN)
-			.replace(LOG_REFERRER, req.headers?.referer ?? HYPHEN)
-			.replace(LOG_USER_AGENT, req.headers?.[USER_AGENT] ?? HYPHEN);
+			.replace(LOG_B, contentLength)
+			.replace(LOG_REFERRER, referer)
+			.replace(LOG_USER_AGENT, userAgent);
 	}
 
 	/**
@@ -778,7 +797,8 @@ class Woodland extends EventEmitter {
 	 * @returns {boolean} True if cross-origin request
 	 */
 	corsHost (req) {
-		return ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host;
+		// Optimized: Use cached regex instead of creating new one each time
+		return ORIGIN in req.headers && req.headers.origin.replace(PROTOCOL_REGEX, "") !== req.headers.host;
 	}
 
 	/**
@@ -811,26 +831,32 @@ class Woodland extends EventEmitter {
 		res.set = this.set(res);
 		res.status = this.status(res);
 
-		for (const i of this.defaultHeaders) {
-			res.header(i[0], i[1]);
-		}
+		// Optimized: Batch header operations for better performance
+		const headersBatch = {
+			[ALLOW]: req.allow,
+			[X_CONTENT_TYPE_OPTIONS]: NO_SNIFF
+		};
 
-		res.header(ALLOW, req.allow);
-		res.header(X_CONTENT_TYPE_OPTIONS, NO_SNIFF);
+		// Add default headers to batch
+		for (const [key, value] of this.defaultHeaders) {
+			headersBatch[key] = value;
+		}
 
 		if (req.cors) {
-			const headers = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
+			const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
 
-			res.header(ACCESS_CONTROL_ALLOW_ORIGIN, req.headers.origin);
-			res.header(TIMING_ALLOW_ORIGIN, req.headers.origin);
-			res.header(ACCESS_CONTROL_ALLOW_CREDENTIALS, TRUE);
+			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = req.headers.origin;
+			headersBatch[TIMING_ALLOW_ORIGIN] = req.headers.origin;
+			headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
+			headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = req.allow;
 
-			if (headers !== void 0) {
-				res.header(req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS, headers);
+			if (corsHeaders !== void 0) {
+				headersBatch[req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS] = corsHeaders;
 			}
-
-			res.header(ACCESS_CONTROL_ALLOW_METHODS, req.allow);
 		}
+
+		// Set all headers in one batch operation
+		res.set(headersBatch);
 
 		this.log(`type=decorate, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_DECORATED_IP.replace(IP_TOKEN, req.ip)}"`);
 		res.on(CLOSE, () => this.log(this.clf(req, res), INFO));
@@ -929,22 +955,27 @@ class Woodland extends EventEmitter {
 	 * @returns {string} Client IP address
 	 */
 	ip (req) {
-		// If no X-Forwarded-For header, return connection IP
-		if (!(X_FORWARDED_FOR in req.headers) || !req.headers[X_FORWARDED_FOR].trim()) {
-			return req.connection.remoteAddress || req.socket.remoteAddress || "127.0.0.1";
+		// Optimized: Cache fallback IP and fast path for common case
+		const fallbackIP = req.connection.remoteAddress || req.socket.remoteAddress || "127.0.0.1";
+
+		// Fast path: If no X-Forwarded-For header or empty, return connection IP
+		const forwardedHeader = req.headers[X_FORWARDED_FOR];
+		if (!forwardedHeader || !forwardedHeader.trim()) {
+			return fallbackIP;
 		}
 
-		// Parse X-Forwarded-For header and find first valid IP
-		const forwardedIPs = req.headers[X_FORWARDED_FOR].split(COMMA).map(ip => ip.trim());
+		// Optimized: Avoid map() allocation, process inline
+		const forwardedIPs = forwardedHeader.split(COMMA);
 
-		for (const ip of forwardedIPs) {
+		for (let i = 0; i < forwardedIPs.length; i++) {
+			const ip = forwardedIPs[i].trim();
 			if (isValidIP(ip)) {
 				return ip;
 			}
 		}
 
 		// Fall back to connection IP if no valid IP found
-		return req.connection.remoteAddress || req.socket.remoteAddress || "127.0.0.1";
+		return fallbackIP;
 	}
 
 	/**
@@ -1171,7 +1202,13 @@ class Woodland extends EventEmitter {
 				reduce(uri, this.middleware.get(method), result);
 			}
 
-			result.visible = result.middleware.filter(i => this.ignored.has(i) === false).length;
+			// Optimized: Count without creating intermediate array
+			result.visible = INT_0;
+			for (const middleware of result.middleware) {
+				if (this.ignored.has(middleware) === false) {
+					result.visible++;
+				}
+			}
 			this.cache.set(key, result);
 		}
 
@@ -1231,7 +1268,12 @@ class Woodland extends EventEmitter {
 	 */
 	set (res) {
 		return (arg = {}) => {
-			res.setHeaders(arg instanceof Map || arg instanceof Headers ? arg : new Headers(arg));
+			const headers = arg instanceof Map || arg instanceof Headers ? arg : new Headers(arg);
+
+			// Node.js HTTP response doesn't have setHeaders, use setHeader for each
+			for (const [key, value] of headers) {
+				res.setHeader(key, value);
+			}
 
 			return res;
 		};
@@ -1246,16 +1288,15 @@ class Woodland extends EventEmitter {
 	 * @returns {Promise<void>} Promise that resolves when serving is complete
 	 */
 	async serve (req, res, arg, folder = process.cwd()) {
-		// Security: Validate and sanitize file path to prevent directory traversal
-		if (!isSafeFilePath(arg)) {
-			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path traversal attempt blocked", path="${arg}"`, ERROR);
+		const fp = resolve(folder, arg);
+
+		// Security: Ensure resolved path stays within the allowed directory
+		if (!fp.startsWith(resolve(folder))) {
+			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path outside allowed directory", path="${arg}"`, ERROR);
 			res.error(INT_403);
 
 			return;
 		}
-
-		const sanitizedPath = sanitizeFilePath(arg);
-		const fp = join(folder, sanitizedPath);
 
 		let valid = true;
 		let stats;
@@ -1356,20 +1397,26 @@ class Woodland extends EventEmitter {
 
 		if (req.method === GET) {
 			let status = INT_200;
-			let options, headers;
+			let options = {};
+			let headers = {};
 
 			if (RANGE in req.headers) {
 				[headers, options] = partialHeaders(req, res, file.stats.size);
-				res.removeHeader(CONTENT_LENGTH);
-				res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
-				options.end--; // last byte offset
 
-				if (CONTENT_LENGTH in headers) {
-					res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
+				if (Object.keys(options).length > 0) {
+					res.removeHeader(CONTENT_LENGTH);
+					res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
+
+					if (CONTENT_LENGTH in headers) {
+						res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
+					}
+				} else {
+					// Invalid range, reset options to serve full file
+					options = {};
 				}
 			}
 
-			res.send(createReadStream(file.path, options), status);
+			res.send(createReadStream(file.path, Object.keys(options).length > 0 ? options : undefined), status);
 		} else if (req.method === HEAD) {
 			res.send(EMPTY);
 		} else if (req.method === OPTIONS) {
