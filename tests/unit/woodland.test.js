@@ -1031,6 +1031,52 @@ describe("Woodland", () => {
 			middlewareApp.route(mockReq, mockRes);
 		});
 	});
+
+	describe("constructor configuration edge cases", () => {
+		it("should handle maxHeader.enabled set to false", () => {
+			const testApp = new Woodland({
+				logging: { enabled: false },
+				maxHeader: {
+					enabled: false,
+					byteSize: 1000
+				}
+			});
+			assert.strictEqual(testApp.maxHeader.enabled, false);
+		});
+
+		it("should handle maxUpload.enabled set to false", () => {
+			const testApp = new Woodland({
+				logging: { enabled: false },
+				maxUpload: {
+					enabled: false,
+					byteSize: 1000
+				}
+			});
+			assert.strictEqual(testApp.maxUpload.enabled, false);
+		});
+
+		it("should handle maxHeader configuration with null enabled", () => {
+			const testApp = new Woodland({
+				logging: { enabled: false },
+				maxHeader: {
+					enabled: null,
+					byteSize: 1000
+				}
+			});
+			assert.strictEqual(testApp.maxHeader.enabled, true); // null should default to true
+		});
+
+		it("should handle maxUpload configuration with undefined enabled", () => {
+			const testApp = new Woodland({
+				logging: { enabled: false },
+				maxUpload: {
+					enabled: undefined,
+					byteSize: 1000
+				}
+			});
+			assert.strictEqual(testApp.maxUpload.enabled, true); // undefined should default to true
+		});
+	});
 });
 
 describe("woodland factory function", () => {
@@ -2859,6 +2905,356 @@ describe("Woodland Helper Method Edge Cases", () => {
 		};
 
 		errorFn(404, "Not found");
+	});
+});
+
+describe("Woodland Request Size Limit Streaming", function () {
+	it("should handle streaming request body that exceeds size limit", function (done) {
+		const app = woodland({
+			logging: { enabled: false },
+			maxUpload: {
+				enabled: true,
+				byteSize: 100
+			}
+		});
+
+		const req = new EventEmitter();
+		req.method = "POST";
+		req.headers = {}; // No Content-Length
+		req.ip = "127.0.0.1";
+		req.destroy = function () {
+			this.emit("close");
+		};
+
+		const res = {
+			error: function (status) {
+				if (status === 413) {
+					done();
+				} else {
+					done(new Error(`Expected 413, got ${status}`));
+				}
+			}
+		};
+
+		const middleware = app.requestSizeLimit();
+		const nextHandler = function () {
+			done(new Error("nextHandler should not be called when size exceeded"));
+		};
+
+		// Start the middleware
+		middleware(req, res, nextHandler);
+
+		// Simulate streaming data that exceeds limit
+		setTimeout(() => {
+			req.emit("data", Buffer.alloc(150)); // Exceeds 100 byte limit
+		}, 10);
+	});
+
+	it("should handle streaming request body within size limit", function (done) {
+		const app = woodland({
+			logging: { enabled: false },
+			maxUpload: {
+				enabled: true,
+				byteSize: 100
+			}
+		});
+
+		const req = new EventEmitter();
+		req.method = "POST";
+		req.headers = {}; // No Content-Length
+		req.ip = "127.0.0.1";
+
+		const res = {
+			error: function (status) {
+				done(new Error(`Unexpected error: ${status}`));
+			}
+		};
+
+		const middleware = app.requestSizeLimit();
+		const nextHandler = function () {
+			done(); // Success - nextHandler was called
+		};
+
+		// Start the middleware
+		middleware(req, res, nextHandler);
+
+		// Simulate streaming data within limit
+		setTimeout(() => {
+			req.emit("data", Buffer.alloc(50)); // Within 100 byte limit
+			setTimeout(() => {
+				req.emit("end"); // Trigger end event to call nextHandler
+			}, 10);
+		}, 10);
+	});
+
+	it("should handle streaming request error when size not exceeded", function (done) {
+		const app = woodland({
+			logging: { enabled: false },
+			maxUpload: {
+				enabled: true,
+				byteSize: 100
+			}
+		});
+
+		const req = new EventEmitter();
+		req.method = "POST";
+		req.headers = {}; // No Content-Length
+		req.ip = "127.0.0.1";
+
+		const testError = new Error("Test streaming error");
+		const res = {
+			error: function (status, err) {
+				if (status === 500 && err === testError) {
+					done();
+				} else {
+					done(new Error(`Expected 500 with testError, got ${status} with ${err}`));
+				}
+			}
+		};
+
+		const middleware = app.requestSizeLimit();
+		const nextHandler = function () {
+			done(new Error("nextHandler should not be called when error occurs"));
+		};
+
+		// Start the middleware
+		middleware(req, res, nextHandler);
+
+		// Simulate streaming data within limit first, then error
+		setTimeout(() => {
+			req.emit("data", Buffer.alloc(50)); // Within limit
+			setTimeout(() => {
+				req.emit("error", testError); // Trigger error
+			}, 10);
+		}, 10);
+	});
+
+	it("should handle streaming request error when size already exceeded", function (done) {
+		const app = woodland({
+			logging: { enabled: false },
+			maxUpload: {
+				enabled: true,
+				byteSize: 100
+			}
+		});
+
+		const req = new EventEmitter();
+		req.method = "POST";
+		req.headers = {}; // No Content-Length
+		req.ip = "127.0.0.1";
+		req.destroy = function () {
+			this.emit("close");
+		};
+
+		let errorCallCount = 0;
+		const res = {
+			error: function (status) {
+				errorCallCount++;
+				if (errorCallCount === 1 && status === 413) {
+					// First error call should be for size exceeded
+					setTimeout(() => {
+						// Trigger another error after size was exceeded - should be ignored
+						req.emit("error", new Error("Should be ignored"));
+						// Give some time for the error to potentially be processed
+						setTimeout(() => {
+							if (errorCallCount === 1) {
+								done(); // Success - second error was ignored
+							} else {
+								done(new Error(`Expected only 1 error call, got ${errorCallCount}`));
+							}
+						}, 20);
+					}, 10);
+				} else {
+					done(new Error(`Unexpected error call: ${status}, count: ${errorCallCount}`));
+				}
+			}
+		};
+
+		const middleware = app.requestSizeLimit();
+		const nextHandler = function () {
+			done(new Error("nextHandler should not be called when size exceeded"));
+		};
+
+		// Start the middleware
+		middleware(req, res, nextHandler);
+
+		// Simulate streaming data that exceeds limit
+		setTimeout(() => {
+			req.emit("data", Buffer.alloc(150)); // Exceeds 100 byte limit
+		}, 10);
+	});
+
+	it("should handle multiple data chunks building up to exceed limit", function (done) {
+		const app = woodland({
+			logging: { enabled: false },
+			maxUpload: {
+				enabled: true,
+				byteSize: 100
+			}
+		});
+
+		const req = new EventEmitter();
+		req.method = "POST";
+		req.headers = {}; // No Content-Length
+		req.ip = "127.0.0.1";
+		req.destroy = function () {
+			this.emit("close");
+		};
+
+		const res = {
+			error: function (status) {
+				if (status === 413) {
+					done();
+				} else {
+					done(new Error(`Expected 413, got ${status}`));
+				}
+			}
+		};
+
+		const middleware = app.requestSizeLimit();
+		const nextHandler = function () {
+			done(new Error("nextHandler should not be called when size exceeded"));
+		};
+
+		// Start the middleware
+		middleware(req, res, nextHandler);
+
+		// Simulate multiple data chunks that build up to exceed limit
+		setTimeout(() => {
+			req.emit("data", Buffer.alloc(40)); // 40 bytes
+			setTimeout(() => {
+				req.emit("data", Buffer.alloc(40)); // 80 bytes total
+				setTimeout(() => {
+					req.emit("data", Buffer.alloc(40)); // 120 bytes total - exceeds 100 limit
+				}, 5);
+			}, 5);
+		}, 10);
+	});
+
+	it("should handle streaming request that sends data after being marked as exceeded", function (done) {
+		const app = woodland({
+			logging: { enabled: false },
+			maxUpload: {
+				enabled: true,
+				byteSize: 100
+			}
+		});
+
+		const req = new EventEmitter();
+		req.method = "POST";
+		req.headers = {}; // No Content-Length
+		req.ip = "127.0.0.1";
+		req.destroy = function () {
+			this.emit("close");
+		};
+
+		let errorCallCount = 0;
+		const res = {
+			error: function (status) {
+				errorCallCount++;
+				if (errorCallCount === 1 && status === 413) {
+					// After first error, try to send more data - should be ignored
+					setTimeout(() => {
+						req.emit("data", Buffer.alloc(50)); // Should be ignored
+						setTimeout(() => {
+							if (errorCallCount === 1) {
+								done(); // Success - additional data was ignored
+							} else {
+								done(new Error(`Expected only 1 error call, got ${errorCallCount}`));
+							}
+						}, 20);
+					}, 10);
+				} else {
+					done(new Error(`Unexpected error call: ${status}, count: ${errorCallCount}`));
+				}
+			}
+		};
+
+		const middleware = app.requestSizeLimit();
+		const nextHandler = function () {
+			done(new Error("nextHandler should not be called when size exceeded"));
+		};
+
+		// Start the middleware
+		middleware(req, res, nextHandler);
+
+		// Simulate streaming data that exceeds limit
+		setTimeout(() => {
+			req.emit("data", Buffer.alloc(150)); // Exceeds 100 byte limit
+		}, 10);
+	});
+
+	it("should handle streaming request with no IP for logging", function (done) {
+		const app = woodland({
+			logging: { enabled: false },
+			maxUpload: {
+				enabled: true,
+				byteSize: 100
+			}
+		});
+
+		const req = new EventEmitter();
+		req.method = "POST";
+		req.headers = {}; // No Content-Length
+		// No req.ip property - should use "unknown" fallback
+		req.destroy = function () {
+			this.emit("close");
+		};
+
+		const res = {
+			error: function (status) {
+				if (status === 413) {
+					done();
+				} else {
+					done(new Error(`Expected 413, got ${status}`));
+				}
+			}
+		};
+
+		const middleware = app.requestSizeLimit();
+		const nextHandler = function () {
+			done(new Error("nextHandler should not be called when size exceeded"));
+		};
+
+		// Start the middleware
+		middleware(req, res, nextHandler);
+
+		// Simulate streaming data that exceeds limit
+		setTimeout(() => {
+			req.emit("data", Buffer.alloc(150)); // Exceeds 100 byte limit
+		}, 10);
+	});
+});
+
+describe("Header Size Validation Edge Cases", function () {
+	it("should handle route with no connection for logging fallback", function () {
+		const testApp = woodland({
+			logging: { enabled: false },
+			maxHeader: {
+				enabled: true,
+				byteSize: 100
+			}
+		});
+
+		const req = {
+			method: "GET",
+			headers: {
+				"x-large-header": "a".repeat(150) // Exceeds 100 byte limit
+			}
+			// No connection property - should use "unknown" fallback
+		};
+
+		const res = {
+			writeHead: function (status, headers) {
+				assert.strictEqual(status, 400);
+				assert.deepStrictEqual(headers, {"Content-Type": "text/plain"});
+			},
+			end: function (body) {
+				assert.strictEqual(body, "Request header value too large");
+			}
+		};
+
+		testApp.route(req, res);
 	});
 });
 
