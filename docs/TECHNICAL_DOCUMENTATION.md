@@ -23,7 +23,7 @@ Woodland is a lightweight, security-focused HTTP server framework for Node.js th
 ### Key Features
 
 - **Middleware-based routing** with parameter extraction
-- **Security-first design** with path traversal protection and input validation
+- **Security-first design** with path traversal protection, request size limits, and comprehensive input validation
 - **Built-in CORS support** with configurable origins
 - **ETag generation** for efficient caching
 - **File serving** with auto-indexing capabilities
@@ -603,10 +603,227 @@ graph TB
 // Containment check: ✅ ALLOWED - within base directory
 ```
 
+### Request Size Security Validation
+
+Woodland implements comprehensive request size validation to prevent resource exhaustion and DoS attacks through two complementary mechanisms:
+
+#### Individual Header Value Size Validation
+
+**Automatic Protection Against Header Overflow Attacks:**
+
+```javascript
+// Built-in header validation in route() method
+route(req, res) {
+  // Security: Validate individual header values to prevent header overflow attacks
+  for (const [name, value] of Object.entries(req.headers)) {
+    if (typeof name === "string" && typeof value === "string") {
+      const headerValueSize = Buffer.byteLength(value, "utf8");
+      
+      if (headerValueSize > this.maxHeaderByteSize) {
+        this.log(`type=route, method=${req.method}, ip=${req.connection?.remoteAddress || "unknown"}, header="${name}", headerSize=${headerValueSize}, maxSize=${this.maxHeaderByteSize}, message="Individual header value size limit exceeded"`, ERROR);
+        res.writeHead(400, {"Content-Type": "text/plain"});
+        res.end("Request header value too large");
+        return;
+      }
+    }
+  }
+  
+  this.decorate(req, res);
+  // Continue with normal processing...
+}
+```
+
+**Configuration:**
+
+```javascript
+const app = woodland({
+  maxHeaderByteSize: 14336  // Default: 14 KiB per header value
+});
+
+// Custom limits for different security profiles
+const strictApp = woodland({
+  maxHeaderByteSize: 4096   // 4 KiB for high-security environments
+});
+
+const relaxedApp = woodland({
+  maxHeaderByteSize: 32768  // 32 KiB for applications with large headers
+});
+```
+
+#### Request Body Size Validation Middleware
+
+**Flexible Middleware for Upload Protection:**
+
+```javascript
+/**
+ * Creates middleware to validate request body size limits
+ * @param {number} [maxSize] - Maximum body size in bytes (defaults to instance maxUploadByteSize)
+ * @returns {Function} Middleware function that validates request body size
+ */
+requestSizeLimit(maxSize) {
+  const limit = maxSize ?? this.maxUploadByteSize;
+
+  return (req, res, nextHandler) => {
+    // Skip validation for methods that don't typically have bodies
+    if (req.method === GET || req.method === HEAD || req.method === OPTIONS) {
+      return nextHandler();
+    }
+
+    const contentLength = req.headers["content-length"];
+
+    if (contentLength !== undefined) {
+      const size = parseInt(contentLength, 10);
+
+      if (isNaN(size) || size < 0) {
+        this.log(`type=requestSizeLimit, method=${req.method}, ip=${req.ip || "unknown"}, contentLength="${contentLength}", message="Invalid Content-Length header"`, ERROR);
+        return res.error(400);
+      }
+
+      if (size > limit) {
+        this.log(`type=requestSizeLimit, method=${req.method}, ip=${req.ip || "unknown"}, size=${size}, limit=${limit}, message="Request body size limit exceeded"`, ERROR);
+        return res.error(413); // 413 Payload Too Large
+      }
+    }
+
+    // Set up body size tracking for streaming requests without Content-Length
+    let bodySize = 0;
+    const originalOn = req.on.bind(req);
+
+    req.on = function (event, callback) {
+      if (event === "data") {
+        const wrappedCallback = chunk => {
+          bodySize += chunk.length;
+
+          if (bodySize > limit) {
+            // Destroy the request stream to stop reading
+            req.destroy();
+            res.error(413); // 413 Payload Too Large
+            return;
+          }
+
+          callback(chunk);
+        };
+
+        return originalOn(event, wrappedCallback);
+      }
+
+      return originalOn(event, callback);
+    };
+
+    return nextHandler();
+  };
+}
+```
+
+**Usage Patterns:**
+
+```javascript
+// Global application of size limits
+app.always(app.requestSizeLimit()); // Uses instance default (50 KiB)
+
+// Route-specific limits for different endpoints
+app.post("/api/profile", app.requestSizeLimit(1024), profileHandler);        // 1 KB - profile updates
+app.post("/api/avatar", app.requestSizeLimit(512000), avatarHandler);        // 500 KB - image uploads  
+app.post("/api/document", app.requestSizeLimit(5242880), documentHandler);   // 5 MB - document uploads
+app.post("/api/bulk-data", app.requestSizeLimit(52428800), bulkHandler);     // 50 MB - bulk operations
+
+// Different limits by user role
+app.post("/api/upload", 
+  authenticateUser,
+  (req, res, next) => {
+    const limit = req.user.role === 'premium' ? 10485760 : 1048576; // 10MB vs 1MB
+    return app.requestSizeLimit(limit)(req, res, next);
+  },
+  uploadHandler
+);
+```
+
+### Security Architecture Integration
+
+```mermaid
+graph TB
+    subgraph "Request Processing Pipeline"
+        A[HTTP Request] --> B[Header Size Validation]
+        B --> C{Header Values OK?}
+        C -->|No| D[400 Bad Request]
+        C -->|Yes| E[Route Resolution]
+        E --> F[Middleware Chain]
+        F --> G[Body Size Validation]
+        G --> H{Body Size OK?}
+        H -->|No| I[413 Payload Too Large]
+        H -->|Yes| J[Request Processing]
+        J --> K[Response]
+    end
+    
+    subgraph "Security Validation Details"
+        L[Individual Header Validation]
+        M[Content-Length Check]
+        N[Streaming Data Monitoring]
+        O[Request Stream Control]
+    end
+    
+    subgraph "Configuration"
+        P[maxHeaderByteSize: 14336]
+        Q[maxUploadByteSize: 51200]
+        R[Per-route Custom Limits]
+    end
+    
+    B -.-> L
+    G -.-> M
+    G -.-> N
+    N -.-> O
+    
+    L -.-> P
+    M -.-> Q
+    N -.-> R
+    
+    style D fill:#dc2626,stroke:#b91c1c,stroke-width:2px,color:#ffffff
+    style I fill:#dc2626,stroke:#b91c1c,stroke-width:2px,color:#ffffff
+    style K fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
+    style L fill:#7c3aed,stroke:#6d28d9,stroke-width:2px,color:#ffffff
+    style P fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#ffffff
+```
+
+### Security Benefits and Use Cases
+
+#### DoS Attack Prevention
+
+**Header Amplification Attacks:**
+```javascript
+// Attack: Large headers to consume memory
+// GET / HTTP/1.1
+// Host: example.com
+// X-Large-Header: [15KB of data]
+// 
+// Woodland Response: 400 Bad Request (immediately blocked)
+// Log: "Individual header value size limit exceeded"
+```
+
+**Upload Bombing Attacks:**
+```javascript
+// Attack: Large request bodies to exhaust resources
+// POST /api/upload HTTP/1.1
+// Content-Length: 100000000
+//
+// Woodland Response: 413 Payload Too Large (blocked before reading body)
+// Log: "Request body size limit exceeded"
+```
+
+**Streaming Attack Prevention:**
+```javascript
+// Attack: Slow streaming without Content-Length
+// POST /api/data HTTP/1.1
+// Transfer-Encoding: chunked
+// [Continuously streams data beyond limit]
+//
+// Woodland Response: Connection destroyed, 413 Payload Too Large
+// Log: Real-time monitoring prevents resource exhaustion
+```
+
 #### Production Security Monitoring
 
 ```javascript
-// Security event logging and monitoring
+// Enhanced security event logging and monitoring
 class SecurityMonitor {
   constructor(woodland) {
     woodland.on('serve', this.monitorFileAccess.bind(this));

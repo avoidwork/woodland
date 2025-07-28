@@ -17,7 +17,7 @@
 
 - **🏆 Top-Tier Performance**: **25% faster than raw Node.js, 48% faster than Express.js, nearly matches Fastify (-5%)** - industry-leading benchmark results
 - **⚡ Zero Overhead**: Framework features with performance gains, not costs
-- **🔒 Security First**: Built-in CORS, canonical path validation, and comprehensive security headers
+- **🔒 Security First**: Built-in CORS, canonical path validation, request size limits, and comprehensive security headers
 - **🛤️ Smart Routing**: Parameter syntax (`/users/:id`) and RegExp support with caching
 - **🔧 Express Compatible**: Familiar middleware with `req, res, next` pattern
 - **📁 File Serving**: High-performance static file server with streaming and canonical path security
@@ -127,6 +127,7 @@ const api = new MyAPI();
 - [Static Files](#-static-files)
 - [ETags & Caching](#-etags--caching)
 - [CORS](#-cors)
+- [Request Security Limits](#️-request-security-limits)
 - [Error Handling](#-error-handling)
 - [Response Helpers](#-response-helpers)
 - [Event Handlers](#-event-handlers)
@@ -162,6 +163,8 @@ const app = woodland({
     format: "%h %l %u %t \"%r\" %>s %b", // Log format
     level: "info"        // Log level
   },
+  maxHeaderByteSize: 14336, // Max individual header value size (14 KiB)
+  maxUploadByteSize: 51200, // Max request body size (50 KiB)
   origins: ["*"],        // CORS origins
   silent: false,         // Disable default headers
   time: false           // Enable response timing
@@ -588,6 +591,74 @@ app.options("*", (req, res) => {
   res.header("access-control-allow-headers", "content-type,authorization");
   res.header("access-control-max-age", "86400");
   res.send("");
+});
+```
+
+## 🛡️ Request Security Limits
+
+Woodland includes built-in protection against common DoS attacks through configurable request size limits.
+
+### Header Size Validation
+
+Protect against header overflow attacks by limiting individual header value sizes:
+
+```javascript
+const app = woodland({
+  maxHeaderByteSize: 8192  // 8 KiB limit per header value (default: 14 KiB)
+});
+
+// Automatically validates ALL incoming requests
+// Returns 400 Bad Request if any header value exceeds limit
+```
+
+### Request Body Size Validation  
+
+Use the `requestSizeLimit()` middleware to protect against large upload attacks:
+
+```javascript
+// Apply to all routes with default limit (50 KiB)
+app.always(app.requestSizeLimit());
+
+// Apply with custom limit to specific routes
+app.post("/api/upload", app.requestSizeLimit(1048576), (req, res) => {
+  // Only accepts uploads up to 1 MB
+  res.json({message: "Upload successful"});
+});
+
+// Different limits for different endpoints
+app.post("/api/avatar", app.requestSizeLimit(512000), handler);     // 500 KB
+app.post("/api/document", app.requestSizeLimit(5242880), handler);  // 5 MB
+app.post("/api/data", app.requestSizeLimit(1024), handler);         // 1 KB
+```
+
+### Security Benefits
+
+- **DoS Protection**: Prevents memory exhaustion attacks
+- **Resource Management**: Ensures predictable server resource usage  
+- **Attack Surface Reduction**: Blocks common web application attack vectors
+- **Automatic Validation**: Zero-configuration protection for headers
+- **Flexible Limits**: Customizable per-route body size restrictions
+
+### Configuration Examples
+
+```javascript
+// High-security API server
+const api = woodland({
+  maxHeaderByteSize: 4096,   // 4 KiB header limit
+  maxUploadByteSize: 10240,  // 10 KiB default upload limit
+  origins: ["https://myapp.com"] // Specific CORS origins
+});
+
+// File upload server  
+const uploads = woodland({
+  maxHeaderByteSize: 16384,    // 16 KiB header limit
+  maxUploadByteSize: 104857600 // 100 MB default upload limit
+});
+
+// Microservice with strict limits
+const micro = woodland({
+  maxHeaderByteSize: 2048,     // 2 KiB header limit
+  maxUploadByteSize: 1024      // 1 KiB upload limit
 });
 ```
 
@@ -1125,6 +1196,8 @@ interface WoodlandConfig {
     format?: string;
     level?: string;
   };
+  maxHeaderByteSize?: number;
+  maxUploadByteSize?: number;
   origins?: string[];
   silent?: boolean;
   time?: boolean;

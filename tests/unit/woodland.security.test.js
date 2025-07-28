@@ -336,6 +336,341 @@ describe("Woodland Security Tests", () => {
 			assert.ok(headers.includes("x-powered-by"), "Should include X-Powered-By header");
 		});
 	});
+
+	describe("Header Size Validation", () => {
+		it("should allow requests within header size limit", () => {
+			mockReq.headers = {
+				"host": "localhost:3000",
+				"user-agent": "test-agent",
+				"accept": "text/html"
+			};
+
+			let errorCalled = false;
+			mockRes.error = function () {
+				errorCalled = true;
+			};
+
+			// Mock writeHead and end for normal response
+			mockRes.writeHead = function () {};
+			mockRes.end = function () {};
+
+			app.route(mockReq, mockRes);
+
+			assert.strictEqual(errorCalled, false, "Should not call error for normal-sized headers");
+		});
+
+		it("should reject requests with individual header value exceeding size limit", () => {
+			// Create a single header value that exceeds the 14KiB limit
+			const largeValue = "x".repeat(15000); // 15KB value
+			mockReq.headers = {
+				"host": "localhost:3000",
+				"large-header": largeValue
+			};
+
+			let errorCalled = false;
+			let responseEnded = false;
+
+			mockRes.writeHead = function (status) {
+				assert.strictEqual(status, 400, "Should return 400 Bad Request");
+				errorCalled = true;
+			};
+
+			mockRes.end = function (body) {
+				assert.ok(body.includes("Request header value too large"), "Should include appropriate error message");
+				responseEnded = true;
+			};
+
+			app.route(mockReq, mockRes);
+
+			assert.strictEqual(errorCalled, true, "Should call error for oversized header value");
+			assert.strictEqual(responseEnded, true, "Should end response");
+		});
+
+		it("should handle empty headers gracefully", () => {
+			mockReq.headers = {};
+
+			let errorCalled = false;
+			mockRes.error = function () {
+				errorCalled = true;
+			};
+
+			// Mock writeHead and end for normal response
+			mockRes.writeHead = function () {};
+			mockRes.end = function () {};
+
+			app.route(mockReq, mockRes);
+
+			assert.strictEqual(errorCalled, false, "Should not call error for empty headers");
+		});
+
+		it("should respect custom header size limit", () => {
+			const customApp = new Woodland({
+				logging: { enabled: false },
+				maxHeaderByteSize: 100 // Very small limit
+			});
+
+			mockReq.headers = {
+				"host": "localhost:3000",
+				"user-agent": "this-header-value-is-definitely-longer-than-100-bytes-and-should-trigger-the-size-limit-validation-with-extra-characters"
+			};
+
+			let errorCalled = false;
+			let responseEnded = false;
+
+			mockRes.writeHead = function (status) {
+				assert.strictEqual(status, 400, "Should return 400 Bad Request");
+				errorCalled = true;
+			};
+
+			mockRes.end = function () {
+				responseEnded = true;
+			};
+
+			customApp.route(mockReq, mockRes);
+
+			assert.strictEqual(errorCalled, true, "Should call error for header value exceeding custom limit");
+			assert.strictEqual(responseEnded, true, "Should end response");
+		});
+
+		it("should allow multiple headers when each is within individual size limit", () => {
+			mockReq.headers = {
+				"host": "localhost:3000",
+				"user-agent": "x".repeat(1000), // 1KB - under 14KB limit
+				"accept": "x".repeat(2000), // 2KB - under 14KB limit
+				"content-type": "x".repeat(3000), // 3KB - under 14KB limit
+				"custom-header": "x".repeat(4000) // 4KB - under 14KB limit
+				// Total: ~10KB, but each individual header is under 14KB limit
+			};
+
+			let errorCalled = false;
+			mockRes.error = function () {
+				errorCalled = true;
+			};
+
+			// Mock writeHead and end for normal response
+			mockRes.writeHead = function () {};
+			mockRes.end = function () {};
+
+			app.route(mockReq, mockRes);
+
+			assert.strictEqual(errorCalled, false, "Should not call error when each individual header is within limit");
+		});
+	});
+
+	describe("Request Size Validation", () => {
+		it("should create request size limit middleware", () => {
+			const middleware = app.requestSizeLimit();
+			assert.strictEqual(typeof middleware, "function", "Should return a function");
+		});
+
+		it("should allow requests within size limit", () => {
+			const middleware = app.requestSizeLimit(1000); // 1KB limit
+			mockReq.method = "POST";
+			mockReq.headers["content-length"] = "500"; // 500 bytes
+
+			// Mock req.on for streaming setup
+			mockReq.on = function () {
+				return mockReq;
+			};
+
+			let nextCalled = false;
+			let errorCalled = false;
+
+			mockRes.error = function () {
+				errorCalled = true;
+			};
+
+			middleware(mockReq, mockRes, () => {
+				nextCalled = true;
+			});
+
+			assert.strictEqual(nextCalled, true, "Should call next for request within limit");
+			assert.strictEqual(errorCalled, false, "Should not call error for valid request size");
+		});
+
+		it("should reject requests exceeding size limit", () => {
+			const middleware = app.requestSizeLimit(1000); // 1KB limit
+			mockReq.method = "POST";
+			mockReq.headers["content-length"] = "2000"; // 2KB content
+
+			let nextCalled = false;
+			let errorCalled = false;
+			let errorStatus = null;
+
+			mockRes.error = function (status) {
+				errorCalled = true;
+				errorStatus = status;
+			};
+
+			middleware(mockReq, mockRes, () => {
+				nextCalled = true;
+			});
+
+			assert.strictEqual(nextCalled, false, "Should not call next for oversized request");
+			assert.strictEqual(errorCalled, true, "Should call error for oversized request");
+			assert.strictEqual(errorStatus, 413, "Should return 413 Payload Too Large");
+		});
+
+		it("should skip validation for GET requests", () => {
+			const middleware = app.requestSizeLimit(100); // Small limit
+			mockReq.method = "GET";
+			mockReq.headers["content-length"] = "2000"; // Large content (unusual for GET)
+
+			let nextCalled = false;
+			let errorCalled = false;
+
+			mockRes.error = function () {
+				errorCalled = true;
+			};
+
+			middleware(mockReq, mockRes, () => {
+				nextCalled = true;
+			});
+
+			assert.strictEqual(nextCalled, true, "Should call next for GET request regardless of content-length");
+			assert.strictEqual(errorCalled, false, "Should not validate GET request size");
+		});
+
+		it("should skip validation for HEAD requests", () => {
+			const middleware = app.requestSizeLimit(100);
+			mockReq.method = "HEAD";
+			mockReq.headers["content-length"] = "2000";
+
+			let nextCalled = false;
+			let errorCalled = false;
+
+			mockRes.error = function () {
+				errorCalled = true;
+			};
+
+			middleware(mockReq, mockRes, () => {
+				nextCalled = true;
+			});
+
+			assert.strictEqual(nextCalled, true, "Should call next for HEAD request");
+			assert.strictEqual(errorCalled, false, "Should not validate HEAD request size");
+		});
+
+		it("should skip validation for OPTIONS requests", () => {
+			const middleware = app.requestSizeLimit(100);
+			mockReq.method = "OPTIONS";
+			mockReq.headers["content-length"] = "2000";
+
+			let nextCalled = false;
+			let errorCalled = false;
+
+			mockRes.error = function () {
+				errorCalled = true;
+			};
+
+			middleware(mockReq, mockRes, () => {
+				nextCalled = true;
+			});
+
+			assert.strictEqual(nextCalled, true, "Should call next for OPTIONS request");
+			assert.strictEqual(errorCalled, false, "Should not validate OPTIONS request size");
+		});
+
+		it("should handle invalid Content-Length header", () => {
+			const middleware = app.requestSizeLimit(1000);
+			mockReq.method = "POST";
+			mockReq.headers["content-length"] = "invalid-number";
+
+			let nextCalled = false;
+			let errorCalled = false;
+			let errorStatus = null;
+
+			mockRes.error = function (status) {
+				errorCalled = true;
+				errorStatus = status;
+			};
+
+			middleware(mockReq, mockRes, () => {
+				nextCalled = true;
+			});
+
+			assert.strictEqual(nextCalled, false, "Should not call next for invalid content-length");
+			assert.strictEqual(errorCalled, true, "Should call error for invalid content-length");
+			assert.strictEqual(errorStatus, 400, "Should return 400 Bad Request");
+		});
+
+		it("should handle negative Content-Length header", () => {
+			const middleware = app.requestSizeLimit(1000);
+			mockReq.method = "POST";
+			mockReq.headers["content-length"] = "-100";
+
+			let nextCalled = false;
+			let errorCalled = false;
+			let errorStatus = null;
+
+			mockRes.error = function (status) {
+				errorCalled = true;
+				errorStatus = status;
+			};
+
+			middleware(mockReq, mockRes, () => {
+				nextCalled = true;
+			});
+
+			assert.strictEqual(nextCalled, false, "Should not call next for negative content-length");
+			assert.strictEqual(errorCalled, true, "Should call error for negative content-length");
+			assert.strictEqual(errorStatus, 400, "Should return 400 Bad Request");
+		});
+
+		it("should handle requests without Content-Length header", () => {
+			const middleware = app.requestSizeLimit(1000);
+			mockReq.method = "POST";
+			// No content-length header
+
+			let nextCalled = false;
+			let errorCalled = false;
+
+			mockRes.error = function () {
+				errorCalled = true;
+			};
+
+			// Mock req.on for streaming data
+			let onHandlers = {};
+			mockReq.on = function (event, callback) {
+				onHandlers[event] = callback;
+
+				return mockReq;
+			};
+
+			middleware(mockReq, mockRes, () => {
+				nextCalled = true;
+			});
+
+			assert.strictEqual(nextCalled, true, "Should call next for streaming request setup");
+			assert.strictEqual(errorCalled, false, "Should not call error during setup");
+			assert.ok(mockReq.on !== undefined, "Should set up request.on method");
+		});
+
+		it("should use instance maxUploadByteSize when no custom limit provided", () => {
+			const customApp = new Woodland({
+				logging: { enabled: false },
+				maxUploadByteSize: 500 // Custom default
+			});
+
+			const middleware = customApp.requestSizeLimit(); // No custom limit
+			mockReq.method = "POST";
+			mockReq.headers["content-length"] = "600"; // Exceeds custom default
+
+			let nextCalled = false;
+			let errorCalled = false;
+
+			mockRes.error = function () {
+				errorCalled = true;
+			};
+
+			middleware(mockReq, mockRes, () => {
+				nextCalled = true;
+			});
+
+			assert.strictEqual(nextCalled, false, "Should not call next when exceeding instance limit");
+			assert.strictEqual(errorCalled, true, "Should call error when exceeding instance limit");
+		});
+	});
 });
 
 describe("Woodland Security Integration", () => {

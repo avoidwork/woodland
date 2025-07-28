@@ -32,6 +32,7 @@ export const INT_400 = 400;
 export const INT_403 = 403;
 export const INT_404 = 404;
 export const INT_405 = 405;
+export const INT_413 = 413;
 export const INT_416 = 416;
 export const INT_500 = 500;
 
@@ -105,6 +106,8 @@ export const INT_1e3 = 1e3;
 export const INT_1e4 = 1e4;
 export const INT_1e6 = 1e6;
 export const INT_65535 = 65535;
+export const INT_14336 = 14336; // 14 KiB default max individual header value size
+export const INT_51200 = 51200; // 50 KiB default max upload size
 
 // =============================================================================
 // STRING & CHARACTER CONSTANTS

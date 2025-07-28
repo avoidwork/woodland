@@ -3,9 +3,9 @@
  *
  * @copyright 2025 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.1.14
+ * @version 20.2.0
  */
-import {STATUS_CODES,METHODS}from'node:http';import {join,extname}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {createRequire}from'node:module';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const __dirname$1 = fileURLToPath(new URL(".", import.meta.url));
+import {STATUS_CODES,METHODS}from'node:http';import {join,extname,resolve,sep}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {createRequire}from'node:module';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const __dirname$1 = fileURLToPath(new URL(".", import.meta.url));
 const require = createRequire(import.meta.url);
 const {name, version} = require(join(__dirname$1, "..", "package.json"));
 
@@ -31,9 +31,11 @@ const INT_206 = 206;
 const INT_304 = 304;
 const INT_307 = 307;
 const INT_308 = 308;
+const INT_400 = 400;
 const INT_403 = 403;
 const INT_404 = 404;
 const INT_405 = 405;
+const INT_413 = 413;
 const INT_416 = 416;
 const INT_500 = 500;
 
@@ -101,6 +103,8 @@ const INT_60 = 60;
 const INT_1e3 = 1e3;
 const INT_1e4 = 1e4;
 const INT_1e6 = 1e6;
+const INT_14336 = 14336; // 14 KiB default max individual header value size
+const INT_51200 = 51200; // 50 KiB default max upload size
 
 // =============================================================================
 // STRING & CHARACTER CONSTANTS
@@ -196,8 +200,6 @@ const STREAM = "stream";
 const EN_US = "en-US";
 const IP_TOKEN = "%IP";
 const SHORT = "short";
-const TIME_MS = "%N ms";
-const TOKEN_N = "%N";
 const TO_STRING = "toString";
 const TRUE = "true";
 
@@ -225,12 +227,15 @@ const MONTHS = Object.freeze(Array.from(Array(12).values()).map((i, idx) => {
  * @returns {string} The escaped string with HTML entities
  */
 function escapeHtml (str = EMPTY) {
-	return str
-		.replace(/&/g, "&amp;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;")
-		.replace(/"/g, "&quot;")
-		.replace(/'/g, "&#39;");
+	const htmlEntities = {
+		"&": "&amp;",
+		"<": "&lt;",
+		">": "&gt;",
+		'"': "&quot;",
+		"'": "&#39;"
+	};
+
+	return str.replace(/[&<>"']/g, char => htmlEntities[char]);
 }
 
 /**
@@ -243,8 +248,9 @@ function autoindex (title = EMPTY, files = []) {
 	const safeTitle = escapeHtml(title);
 
 	// Security: Generate file listing with proper HTML escaping
-	const parentDir = "    <li><a href=\"..\" rel=\"collection\">../</a></li>";
-	const fileList = files.map(file => {
+	const fileListItems = ["    <li><a href=\"..\" rel=\"collection\">../</a></li>"];
+
+	for (const file of files) {
 		const safeName = escapeHtml(file.name);
 		const safeHref = encodeURIComponent(file.name);
 		const isDir = file.isDirectory();
@@ -252,10 +258,10 @@ function autoindex (title = EMPTY, files = []) {
 		const href = isDir ? `${safeHref}/` : safeHref;
 		const rel = isDir ? "collection" : "item";
 
-		return `    <li><a href="${href}" rel="${rel}">${displayName}</a></li>`;
-	}).join("\n");
+		fileListItems.push(`    <li><a href="${href}" rel="${rel}">${displayName}</a></li>`);
+	}
 
-	const safeFiles = files.length > 0 ? `${parentDir}\n${fileList}` : parentDir;
+	const safeFiles = fileListItems.join("\n");
 
 	return html.replace(/\$\{\s*TITLE\s*\}/g, safeTitle)
 		.replace(/\$\{\s*FILES\s*\}/g, safeFiles);
@@ -268,7 +274,19 @@ function autoindex (title = EMPTY, files = []) {
  * @returns {number} The appropriate HTTP status code
  */
 function getStatus (req, res) {
-	return req.allow.length > INT_0 ? req.method !== GET ? INT_405 : req.allow.includes(GET) ? res.statusCode > INT_500 ? res.statusCode : INT_500 : INT_404 : INT_404;
+	if (req.allow.length === INT_0) {
+		return INT_404;
+	}
+
+	if (req.method !== GET) {
+		return INT_405;
+	}
+
+	if (!req.allow.includes(GET)) {
+		return INT_404;
+	}
+
+	return res.statusCode > INT_500 ? res.statusCode : INT_500;
 }
 
 /**
@@ -289,7 +307,7 @@ function mime (arg = EMPTY) {
  * @returns {string} Formatted time string with "ms" suffix
  */
 function ms (arg = INT_0, digits = INT_3) {
-	return TIME_MS.replace(TOKEN_N, Number(arg / INT_1e6).toFixed(digits));
+	return `${Number(arg / INT_1e6).toFixed(digits)}ms`;
 }
 
 /**
@@ -427,20 +445,20 @@ function pipeable (method, arg) {
  * @param {Object} [arg={}] - Object containing middleware array and parameters
  */
 function reduce (uri, map = new Map(), arg = {}) {
-	Array.from(map.values()).filter(i => {
+	for (const i of map.values()) {
 		i.regex.lastIndex = INT_0;
 
-		return i.regex.test(uri);
-	}).forEach(i => {
-		for (const fn of i.handlers) {
-			arg.middleware.push(fn);
-		}
+		if (i.regex.test(uri)) {
+			for (const fn of i.handlers) {
+				arg.middleware.push(fn);
+			}
 
-		if (i.params && arg.params === false) {
-			arg.params = true;
-			arg.getParams = i.regex;
+			if (i.params && arg.params === false) {
+				arg.params = true;
+				arg.getParams = i.regex;
+			}
 		}
-	});
+	}
 }
 
 /**
@@ -472,7 +490,7 @@ function writeHead (res, headers = {}) {
 }
 
 /**
- * Validates if a file path is safe and doesn't contain directory traversal sequences
+ * Validates if a file path is safe and doesn't contain dangerous characters
  * @param {string} filePath - The file path to validate
  * @returns {boolean} True if the path is safe, false otherwise
  */
@@ -486,38 +504,11 @@ function isSafeFilePath (filePath) {
 		return true;
 	}
 
-	// Check for directory traversal patterns
-	const dangerousPatterns = [
-		/\.\.\//, // ../
-		/\.\.\\/, // ..\
-		/\.\.$/, // .. at end
-		/^\.\./, // .. at start
-		/\/\.\.\//, // /../
-		/\\\.\.\\/, // \..\
-		/\0/, // null bytes
-		/[\r\n]/ // newlines
-	];
-
-	return !dangerousPatterns.some(pattern => pattern.test(filePath));
-}
-
-/**
- * Sanitizes a file path by removing potentially dangerous sequences
- * @param {string} filePath - The file path to sanitize
- * @returns {string} The sanitized file path
- */
-function sanitizeFilePath (filePath) {
-	if (typeof filePath !== STRING) {
-		return EMPTY;
-	}
-
-	return filePath
-		.replace(/\.\.\//g, EMPTY) // Remove ../
-		.replace(/\.\.\\\\?/g, EMPTY) // Remove ..\ (with optional second backslash)
-		.replace(/\0/g, EMPTY) // Remove null bytes
-		.replace(/[\r\n]/g, EMPTY) // Remove newlines
-		.replace(/\/+/g, SLASH) // Normalize multiple slashes
-		.replace(/^\//, EMPTY); // Remove leading slash
+	// Check for dangerous characters (excluding .. patterns since join() normalizes absolute paths)
+	// Test for null bytes and newlines
+	return filePath.indexOf("\0") === -1 &&
+		filePath.indexOf("\r") === -1 &&
+		filePath.indexOf("\n") === -1;
 }
 
 /**
@@ -549,6 +540,11 @@ function isValidIP (ip) {
 	if (ip.includes(":")) {
 		// Check for valid characters (hex digits, colons, and dots for IPv4-mapped addresses)
 		if (!(/^[0-9a-fA-F:.]+$/).test(ip)) {
+			return false;
+		}
+
+		// Check for three or more consecutive colons (invalid)
+		if (ip.includes(":::")) {
 			return false;
 		}
 
@@ -619,13 +615,9 @@ function isValidOrigin (origin) {
 
 	// Check for dangerous characters that could enable header injection
 	// Check for \r, \n, null, backspace, vertical tab, form feed
-	const hasCarriageReturn = origin.includes("\r");
-	const hasNewline = origin.includes("\n");
-	const hasNull = origin.includes("\u0000");
-	const hasControlChars = origin.includes(String.fromCharCode(8)) ||
-		origin.includes(String.fromCharCode(11)) ||
-		origin.includes(String.fromCharCode(12));
-	if (hasCarriageReturn || hasNewline || hasNull || hasControlChars) {
+	if (origin.indexOf("\r") !== -1 || origin.indexOf("\n") !== -1 ||
+		origin.indexOf("\0") !== -1 || origin.indexOf(String.fromCharCode(8)) !== -1 ||
+		origin.indexOf(String.fromCharCode(11)) !== -1 || origin.indexOf(String.fromCharCode(12)) !== -1) {
 		return false;
 	}
 
@@ -647,10 +639,10 @@ function sanitizeHeaderValue (headerValue) {
 	// Removes \r, \n, null, backspace, vertical tab, form feed
 	return headerValue
 		.replace(/[\r\n]/g, EMPTY)
-		.replace(new RegExp(String.fromCharCode(0), "g"), EMPTY)
-		.replace(new RegExp(String.fromCharCode(8), "g"), EMPTY)
-		.replace(new RegExp(String.fromCharCode(11), "g"), EMPTY)
-		.replace(new RegExp(String.fromCharCode(12), "g"), EMPTY)
+		.replace(/\0/g, EMPTY)
+		.replace(new RegExp(String.fromCharCode(8), "g"), EMPTY) // backspace
+		.replace(new RegExp(String.fromCharCode(11), "g"), EMPTY) // vertical tab
+		.replace(new RegExp(String.fromCharCode(12), "g"), EMPTY) // form feed
 		.trim();
 }
 
@@ -666,14 +658,9 @@ function isValidHeaderValue (headerValue) {
 
 	// Check for characters that could enable header injection
 	// Check for \r, \n, null, backspace, vertical tab, form feed
-	const hasCarriageReturn = headerValue.includes("\r");
-	const hasNewline = headerValue.includes("\n");
-	const hasNull = headerValue.includes("\u0000");
-	const hasControlChars = headerValue.includes(String.fromCharCode(8)) ||
-		headerValue.includes(String.fromCharCode(11)) ||
-		headerValue.includes(String.fromCharCode(12));
-
-	return !(hasCarriageReturn || hasNewline || hasNull || hasControlChars);
+	return headerValue.indexOf("\r") === -1 && headerValue.indexOf("\n") === -1 &&
+		headerValue.indexOf("\0") === -1 && headerValue.indexOf(String.fromCharCode(8)) === -1 &&
+		headerValue.indexOf(String.fromCharCode(11)) === -1 && headerValue.indexOf(String.fromCharCode(12)) === -1;
 }/**
  * Woodland HTTP server framework class extending EventEmitter
  * @class
@@ -692,6 +679,8 @@ class Woodland extends EventEmitter {
 	 * @param {boolean} [config.etags=true] - Enable ETag generation
 	 * @param {string[]} [config.indexes=['index.htm', 'index.html']] - Index file names
 	 * @param {Object} [config.logging={}] - Logging configuration
+	 * @param {number} [config.maxHeaderByteSize=14336] - Maximum size for any individual header value in bytes (14 KiB)
+	 * @param {number} [config.maxUploadByteSize=51200] - Maximum request body size in bytes (50 KiB)
 	 * @param {string[]} [config.origins=[]] - Allowed CORS origins (empty array denies all cross-origin requests)
 	 * @param {boolean} [config.silent=false] - Disable default headers
 	 * @param {boolean} [config.time=false] - Enable response time tracking
@@ -709,6 +698,8 @@ class Woodland extends EventEmitter {
 			INDEX_HTML
 		],
 		logging = {},
+		maxHeaderByteSize = INT_14336,
+		maxUploadByteSize = INT_51200,
 		origins = [],
 		silent = false,
 		time = false
@@ -742,6 +733,8 @@ class Woodland extends EventEmitter {
 			format: logging?.format ?? LOG_FORMAT,
 			level: logging?.level ?? INFO
 		};
+		this.maxHeaderByteSize = maxHeaderByteSize;
+		this.maxUploadByteSize = maxUploadByteSize;
 		this.methods = [];
 		this.middleware = new Map();
 		this.origins = structuredClone(origins);
@@ -1190,6 +1183,68 @@ class Woodland extends EventEmitter {
 	}
 
 	/**
+	 * Creates middleware to validate request body size limits
+	 * @param {number} [maxSize] - Maximum body size in bytes (defaults to instance maxUploadByteSize)
+	 * @returns {Function} Middleware function that validates request body size
+	 */
+	requestSizeLimit (maxSize) {
+		const limit = maxSize ?? this.maxUploadByteSize;
+
+		return (req, res, nextHandler) => {
+			// Skip validation for methods that don't typically have bodies
+			if (req.method === GET || req.method === HEAD || req.method === OPTIONS) {
+				return nextHandler();
+			}
+
+			const contentLength = req.headers["content-length"];
+
+			if (contentLength !== undefined) {
+				const size = parseInt(contentLength, 10);
+
+				if (isNaN(size) || size < 0) {
+					this.log(`type=requestSizeLimit, method=${req.method}, ip=${req.ip || "unknown"}, contentLength="${contentLength}", message="Invalid Content-Length header"`, ERROR);
+
+					return res.error(INT_400);
+				}
+
+				if (size > limit) {
+					this.log(`type=requestSizeLimit, method=${req.method}, ip=${req.ip || "unknown"}, size=${size}, limit=${limit}, message="Request body size limit exceeded"`, ERROR);
+
+					return res.error(INT_413); // 413 Payload Too Large
+				}
+			}
+
+			// Set up body size tracking for streaming requests without Content-Length
+			let bodySize = 0;
+			const originalOn = req.on.bind(req);
+
+			req.on = function (event, callback) {
+				if (event === "data") {
+					const wrappedCallback = chunk => {
+						bodySize += chunk.length;
+
+						if (bodySize > limit) {
+							// Destroy the request stream to stop reading
+							req.destroy();
+							res.error(INT_413); // 413 Payload Too Large
+
+							return;
+						}
+
+						callback(chunk);
+					};
+
+					return originalOn(event, wrappedCallback);
+				}
+
+				return originalOn(event, callback);
+			};
+
+			return nextHandler();
+		};
+	}
+
+	/**
 	 * Routes an incoming HTTP request through the middleware stack
 	 * @param {Object} req - HTTP request object
 	 * @param {Object} res - HTTP response object
@@ -1198,6 +1253,21 @@ class Woodland extends EventEmitter {
 		const evc = CONNECT.toLowerCase(),
 			evf = FINISH,
 			method = req.method === HEAD ? GET : req.method;
+
+		// Security: Validate individual header values to prevent header overflow attacks
+		for (const [name, value] of Object.entries(req.headers)) {
+			if (typeof name === "string" && typeof value === "string") {
+				const headerValueSize = Buffer.byteLength(value, "utf8");
+
+				if (headerValueSize > this.maxHeaderByteSize) {
+					this.log(`type=route, method=${req.method}, ip=${req.connection?.remoteAddress || "unknown"}, header="${name}", headerSize=${headerValueSize}, maxSize=${this.maxHeaderByteSize}, message="Individual header value size limit exceeded"`, ERROR);
+					res.writeHead(INT_400, {"Content-Type": "text/plain"});
+					res.end("Request header value too large");
+
+					return;
+				}
+			}
+		}
 
 		this.decorate(req, res);
 
@@ -1327,16 +1397,25 @@ class Woodland extends EventEmitter {
 	 * @returns {Promise<void>} Promise that resolves when serving is complete
 	 */
 	async serve (req, res, arg, folder = process.cwd()) {
-		// Security: Validate and sanitize file path to prevent directory traversal
-		if (!isSafeFilePath(arg)) {
-			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path traversal attempt blocked", path="${arg}"`, ERROR);
+		const fp = resolve(folder, arg);
+
+		// Security: Validate the final absolute path
+		if (!isSafeFilePath(fp)) {
+			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Unsafe file path blocked", path="${fp}"`, ERROR);
 			res.error(INT_403);
 
 			return;
 		}
 
-		const sanitizedPath = sanitizeFilePath(arg);
-		const fp = join(folder, sanitizedPath);
+		// Security: Ensure the resolved path stays within the base directory
+		const resolvedFolder = resolve(folder);
+
+		if (!fp.startsWith(resolvedFolder + sep) && fp !== resolvedFolder) {
+			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path traversal attempt blocked", path="${fp}"`, ERROR);
+			res.error(INT_403);
+
+			return;
+		}
 
 		let valid = true;
 		let stats;
