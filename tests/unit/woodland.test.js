@@ -2992,6 +2992,169 @@ describe("Woodland Helper Method Edge Cases", () => {
 
 		errorFn(404, "Not found");
 	});
+
+	describe("corsRoute", () => {
+		it("should return a function", () => {
+			const corsHandler = app.corsRoute();
+
+			assert.strictEqual(typeof corsHandler, "function", "corsRoute should return a function");
+		});
+
+		it("should create middleware that responds with 204 No Content", () => {
+			const corsHandler = app.corsRoute();
+
+			const testReq = {
+				method: "OPTIONS",
+				headers: {},
+				parsed: { pathname: "/test" },
+				ip: "127.0.0.1"
+			};
+
+			const testRes = {
+				statusCode: 200,
+				headersSent: false,
+				_headers: {},
+				setHeader: function (name, value) {
+					this._headers[name.toLowerCase()] = value;
+				},
+				getHeader: function (name) {
+					return this._headers[name.toLowerCase()];
+				},
+				removeHeader: function (name) {
+					delete this._headers[name.toLowerCase()];
+				},
+				end: function () {
+					// Mock end
+				},
+				status: function (code) {
+					this.statusCode = code;
+
+					return this;
+				},
+				send: function (body) {
+					assert.strictEqual(body, "", "Should send empty body");
+					assert.strictEqual(this.statusCode, 204, "Should set status to 204");
+				}
+			};
+
+			// Add the status method that chains
+			testRes.stats = testRes.status;
+
+			corsHandler(testReq, testRes);
+		});
+
+		it("should automatically register CORS route when origins are configured", () => {
+			const corsApp = new Woodland({
+				origins: ["https://example.com"],
+				logging: { enabled: false }
+			});
+
+			// Verify OPTIONS middleware was registered
+			assert.ok(corsApp.middleware.has("OPTIONS"), "Should register OPTIONS middleware");
+
+			// Check that the middleware map has entries
+			const optionsMap = corsApp.middleware.get("OPTIONS");
+
+			assert.ok(optionsMap.size > 0, "Should have OPTIONS routes registered");
+		});
+
+		it("should return 404 for non-OPTIONS methods when only CORS route is registered", () => {
+			const corsApp = new Woodland({
+				origins: ["https://example.com"],
+				logging: { enabled: false }
+			});
+
+			const testReq = {
+				method: "GET",
+				url: "/test",
+				headers: {
+					host: "localhost"
+				},
+				connection: { remoteAddress: "127.0.0.1" }
+			};
+
+			const testRes = {
+				statusCode: 200,
+				headersSent: false,
+				_headers: {},
+				_events: {},
+				setHeader: function (name, value) {
+					this._headers[name.toLowerCase()] = value;
+				},
+				getHeader: function (name) {
+					return this._headers[name.toLowerCase()];
+				},
+				removeHeader: function (name) {
+					delete this._headers[name.toLowerCase()];
+				},
+				writeHead: function (status, headers) {
+					this.statusCode = status;
+					if (headers) {
+						for (const [key, value] of Object.entries(headers)) {
+							this.setHeader(key, value);
+						}
+					}
+				},
+				end: function () {
+					// Mock end
+				},
+				on: function (event, callback) {
+					this._events[event] = callback;
+				},
+				emit: function (event, ...args) {
+					if (this._events[event]) {
+						this._events[event](...args);
+					}
+				}
+			};
+
+			let errorCalled = false;
+			let errorStatus = null;
+
+			// Override error to capture the status
+			const originalDecorate = corsApp.decorate;
+			corsApp.decorate = function (req, res) {
+				originalDecorate.call(this, req, res);
+				const originalError = res.error;
+				res.error = function (status) {
+					errorCalled = true;
+					errorStatus = status;
+					originalError.call(this, status);
+				};
+			};
+
+			corsApp.route(testReq, testRes);
+
+			assert.strictEqual(errorCalled, true, "Error should be called for non-OPTIONS method");
+			assert.strictEqual(errorStatus, 404, "Should return 404 when no routes match and no other methods are available");
+		});
+
+		it("should not register CORS route when no origins are configured", () => {
+			const corsApp = new Woodland({
+				origins: [],
+				logging: { enabled: false }
+			});
+
+			// Verify no OPTIONS middleware was auto-registered for CORS
+			// Since we can't easily test the internal route content, we test behavior
+			const allows = corsApp.allows("/test");
+
+			assert.strictEqual(allows.includes("OPTIONS"), false, "Should not include OPTIONS when no origins configured");
+		});
+
+		it("should ignore CORS route in visibility calculations", () => {
+			const corsApp = new Woodland({
+				origins: ["https://example.com"],
+				logging: { enabled: false }
+			});
+
+			// The CORS route should be ignored when calculating visible routes
+			// This means routes that only have the CORS OPTIONS handler should show as having 0 visible routes
+			const routeInfo = corsApp.routes("/nonexistent", "GET");
+
+			assert.strictEqual(routeInfo.visible, 0, "CORS route should be ignored in visibility calculations");
+		});
+	});
 });
 
 describe("Woodland Request Size Limit Streaming", function () {
@@ -3310,6 +3473,8 @@ describe("Woodland Request Size Limit Streaming", function () {
 			req.emit("data", Buffer.alloc(150)); // Exceeds 100 byte limit
 		}, 10);
 	});
+
+
 });
 
 describe("Header Size Validation Edge Cases", function () {
