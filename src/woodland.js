@@ -44,7 +44,7 @@ import {
 	INT_0,
 	INT_1e3,
 	INT_1e4,
-	INT_14336,
+	INT_16384,
 	INT_200,
 	INT_204,
 	INT_3,
@@ -158,7 +158,7 @@ export class Woodland extends EventEmitter {
 	 * @param {Object} [config.logging={}] - Logging configuration
 	 * @param {Object} [config.maxHeader] - HTTP header size limits configuration
 	 * @param {boolean} [config.maxHeader.enabled=true] - Enable header size validation
-	 * @param {number} [config.maxHeader.byteSize=14336] - Maximum individual header value size in bytes
+	 * @param {number} [config.maxHeader.byteSize=16384] - Maximum individual header value size in bytes
 	 * @param {Object} [config.maxUpload] - Request body size limits configuration
 	 * @param {boolean} [config.maxUpload.enabled=true] - Enable request body size validation
 	 * @param {number} [config.maxUpload.byteSize=51200] - Maximum request body size in bytes
@@ -181,7 +181,7 @@ export class Woodland extends EventEmitter {
 		logging = {},
 		maxHeader = {
 			enabled: true,
-			byteSize: INT_14336
+			byteSize: INT_16384
 		},
 		maxUpload = {
 			enabled: true,
@@ -222,7 +222,7 @@ export class Woodland extends EventEmitter {
 		};
 		this.maxHeader = {
 			enabled: (maxHeader?.enabled ?? true) !== false,
-			byteSize: maxHeader.byteSize ?? INT_14336
+			byteSize: maxHeader.byteSize ?? INT_16384
 		};
 		this.maxUpload = {
 			enabled: (maxUpload?.enabled ?? true) !== false,

@@ -17,6 +17,14 @@ export interface WoodlandConfig {
         format?: string;
         level?: string;
     };
+    maxHeader?: {
+        enabled?: boolean;
+        byteSize?: number;
+    };
+    maxUpload?: {
+        enabled?: boolean;
+        byteSize?: number;
+    };
     origins?: string[];
     silent?: boolean;
     time?: boolean;
@@ -86,6 +94,14 @@ export class Woodland extends EventEmitter {
         format: string;
         level: string;
     };
+    maxHeader: {
+        enabled: boolean;
+        byteSize: number;
+    };
+    maxUpload: {
+        enabled: boolean;
+        byteSize: number;
+    };
     methods: string[];
     middleware: Map<string, Map<string, any>>;
     origins: string[];
@@ -118,6 +134,7 @@ export class Woodland extends EventEmitter {
     post(...args: (string | MiddlewareFunction | ErrorMiddlewareFunction)[]): this;
     put(...args: (string | MiddlewareFunction | ErrorMiddlewareFunction)[]): this;
     redirect(res: ServerResponse): (uri: string, perm?: boolean) => void;
+    requestSizeLimit(customLimit?: number): MiddlewareFunction;
     route(req: IncomingMessage, res: ServerResponse): void;
     routes(uri: string, method: string, override?: boolean): any;
     send(req: IncomingMessage, res: ServerResponse): (body?: any, status?: number, headers?: Record<string, any>) => void;

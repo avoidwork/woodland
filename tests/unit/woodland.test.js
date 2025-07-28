@@ -1098,7 +1098,7 @@ describe("Woodland", () => {
 					byteSize: null // Explicitly null
 				}
 			});
-			assert.strictEqual(testApp.maxHeader.byteSize, 14336); // Should default to INT_14336
+			assert.strictEqual(testApp.maxHeader.byteSize, 16384); // Should default to INT_16384
 		});
 
 		it("should handle maxUpload with undefined byteSize", () => {

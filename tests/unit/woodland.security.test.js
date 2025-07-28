@@ -360,8 +360,8 @@ describe("Woodland Security Tests", () => {
 		});
 
 		it("should reject requests with individual header value exceeding size limit", () => {
-			// Create a single header value that exceeds the 14KiB limit
-			const largeValue = "x".repeat(15000); // 15KB value
+			// Create a single header value that exceeds the 16KiB limit
+			const largeValue = "x".repeat(17000); // 17KB value
 			mockReq.headers = {
 				"host": "localhost:3000",
 				"large-header": largeValue
@@ -435,11 +435,11 @@ describe("Woodland Security Tests", () => {
 		it("should allow multiple headers when each is within individual size limit", () => {
 			mockReq.headers = {
 				"host": "localhost:3000",
-				"user-agent": "x".repeat(1000), // 1KB - under 14KB limit
-				"accept": "x".repeat(2000), // 2KB - under 14KB limit
-				"content-type": "x".repeat(3000), // 3KB - under 14KB limit
-				"custom-header": "x".repeat(4000) // 4KB - under 14KB limit
-				// Total: ~10KB, but each individual header is under 14KB limit
+				"user-agent": "x".repeat(1000), // 1KB - under 16KB limit
+				"accept": "x".repeat(2000), // 2KB - under 16KB limit
+				"content-type": "x".repeat(3000), // 3KB - under 16KB limit
+				"custom-header": "x".repeat(4000) // 4KB - under 16KB limit
+			// Total: ~10KB, but each individual header is under 16KB limit
 			};
 
 			let errorCalled = false;
