@@ -34,8 +34,6 @@ import {
 	STRING_0,
 	STRING_00,
 	STRING_30,
-	TIME_MS,
-	TOKEN_N,
 	UTF8,
 	SLASH
 } from "./constants.js";
@@ -59,12 +57,15 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url)),
  * @returns {string} The escaped string with HTML entities
  */
 function escapeHtml (str = EMPTY) {
-	return str
-		.replace(/&/g, "&amp;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;")
-		.replace(/"/g, "&quot;")
-		.replace(/'/g, "&#39;");
+	const htmlEntities = {
+		"&": "&amp;",
+		"<": "&lt;",
+		">": "&gt;",
+		'"': "&quot;",
+		"'": "&#39;"
+	};
+
+	return str.replace(/[&<>"']/g, char => htmlEntities[char]);
 }
 
 /**
@@ -77,8 +78,9 @@ export function autoindex (title = EMPTY, files = []) {
 	const safeTitle = escapeHtml(title);
 
 	// Security: Generate file listing with proper HTML escaping
-	const parentDir = "    <li><a href=\"..\" rel=\"collection\">../</a></li>";
-	const fileList = files.map(file => {
+	const fileListItems = ["    <li><a href=\"..\" rel=\"collection\">../</a></li>"];
+
+	for (const file of files) {
 		const safeName = escapeHtml(file.name);
 		const safeHref = encodeURIComponent(file.name);
 		const isDir = file.isDirectory();
@@ -86,10 +88,10 @@ export function autoindex (title = EMPTY, files = []) {
 		const href = isDir ? `${safeHref}/` : safeHref;
 		const rel = isDir ? "collection" : "item";
 
-		return `    <li><a href="${href}" rel="${rel}">${displayName}</a></li>`;
-	}).join("\n");
+		fileListItems.push(`    <li><a href="${href}" rel="${rel}">${displayName}</a></li>`);
+	}
 
-	const safeFiles = files.length > 0 ? `${parentDir}\n${fileList}` : parentDir;
+	const safeFiles = fileListItems.join("\n");
 
 	return html.replace(/\$\{\s*TITLE\s*\}/g, safeTitle)
 		.replace(/\$\{\s*FILES\s*\}/g, safeFiles);
@@ -102,7 +104,19 @@ export function autoindex (title = EMPTY, files = []) {
  * @returns {number} The appropriate HTTP status code
  */
 export function getStatus (req, res) {
-	return req.allow.length > INT_0 ? req.method !== GET ? INT_405 : req.allow.includes(GET) ? res.statusCode > INT_500 ? res.statusCode : INT_500 : INT_404 : INT_404;
+	if (req.allow.length === INT_0) {
+		return INT_404;
+	}
+
+	if (req.method !== GET) {
+		return INT_405;
+	}
+
+	if (!req.allow.includes(GET)) {
+		return INT_404;
+	}
+
+	return res.statusCode > INT_500 ? res.statusCode : INT_500;
 }
 
 /**
@@ -123,7 +137,7 @@ export function mime (arg = EMPTY) {
  * @returns {string} Formatted time string with "ms" suffix
  */
 export function ms (arg = INT_0, digits = INT_3) {
-	return TIME_MS.replace(TOKEN_N, Number(arg / INT_1e6).toFixed(digits));
+	return `${Number(arg / INT_1e6).toFixed(digits)}ms`;
 }
 
 /**
@@ -261,20 +275,20 @@ export function pipeable (method, arg) {
  * @param {Object} [arg={}] - Object containing middleware array and parameters
  */
 export function reduce (uri, map = new Map(), arg = {}) {
-	Array.from(map.values()).filter(i => {
+	for (const i of map.values()) {
 		i.regex.lastIndex = INT_0;
 
-		return i.regex.test(uri);
-	}).forEach(i => {
-		for (const fn of i.handlers) {
-			arg.middleware.push(fn);
-		}
+		if (i.regex.test(uri)) {
+			for (const fn of i.handlers) {
+				arg.middleware.push(fn);
+			}
 
-		if (i.params && arg.params === false) {
-			arg.params = true;
-			arg.getParams = i.regex;
+			if (i.params && arg.params === false) {
+				arg.params = true;
+				arg.getParams = i.regex;
+			}
 		}
-	});
+	}
 }
 
 /**
@@ -321,12 +335,10 @@ export function isSafeFilePath (filePath) {
 	}
 
 	// Check for dangerous characters (excluding .. patterns since join() normalizes absolute paths)
-	const dangerousPatterns = [
-		/\0/, // null bytes
-		/[\r\n]/ // newlines
-	];
-
-	return !dangerousPatterns.some(pattern => pattern.test(filePath));
+	// Test for null bytes and newlines
+	return filePath.indexOf("\0") === -1 &&
+		filePath.indexOf("\r") === -1 &&
+		filePath.indexOf("\n") === -1;
 }
 
 /**
@@ -452,13 +464,9 @@ export function isValidOrigin (origin) {
 
 	// Check for dangerous characters that could enable header injection
 	// Check for \r, \n, null, backspace, vertical tab, form feed
-	const hasCarriageReturn = origin.includes("\r");
-	const hasNewline = origin.includes("\n");
-	const hasNull = origin.includes("\u0000");
-	const hasControlChars = origin.includes(String.fromCharCode(8)) ||
-		origin.includes(String.fromCharCode(11)) ||
-		origin.includes(String.fromCharCode(12));
-	if (hasCarriageReturn || hasNewline || hasNull || hasControlChars) {
+	if (origin.indexOf("\r") !== -1 || origin.indexOf("\n") !== -1 ||
+		origin.indexOf("\0") !== -1 || origin.indexOf(String.fromCharCode(8)) !== -1 ||
+		origin.indexOf(String.fromCharCode(11)) !== -1 || origin.indexOf(String.fromCharCode(12)) !== -1) {
 		return false;
 	}
 
@@ -480,10 +488,10 @@ export function sanitizeHeaderValue (headerValue) {
 	// Removes \r, \n, null, backspace, vertical tab, form feed
 	return headerValue
 		.replace(/[\r\n]/g, EMPTY)
-		.replace(new RegExp(String.fromCharCode(0), "g"), EMPTY)
-		.replace(new RegExp(String.fromCharCode(8), "g"), EMPTY)
-		.replace(new RegExp(String.fromCharCode(11), "g"), EMPTY)
-		.replace(new RegExp(String.fromCharCode(12), "g"), EMPTY)
+		.replace(/\0/g, EMPTY)
+		.replace(new RegExp(String.fromCharCode(8), "g"), EMPTY) // backspace
+		.replace(new RegExp(String.fromCharCode(11), "g"), EMPTY) // vertical tab
+		.replace(new RegExp(String.fromCharCode(12), "g"), EMPTY) // form feed
 		.trim();
 }
 
@@ -499,12 +507,7 @@ export function isValidHeaderValue (headerValue) {
 
 	// Check for characters that could enable header injection
 	// Check for \r, \n, null, backspace, vertical tab, form feed
-	const hasCarriageReturn = headerValue.includes("\r");
-	const hasNewline = headerValue.includes("\n");
-	const hasNull = headerValue.includes("\u0000");
-	const hasControlChars = headerValue.includes(String.fromCharCode(8)) ||
-		headerValue.includes(String.fromCharCode(11)) ||
-		headerValue.includes(String.fromCharCode(12));
-
-	return !(hasCarriageReturn || hasNewline || hasNull || hasControlChars);
+	return headerValue.indexOf("\r") === -1 && headerValue.indexOf("\n") === -1 &&
+		headerValue.indexOf("\0") === -1 && headerValue.indexOf(String.fromCharCode(8)) === -1 &&
+		headerValue.indexOf(String.fromCharCode(11)) === -1 && headerValue.indexOf(String.fromCharCode(12)) === -1;
 }
