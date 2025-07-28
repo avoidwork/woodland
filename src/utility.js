@@ -17,18 +17,28 @@ import {
 	FUNCTION,
 	GET,
 	HEAD,
+	HTTP_PROTOCOL,
+	HTTPS_PROTOCOL,
 	HYPHEN,
 	INT_0,
+	INT_1,
+	INT_4,
+	INT_8,
 	INT_10,
 	INT_1e6,
 	INT_2,
 	INT_206,
+	INT_255,
 	INT_3,
 	INT_404,
 	INT_405,
 	INT_500,
 	INT_60,
 	INT_65535,
+	IPV6_ALL_ZEROS,
+	IPV6_DOUBLE_COLON,
+	IPV6_IPV4_MAPPED_PREFIX,
+	IPV6_INVALID_TRIPLE_COLON,
 	KEY_BYTES,
 	PERIOD,
 	START,
@@ -37,7 +47,8 @@ import {
 	STRING_00,
 	STRING_30,
 	UTF8,
-	SLASH
+	SLASH,
+	COLON
 } from "./constants.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url)),
@@ -201,7 +212,7 @@ export function params (req, getParams) {
 
 	for (const [key, value] of Object.entries(req.params)) {
 		let decoded = decodeURIComponent(value);
-		let safeValue = typeof decoded === "string" ? escapeHtml(decoded) : decoded;
+		let safeValue = typeof decoded === STRING ? escapeHtml(decoded) : decoded;
 		req.params[key] = coerce(safeValue);
 	}
 }
@@ -372,15 +383,15 @@ export function sanitizeFilePath (filePath) {
  */
 function validateIPInternal (ip) {
 	// IPv4 validation - optimized with combined validation
-	if (!ip.includes(":")) {
+	if (!ip.includes(COLON)) {
 		const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
 		const ipv4Match = ip.match(ipv4Regex);
 
 		if (ipv4Match) {
 			// Validate octets inline to avoid array creation and iteration
-			for (let i = 1; i <= 4; i++) {
-				const octet = parseInt(ipv4Match[i], 10);
-				if (octet > 255) {
+			for (let i = INT_1; i <= INT_4; i++) {
+				const octet = parseInt(ipv4Match[i], INT_10);
+				if (octet > INT_255) {
 					return false;
 				}
 			}
@@ -393,36 +404,36 @@ function validateIPInternal (ip) {
 
 	// IPv6 validation - optimized for performance
 	// Early check for invalid patterns
-	if (ip.includes(":::") || !(/^[0-9a-fA-F:.]+$/).test(ip)) {
+	if (ip.includes(IPV6_INVALID_TRIPLE_COLON) || !(/^[0-9a-fA-F:.]+$/).test(ip)) {
 		return false;
 	}
 
 	// Handle IPv4-mapped IPv6 addresses first (most common case)
-	const ipv4MappedMatch = ip.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i);
+	const ipv4MappedMatch = ip.match(new RegExp(`^${IPV6_IPV4_MAPPED_PREFIX.replace(/:/g, "\\:")}(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})$`, "i"));
 	if (ipv4MappedMatch) {
 		return validateIPInternal(ipv4MappedMatch[1]);
 	}
 
 	// Special case for all-zeros
-	if (ip === "::") {
+	if (ip === IPV6_ALL_ZEROS) {
 		return true;
 	}
 
 	// Optimized IPv6 validation
-	const parts = ip.split("::");
+	const parts = ip.split(IPV6_DOUBLE_COLON);
 	if (parts.length > 2) {
 		return false;
 	}
 
 	// For compressed notation (::)
 	if (parts.length === 2) {
-		const leftGroups = parts[0] ? parts[0].split(":") : [];
-		const rightGroups = parts[1] ? parts[1].split(":") : [];
+		const leftGroups = parts[0] ? parts[0].split(COLON) : [];
+		const rightGroups = parts[1] ? parts[1].split(COLON) : [];
 
 		// Check group validity and count non-empty groups in single pass
 		let nonEmptyCount = 0;
 		for (const group of [...leftGroups, ...rightGroups]) {
-			if (group !== "") {
+			if (group !== EMPTY) {
 				if (!(/^[0-9a-fA-F]{1,4}$/).test(group)) {
 					return false;
 				}
@@ -430,12 +441,12 @@ function validateIPInternal (ip) {
 			}
 		}
 
-		return nonEmptyCount < 8; // Must be compressed
+		return nonEmptyCount < INT_8; // Must be compressed
 	}
 
 	// Full notation (no ::)
-	const groups = ip.split(":");
-	if (groups.length !== 8) {
+	const groups = ip.split(COLON);
+	if (groups.length !== INT_8) {
 		return false;
 	}
 
@@ -455,7 +466,7 @@ function validateIPInternal (ip) {
  * @returns {boolean} True if IP is valid format
  */
 export function isValidIP (ip) {
-	if (!ip || typeof ip !== "string") {
+	if (!ip || typeof ip !== STRING) {
 		return false;
 	}
 
@@ -478,7 +489,7 @@ export function isValidIP (ip) {
  * @returns {boolean} True if origin is valid and safe
  */
 export function isValidOrigin (origin) {
-	if (!origin || typeof origin !== "string") {
+	if (!origin || typeof origin !== STRING) {
 		return false;
 	}
 
@@ -491,7 +502,7 @@ export function isValidOrigin (origin) {
 	}
 
 	// Basic URL validation - should start with http:// or https://
-	return origin.startsWith("http://") || origin.startsWith("https://");
+	return origin.startsWith(HTTP_PROTOCOL) || origin.startsWith(HTTPS_PROTOCOL);
 }
 
 // Optimized dangerous character detection for header validation - non-global for test
@@ -513,7 +524,7 @@ function hasDangerousHeaderChars (headerValue) {
  * @returns {string} Sanitized header value
  */
 export function sanitizeHeaderValue (headerValue) {
-	if (!headerValue || typeof headerValue !== "string") {
+	if (!headerValue || typeof headerValue !== STRING) {
 		return EMPTY;
 	}
 
@@ -529,7 +540,7 @@ export function sanitizeHeaderValue (headerValue) {
  * @returns {boolean} True if header value is safe
  */
 export function isValidHeaderValue (headerValue) {
-	if (!headerValue || typeof headerValue !== "string") {
+	if (!headerValue || typeof headerValue !== STRING) {
 		return false;
 	}
 

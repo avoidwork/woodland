@@ -97,11 +97,14 @@ export const PARAMS_GROUP = "/(?<$1>[^/]+)";
 // NUMERIC CONSTANTS
 // =============================================================================
 export const INT_0 = 0;
+export const INT_1 = 1;
 export const INT_2 = 2;
 export const INT_3 = 3;
 export const INT_4 = 4;
+export const INT_8 = 8;
 export const INT_10 = 10;
 export const INT_60 = 60;
+export const INT_255 = 255;
 export const INT_1e3 = 1e3;
 export const INT_1e4 = 1e4;
 export const INT_1e6 = 1e6;
@@ -126,6 +129,20 @@ export const STRING_0 = "0";
 export const STRING_00 = "00";
 export const STRING_30 = "30";
 export const WILDCARD = "*";
+
+// =============================================================================
+// PROTOCOL CONSTANTS
+// =============================================================================
+export const HTTP_PROTOCOL = "http://";
+export const HTTPS_PROTOCOL = "https://";
+
+// =============================================================================
+// IP ADDRESS CONSTANTS
+// =============================================================================
+export const IPV6_ALL_ZEROS = "::";
+export const IPV6_IPV4_MAPPED_PREFIX = "::ffff:";
+export const IPV6_INVALID_TRIPLE_COLON = ":::";
+export const IPV6_DOUBLE_COLON = "::";
 
 // =============================================================================
 // DATA TYPES
