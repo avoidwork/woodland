@@ -647,6 +647,34 @@ describe("utility", () => {
 			assert.strictEqual(result.hostname, "localhost");
 			assert.strictEqual(result.port, "3000");
 		});
+
+		it("should fallback to port 8000 when connection key is invalid", () => {
+			const req = {
+				headers: {},
+				url: "/test",
+				socket: {
+					server: {
+						_connectionKey: null // null connection key will trigger fallback
+					}
+				}
+			};
+			const result = parse(req);
+			assert.ok(result instanceof URL);
+			assert.strictEqual(result.hostname, "localhost");
+			assert.strictEqual(result.port, "8000"); // Should fallback to 8000
+		});
+
+		it("should handle missing socket server", () => {
+			const req = {
+				headers: {},
+				url: "/test",
+				socket: {}
+			};
+			const result = parse(req);
+			assert.ok(result instanceof URL);
+			assert.strictEqual(result.hostname, "localhost");
+			assert.strictEqual(result.port, "8000"); // Should fallback to 8000
+		});
 	});
 
 	describe("partialHeaders", () => {
@@ -1194,6 +1222,15 @@ describe("utility", () => {
 			assert.strictEqual(isValidIP("2001:db8::1"), true); // this should be valid
 			assert.strictEqual(isValidIP("2001:db8:1:"), false); // trailing colon creates empty group
 			assert.strictEqual(isValidIP(":2001:db8:1"), false); // leading colon creates empty group
+		});
+
+		it("should test IPv6 groups.every validation edge cases", () => {
+			// This specifically tests the groups.every line where group && regex.test(group)
+			// Test case where group parsing creates empty groups that fail validation
+			assert.strictEqual(isValidIP("2001:db8:85a3:0000:0000:8a2e:0370:"), false); // trailing colon creates empty group
+			assert.strictEqual(isValidIP("2001:db8::85a3:0000:0000:8a2e:0370:7334"), false); // too many groups with compression
+			// Test a case that should be valid to ensure the function works correctly
+			assert.strictEqual(isValidIP("2001:db8:85a3::8a2e:0370:7334"), true); // valid compressed format
 		});
 	});
 });
