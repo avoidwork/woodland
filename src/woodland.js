@@ -42,6 +42,7 @@ import {
 	INDEX_HTML,
 	INFO,
 	INT_0,
+	INT_10,
 	INT_1e3,
 	INT_1e4,
 	INT_16384,
@@ -63,6 +64,7 @@ import {
 	LAST_MODIFIED,
 	LEFT_PAREN,
 	LEVELS,
+	LOCALHOST,
 	LOCATION,
 	LOG,
 	LOG_B,
@@ -103,10 +105,12 @@ import {
 	SLASH,
 	STREAM,
 	STRING,
+	TEXT_PLAIN,
 	TIMING_ALLOW_ORIGIN,
 	TO_STRING,
 	TRACE,
 	TRUE,
+	UNKNOWN,
 	USER_AGENT,
 	UTF8,
 	UTF_8,
@@ -350,7 +354,7 @@ export class Woodland extends EventEmitter {
 	 * @returns {boolean} True if cross-origin request
 	 */
 	corsHost (req) {
-		return ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host;
+		return ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, EMPTY) !== req.headers.host;
 	}
 
 	/**
@@ -509,7 +513,7 @@ export class Woodland extends EventEmitter {
 	ip (req) {
 		// If no X-Forwarded-For header, return connection IP
 		if (!(X_FORWARDED_FOR in req.headers) || !req.headers[X_FORWARDED_FOR].trim()) {
-			return req.connection.remoteAddress || req.socket.remoteAddress || "127.0.0.1";
+			return req.connection.remoteAddress || req.socket.remoteAddress || LOCALHOST;
 		}
 
 		// Parse X-Forwarded-For header and find first valid IP
@@ -522,7 +526,7 @@ export class Woodland extends EventEmitter {
 		}
 
 		// Fall back to connection IP if no valid IP found
-		return req.connection.remoteAddress || req.socket.remoteAddress || "127.0.0.1";
+		return req.connection.remoteAddress || req.socket.remoteAddress || LOCALHOST;
 	}
 
 	/**
@@ -531,7 +535,7 @@ export class Woodland extends EventEmitter {
 	 * @returns {Function} JSON response function
 	 */
 	json (res) {
-		return (arg, status = 200, headers = {[CONTENT_TYPE]: `${APPLICATION_JSON}; charset=${UTF_8}`}) => {
+		return (arg, status = INT_200, headers = {[CONTENT_TYPE]: `${APPLICATION_JSON}; charset=${UTF_8}`}) => {
 			res.send(JSON.stringify(arg), status, headers);
 		};
 	}
@@ -701,16 +705,16 @@ export class Woodland extends EventEmitter {
 			const contentLength = req.headers["content-length"];
 
 			if (contentLength !== undefined) {
-				const size = parseInt(contentLength, 10);
+				const size = parseInt(contentLength, INT_10);
 
 				if (isNaN(size) || size < 0) {
-					this.log(`type=requestSizeLimit, method=${req.method}, ip=${req.ip || "unknown"}, contentLength="${contentLength}", message="Invalid Content-Length header"`, ERROR);
+					this.log(`type=requestSizeLimit, method=${req.method}, ip=${req.ip || UNKNOWN}, contentLength="${contentLength}", message="Invalid Content-Length header"`, ERROR);
 
 					return res.error(INT_400);
 				}
 
 				if (size > limit) {
-					this.log(`type=requestSizeLimit, method=${req.method}, ip=${req.ip || "unknown"}, size=${size}, limit=${limit}, message="Request body size limit exceeded"`, ERROR);
+					this.log(`type=requestSizeLimit, method=${req.method}, ip=${req.ip || UNKNOWN}, size=${size}, limit=${limit}, message="Request body size limit exceeded"`, ERROR);
 
 					return res.error(INT_413); // 413 Payload Too Large
 				}
@@ -732,7 +736,7 @@ export class Woodland extends EventEmitter {
 
 				if (bodySize > limit) {
 					cleanup();
-					this.log(`type=requestSizeLimit, method=${req.method}, ip=${req.ip || "unknown"}, size=${bodySize}, limit=${limit}, message="Streaming request body size limit exceeded"`, ERROR);
+					this.log(`type=requestSizeLimit, method=${req.method}, ip=${req.ip || UNKNOWN}, size=${bodySize}, limit=${limit}, message="Streaming request body size limit exceeded"`, ERROR);
 
 					req.destroy();
 					res.error(INT_413);
@@ -774,12 +778,12 @@ export class Woodland extends EventEmitter {
 		if (this.maxHeader.enabled) {
 			const maxHeaderByteSize = this.maxHeader.byteSize;
 			for (const [name, value] of Object.entries(req.headers)) {
-				if (typeof name === "string" && typeof value === "string") {
-					const headerValueSize = Buffer.byteLength(value, "utf8");
+				if (typeof name === STRING && typeof value === STRING) {
+					const headerValueSize = Buffer.byteLength(value, UTF8);
 
 					if (headerValueSize > maxHeaderByteSize) {
-						this.log(`type=route, method=${req.method}, ip=${req.connection?.remoteAddress || "unknown"}, header="${name}", headerSize=${headerValueSize}, maxSize=${maxHeaderByteSize}, message="Individual header value size limit exceeded"`, ERROR);
-						res.writeHead(INT_400, {"Content-Type": "text/plain"});
+						this.log(`type=route, method=${req.method}, ip=${req.connection?.remoteAddress || UNKNOWN}, header="${name}", headerSize=${headerValueSize}, maxSize=${maxHeaderByteSize}, message="Individual header value size limit exceeded"`, ERROR);
+						res.writeHead(INT_400, {[CONTENT_TYPE]: TEXT_PLAIN});
 						res.end("Request header value too large");
 
 						return;

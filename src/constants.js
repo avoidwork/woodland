@@ -129,6 +129,7 @@ export const STRING_0 = "0";
 export const STRING_00 = "00";
 export const STRING_30 = "30";
 export const WILDCARD = "*";
+export const UNKNOWN = "unknown";
 
 // =============================================================================
 // PROTOCOL CONSTANTS

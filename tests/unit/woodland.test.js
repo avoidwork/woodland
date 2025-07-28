@@ -3333,7 +3333,7 @@ describe("Header Size Validation Edge Cases", function () {
 		const res = {
 			writeHead: function (status, headers) {
 				assert.strictEqual(status, 400);
-				assert.deepStrictEqual(headers, {"Content-Type": "text/plain"});
+				assert.deepStrictEqual(headers, {"content-type": "text/plain"});
 			},
 			end: function (body) {
 				assert.strictEqual(body, "Request header value too large");
