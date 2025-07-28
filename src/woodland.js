@@ -130,6 +130,9 @@ import {
 	writeHead
 } from "./utility.js";
 
+// Optimized: Cache regex for corsHost method to avoid recompilation
+const PROTOCOL_REGEX = /^http(s)?:\/\//;
+
 /**
  * Woodland HTTP server framework class extending EventEmitter
  * @class
@@ -225,16 +228,35 @@ export class Woodland extends EventEmitter {
 		let result = override === false ? this.permissions.get(uri) : void 0;
 
 		if (override || result === void 0) {
-			const allMethods = this.routes(uri, WILDCARD, override).visible > INT_0,
-				list = allMethods ? structuredClone(METHODS) : this.methods.filter(i => this.allowed(i, uri, override));
+			const allMethods = this.routes(uri, WILDCARD, override).visible > INT_0;
+			let list;
+
+			if (allMethods) {
+				// Optimized: Use array spread instead of structuredClone for simple array
+				list = [...METHODS];
+			} else {
+				// Optimized: Use Set for faster lookups and dedupe, then convert to array
+				const methodSet = new Set();
+
+				for (const method of this.methods) {
+					if (this.allowed(method, uri, override)) {
+						methodSet.add(method);
+					}
+				}
+
+				list = Array.from(methodSet);
+			}
+
+			// Optimized: Use Set for O(1) lookup instead of includes()
+			const methodSet = new Set(list);
 
 			// Add HEAD when GET is present
-			if (list.includes(GET) && list.includes(HEAD) === false) {
+			if (methodSet.has(GET) && !methodSet.has(HEAD)) {
 				list.push(HEAD);
 			}
 
 			// Add OPTIONS for any route that has methods defined
-			if (list.length > INT_0 && list.includes(OPTIONS) === false) {
+			if (list.length > INT_0 && !methodSet.has(OPTIONS)) {
 				list.push(OPTIONS);
 			}
 
@@ -273,16 +295,35 @@ export class Woodland extends EventEmitter {
 	clf (req, res) {
 		const date = new Date();
 
-		return this.logging.format.replace(LOG_V, req.headers?.host ?? HYPHEN)
-			.replace(LOG_H, req?.ip ?? HYPHEN)
+		// Optimized: Cache date parts and avoid repeated property access
+		const month = MONTHS[date.getMonth()];
+		const day = date.getDate();
+		const year = date.getFullYear();
+		const hours = pad(date.getHours());
+		const minutes = pad(date.getMinutes());
+		const seconds = pad(date.getSeconds());
+		const timezone = timeOffset(date.getTimezoneOffset());
+		const dateStr = `[${day}/${month}/${year}:${hours}:${minutes}:${seconds} ${timezone}]`;
+
+		const host = req.headers?.host ?? HYPHEN;
+		const ip = req?.ip ?? HYPHEN;
+		const username = req?.parsed?.username ?? HYPHEN;
+		const requestLine = `${req.method} ${req.parsed.pathname}${req.parsed.search} HTTP/1.1`;
+		const contentLength = res?.getHeader(CONTENT_LENGTH) ?? HYPHEN;
+		const referer = req.headers?.referer ?? HYPHEN;
+		const userAgent = req.headers?.[USER_AGENT] ?? HYPHEN;
+
+		return this.logging.format
+			.replace(LOG_V, host)
+			.replace(LOG_H, ip)
 			.replace(LOG_L, HYPHEN)
-			.replace(LOG_U, req?.parsed?.username ?? HYPHEN)
-			.replace(LOG_T, `[${date.getDate()}/${MONTHS[date.getMonth()]}/${date.getFullYear()}:${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${timeOffset(date.getTimezoneOffset())}]`)
-			.replace(LOG_R, `${req.method} ${req.parsed.pathname}${req.parsed.search} HTTP/1.1`)
+			.replace(LOG_U, username)
+			.replace(LOG_T, dateStr)
+			.replace(LOG_R, requestLine)
 			.replace(LOG_S, res.statusCode)
-			.replace(LOG_B, res?.getHeader(CONTENT_LENGTH) ?? HYPHEN)
-			.replace(LOG_REFERRER, req.headers?.referer ?? HYPHEN)
-			.replace(LOG_USER_AGENT, req.headers?.[USER_AGENT] ?? HYPHEN);
+			.replace(LOG_B, contentLength)
+			.replace(LOG_REFERRER, referer)
+			.replace(LOG_USER_AGENT, userAgent);
 	}
 
 	/**
@@ -305,7 +346,8 @@ export class Woodland extends EventEmitter {
 	 * @returns {boolean} True if cross-origin request
 	 */
 	corsHost (req) {
-		return ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host;
+		// Optimized: Use cached regex instead of creating new one each time
+		return ORIGIN in req.headers && req.headers.origin.replace(PROTOCOL_REGEX, "") !== req.headers.host;
 	}
 
 	/**
@@ -338,26 +380,32 @@ export class Woodland extends EventEmitter {
 		res.set = this.set(res);
 		res.status = this.status(res);
 
-		for (const i of this.defaultHeaders) {
-			res.header(i[0], i[1]);
-		}
+		// Optimized: Batch header operations for better performance
+		const headersBatch = {
+			[ALLOW]: req.allow,
+			[X_CONTENT_TYPE_OPTIONS]: NO_SNIFF
+		};
 
-		res.header(ALLOW, req.allow);
-		res.header(X_CONTENT_TYPE_OPTIONS, NO_SNIFF);
+		// Add default headers to batch
+		for (const [key, value] of this.defaultHeaders) {
+			headersBatch[key] = value;
+		}
 
 		if (req.cors) {
-			const headers = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
+			const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
 
-			res.header(ACCESS_CONTROL_ALLOW_ORIGIN, req.headers.origin);
-			res.header(TIMING_ALLOW_ORIGIN, req.headers.origin);
-			res.header(ACCESS_CONTROL_ALLOW_CREDENTIALS, TRUE);
+			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = req.headers.origin;
+			headersBatch[TIMING_ALLOW_ORIGIN] = req.headers.origin;
+			headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
+			headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = req.allow;
 
-			if (headers !== void 0) {
-				res.header(req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS, headers);
+			if (corsHeaders !== void 0) {
+				headersBatch[req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS] = corsHeaders;
 			}
-
-			res.header(ACCESS_CONTROL_ALLOW_METHODS, req.allow);
 		}
+
+		// Set all headers in one batch operation
+		res.set(headersBatch);
 
 		this.log(`type=decorate, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_DECORATED_IP.replace(IP_TOKEN, req.ip)}"`);
 		res.on(CLOSE, () => this.log(this.clf(req, res), INFO));
@@ -456,22 +504,27 @@ export class Woodland extends EventEmitter {
 	 * @returns {string} Client IP address
 	 */
 	ip (req) {
-		// If no X-Forwarded-For header, return connection IP
-		if (!(X_FORWARDED_FOR in req.headers) || !req.headers[X_FORWARDED_FOR].trim()) {
-			return req.connection.remoteAddress || req.socket.remoteAddress || "127.0.0.1";
+		// Optimized: Cache fallback IP and fast path for common case
+		const fallbackIP = req.connection.remoteAddress || req.socket.remoteAddress || "127.0.0.1";
+
+		// Fast path: If no X-Forwarded-For header or empty, return connection IP
+		const forwardedHeader = req.headers[X_FORWARDED_FOR];
+		if (!forwardedHeader || !forwardedHeader.trim()) {
+			return fallbackIP;
 		}
 
-		// Parse X-Forwarded-For header and find first valid IP
-		const forwardedIPs = req.headers[X_FORWARDED_FOR].split(COMMA).map(ip => ip.trim());
+		// Optimized: Avoid map() allocation, process inline
+		const forwardedIPs = forwardedHeader.split(COMMA);
 
-		for (const ip of forwardedIPs) {
+		for (let i = 0; i < forwardedIPs.length; i++) {
+			const ip = forwardedIPs[i].trim();
 			if (isValidIP(ip)) {
 				return ip;
 			}
 		}
 
 		// Fall back to connection IP if no valid IP found
-		return req.connection.remoteAddress || req.socket.remoteAddress || "127.0.0.1";
+		return fallbackIP;
 	}
 
 	/**
@@ -698,7 +751,13 @@ export class Woodland extends EventEmitter {
 				reduce(uri, this.middleware.get(method), result, true);
 			}
 
-			result.visible = result.middleware.filter(i => this.ignored.has(i) === false).length;
+			// Optimized: Count without creating intermediate array
+			result.visible = INT_0;
+			for (const middleware of result.middleware) {
+				if (this.ignored.has(middleware) === false) {
+					result.visible++;
+				}
+			}
 			this.cache.set(key, result);
 		}
 
@@ -758,7 +817,12 @@ export class Woodland extends EventEmitter {
 	 */
 	set (res) {
 		return (arg = {}) => {
-			res.setHeaders(arg instanceof Map || arg instanceof Headers ? arg : new Headers(arg));
+			const headers = arg instanceof Map || arg instanceof Headers ? arg : new Headers(arg);
+
+			// Node.js HTTP response doesn't have setHeaders, use setHeader for each
+			for (const [key, value] of headers) {
+				res.setHeader(key, value);
+			}
 
 			return res;
 		};
