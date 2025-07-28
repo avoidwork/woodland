@@ -151,6 +151,7 @@ export class Woodland extends EventEmitter {
 	 * @param {number} [config.cacheSize=1000] - Size of internal cache
 	 * @param {number} [config.cacheTTL=10000] - Cache time-to-live in milliseconds
 	 * @param {string} [config.charset='utf-8'] - Default character encoding
+	 * @param {string} [config.corsExpose=''] - Default CORS expose headers value
 	 * @param {Object} [config.defaultHeaders={}] - Default HTTP headers
 	 * @param {number} [config.digit=3] - Number of digits for timing precision
 	 * @param {boolean} [config.etags=true] - Enable ETag generation
@@ -171,6 +172,7 @@ export class Woodland extends EventEmitter {
 		cacheSize = INT_1e3,
 		cacheTTL = INT_1e4,
 		charset = UTF_8,
+		corsExpose = EMPTY,
 		defaultHeaders = {},
 		digit = INT_3,
 		etags = true,
@@ -209,7 +211,7 @@ export class Woodland extends EventEmitter {
 		this.ignored = new Set();
 		this.cache = lru(cacheSize, cacheTTL);
 		this.charset = charset;
-		this.corsExpose = EMPTY;
+		this.corsExpose = corsExpose;
 		this.defaultHeaders = Reflect.ownKeys(defaultHeaders).map(key => [key.toLowerCase(), defaultHeaders[key]]);
 		this.digit = digit;
 		this.etags = etags ? etag({cacheSize, cacheTTL}) : null;

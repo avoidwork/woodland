@@ -189,6 +189,7 @@ class Woodland extends EventEmitter {
     // - cacheSize: LRU cache size (default: 1000)
     // - cacheTTL: Cache TTL in ms (default: 10000)
     // - charset: Default charset (default: 'utf-8')
+    // - corsExpose: Default CORS exposed headers (default: '')
     // - defaultHeaders: Default HTTP headers
     // - etags: Enable ETag generation
     // - origins: CORS allowed origins
@@ -554,6 +555,7 @@ graph TB
         V[Wildcard: '*' for all origins]
         W[Empty array: Deny all CORS - Secure Default]
         X[Specific domains only]
+        Y[corsExpose: Default exposed headers]
     end
     
     D -.-> P
@@ -1238,7 +1240,7 @@ ip(req) {
 CORS implementation with validation and sanitization:
 
 ```javascript
-// In the decorate method
+// Enhanced CORS implementation with corsExpose support
 if (req.cors) {
   const headers = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
 
@@ -1251,6 +1253,9 @@ if (req.cors) {
 
   res.header(ACCESS_CONTROL_ALLOW_CREDENTIALS, true);
 
+  // corsExpose provides fallback headers when no specific headers requested
+  // For OPTIONS requests: Access-Control-Allow-Headers (preflight)
+  // For other requests: Access-Control-Expose-Headers (actual request)
   if (headers !== undefined && isValidHeaderValue(headers)) {
     const sanitizedHeaders = sanitizeHeaderValue(headers);
     res.header(req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS, sanitizedHeaders);
@@ -1619,6 +1624,7 @@ import {createServer} from 'node:http';
 
 const app = woodland({
   origins: ['https://app.example.com', 'https://admin.example.com'],
+  corsExpose: 'x-request-id,x-rate-limit-remaining,x-rate-limit-reset',
   defaultHeaders: {
     'Content-Security-Policy': "default-src 'self'",
     'X-Frame-Options': 'DENY',
@@ -1634,6 +1640,16 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
   });
+});
+
+// API endpoint with CORS-exposed headers
+app.get('/api/users', (req, res) => {
+  res.header('x-request-id', req.id || 'req-' + Date.now());
+  res.header('x-rate-limit-remaining', '99');
+  res.header('x-rate-limit-reset', Date.now() + 3600000);
+  
+  res.json({users: []});
+  // CORS requests automatically expose: x-request-id,x-rate-limit-remaining,x-rate-limit-reset
 });
 
 // GraphQL endpoint
@@ -1816,6 +1832,7 @@ const app = woodland({
   cacheSize: 1000,        // LRU cache size
   cacheTTL: 10000,        // Cache TTL in milliseconds
   charset: 'utf-8',       // Default character encoding
+  corsExpose: '',         // Default CORS exposed headers (comma-separated)
   defaultHeaders: {},     // Default HTTP headers
   digit: 3,               // Timing precision digits
   etags: true,            // Enable ETag generation

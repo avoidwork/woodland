@@ -18,6 +18,7 @@ describe("Woodland", () => {
 		it("should set default configuration", () => {
 			assert.strictEqual(app.autoindex, false);
 			assert.strictEqual(app.charset, "utf-8");
+			assert.strictEqual(app.corsExpose, "");
 			assert.strictEqual(app.digit, 3);
 			assert.strictEqual(app.time, false);
 			assert.ok(Array.isArray(app.indexes));
@@ -33,6 +34,7 @@ describe("Woodland", () => {
 			const customApp = new Woodland({
 				autoindex: true,
 				charset: "utf-16",
+				corsExpose: "x-custom-header,x-response-time",
 				digit: 2,
 				time: true,
 				silent: true,
@@ -43,6 +45,7 @@ describe("Woodland", () => {
 
 			assert.strictEqual(customApp.autoindex, true);
 			assert.strictEqual(customApp.charset, "utf-16");
+			assert.strictEqual(customApp.corsExpose, "x-custom-header,x-response-time");
 			assert.strictEqual(customApp.digit, 2);
 			assert.strictEqual(customApp.time, true);
 			assert.deepStrictEqual(customApp.indexes, ["home.html"]);
@@ -96,6 +99,23 @@ describe("Woodland", () => {
 
 			assert.strictEqual(testApp1.logging.enabled, true, "Should enable logging when null");
 			assert.strictEqual(testApp2.logging.enabled, true, "Should enable logging when undefined");
+		});
+
+		it("should set corsExpose from constructor parameter", () => {
+			const corsApp = new Woodland({
+				corsExpose: "x-custom,x-timing",
+				logging: { enabled: false }
+			});
+
+			assert.strictEqual(corsApp.corsExpose, "x-custom,x-timing", "Should set corsExpose from constructor");
+		});
+
+		it("should use default empty corsExpose when not specified", () => {
+			const defaultApp = new Woodland({
+				logging: { enabled: false }
+			});
+
+			assert.strictEqual(defaultApp.corsExpose, "", "Should use empty string as default corsExpose");
 		});
 	});
 
@@ -2604,10 +2624,10 @@ describe("Woodland Decorate Method and Header Manipulation", () => {
 	it("should set CORS expose headers for non-OPTIONS requests with valid corsExpose", () => {
 		const corsApp = new Woodland({
 			origins: ["*"],
+			corsExpose: "x-custom-header,x-response-time",
 			logging: { enabled: false }
 		});
 
-		corsApp.corsExpose = "x-custom-header,x-response-time";
 		mockReq.method = "GET";
 		mockReq.headers.origin = "https://example.com";
 		mockReq.headers.host = "api.mysite.com"; // Different host to make it cross-origin
@@ -2617,6 +2637,41 @@ describe("Woodland Decorate Method and Header Manipulation", () => {
 		// Should set access-control-expose-headers for non-OPTIONS requests
 		const exposeHeaders = mockRes.getHeader("access-control-expose-headers");
 		assert.strictEqual(exposeHeaders, "x-custom-header,x-response-time", "Should set expose headers for non-OPTIONS requests with valid corsExpose");
+	});
+
+	it("should use default corsExpose when no request headers provided", () => {
+		const corsApp = new Woodland({
+			origins: ["*"],
+			corsExpose: "x-default-header",
+			logging: { enabled: false }
+		});
+
+		mockReq.method = "GET";
+		mockReq.headers.origin = "https://example.com";
+		mockReq.headers.host = "api.mysite.com"; // Different host to make it cross-origin
+		// No access-control-request-headers
+
+		corsApp.decorate(mockReq, mockRes);
+
+		const exposeHeaders = mockRes.getHeader("access-control-expose-headers");
+		assert.strictEqual(exposeHeaders, "x-default-header", "Should use default corsExpose when no request headers");
+	});
+
+	it("should not set CORS expose headers when corsExpose is empty", () => {
+		const corsApp = new Woodland({
+			origins: ["*"],
+			corsExpose: "",
+			logging: { enabled: false }
+		});
+
+		mockReq.method = "GET";
+		mockReq.headers.origin = "https://example.com";
+		mockReq.headers.host = "api.mysite.com"; // Different host to make it cross-origin
+
+		corsApp.decorate(mockReq, mockRes);
+
+		const exposeHeaders = mockRes.getHeader("access-control-expose-headers");
+		assert.strictEqual(exposeHeaders, undefined, "Should not set expose headers when corsExpose is empty");
 	});
 
 	it("should initialize precise timer when timing enabled", () => {

@@ -150,7 +150,7 @@ const app = woodland({
   cacheSize: 1000,        // Internal cache size
   cacheTTL: 300000,       // Cache TTL (5 minutes)
   charset: "utf-8",       // Default charset
-  corsExpose: "",         // CORS exposed headers
+  corsExpose: "",         // Default CORS exposed headers
   defaultHeaders: {},     // Default response headers
   digit: 3,              // Timing precision digits
   etags: true,           // Enable ETag generation
@@ -194,7 +194,7 @@ const app = woodland({
     "https://myapp.com",
     "https://api.myapp.com"
   ],
-  corsExpose: "x-custom-header,x-request-id",
+  corsExpose: "x-custom-header,x-request-id,x-rate-limit",
   
   // Performance tuning
   cacheSize: 5000,
@@ -573,6 +573,8 @@ const app = woodland({
 });
 ```
 
+The `corsExpose` option configures which headers should be exposed to cross-origin requests by default. When specified, this value is used as the fallback for `Access-Control-Expose-Headers` when no specific request headers are provided in preflight requests.
+
 ### Advanced CORS
 
 ```javascript
@@ -598,6 +600,35 @@ app.options("*", (req, res) => {
   res.header("access-control-max-age", "86400");
   res.send("");
 });
+```
+
+### CORS Exposed Headers Configuration
+
+```javascript
+// Configure default exposed headers
+const app = woodland({
+  origins: ["https://api.example.com"],
+  corsExpose: "x-request-id,x-rate-limit-remaining,x-rate-limit-reset"
+});
+
+// The corsExpose headers will be automatically set for cross-origin requests
+app.get("/api/data", (req, res) => {
+  res.header("x-request-id", "abc123");
+  res.header("x-rate-limit-remaining", "99");
+  res.header("x-rate-limit-reset", "1640995200");
+  res.json({data: "example"});
+  
+  // For CORS requests, these headers will be automatically exposed:
+  // Access-Control-Expose-Headers: x-request-id,x-rate-limit-remaining,x-rate-limit-reset
+});
+
+// When specific headers are requested in preflight, they take precedence
+// OPTIONS /api/data
+// Access-Control-Request-Headers: x-custom-header
+// 
+// Response will include:
+// Access-Control-Allow-Headers: x-custom-header (for OPTIONS)
+// Access-Control-Expose-Headers: x-custom-header (for non-OPTIONS)
 ```
 
 ## 🛡️ Request Security Limits
@@ -1419,7 +1450,7 @@ interface WoodlandConfig {
   cacheSize?: number;
   cacheTTL?: number;
   charset?: string;
-  corsExpose?: string;
+  corsExpose?: string;        // Default CORS exposed headers (comma-separated)
   defaultHeaders?: Record<string, string>;
   digit?: number;
   etags?: boolean;
