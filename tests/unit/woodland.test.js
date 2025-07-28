@@ -809,6 +809,58 @@ describe("Woodland", () => {
 			}, 100);
 		});
 
+		it("should emit connect event with HEAD method request", done => {
+			// Create a fresh app instance specifically for HEAD request testing
+			const headApp = new Woodland({logging: {enabled: false}});
+			let connectEmitted = false;
+
+			const connectHandler = (req, res) => {
+				connectEmitted = true;
+				assert.strictEqual(req.method, "HEAD", "Should preserve HEAD method in request");
+				assert.ok(res, "Should pass response object");
+				done();
+			};
+
+			headApp.on("connect", connectHandler);
+
+			// Add a GET route so that HEAD has something to map to
+			headApp.get("/test", (req, res) => {
+				res.send("test");
+			});
+
+			// Verify listener count
+			assert.strictEqual(headApp.listenerCount("connect"), 1, "Should have exactly one connect listener");
+
+			// Create HEAD request mock
+			const headReq = {
+				method: "HEAD",
+				url: "/test",
+				headers: {host: "localhost"},
+				connection: {remoteAddress: "127.0.0.1"}
+			};
+
+			const headRes = {
+				statusCode: 200,
+				headersSent: false,
+				setHeader: () => {},
+				removeHeader: () => {},
+				getHeader: () => undefined,
+				on: () => {},
+				writeHead: () => {},
+				end: () => {}
+			};
+
+			// This HEAD request should trigger the connect event emission
+			headApp.route(headReq, headRes);
+
+			// Fallback timeout
+			setTimeout(() => {
+				if (!connectEmitted) {
+					done(new Error("Connect event was not emitted for HEAD request"));
+				}
+			}, 100);
+		});
+
 		it("should emit finish event when there are listeners", done => {
 			let finishEmitted = false;
 
