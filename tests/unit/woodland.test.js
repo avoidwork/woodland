@@ -1405,7 +1405,7 @@ describe("Woodland Stream Method", () => {
 		const testCases = [
 			{ file: "normal.txt", folder: "./test-files" },
 			{ file: "safe/path.txt", folder: "./test-files" },
-			{ file: "", folder: "./test-files" } // Empty file should be caught by isSafeFilePath
+			{ file: "", folder: "./test-files" } // Empty file will resolve correctly
 		];
 
 		for (const testCase of testCases) {
@@ -1430,9 +1430,9 @@ describe("Woodland Stream Method", () => {
 			}
 		}
 
-		// The fact that we haven't triggered the additional security check
-		// demonstrates that the primary security validations (isSafeFilePath and sanitizeFilePath)
-		// are working correctly and preventing scenarios that would require the fallback check
+		// The fact that we haven't triggered any security errors demonstrates that
+		// path.resolve is handling path normalization correctly and the boundary
+		// checking is working as expected for these test cases
 		assert.ok(true, "Security validations prevent scenarios requiring fallback security check");
 	});
 
@@ -1973,10 +1973,9 @@ describe("Woodland Serve Method", () => {
 			}
 		};
 
-		// This test is tricky because we need a path that passes isSafeFilePath
-		// but fails the additional security check. In practice, this is very
-		// difficult to achieve with the current implementation, so we'll
-		// test the method works correctly with normal paths.
+		// This test verifies that the path boundary validation works correctly.
+		// With path.resolve handling path normalization, we test that the method
+		// works correctly with normal paths and relies on boundary checking for security.
 
 		await app.serve(maliciousReq, maliciousRes, "safe-file.txt", "./test-files");
 

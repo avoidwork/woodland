@@ -1,5 +1,5 @@
 import {METHODS, STATUS_CODES} from "node:http";
-import {join} from "node:path";
+import {join, resolve} from "node:path";
 import {EventEmitter} from "node:events";
 import {readdir, stat} from "node:fs/promises";
 import {createReadStream} from "node:fs";
@@ -114,8 +114,6 @@ import {
 import {
 	autoindex as aindex,
 	getStatus,
-	isSafeFilePath,
-	isValidIP,
 	mime,
 	ms,
 	next,
@@ -125,9 +123,9 @@ import {
 	partialHeaders,
 	pipeable,
 	reduce,
-	sanitizeFilePath,
 	timeOffset,
-	writeHead
+	writeHead,
+	isValidIP
 } from "./utility.js";
 
 // Optimized: Cache regex for corsHost method to avoid recompilation
@@ -837,16 +835,15 @@ export class Woodland extends EventEmitter {
 	 * @returns {Promise<void>} Promise that resolves when serving is complete
 	 */
 	async serve (req, res, arg, folder = process.cwd()) {
-		// Security: Validate and sanitize file path to prevent directory traversal
-		if (!isSafeFilePath(arg)) {
-			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path traversal attempt blocked", path="${arg}"`, ERROR);
+		const fp = resolve(folder, arg);
+
+		// Security: Ensure resolved path stays within the allowed directory
+		if (!fp.startsWith(resolve(folder))) {
+			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path outside allowed directory", path="${arg}"`, ERROR);
 			res.error(INT_403);
 
 			return;
 		}
-
-		const sanitizedPath = sanitizeFilePath(arg);
-		const fp = join(folder, sanitizedPath);
 
 		let valid = true;
 		let stats;
@@ -947,20 +944,26 @@ export class Woodland extends EventEmitter {
 
 		if (req.method === GET) {
 			let status = INT_200;
-			let options, headers;
+			let options = {};
+			let headers = {};
 
 			if (RANGE in req.headers) {
 				[headers, options] = partialHeaders(req, res, file.stats.size, status);
-				res.removeHeader(CONTENT_LENGTH);
-				res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
-				options.end--; // last byte offset
 
-				if (CONTENT_LENGTH in headers) {
-					res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
+				if (Object.keys(options).length > 0) {
+					res.removeHeader(CONTENT_LENGTH);
+					res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
+
+					if (CONTENT_LENGTH in headers) {
+						res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
+					}
+				} else {
+					// Invalid range, reset options to serve full file
+					options = {};
 				}
 			}
 
-			res.send(createReadStream(file.path, options), status);
+			res.send(createReadStream(file.path, Object.keys(options).length > 0 ? options : undefined), status);
 		} else if (req.method === HEAD) {
 			res.send(EMPTY);
 		} else if (req.method === OPTIONS) {
