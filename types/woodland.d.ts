@@ -94,7 +94,7 @@ export class Woodland extends EventEmitter {
     corsExpose: string;
     defaultHeaders: [string, string][];
     digit: number;
-    etags: any;
+    etags: any | null;
     indexes: string[];
     permissions: LRU<any>;
     logging: {
