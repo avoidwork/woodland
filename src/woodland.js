@@ -690,7 +690,7 @@ export class Woodland extends EventEmitter {
 
 		return (req, res, nextHandler) => { // eslint-disable-line consistent-return
 			// Skip validation for methods that don't typically have bodies
-			if (this.maxUpload.enabled === false || req.method === GET || req.method === HEAD || req.method === OPTIONS) {
+			if (req.method === GET || req.method === HEAD || req.method === OPTIONS) {
 				return nextHandler();
 			}
 
