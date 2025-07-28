@@ -15,6 +15,25 @@ This benchmark suite provides detailed performance measurements for all critical
 
 ## Recent Improvements
 
+### v2.8 - 5-Run Mean Benchmark Results & Enhanced Statistical Accuracy
+
+**Comprehensive 5-run benchmark analysis with statistical mean calculations:**
+
+- **✅ Enhanced statistical accuracy**: Conducted 5 complete benchmark runs and calculated mean values for all performance metrics
+- **✅ Comprehensive coverage**: All 6 benchmark suites (HTTP, Middleware, Routing, Serving, Utility, Comparison) executed with statistical reliability
+- **✅ Framework comparison included**: Added missing comparison benchmarks vs Express.js, Fastify, and raw Node.js HTTP module
+- **✅ Reduced measurement variance**: Mean values provide more stable and reliable performance indicators across multiple test runs
+- **✅ Updated documentation**: Both README.md and BENCHMARKS.md updated with statistically-validated performance data
+
+**Performance Highlights from 5-Run Mean Results:**
+- **Framework comparison**: Woodland (13,601 ops/sec) nearly matches Fastify (14,585 ops/sec), significantly outperforms Express.js (9,185 ops/sec) and raw Node.js (11,410 ops/sec)
+- **Utility operations lead performance**: Number padding (7.29M ops/sec), MIME detection (4.91M ops/sec), and time formatting (3.93M ops/sec)
+- **Routing remains highly optimized**: Route caching (6.25M ops/sec) and path conversion (3.39M ops/sec) showing excellent performance  
+- **HTTP operations maintain competitive speeds**: DELETE requests (15,196 ops/sec), parameterized routes (13,837 ops/sec)
+- **File serving delivers consistent performance**: Static file serving (396K ops/sec), ETag generation (341K ops/sec)
+
+**Statistical Methodology**: Each benchmark operation executed 1000 iterations with 100 warmup cycles across 5 independent runs, with means calculated to provide robust performance measurements that account for system variability and provide more reliable benchmarking data.
+
 ### v2.7 - Latest Performance Measurements & Framework Comparison Update
 
 **Fresh performance measurements with updated framework rankings:**
@@ -143,20 +162,20 @@ Tests the performance of Woodland against other popular Node.js web frameworks:
 - Fastify
 - Woodland
 
-**Latest Results (Node.js 23.10.0, Apple M4 Pro - 3-run average):**
+**Latest Results (Node.js 23.10.0, Apple M4 Pro - 5-run mean):**
 ```
 Framework Comparison (JSON Response)
-Fastify framework:        14,600 ops/sec  (0.068ms avg)
-Woodland framework:       13,916 ops/sec  (0.072ms avg)
-Raw Node.js HTTP module:  11,141 ops/sec  (0.090ms avg)
-Express.js framework:      9,406 ops/sec  (0.106ms avg)
+Fastify framework:        14,585 ops/sec  (0.0686ms avg)
+Woodland framework:       13,601 ops/sec  (0.0735ms avg)
+Raw Node.js HTTP module:  11,410 ops/sec  (0.0876ms avg)
+Express.js framework:      9,185 ops/sec  (0.1089ms avg)
 ```
 
 **Performance Analysis:**
 - Woodland delivers competitive performance against industry leaders
-- 25% faster than raw Node.js HTTP module
+- 19% faster than raw Node.js HTTP module
 - 48% faster than Express.js framework
-- Only 5% slower than Fastify (the fastest framework)
+- Only 7% slower than Fastify (the fastest framework)
 - Consistent sub-100ms response times across all test scenarios
 
 ### 2. Routing Benchmarks (`benchmarks/routing.js`)
@@ -172,16 +191,16 @@ Tests the performance of core routing functions:
 
 **Example Output:**
 ```
-allows() - with cache: 4,858,100 ops/sec
-static routes: 2,575,273 ops/sec
-path conversion: 2,777,294 ops/sec
-not found routes: 2,507,253 ops/sec
-parameter routes: 2,414,066 ops/sec
-allowed() - with cache: 2,359,465 ops/sec
-routes() - with cache: 1,387,639 ops/sec
-allowed() - no cache: 622,900 ops/sec
-routes() - no cache: 1,074,673 ops/sec
-allows() - no cache: 282,839 ops/sec
+allows() - with cache: 6,248,086 ops/sec
+path conversion: 3,385,581 ops/sec
+not found routes: 3,100,131 ops/sec
+parameter routes: 2,721,312 ops/sec
+allowed() - with cache: 2,559,213 ops/sec
+static routes: 2,258,717 ops/sec
+routes() - with cache: 1,852,750 ops/sec
+routes() - no cache: 1,460,571 ops/sec
+allowed() - no cache: 1,284,145 ops/sec
+allows() - no cache: 371,644 ops/sec
 ```
 
 ### 3. Middleware Benchmarks (`benchmarks/middleware.js`)
@@ -200,19 +219,19 @@ Tests middleware registration and execution performance:
 
 **Example Output:**
 ```
-ignore middleware: 633,956 ops/sec
-always middleware registration: 602,761 ops/sec
-multiple handlers registration: 551,383 ops/sec
-specific method registration: 506,262 ops/sec
-middleware registration: 509,837 ops/sec
-request decoration: 212,078 ops/sec
-error handling middleware: 140,414 ops/sec
-simple middleware execution: 160,897 ops/sec
-response helpers: 166,605 ops/sec
-CORS handling: 134,566 ops/sec
-parameter extraction: 127,498 ops/sec
-complex middleware execution: 90,609 ops/sec
-route list: 80,601 ops/sec
+ignore middleware: 531,005 ops/sec
+multiple handlers registration: 380,876 ops/sec
+specific method registration: 380,294 ops/sec
+middleware registration: 337,451 ops/sec
+always middleware registration: 333,591 ops/sec
+response helpers: 163,142 ops/sec
+request decoration: 154,028 ops/sec
+simple middleware execution: 128,538 ops/sec
+error handling middleware: 125,936 ops/sec
+parameter extraction: 121,579 ops/sec
+CORS handling: 110,298 ops/sec
+complex middleware execution: 84,305 ops/sec
+route list: 67,703 ops/sec
 ```
 
 ### 4. Utility Benchmarks (`benchmarks/utility.js`)
@@ -231,20 +250,22 @@ Tests core utility functions:
 
 **Example Output:**
 ```
-pad() - number padding: 7,328,512 ops/sec
-mime() - basic files: 4,918,995 ops/sec
-next() - middleware chain: 4,074,708 ops/sec
-mime() - complex files: 4,118,775 ops/sec
-pipeable() - content check: 3,294,160 ops/sec
-parse() - edge cases: 3,513,223 ops/sec
-getStatus() - status determination: 2,810,073 ops/sec
-parse() - URL strings: 3,099,511 ops/sec
-reduce() - route reduction: 2,781,405 ops/sec
-parse() - request objects: 2,220,948 ops/sec
-writeHead() - header writing: 2,122,052 ops/sec
-partialHeaders() - range headers: 1,441,378 ops/sec
-params() - parameter extraction: 736,920 ops/sec
-autoindex() - directory listing: 458,043 ops/sec
+pad() - number padding: 7,287,370 ops/sec
+mime() - basic files: 4,913,484 ops/sec
+ms() - time formatting: 3,929,031 ops/sec
+mime() - complex files: 3,719,548 ops/sec
+next() - middleware chain: 3,676,595 ops/sec
+timeOffset() - timezone: 3,385,045 ops/sec
+parse() - edge cases: 3,331,237 ops/sec
+parse() - URL strings: 3,102,462 ops/sec
+getStatus() - status determination: 2,939,918 ops/sec
+pipeable() - content check: 2,878,001 ops/sec
+parse() - request objects: 2,129,949 ops/sec
+writeHead() - header writing: 1,965,358 ops/sec
+reduce() - route reduction: 1,643,887 ops/sec
+partialHeaders() - range headers: 1,319,403 ops/sec
+params() - parameter extraction: 980,934 ops/sec
+autoindex() - directory listing: 391,576 ops/sec
 ```
 
 ### 5. File Serving Benchmarks (`benchmarks/serving.js`)
@@ -262,23 +283,23 @@ Tests file serving and streaming performance:
 
 **Example Output:**
 ```
-files() - static serving: 562,858 ops/sec
-stream() - with ETags: 365,913 ops/sec
-etag() - generation: 335,304 ops/sec
-stream() - different methods: 319,924 ops/sec
-stream() - without ETags: 349,075 ops/sec
-stream() - small file: 290,681 ops/sec
-serve() - directory redirect: 88,478 ops/sec
-serve() - HEAD request: 69,900 ops/sec
-serve() - OPTIONS request: 67,205 ops/sec
-serve() - not found: 66,297 ops/sec
-serve() - different types: 43,561 ops/sec
-serve() - large file: 42,892 ops/sec
-serve() - medium file: 42,223 ops/sec
-serve() - range request: 39,176 ops/sec
-serve() - small file: 42,454 ops/sec
-serve() - directory: 19,285 ops/sec
-serve() - autoindex: 17,935 ops/sec
+files() - static serving: 396,380 ops/sec
+etag() - generation: 341,445 ops/sec
+stream() - different methods: 308,628 ops/sec
+stream() - with ETags: 298,254 ops/sec
+stream() - without ETags: 278,475 ops/sec
+stream() - small file: 272,102 ops/sec
+serve() - directory redirect: 84,198 ops/sec
+serve() - HEAD request: 67,230 ops/sec
+serve() - OPTIONS request: 62,887 ops/sec
+serve() - not found: 52,901 ops/sec
+serve() - large file: 41,976 ops/sec
+serve() - different types: 41,368 ops/sec
+serve() - medium file: 40,888 ops/sec
+serve() - small file: 38,533 ops/sec
+serve() - range request: 37,544 ops/sec
+serve() - directory: 19,003 ops/sec
+serve() - autoindex: 17,840 ops/sec
 ```
 
 **Example Features:**
@@ -303,18 +324,18 @@ Tests end-to-end HTTP server performance with **individual request measurements*
 
 **Example Output:**
 ```
-server startup: 118,337 ops/sec
-DELETE requests: 15,469 ops/sec
-complex middleware: 14,634 ops/sec
-nested parameterized routes: 14,351 ops/sec
-parameterized routes: 13,865 ops/sec
-404 handling: 13,491 ops/sec
-JSON response: 12,916 ops/sec
-error handling: 12,831 ops/sec
-PUT requests: 11,122 ops/sec
-middleware chain: 10,821 ops/sec
-mixed workload: 10,780 ops/sec
-simple GET: 10,866 ops/sec
-POST requests: 10,640 ops/sec
-large response: 935 ops/sec
+server startup: 110,600 ops/sec
+DELETE requests: 15,196 ops/sec
+parameterized routes: 13,837 ops/sec
+complex middleware: 13,695 ops/sec
+404 handling: 13,689 ops/sec
+nested parameterized routes: 13,650 ops/sec
+JSON response: 13,180 ops/sec
+error handling: 12,386 ops/sec
+middleware chain: 10,881 ops/sec
+mixed workload: 10,559 ops/sec
+PUT requests: 9,760 ops/sec
+POST requests: 9,550 ops/sec
+simple GET: 9,108 ops/sec
+large response: 914 ops/sec
 ```
