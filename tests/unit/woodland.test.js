@@ -1376,11 +1376,6 @@ describe("Woodland Stream Method", () => {
 		app.stream(mockReq, mockRes, fileInfo);
 	});
 
-	it.skip("should handle default file info", () => {
-		// Skip this test as it requires file system access
-		// and has conflicts with file descriptor handling
-	});
-
 	it("should handle binary files correctly", () => {
 		const binaryFileInfo = {
 			charset: "",
