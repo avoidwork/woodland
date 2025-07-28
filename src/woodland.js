@@ -682,11 +682,10 @@ export class Woodland extends EventEmitter {
 
 	/**
 	 * Creates middleware to validate request body size limits
-	 * @param {number} [customLimit] - Custom size limit in bytes (defaults to instance maxUpload.byteSize)
 	 * @returns {Function} Middleware function that validates request body size
 	 */
-	requestSizeLimit (customLimit) {
-		const limit = customLimit ?? this.maxUpload.byteSize;
+	requestSizeLimit () {
+		const limit = this.maxUpload.byteSize;
 
 		return (req, res, nextHandler) => { // eslint-disable-line consistent-return
 			// Skip validation for methods that don't typically have bodies

@@ -464,7 +464,11 @@ describe("Woodland Security Tests", () => {
 		});
 
 		it("should allow requests within size limit", () => {
-			const middleware = app.requestSizeLimit(1000); // 1KB limit
+			const testApp = new Woodland({
+				logging: { enabled: false },
+				maxUpload: { enabled: true, byteSize: 1000 } // 1KB limit
+			});
+			const middleware = testApp.requestSizeLimit();
 			mockReq.method = "POST";
 			mockReq.headers["content-length"] = "500"; // 500 bytes
 
@@ -499,7 +503,11 @@ describe("Woodland Security Tests", () => {
 		});
 
 		it("should reject requests exceeding size limit", () => {
-			const middleware = app.requestSizeLimit(1000); // 1KB limit
+			const testApp = new Woodland({
+				logging: { enabled: false },
+				maxUpload: { enabled: true, byteSize: 1000 } // 1KB limit
+			});
+			const middleware = testApp.requestSizeLimit();
 			mockReq.method = "POST";
 			mockReq.headers["content-length"] = "2000"; // 2KB content
 
@@ -522,7 +530,11 @@ describe("Woodland Security Tests", () => {
 		});
 
 		it("should skip validation for GET requests", () => {
-			const middleware = app.requestSizeLimit(100); // Small limit
+			const testApp = new Woodland({
+				logging: { enabled: false },
+				maxUpload: { enabled: true, byteSize: 100 } // Small limit
+			});
+			const middleware = testApp.requestSizeLimit();
 			mockReq.method = "GET";
 			mockReq.headers["content-length"] = "2000"; // Large content (unusual for GET)
 
@@ -542,7 +554,11 @@ describe("Woodland Security Tests", () => {
 		});
 
 		it("should skip validation for HEAD requests", () => {
-			const middleware = app.requestSizeLimit(100);
+			const testApp = new Woodland({
+				logging: { enabled: false },
+				maxUpload: { enabled: true, byteSize: 100 }
+			});
+			const middleware = testApp.requestSizeLimit();
 			mockReq.method = "HEAD";
 			mockReq.headers["content-length"] = "2000";
 
@@ -562,7 +578,11 @@ describe("Woodland Security Tests", () => {
 		});
 
 		it("should skip validation for OPTIONS requests", () => {
-			const middleware = app.requestSizeLimit(100);
+			const testApp = new Woodland({
+				logging: { enabled: false },
+				maxUpload: { enabled: true, byteSize: 100 }
+			});
+			const middleware = testApp.requestSizeLimit();
 			mockReq.method = "OPTIONS";
 			mockReq.headers["content-length"] = "2000";
 
@@ -582,7 +602,11 @@ describe("Woodland Security Tests", () => {
 		});
 
 		it("should handle invalid Content-Length header", () => {
-			const middleware = app.requestSizeLimit(1000);
+			const testApp = new Woodland({
+				logging: { enabled: false },
+				maxUpload: { enabled: true, byteSize: 1000 }
+			});
+			const middleware = testApp.requestSizeLimit();
 			mockReq.method = "POST";
 			mockReq.headers["content-length"] = "invalid-number";
 
@@ -605,7 +629,11 @@ describe("Woodland Security Tests", () => {
 		});
 
 		it("should handle negative Content-Length header", () => {
-			const middleware = app.requestSizeLimit(1000);
+			const testApp = new Woodland({
+				logging: { enabled: false },
+				maxUpload: { enabled: true, byteSize: 1000 }
+			});
+			const middleware = testApp.requestSizeLimit();
 			mockReq.method = "POST";
 			mockReq.headers["content-length"] = "-100";
 
@@ -628,7 +656,11 @@ describe("Woodland Security Tests", () => {
 		});
 
 		it("should handle requests without Content-Length header", () => {
-			const middleware = app.requestSizeLimit(1000);
+			const testApp = new Woodland({
+				logging: { enabled: false },
+				maxUpload: { enabled: true, byteSize: 1000 }
+			});
+			const middleware = testApp.requestSizeLimit();
 			mockReq.method = "POST";
 			// No content-length header
 

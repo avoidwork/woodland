@@ -134,7 +134,7 @@ export class Woodland extends EventEmitter {
     post(...args: (string | MiddlewareFunction | ErrorMiddlewareFunction)[]): this;
     put(...args: (string | MiddlewareFunction | ErrorMiddlewareFunction)[]): this;
     redirect(res: ServerResponse): (uri: string, perm?: boolean) => void;
-    requestSizeLimit(customLimit?: number): MiddlewareFunction;
+    requestSizeLimit(): MiddlewareFunction;
     route(req: IncomingMessage, res: ServerResponse): void;
     routes(uri: string, method: string, override?: boolean): any;
     send(req: IncomingMessage, res: ServerResponse): (body?: any, status?: number, headers?: Record<string, any>) => void;
