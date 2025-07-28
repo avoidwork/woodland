@@ -78,8 +78,6 @@
     "woodland": "dist/cli.cjs"
   },
   "dependencies": {
-    "express": "^5.1.0",
-    "fastify": "^5.4.0",
     "mime-db": "^1.54.0",
     "precise": "^4.0.3",
     "tiny-coerce": "^3.0.2",
