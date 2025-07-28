@@ -1076,6 +1076,42 @@ describe("Woodland", () => {
 			});
 			assert.strictEqual(testApp.maxUpload.enabled, true); // undefined should default to true
 		});
+
+		it("should handle maxUpload configuration object without enabled property", () => {
+			// When maxUpload exists but enabled property is missing
+			const testApp = new Woodland({
+				logging: { enabled: false },
+				maxUpload: {
+					byteSize: 1000
+					// No enabled property
+				}
+			});
+			assert.strictEqual(testApp.maxUpload.enabled, true); // Should default to true
+		});
+
+		it("should handle maxHeader with null byteSize", () => {
+			// Test the nullish coalescing operator on byteSize
+			const testApp = new Woodland({
+				logging: { enabled: false },
+				maxHeader: {
+					enabled: true,
+					byteSize: null // Explicitly null
+				}
+			});
+			assert.strictEqual(testApp.maxHeader.byteSize, 14336); // Should default to INT_14336
+		});
+
+		it("should handle maxUpload with undefined byteSize", () => {
+			// Test the nullish coalescing operator on byteSize
+			const testApp = new Woodland({
+				logging: { enabled: false },
+				maxUpload: {
+					enabled: true,
+					byteSize: undefined // Explicitly undefined
+				}
+			});
+			assert.strictEqual(testApp.maxUpload.byteSize, 51200); // Should default to INT_51200
+		});
 	});
 });
 
