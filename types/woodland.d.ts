@@ -98,6 +98,7 @@ export class Woodland extends EventEmitter {
     clf(req: IncomingMessage, res: ServerResponse): string;
     cors(req: IncomingMessage): boolean;
     corsHost(req: IncomingMessage): boolean;
+    corsRequest(): MiddlewareFunction;
     decorate(req: IncomingMessage, res: ServerResponse): void;
     delete(...args: (string | MiddlewareFunction | ErrorMiddlewareFunction)[]): this;
     error(req: IncomingMessage, res: ServerResponse): (status: number, body?: any, headers?: Record<string, string>) => void;

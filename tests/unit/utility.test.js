@@ -13,8 +13,6 @@ import {
 	reduce,
 	timeOffset,
 	writeHead,
-	isSafeFilePath,
-	sanitizeFilePath,
 	isValidIP
 } from "../../src/utility.js";
 
@@ -649,6 +647,34 @@ describe("utility", () => {
 			assert.strictEqual(result.hostname, "localhost");
 			assert.strictEqual(result.port, "3000");
 		});
+
+		it("should fallback to port 8000 when connection key is invalid", () => {
+			const req = {
+				headers: {},
+				url: "/test",
+				socket: {
+					server: {
+						_connectionKey: null // null connection key will trigger fallback
+					}
+				}
+			};
+			const result = parse(req);
+			assert.ok(result instanceof URL);
+			assert.strictEqual(result.hostname, "localhost");
+			assert.strictEqual(result.port, "8000"); // Should fallback to 8000
+		});
+
+		it("should handle missing socket server", () => {
+			const req = {
+				headers: {},
+				url: "/test",
+				socket: {}
+			};
+			const result = parse(req);
+			assert.ok(result instanceof URL);
+			assert.strictEqual(result.hostname, "localhost");
+			assert.strictEqual(result.port, "8000"); // Should fallback to 8000
+		});
 	});
 
 	describe("partialHeaders", () => {
@@ -683,61 +709,63 @@ describe("utility", () => {
 			req.headers.range = "bytes=-500";
 			const [headers, options] = partialHeaders(req, res, 1000, 200); // eslint-disable-line no-unused-vars
 			assert.strictEqual(options.start, 500);
-			assert.strictEqual(options.end, 1000);
+			assert.strictEqual(options.end, 999);
 		});
 
 		it("should handle prefix range", () => {
 			req.headers.range = "bytes=500-";
 			const [, options] = partialHeaders(req, res, 1000, 200);
 			assert.strictEqual(options.start, 500);
-			assert.strictEqual(options.end, 1000);
+			assert.strictEqual(options.end, 999);
 		});
 
 		it("should handle invalid range (start > end)", () => {
 			req.headers.range = "bytes=500-100";
-			const [headers, options] = partialHeaders(req, res, 1000, 200); // eslint-disable-line no-unused-vars
+			const [headers] = partialHeaders(req, res, 1000, 200);
+			assert.ok(headers["content-range"]);
 			assert.ok(headers["content-range"].includes("*"));
 		});
 
 		it("should handle range exceeding file size", () => {
 			req.headers.range = "bytes=0-2000";
-			const [headers, options] = partialHeaders(req, res, 1000, 200); // eslint-disable-line no-unused-vars
+			const [headers] = partialHeaders(req, res, 1000, 200);
+			assert.ok(headers["content-range"]);
 			assert.ok(headers["content-range"].includes("*"));
 		});
 
 		it("should handle malformed range header", () => {
-			req.headers.range = "not-bytes-range";
+			req.headers.range = "invalid";
 			const [headers, options] = partialHeaders(req, res, 1000, 200);
-			assert.strictEqual(typeof headers, "object");
-			assert.strictEqual(typeof options, "object");
+			assert.strictEqual(Object.keys(headers).length, 0);
+			assert.strictEqual(Object.keys(options).length, 0);
 		});
 
 		it("should handle multiple ranges (takes first)", () => {
 			req.headers.range = "bytes=0-100,200-300";
-			const [, options] = partialHeaders(req, res, 1000, 200);
+			const [headers, options] = partialHeaders(req, res, 1000, 200);
+			assert.ok(headers["content-range"]);
 			assert.strictEqual(options.start, 0);
 			assert.strictEqual(options.end, 100);
 		});
 
 		it("should set status code to 206 for valid range", () => {
 			req.headers.range = "bytes=0-499";
-			const [headers, options] = partialHeaders(req, res, 1000, 200); // eslint-disable-line no-unused-vars
+			partialHeaders(req, res, 1000, 200);
 			assert.strictEqual(res.statusCode, 206);
 		});
 
 		it("should calculate content-length correctly", () => {
-			req.headers.range = "bytes=100-199";
-			const [headers, options] = partialHeaders(req, res, 1000, 200); // eslint-disable-line no-unused-vars
-			assert.strictEqual(headers["content-length"], 99); // 199 - 100 = 99 for range length
+			req.headers.range = "bytes=100-198";
+			const [headers] = partialHeaders(req, res, 1000, 200);
+			assert.strictEqual(parseInt(headers["content-length"], 10), 99);
 		});
 
 		it("should handle edge case where start equals end", () => {
 			req.headers.range = "bytes=100-100";
 			const [headers, options] = partialHeaders(req, res, 1000, 200);
+			assert.ok(headers["content-range"]);
 			assert.strictEqual(options.start, 100);
 			assert.strictEqual(options.end, 100);
-			// When start equals end, it's treated as invalid range
-			assert.ok(headers["content-range"].includes("*"));
 		});
 	});
 
@@ -1080,129 +1108,6 @@ describe("utility", () => {
 		});
 	});
 
-	describe("isSafeFilePath", () => {
-		it("should return true for safe file paths", () => {
-			assert.strictEqual(isSafeFilePath("file.txt"), true);
-			assert.strictEqual(isSafeFilePath("folder/file.txt"), true);
-			assert.strictEqual(isSafeFilePath("deep/nested/path/file.txt"), true);
-			assert.strictEqual(isSafeFilePath(""), true); // empty string is safe
-		});
-
-		it("should return false for directory traversal attempts", () => {
-			assert.strictEqual(isSafeFilePath("../file.txt"), false);
-			assert.strictEqual(isSafeFilePath("folder/../file.txt"), false);
-			assert.strictEqual(isSafeFilePath("..\\file.txt"), false);
-			assert.strictEqual(isSafeFilePath("folder\\..\\file.txt"), false);
-		});
-
-		it("should return false for paths ending with ..", () => {
-			assert.strictEqual(isSafeFilePath("folder/.."), false);
-			assert.strictEqual(isSafeFilePath(".."), false);
-		});
-
-		it("should return false for paths starting with ..", () => {
-			assert.strictEqual(isSafeFilePath("../folder/file.txt"), false);
-			assert.strictEqual(isSafeFilePath("..\\folder\\file.txt"), false);
-		});
-
-		it("should return false for null bytes", () => {
-			assert.strictEqual(isSafeFilePath("file\0.txt"), false);
-			assert.strictEqual(isSafeFilePath("folder/file\0"), false);
-		});
-
-		it("should return false for newlines", () => {
-			assert.strictEqual(isSafeFilePath("file\n.txt"), false);
-			assert.strictEqual(isSafeFilePath("file\r.txt"), false);
-			assert.strictEqual(isSafeFilePath("folder/file\r\n.txt"), false);
-		});
-
-		it("should return false for non-string inputs", () => {
-			assert.strictEqual(isSafeFilePath(null), false);
-			assert.strictEqual(isSafeFilePath(undefined), false);
-			assert.strictEqual(isSafeFilePath(123), false);
-			assert.strictEqual(isSafeFilePath({}), false);
-			assert.strictEqual(isSafeFilePath([]), false);
-		});
-
-		it("should return false for complex traversal patterns", () => {
-			assert.strictEqual(isSafeFilePath("folder/../../file.txt"), false);
-			assert.strictEqual(isSafeFilePath("./../../file.txt"), false);
-			assert.strictEqual(isSafeFilePath("folder/../../../file.txt"), false);
-		});
-
-		it("should allow normal dots in filenames", () => {
-			assert.strictEqual(isSafeFilePath("file.min.js"), true);
-			assert.strictEqual(isSafeFilePath("config.2023.json"), true);
-			assert.strictEqual(isSafeFilePath(".hidden"), true);
-			assert.strictEqual(isSafeFilePath("folder/.hidden"), true);
-		});
-	});
-
-	describe("sanitizeFilePath", () => {
-		it("should remove directory traversal sequences", () => {
-			assert.strictEqual(sanitizeFilePath("../file.txt"), "file.txt");
-			assert.strictEqual(sanitizeFilePath("folder/../file.txt"), "folder/file.txt");
-			assert.strictEqual(sanitizeFilePath("../../file.txt"), "file.txt");
-		});
-
-		it("should remove backslash traversal sequences", () => {
-			assert.strictEqual(sanitizeFilePath("..\\file.txt"), "file.txt");
-			assert.strictEqual(sanitizeFilePath("folder\\..\\file.txt"), "folder\\file.txt");
-			assert.strictEqual(sanitizeFilePath("..\\..\\file.txt"), "file.txt");
-		});
-
-		it("should remove null bytes", () => {
-			assert.strictEqual(sanitizeFilePath("file\0.txt"), "file.txt");
-			assert.strictEqual(sanitizeFilePath("folder/file\0"), "folder/file");
-		});
-
-		it("should remove newlines", () => {
-			assert.strictEqual(sanitizeFilePath("file\n.txt"), "file.txt");
-			assert.strictEqual(sanitizeFilePath("file\r.txt"), "file.txt");
-			assert.strictEqual(sanitizeFilePath("folder/file\r\n.txt"), "folder/file.txt");
-		});
-
-		it("should normalize multiple slashes", () => {
-			assert.strictEqual(sanitizeFilePath("folder//file.txt"), "folder/file.txt");
-			assert.strictEqual(sanitizeFilePath("folder///subfolder////file.txt"), "folder/subfolder/file.txt");
-		});
-
-		it("should remove leading slashes", () => {
-			assert.strictEqual(sanitizeFilePath("/file.txt"), "file.txt");
-			assert.strictEqual(sanitizeFilePath("/folder/file.txt"), "folder/file.txt");
-		});
-
-		it("should return empty string for non-string inputs", () => {
-			assert.strictEqual(sanitizeFilePath(null), "");
-			assert.strictEqual(sanitizeFilePath(undefined), "");
-			assert.strictEqual(sanitizeFilePath(123), "");
-			assert.strictEqual(sanitizeFilePath({}), "");
-			assert.strictEqual(sanitizeFilePath([]), "");
-		});
-
-		it("should handle empty string", () => {
-			assert.strictEqual(sanitizeFilePath(""), "");
-		});
-
-		it("should preserve normal file paths", () => {
-			assert.strictEqual(sanitizeFilePath("file.txt"), "file.txt");
-			assert.strictEqual(sanitizeFilePath("folder/file.txt"), "folder/file.txt");
-			assert.strictEqual(sanitizeFilePath("deep/nested/path/file.txt"), "deep/nested/path/file.txt");
-		});
-
-		it("should handle complex malicious paths", () => {
-			assert.strictEqual(sanitizeFilePath("../../../etc/passwd"), "etc/passwd");
-			assert.strictEqual(sanitizeFilePath("folder/../../../../../../etc/passwd"), "folder/etc/passwd");
-			assert.strictEqual(sanitizeFilePath("..\\..\\..\\windows\\system32"), "windows\\system32");
-		});
-
-		it("should preserve normal dots in filenames", () => {
-			assert.strictEqual(sanitizeFilePath("file.min.js"), "file.min.js");
-			assert.strictEqual(sanitizeFilePath("config.2023.json"), "config.2023.json");
-			assert.strictEqual(sanitizeFilePath(".hidden"), ".hidden");
-		});
-	});
-
 	describe("isValidIP", () => {
 		it("should validate IPv4 addresses", () => {
 			assert.strictEqual(isValidIP("192.168.1.1"), true);
@@ -1317,6 +1222,15 @@ describe("utility", () => {
 			assert.strictEqual(isValidIP("2001:db8::1"), true); // this should be valid
 			assert.strictEqual(isValidIP("2001:db8:1:"), false); // trailing colon creates empty group
 			assert.strictEqual(isValidIP(":2001:db8:1"), false); // leading colon creates empty group
+		});
+
+		it("should test IPv6 groups.every validation edge cases", () => {
+			// This specifically tests the groups.every line where group && regex.test(group)
+			// Test case where group parsing creates empty groups that fail validation
+			assert.strictEqual(isValidIP("2001:db8:85a3:0000:0000:8a2e:0370:"), false); // trailing colon creates empty group
+			assert.strictEqual(isValidIP("2001:db8::85a3:0000:0000:8a2e:0370:7334"), false); // too many groups with compression
+			// Test a case that should be valid to ensure the function works correctly
+			assert.strictEqual(isValidIP("2001:db8:85a3::8a2e:0370:7334"), true); // valid compressed format
 		});
 	});
 });

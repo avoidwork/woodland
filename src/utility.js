@@ -10,7 +10,6 @@ import {
 	CONTENT_LENGTH,
 	CONTENT_RANGE,
 	EMPTY,
-	END,
 	ETAG,
 	EXTENSIONS,
 	FUNCTION,
@@ -28,16 +27,11 @@ import {
 	INT_500,
 	INT_60,
 	KEY_BYTES,
-	PERIOD,
-	START,
 	STRING,
 	STRING_0,
-	STRING_00,
-	STRING_30,
 	TIME_MS,
 	TOKEN_N,
-	UTF8,
-	SLASH
+	UTF8
 } from "./constants.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url)),
@@ -59,12 +53,16 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url)),
  * @returns {string} The escaped string with HTML entities
  */
 function escapeHtml (str = EMPTY) {
-	return str
-		.replace(/&/g, "&amp;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;")
-		.replace(/"/g, "&quot;")
-		.replace(/'/g, "&#39;");
+	// Use lookup table for single-pass replacement
+	const htmlEscapes = {
+		"&": "&amp;",
+		"<": "&lt;",
+		">": "&gt;",
+		'"': "&quot;",
+		"'": "&#39;"
+	};
+
+	return str.replace(/[&<>"']/g, match => htmlEscapes[match]);
 }
 
 /**
@@ -102,7 +100,23 @@ export function autoindex (title = EMPTY, files = []) {
  * @returns {number} The appropriate HTTP status code
  */
 export function getStatus (req, res) {
-	return req.allow.length > INT_0 ? req.method !== GET ? INT_405 : req.allow.includes(GET) ? res.statusCode > INT_500 ? res.statusCode : INT_500 : INT_404 : INT_404;
+	// No allowed methods - always 404
+	if (req.allow.length === INT_0) {
+		return INT_404;
+	}
+
+	// Method not allowed
+	if (req.method !== GET) {
+		return INT_405;
+	}
+
+	// GET method not allowed
+	if (!req.allow.includes(GET)) {
+		return INT_404;
+	}
+
+	// Return existing error status or default 500
+	return res.statusCode > INT_500 ? res.statusCode : INT_500;
 }
 
 /**
@@ -179,12 +193,18 @@ export function pad (arg = INT_0) {
  */
 export function params (req, getParams) {
 	getParams.lastIndex = INT_0;
-	req.params = getParams.exec(req.parsed.pathname)?.groups ?? {};
+	const match = getParams.exec(req.parsed.pathname);
+	req.params = match?.groups ?? {};
 
+	// Process parameters in a single loop
 	for (const [key, value] of Object.entries(req.params)) {
-		let decoded = decodeURIComponent(value);
-		let safeValue = typeof decoded === "string" ? escapeHtml(decoded) : decoded;
-		req.params[key] = coerce(safeValue);
+		try {
+			const decoded = decodeURIComponent(value);
+			req.params[key] = coerce(escapeHtml(decoded));
+		} catch {
+			// If decoding fails, escape the original value
+			req.params[key] = coerce(escapeHtml(value));
+		}
 	}
 }
 
@@ -208,40 +228,55 @@ export function parse (arg) {
  * @returns {Array} Array containing [headers, options]
  */
 export function partialHeaders (req, res, size, status, headers = {}, options = {}) {
-	if ((req.headers.range || EMPTY).indexOf(KEY_BYTES) === INT_0) {
-		options = {};
+	const rangeHeader = req.headers.range;
 
-		for (const [idx, i] of req.headers.range.replace(KEY_BYTES, EMPTY).split(COMMA)[0].split(HYPHEN).entries()) {
-			options[idx === INT_0 ? START : END] = i ? parseInt(i, INT_10) : void 0;
-		}
-
-		// Byte offsets
-		if (isNaN(options.start) && isNaN(options.end) === false) {
-			options.start = size - options.end;
-			options.end = size;
-		} else if (isNaN(options.end)) {
-			options.end = size;
-		}
-
-		res.removeHeader(CONTENT_RANGE);
-		res.removeHeader(CONTENT_LENGTH);
-		res.removeHeader(ETAG);
-		delete headers.etag;
-
-		if (isNaN(options.start) === false && isNaN(options.end) === false && options.start < options.end && options.end <= size) {
-			req.range = options;
-			headers[CONTENT_RANGE] = `bytes ${options.start}-${options.end}/${size}`;
-			headers[CONTENT_LENGTH] = options.end - options.start;
-			res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
-			res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
-			status = res.statusCode = INT_206;
-		} else {
-			headers[CONTENT_RANGE] = `bytes */${size}`;
-			res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
-		}
+	if (!rangeHeader || !rangeHeader.startsWith(KEY_BYTES)) {
+		return [headers, options];
 	}
 
-	return [headers, options];
+	// Parse range header more efficiently
+	const rangePart = rangeHeader.slice(KEY_BYTES.length);
+	const [rangeSpec] = rangePart.split(COMMA);
+	const [startStr, endStr] = rangeSpec.split(HYPHEN);
+
+	let start = startStr ? parseInt(startStr, INT_10) : NaN;
+	let end = endStr ? parseInt(endStr, INT_10) : NaN;
+
+	// Handle suffix-byte-range-spec (e.g., "-500" means last 500 bytes)
+	if (isNaN(start) && !isNaN(end)) {
+		start = size - end;
+		end = size - 1;
+	} else if (!isNaN(start) && isNaN(end)) {
+		end = size - 1;
+	}
+
+	// Clean up headers once
+	res.removeHeader(CONTENT_RANGE);
+	res.removeHeader(CONTENT_LENGTH);
+	res.removeHeader(ETAG);
+	delete headers.etag;
+
+	// Validate range
+	if (!isNaN(start) && !isNaN(end) && start <= end && start >= 0 && end < size) {
+		const rangeOptions = { start, end };
+		req.range = rangeOptions;
+		const contentLength = end - start + 1;
+
+		headers[CONTENT_RANGE] = `bytes ${start}-${end}/${size}`;
+		headers[CONTENT_LENGTH] = contentLength;
+
+		res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
+		res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
+		res.statusCode = INT_206;
+
+		return [headers, rangeOptions];
+	} else {
+		// Invalid range
+		headers[CONTENT_RANGE] = `bytes */${size}`;
+		res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
+
+		return [headers, options];
+	}
 }
 
 /**
@@ -261,20 +296,21 @@ export function pipeable (method, arg) {
  * @param {Object} [arg={}] - Object containing middleware array and parameters
  */
 export function reduce (uri, map = new Map(), arg = {}) {
-	Array.from(map.values()).filter(i => {
-		i.regex.lastIndex = INT_0;
+	// Iterate directly over map values without creating intermediate array
+	for (const middleware of map.values()) {
+		middleware.regex.lastIndex = INT_0;
 
-		return i.regex.test(uri);
-	}).forEach(i => {
-		for (const fn of i.handlers) {
-			arg.middleware.push(fn);
-		}
+		if (middleware.regex.test(uri)) {
+			// Add all handlers at once using spread operator
+			arg.middleware.push(...middleware.handlers);
 
-		if (i.params && arg.params === false) {
-			arg.params = true;
-			arg.getParams = i.regex;
+			// Set params info if needed
+			if (middleware.params && arg.params === false) {
+				arg.params = true;
+				arg.getParams = middleware.regex;
+			}
 		}
-	});
+	}
 }
 
 /**
@@ -283,17 +319,20 @@ export function reduce (uri, map = new Map(), arg = {}) {
  * @returns {string} Formatted time offset string
  */
 export function timeOffset (arg = INT_0) {
-	const neg = arg < INT_0;
+	const isNegative = arg < INT_0;
+	const absValue = isNegative ? -arg : arg;
+	const offsetMinutes = absValue / INT_60;
 
-	return `${neg ? EMPTY : HYPHEN}${String((neg ? -arg : arg) / INT_60).split(PERIOD).reduce((a, v, idx, arr) => {
-		a.push(idx === INT_0 ? pad(v) : STRING_30);
+	// Convert to hours and minutes
+	const hours = Math.floor(offsetMinutes);
+	const minutes = Math.floor((offsetMinutes - hours) * INT_60);
 
-		if (arr.length === 1) {
-			a.push(STRING_00);
-		}
+	// Format with zero padding
+	const sign = isNegative ? EMPTY : HYPHEN;
+	const hoursStr = pad(hours);
+	const minutesStr = pad(minutes);
 
-		return a;
-	}, []).join(EMPTY)}`;
+	return `${sign}${hoursStr}${minutesStr}`;
 }
 
 /**
@@ -306,55 +345,6 @@ export function writeHead (res, headers = {}) {
 }
 
 /**
- * Validates if a file path is safe and doesn't contain directory traversal sequences
- * @param {string} filePath - The file path to validate
- * @returns {boolean} True if the path is safe, false otherwise
- */
-export function isSafeFilePath (filePath) {
-	if (typeof filePath !== STRING) {
-		return false;
-	}
-
-	// Empty string is safe (represents root directory)
-	if (filePath === EMPTY) {
-		return true;
-	}
-
-	// Check for directory traversal patterns
-	const dangerousPatterns = [
-		/\.\.\//, // ../
-		/\.\.\\/, // ..\
-		/\.\.$/, // .. at end
-		/^\.\./, // .. at start
-		/\/\.\.\//, // /../
-		/\\\.\.\\/, // \..\
-		/\0/, // null bytes
-		/[\r\n]/ // newlines
-	];
-
-	return !dangerousPatterns.some(pattern => pattern.test(filePath));
-}
-
-/**
- * Sanitizes a file path by removing potentially dangerous sequences
- * @param {string} filePath - The file path to sanitize
- * @returns {string} The sanitized file path
- */
-export function sanitizeFilePath (filePath) {
-	if (typeof filePath !== STRING) {
-		return EMPTY;
-	}
-
-	return filePath
-		.replace(/\.\.\//g, EMPTY) // Remove ../
-		.replace(/\.\.\\\\?/g, EMPTY) // Remove ..\ (with optional second backslash)
-		.replace(/\0/g, EMPTY) // Remove null bytes
-		.replace(/[\r\n]/g, EMPTY) // Remove newlines
-		.replace(/\/+/g, SLASH) // Normalize multiple slashes
-		.replace(/^\//, EMPTY); // Remove leading slash
-}
-
-/**
  * Validates if an IP address is properly formatted
  * @param {string} ip - IP address to validate
  * @returns {boolean} True if IP is valid format
@@ -364,79 +354,66 @@ export function isValidIP (ip) {
 		return false;
 	}
 
-	// Basic IPv4 validation
-	const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-	const ipv4Match = ip.match(ipv4Regex);
+	// IPv4 validation
+	if (!ip.includes(":")) {
+		const ipv4Pattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+		const match = ip.match(ipv4Pattern);
 
-	if (ipv4Match) {
-		const octets = ipv4Match.slice(1).map(Number);
-
-		// Check if all octets are valid (0-255)
-		if (octets.some(octet => octet > 255)) {
+		if (!match) {
 			return false;
 		}
 
-		return true;
+		// Check octets are in valid range (0-255)
+		return match.slice(1).every(octet => {
+			const num = parseInt(octet, 10);
+
+			return num >= 0 && num <= 255;
+		});
 	}
 
 	// IPv6 validation
-	if (ip.includes(":")) {
-		// Check for valid characters (hex digits, colons, and dots for IPv4-mapped addresses)
-		if (!(/^[0-9a-fA-F:.]+$/).test(ip)) {
+	// Quick check for valid characters
+	if (!(/^[0-9a-fA-F:.]+$/).test(ip)) {
+		return false;
+	}
+
+	// Handle IPv4-mapped IPv6 addresses
+	const ipv4MappedMatch = ip.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i);
+	if (ipv4MappedMatch) {
+		return isValidIP(ipv4MappedMatch[1]);
+	}
+
+	// Handle "::" compression
+	const doublColonParts = ip.split("::");
+	if (doublColonParts.length > 2) {
+		return false;
+	}
+
+	// Special case for "::" alone
+	if (ip === "::") {
+		return true;
+	}
+
+	const isCompressed = doublColonParts.length === 2;
+	let groups;
+
+	if (isCompressed) {
+		const leftGroups = doublColonParts[0] ? doublColonParts[0].split(":") : [];
+		const rightGroups = doublColonParts[1] ? doublColonParts[1].split(":") : [];
+		groups = [...leftGroups, ...rightGroups].filter(g => g !== "");
+
+		// Must be compressed (less than 8 groups)
+		if (groups.length >= 8) {
 			return false;
 		}
-
-		// Handle IPv4-mapped IPv6 addresses (e.g., ::ffff:192.0.2.1)
-		const ipv4MappedMatch = ip.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i);
-		if (ipv4MappedMatch) {
-			return isValidIP(ipv4MappedMatch[1]);
-		}
-
-		// Split on "::" to handle compressed notation
-		const parts = ip.split("::");
-		if (parts.length > 2) {
-			return false; // More than one "::" is invalid
-		}
-
-		let leftPart = parts[0] || "";
-		let rightPart = parts[1] || "";
-
-		// Split each part by ":"
-		const leftGroups = leftPart ? leftPart.split(":") : [];
-		const rightGroups = rightPart ? rightPart.split(":") : [];
-
-		// Check each group
-		const allGroups = [...leftGroups, ...rightGroups];
-		for (const group of allGroups) {
-			if (group === "") {
-				// Empty groups are only allowed in compressed notation context
-				if (parts.length === 1) {
-					return false; // Empty group without "::" compression
-				}
-			} else if (!(/^[0-9a-fA-F]{1,4}$/).test(group)) {
-				// Each group must be 1-4 hex digits
-				return false;
-			}
-		}
-
-		// Calculate total number of groups
-		const totalGroups = leftGroups.length + rightGroups.length;
-
-		if (parts.length === 2) {
-			// Compressed notation: total groups should be less than 8
-			// Special case: "::" alone represents all zeros
-			if (ip === "::") {
-				return true;
-			}
-			// Remove empty groups from count (they represent compressed zeros)
-			const nonEmptyGroups = allGroups.filter(g => g !== "").length;
-
-			return nonEmptyGroups <= 8 && nonEmptyGroups < 8; // Must be compressed (< 8 groups)
-		} else {
-			// Full notation: must have exactly 8 groups
-			return totalGroups === 8 && allGroups.every(g => g !== "");
+	} else {
+		groups = ip.split(":");
+		// Full notation must have exactly 8 groups
+		if (groups.length !== 8) {
+			return false;
 		}
 	}
 
-	return false;
+	// Validate each group (1-4 hex digits)
+	return groups.every(group => group && (/^[0-9a-fA-F]{1,4}$/).test(group));
 }

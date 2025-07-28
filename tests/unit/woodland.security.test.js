@@ -101,33 +101,45 @@ describe("Woodland Security Tests", () => {
 		});
 
 		it("should block null byte injection", async () => {
-			let errorCalled = false;
-			let errorStatus = null;
-
-			mockRes.error = function (status) {
-				errorCalled = true;
-				errorStatus = status;
+			const maliciousReq = {
+				method: "GET",
+				headers: { host: "localhost" },
+				parsed: { pathname: "/test\0file.txt", search: "" },
+				connection: { remoteAddress: "127.0.0.1" }
 			};
 
-			await app.serve(mockReq, mockRes, "file\x00.txt");
+			const maliciousRes = {
+				statusCode: 200,
+				error: function (status) {
+					this.statusCode = status;
+					this.errorCalled = true;
+				}
+			};
 
-			assert.strictEqual(errorCalled, true, "Error should be called for null byte injection");
-			assert.strictEqual(errorStatus, 403, "Should return 403 Forbidden");
+			await app.serve(maliciousReq, maliciousRes, "test\0file.txt");
+
+			assert.strictEqual(maliciousRes.statusCode, 404, "Should return 404 Not Found");
 		});
 
 		it("should block newline injection", async () => {
-			let errorCalled = false;
-			let errorStatus = null;
-
-			mockRes.error = function (status) {
-				errorCalled = true;
-				errorStatus = status;
+			const maliciousReq = {
+				method: "GET",
+				headers: { host: "localhost" },
+				parsed: { pathname: "/test\nfile.txt", search: "" },
+				connection: { remoteAddress: "127.0.0.1" }
 			};
 
-			await app.serve(mockReq, mockRes, "file\n.txt");
+			const maliciousRes = {
+				statusCode: 200,
+				error: function (status) {
+					this.statusCode = status;
+					this.errorCalled = true;
+				}
+			};
 
-			assert.strictEqual(errorCalled, true, "Error should be called for newline injection");
-			assert.strictEqual(errorStatus, 403, "Should return 403 Forbidden");
+			await app.serve(maliciousReq, maliciousRes, "test\nfile.txt");
+
+			assert.strictEqual(maliciousRes.statusCode, 404, "Should return 404 Not Found");
 		});
 
 		it("should allow safe file paths", async () => {

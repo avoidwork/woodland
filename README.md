@@ -702,12 +702,12 @@ new Woodland(config)
 
 ```
 Framework Comparison (JSON Response) - Averaged across 5 runs
-Fastify framework:        14,309 ops/sec  (0.070ms avg)  🥇 FASTEST
-Woodland framework:       14,033 ops/sec  (0.071ms avg)  🥈 Very close second
-Raw Node.js HTTP module:  10,892 ops/sec  (0.092ms avg)  🥉 Third place
-Express.js framework:      9,019 ops/sec  (0.111ms avg)
+Fastify framework:        14,452 ops/sec  (0.069ms avg)  🥇 FASTEST
+Woodland framework:       14,173 ops/sec  (0.071ms avg)  🥈 Very close second
+Raw Node.js HTTP module:  11,061 ops/sec  (0.090ms avg)  🥉 Third place
+Express.js framework:      9,374 ops/sec  (0.107ms avg)
 
-Performance improvement: +29% faster than raw Node.js, +56% faster than Express.js, competitive with Fastify
+Performance improvement: +28% faster than raw Node.js, +51% faster than Express.js, 98% of Fastify's performance
 ```
 
 **Why Woodland delivers exceptional performance:**
@@ -724,68 +724,68 @@ Performance improvement: +29% faster than raw Node.js, +56% faster than Express.
 
 ```
 Routing Operations
-Route caching:      1,711,048 ops/sec  (0.0006ms avg)
-Allowed methods:    5,951,053 ops/sec  (0.0002ms avg)
-Path conversion:    2,837,130 ops/sec  (0.0004ms avg)
-Parameter routes:   2,619,823 ops/sec  (0.0004ms avg)
-Static routes:      2,896,036 ops/sec  (0.0003ms avg)
-Not found routes:   2,594,934 ops/sec  (0.0004ms avg)
-Allowed cache:      2,342,953 ops/sec  (0.0004ms avg)
-Route resolution:   1,333,236 ops/sec  (0.0008ms avg)
+Allowed methods:    4,797,153 ops/sec  (0.0002ms avg)
+Path conversion:    2,561,369 ops/sec  (0.0004ms avg)
+Parameter routes:   2,416,581 ops/sec  (0.0004ms avg)
+Static routes:      2,467,653 ops/sec  (0.0004ms avg)
+Not found routes:   2,479,326 ops/sec  (0.0004ms avg)
+Route caching:      1,388,793 ops/sec  (0.0007ms avg)
+Allowed cache:      2,092,956 ops/sec  (0.0005ms avg)
+Route resolution:   917,799 ops/sec    (0.0011ms avg)
 
 Utility Operations
-Number padding:     7,864,458 ops/sec  (0.0001ms avg)
-MIME detection:     5,164,869 ops/sec  (0.0002ms avg)
-Middleware chain:   3,755,170 ops/sec  (0.0003ms avg)
-Time formatting:    3,748,080 ops/sec  (0.0003ms avg)
-Content pipeability: 3,128,633 ops/sec  (0.0003ms avg)
-URL parsing:        2,738,949 ops/sec  (0.0004ms avg)
-Status determination: 3,048,515 ops/sec  (0.0003ms avg)
-Timezone offset:    2,318,933 ops/sec  (0.0004ms avg)
-Parameter extraction: 811,370 ops/sec   (0.0012ms avg)
-Directory listing:   344,704 ops/sec    (0.0029ms avg)
+Number padding:     7,695,461 ops/sec  (0.0001ms avg)
+MIME detection:     4,619,160 ops/sec  (0.0002ms avg)
+Middleware chain:   3,759,994 ops/sec  (0.0003ms avg)
+Time formatting:    3,512,863 ops/sec  (0.0003ms avg)
+Content pipeability: 3,214,295 ops/sec  (0.0003ms avg)
+URL parsing:        2,838,552 ops/sec  (0.0004ms avg)
+Status determination: 3,095,503 ops/sec  (0.0003ms avg)
+Timezone offset:    4,638,018 ops/sec  (0.0002ms avg)
+Parameter extraction: 1,059,064 ops/sec   (0.0009ms avg)
+Directory listing:   470,633 ops/sec    (0.0021ms avg)
 
 File Serving Operations
-Static file serving: 581,502 ops/sec   (0.0017ms avg)
-Stream operations:   356,076 ops/sec   (0.0028ms avg)
-ETag generation:     355,401 ops/sec   (0.0028ms avg)
-Stream with ETags:   346,174 ops/sec   (0.0029ms avg)
-HEAD requests:       69,067 ops/sec    (0.014ms avg)
-Small files:         40,579 ops/sec    (0.025ms avg)
-Large files:         42,109 ops/sec    (0.024ms avg)
-Medium files:        41,371 ops/sec    (0.024ms avg)
-Directory listing:   19,044 ops/sec    (0.053ms avg)
-Directory autoindex: 18,300 ops/sec    (0.055ms avg)
+Static file serving: 582,978 ops/sec   (0.0017ms avg)
+Stream operations:   330,495 ops/sec   (0.0030ms avg)
+ETag generation:     336,330 ops/sec   (0.0030ms avg)
+Stream with ETags:   332,530 ops/sec   (0.0030ms avg)
+HEAD requests:       68,935 ops/sec    (0.015ms avg)
+Small files:         39,396 ops/sec    (0.025ms avg)
+Large files:         42,231 ops/sec    (0.024ms avg)
+Medium files:        41,680 ops/sec    (0.024ms avg)
+Directory listing:   19,076 ops/sec    (0.052ms avg)
+Directory autoindex: 18,224 ops/sec    (0.055ms avg)
 
 HTTP Operations
-Server startup:      111,849 ops/sec   (0.009ms avg)
-DELETE requests:     15,674 ops/sec    (0.064ms avg)
-Complex middleware:  14,016 ops/sec    (0.071ms avg)
-Nested routes:       14,176 ops/sec    (0.071ms avg)
-404 handling:        13,448 ops/sec    (0.074ms avg)
-Parameterized routes: 13,611 ops/sec   (0.073ms avg)
-JSON response:       12,572 ops/sec    (0.080ms avg)
-Error handling:      12,640 ops/sec    (0.079ms avg)
-PUT requests:        11,196 ops/sec    (0.089ms avg)
-Middleware chain:    11,268 ops/sec    (0.089ms avg)
-Mixed workload:      10,956 ops/sec    (0.091ms avg)
-POST requests:       10,688 ops/sec    (0.094ms avg)
-Simple GET:          12,217 ops/sec    (0.082ms avg)
-Large response:      913 ops/sec       (1.095ms avg)
+Server startup:      113,810 ops/sec   (0.009ms avg)
+DELETE requests:     15,687 ops/sec    (0.064ms avg)
+Complex middleware:  14,593 ops/sec    (0.069ms avg)
+Nested routes:       14,368 ops/sec    (0.070ms avg)
+404 handling:        12,816 ops/sec    (0.078ms avg)
+Parameterized routes: 13,629 ops/sec   (0.073ms avg)
+JSON response:       12,568 ops/sec    (0.080ms avg)
+Error handling:      12,631 ops/sec    (0.079ms avg)
+PUT requests:        11,169 ops/sec    (0.090ms avg)
+Middleware chain:    10,993 ops/sec    (0.091ms avg)
+Mixed workload:      10,916 ops/sec    (0.092ms avg)
+POST requests:       10,595 ops/sec    (0.094ms avg)
+Simple GET:          12,515 ops/sec    (0.080ms avg)
+Large response:      922 ops/sec       (1.084ms avg)
 ```
 
 ### Performance Tips
 
-1. **Choose Woodland over alternatives**: Woodland provides 27% better performance than raw Node.js and 51% better than Express.js for JSON responses
-2. **Enable Route Caching**: Route caching provides significant performance improvement - allows() with cache: 5.1M ops/sec vs without: 300K ops/sec
+1. **Choose Woodland over alternatives**: Woodland provides 28% better performance than raw Node.js and 51% better than Express.js for JSON responses
+2. **Enable Route Caching**: Route caching provides significant performance improvement - allows() with cache: 4.8M ops/sec vs without: 300K ops/sec
 3. **Optimize Route Order**: Place frequently accessed routes first in your application
-4. **Use Parameter Routes**: Parameter routes perform competitively with static routes (~2.4M vs ~2.6M ops/sec)
-5. **Enable ETags**: Reduces bandwidth for unchanged resources (320K ops/sec with ETags)
-6. **Stream Large Files**: Use built-in streaming for files (316K ops/sec streaming performance)
+4. **Use Parameter Routes**: Parameter routes perform competitively with static routes (~2.4M vs ~2.5M ops/sec)
+5. **Enable ETags**: Reduces bandwidth for unchanged resources (333K ops/sec with ETags)
+6. **Stream Large Files**: Use built-in streaming for files (330K ops/sec streaming performance)
 7. **Minimize Middleware**: Only use necessary middleware - complex middleware reduces performance
-8. **Leverage Built-in Utilities**: Use woodland's optimized utility functions (7.8M+ ops/sec for common operations)
+8. **Leverage Built-in Utilities**: Use woodland's optimized utility functions (7.7M+ ops/sec for common operations)
 9. **Configure Appropriate Caching**: Set proper cache headers and TTL values
-10. **Use Proper HTTP Methods**: DELETE requests show best performance (15.6K ops/sec) for CRUD operations
+10. **Use Proper HTTP Methods**: DELETE requests show best performance (15.7K ops/sec) for CRUD operations
 
 ### Running Benchmarks
 
