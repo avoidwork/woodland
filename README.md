@@ -31,7 +31,7 @@
 
 🏆 **Proven Performance**: Comprehensive benchmarks show Woodland **outperforms raw Node.js by 25%, Express.js by 48%, and nearly matches Fastify (-5%)** - placing it in the top tier of Node.js frameworks  
 ⚡ **Zero Compromise**: Get all the framework features you need with better performance than hand-coding  
-🚀 **Battle-Tested**: 100% coverage across all metrics with 463 comprehensive tests, production-ready security, and enterprise-grade reliability  
+🚀 **Battle-Tested**: 100% coverage across all metrics with 509 comprehensive tests, production-ready security, and enterprise-grade reliability  
 🔧 **Developer Experience**: Express-compatible API means zero learning curve for your team  
 
 **The Result?** Your applications run faster, your servers handle more traffic, and your infrastructure costs less.
@@ -1340,8 +1340,7 @@ npm test
 ### Test Results
 
 ```
-463 passing
-1 pending
+509 passing
 
 --------------|---------|----------|---------|---------|-------------------
 File          | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
@@ -1359,8 +1358,8 @@ All files     |     100 |      100 |     100 |     100 |
 - **CLI Tests (100% coverage)** - Argument parsing, IPv4/IPv6 validation, server startup with HTTP verification, error handling, logging configuration, edge cases
 - **Security Integration Tests** - Path traversal protection, IP security, CORS enforcement, autoindex security, security headers
 - **Constants Tests** - HTTP methods, status codes, headers, content types, server info, export validation
-- **Security Utility Functions** - Canonical path validation, HTML escaping, IPv4/IPv6 validation, header sanitization
-- **Utility Functions** - Autoindex generation, status resolution, MIME detection, parameter parsing, URL processing, timing utilities
+- **Security Utility Functions** - Canonical path validation, HTML escaping, IPv4/IPv6 validation, header sanitization, port validation
+- **Utility Functions** - Autoindex generation, status resolution, MIME detection, parameter parsing, URL processing, timing utilities, port validation
 - **Woodland Core Tests** - Constructor configuration, HTTP method handlers, middleware registration, routing, CORS handling
 - **Stream Method Tests** - File headers, different file types, range requests, ETags, binary files
 - **Range Request Tests** - String content, invalid ranges, streams, partial content delivery

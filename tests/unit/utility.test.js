@@ -18,7 +18,8 @@ import {
 	isValidIP,
 	isValidOrigin,
 	sanitizeHeaderValue,
-	isValidHeaderValue
+	isValidHeaderValue,
+	isValidPort
 } from "../../src/utility.js";
 
 describe("utility", () => {
@@ -1523,6 +1524,97 @@ describe("utility", () => {
 			assert.strictEqual(isValidHeaderValue("value\r\nSet-Cookie: evil=true"), false);
 			assert.strictEqual(isValidHeaderValue("value\nLocation: http://evil.com"), false);
 			assert.strictEqual(isValidHeaderValue("value\u0000\r\nX-Evil: true"), false);
+		});
+	});
+
+	describe("isValidPort", () => {
+		it("should return true for valid port numbers", () => {
+			assert.strictEqual(isValidPort(0), true);
+			assert.strictEqual(isValidPort(1), true);
+			assert.strictEqual(isValidPort(80), true);
+			assert.strictEqual(isValidPort(443), true);
+			assert.strictEqual(isValidPort(8080), true);
+			assert.strictEqual(isValidPort(3000), true);
+			assert.strictEqual(isValidPort(65535), true);
+		});
+
+		it("should return true for edge case port numbers", () => {
+			assert.strictEqual(isValidPort(0), true); // minimum valid port
+			assert.strictEqual(isValidPort(65535), true); // maximum valid port
+		});
+
+		it("should return false for negative port numbers", () => {
+			assert.strictEqual(isValidPort(-1), false);
+			assert.strictEqual(isValidPort(-80), false);
+			assert.strictEqual(isValidPort(-65535), false);
+		});
+
+		it("should return false for port numbers greater than 65535", () => {
+			assert.strictEqual(isValidPort(65536), false);
+			assert.strictEqual(isValidPort(100000), false);
+			assert.strictEqual(isValidPort(999999), false);
+		});
+
+		it("should return false for non-integer numbers", () => {
+			assert.strictEqual(isValidPort(80.5), false);
+			assert.strictEqual(isValidPort(3.14), false);
+			assert.strictEqual(isValidPort(0.1), false);
+			assert.strictEqual(isValidPort(65535.9), false);
+		});
+
+		it("should return false for non-number inputs", () => {
+			assert.strictEqual(isValidPort("80"), false);
+			assert.strictEqual(isValidPort("3000"), false);
+			assert.strictEqual(isValidPort(""), false);
+			assert.strictEqual(isValidPort("abc"), false);
+		});
+
+		it("should return false for null and undefined", () => {
+			assert.strictEqual(isValidPort(null), false);
+			assert.strictEqual(isValidPort(undefined), false);
+		});
+
+		it("should return false for other data types", () => {
+			assert.strictEqual(isValidPort({}), false);
+			assert.strictEqual(isValidPort([]), false);
+			assert.strictEqual(isValidPort([80]), false);
+			assert.strictEqual(isValidPort(true), false);
+			assert.strictEqual(isValidPort(false), false);
+			assert.strictEqual(isValidPort(function () {}), false);
+		});
+
+		it("should return false for special number values", () => {
+			assert.strictEqual(isValidPort(NaN), false);
+			assert.strictEqual(isValidPort(Infinity), false);
+			assert.strictEqual(isValidPort(-Infinity), false);
+		});
+
+		it("should return false for numeric strings that represent valid ports", () => {
+			// Even if the string contains a valid port number, it should reject non-numbers
+			assert.strictEqual(isValidPort("0"), false);
+			assert.strictEqual(isValidPort("65535"), false);
+			assert.strictEqual(isValidPort("8080"), false);
+		});
+
+		it("should handle common port numbers correctly", () => {
+			// Common well-known ports
+			assert.strictEqual(isValidPort(21), true); // FTP
+			assert.strictEqual(isValidPort(22), true); // SSH
+			assert.strictEqual(isValidPort(23), true); // Telnet
+			assert.strictEqual(isValidPort(25), true); // SMTP
+			assert.strictEqual(isValidPort(53), true); // DNS
+			assert.strictEqual(isValidPort(80), true); // HTTP
+			assert.strictEqual(isValidPort(110), true); // POP3
+			assert.strictEqual(isValidPort(143), true); // IMAP
+			assert.strictEqual(isValidPort(443), true); // HTTPS
+			assert.strictEqual(isValidPort(993), true); // IMAPS
+			assert.strictEqual(isValidPort(995), true); // POP3S
+		});
+
+		it("should handle high port numbers within valid range", () => {
+			assert.strictEqual(isValidPort(49152), true); // Start of dynamic/private port range
+			assert.strictEqual(isValidPort(60000), true);
+			assert.strictEqual(isValidPort(65534), true); // Just below maximum
 		});
 	});
 });

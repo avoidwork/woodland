@@ -1449,7 +1449,7 @@ Cache miss handling:  1,593,638 ops/sec  (0.0006ms avg)  📊 Baseline
 
 ## Test Coverage
 
-Woodland maintains exceptional test coverage with **100% coverage across all metrics** (statements, branches, functions, and lines) across all modules. The framework includes **463 comprehensive test cases** covering every aspect of functionality, with all modules achieving perfect coverage.
+Woodland maintains exceptional test coverage with **100% coverage across all metrics** (statements, branches, functions, and lines) across all modules. The framework includes **509 comprehensive test cases** covering every aspect of functionality, with all modules achieving perfect coverage.
 
 ### Coverage Metrics
 
@@ -1570,14 +1570,20 @@ describe("CLI IPv6 validation", () => {
 - **Error scenarios**: 404 handling, permission errors, malformed requests
 - **Security validation**: Canonical path sanitization, access control
 
-#### 5. Utility Function Tests - 120+ tests
+#### 5. Utility Function Tests - 132 tests
 - **URL processing**: Parameter extraction, query parsing, path normalization
 - **Time utilities**: Timestamp formatting, timezone handling, precision control
 - **MIME detection**: Content type resolution, extension mapping
-- **Security utilities**: Enhanced IPv4/IPv6 validation, HTML escaping, header sanitization
+- **Security utilities**: Enhanced IPv4/IPv6 validation, HTML escaping, header sanitization, port validation
 - **Path validation**: Canonical path security, directory traversal prevention
 
 ### Recent Test Enhancements
+
+#### Port Validation Testing
+- **Comprehensive port validation**: Added 12 comprehensive unit tests for `isValidPort` function
+- **Edge case coverage**: Tests cover valid ports (0-65535), invalid negative/large numbers, non-integers, and data type validation
+- **Security validation**: Tests ensure proper rejection of non-number inputs including strings, objects, and special values
+- **Common port testing**: Validation of well-known ports (21, 22, 80, 443) and high port numbers
 
 #### IPv6 Validation Improvements
 - **Enhanced IP validation**: Updated `isValidIP` function to properly handle malformed IPv6 addresses
@@ -1594,10 +1600,10 @@ describe("CLI IPv6 validation", () => {
 ### Test Quality Metrics
 
 - **Code Coverage**: 100% statements, 100% branches, 100% functions, 100% lines
-- **Test Execution Time**: ~6 seconds for full suite (463 tests)
+- **Test Execution Time**: ~6 seconds for full suite (509 tests)
 - **Test Reliability**: 100% pass rate with deterministic behavior
 - **Edge Case Coverage**: Comprehensive boundary testing with all modules achieving perfect coverage
-- **Error Path Coverage**: All error conditions tested including new IPv6 validation scenarios
+- **Error Path Coverage**: All error conditions tested including IPv6 validation and port validation scenarios
 - **Performance Testing**: Integrated benchmarks for critical paths
 - **Security Testing**: Comprehensive validation of all security features and edge cases
 

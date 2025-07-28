@@ -27,6 +27,7 @@ import {
 	INT_405,
 	INT_500,
 	INT_60,
+	INT_65535,
 	KEY_BYTES,
 	PERIOD,
 	START,
@@ -510,4 +511,13 @@ export function isValidHeaderValue (headerValue) {
 	return headerValue.indexOf("\r") === -1 && headerValue.indexOf("\n") === -1 &&
 		headerValue.indexOf("\0") === -1 && headerValue.indexOf(String.fromCharCode(8)) === -1 &&
 		headerValue.indexOf(String.fromCharCode(11)) === -1 && headerValue.indexOf(String.fromCharCode(12)) === -1;
+}
+
+/**
+ * Validates if a port number is valid
+ * @param {number} port - Port number to validate
+ * @returns {boolean} True if port is valid (integer between 0 and 65535)
+ */
+export function isValidPort (port) {
+	return Number.isInteger(port) && port >= INT_0 && port <= INT_65535;
 }

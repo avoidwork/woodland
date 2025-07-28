@@ -3,7 +3,7 @@
 import {createServer} from "node:http";
 import {coerce} from "tiny-coerce";
 import {woodland} from "woodland";
-import {isValidIP} from "./utility.js";
+import {isValidIP, isValidPort} from "./utility.js";
 import {
 	CACHE_CONTROL,
 	CHAR_SET,
@@ -11,9 +11,7 @@ import {
 	EQUAL,
 	HYPHEN,
 	INFO,
-	INT_0,
 	INT_8000,
-	INT_65535,
 	LOCALHOST,
 	NO_CACHE,
 	TEXT_PLAIN
@@ -28,7 +26,7 @@ const argv = process.argv.filter(i => i.charAt(0) === HYPHEN && i.charAt(1) === 
 	}, {}),
 	ip = argv.ip ?? LOCALHOST,
 	logging = argv.logging ?? true,
-	port = argv.port ?? INT_8000,
+	port = Number(argv.port ?? INT_8000),
 	app = woodland({
 		autoindex: true,
 		defaultHeaders: {[CACHE_CONTROL]: NO_CACHE, [CONTENT_TYPE]: `${TEXT_PLAIN}; ${CHAR_SET}`},
@@ -38,17 +36,15 @@ const argv = process.argv.filter(i => i.charAt(0) === HYPHEN && i.charAt(1) === 
 		time: true
 	});
 
-const validPort = Number(port);
-if (!Number.isInteger(validPort) || validPort < INT_0 || validPort > INT_65535) {
+if (!isValidPort(port)) {
 	console.error("Invalid port: must be an integer between 0 and 65535.");
 	process.exit(1);
 }
-const validIP = isValidIP(ip);
-if (!validIP) {
+if (!isValidIP(ip)) {
 	console.error("Invalid IP: must be a valid IPv4 or IPv6 address.");
 	process.exit(1);
 }
 
 app.files();
-createServer(app.route).listen(validPort, ip);
-app.log(`id=woodland, hostname=localhost, ip=${ip}, port=${validPort}`, INFO);
+createServer(app.route).listen(port, ip);
+app.log(`id=woodland, hostname=localhost, ip=${ip}, port=${port}`, INFO);
