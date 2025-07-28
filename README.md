@@ -163,8 +163,14 @@ const app = woodland({
     format: "%h %l %u %t \"%r\" %>s %b", // Log format
     level: "info"        // Log level
   },
-  maxHeaderByteSize: 14336, // Max individual header value size (14 KiB)
-  maxUploadByteSize: 51200, // Max request body size (50 KiB)
+  maxHeader: {
+    enabled: true,       // Enable header size validation
+    byteSize: 14336     // Max individual header value size (14 KiB)
+  },
+  maxUpload: {
+    enabled: true,       // Enable request body size validation
+    byteSize: 51200     // Max request body size (50 KiB)
+  },
   origins: ["*"],        // CORS origins
   silent: false,         // Disable default headers
   time: false           // Enable response timing
@@ -604,7 +610,10 @@ Protect against header overflow attacks by limiting individual header value size
 
 ```javascript
 const app = woodland({
-  maxHeaderByteSize: 8192  // 8 KiB limit per header value (default: 14 KiB)
+  maxHeader: {
+    enabled: true,       // Enable header size validation (default: true)
+    byteSize: 8192      // 8 KiB limit per header value (default: 14 KiB)
+  }
 });
 
 // Automatically validates ALL incoming requests
@@ -613,15 +622,21 @@ const app = woodland({
 
 ### Request Body Size Validation  
 
-Use the `requestSizeLimit()` middleware to protect against large upload attacks:
+Configure default request body size limits globally, and use the `requestSizeLimit()` middleware factory for custom limits:
 
 ```javascript
-// Apply to all routes with default limit (50 KiB)
-app.always(app.requestSizeLimit());
+// Global configuration with default limits
+const app = woodland({
+  maxUpload: {
+    enabled: true,       // Enable request body size validation (default: true)
+    byteSize: 51200     // Default limit: 50 KiB
+  }
+});
+// Automatically applies to all POST/PUT/PATCH requests
 
-// Apply with custom limit to specific routes
+// Apply custom limits to specific routes
 app.post("/api/upload", app.requestSizeLimit(1048576), (req, res) => {
-  // Only accepts uploads up to 1 MB
+  // Only accepts uploads up to 1 MB (overrides default)
   res.json({message: "Upload successful"});
 });
 
@@ -644,21 +659,45 @@ app.post("/api/data", app.requestSizeLimit(1024), handler);         // 1 KB
 ```javascript
 // High-security API server
 const api = woodland({
-  maxHeaderByteSize: 4096,   // 4 KiB header limit
-  maxUploadByteSize: 10240,  // 10 KiB default upload limit
+  maxHeader: {
+    enabled: true,
+    byteSize: 4096           // 4 KiB header limit
+  },
+  maxUpload: {
+    enabled: true,
+    byteSize: 10240         // 10 KiB default upload limit
+  },
   origins: ["https://myapp.com"] // Specific CORS origins
 });
 
 // File upload server  
 const uploads = woodland({
-  maxHeaderByteSize: 16384,    // 16 KiB header limit
-  maxUploadByteSize: 104857600 // 100 MB default upload limit
+  maxHeader: {
+    enabled: true,
+    byteSize: 16384         // 16 KiB header limit
+  },
+  maxUpload: {
+    enabled: true,
+    byteSize: 104857600     // 100 MB default upload limit
+  }
 });
 
 // Microservice with strict limits
 const micro = woodland({
-  maxHeaderByteSize: 2048,     // 2 KiB header limit
-  maxUploadByteSize: 1024      // 1 KiB upload limit
+  maxHeader: {
+    enabled: true,
+    byteSize: 2048          // 2 KiB header limit
+  },
+  maxUpload: {
+    enabled: true,
+    byteSize: 1024          // 1 KiB upload limit
+  }
+});
+
+// Disable security validations (not recommended)
+const unsafe = woodland({
+  maxHeader: { enabled: false },
+  maxUpload: { enabled: false }
 });
 ```
 
@@ -1196,8 +1235,14 @@ interface WoodlandConfig {
     format?: string;
     level?: string;
   };
-  maxHeaderByteSize?: number;
-  maxUploadByteSize?: number;
+  maxHeader?: {
+    enabled?: boolean;
+    byteSize?: number;
+  };
+  maxUpload?: {
+    enabled?: boolean;
+    byteSize?: number;
+  };
   origins?: string[];
   silent?: boolean;
   time?: boolean;

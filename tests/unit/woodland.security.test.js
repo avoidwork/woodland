@@ -406,7 +406,7 @@ describe("Woodland Security Tests", () => {
 		it("should respect custom header size limit", () => {
 			const customApp = new Woodland({
 				logging: { enabled: false },
-				maxHeaderByteSize: 100 // Very small limit
+				maxHeader: { byteSize: 100 } // Very small limit
 			});
 
 			mockReq.headers = {
@@ -468,13 +468,18 @@ describe("Woodland Security Tests", () => {
 			mockReq.method = "POST";
 			mockReq.headers["content-length"] = "500"; // 500 bytes
 
-			// Mock req.on for streaming setup
-			mockReq.on = function () {
-				return mockReq;
-			};
-
 			let nextCalled = false;
 			let errorCalled = false;
+			let endHandler;
+
+			// Mock req.on for streaming setup
+			mockReq.on = function (event, callback) {
+				if (event === "end") {
+					endHandler = callback;
+				}
+
+				return mockReq;
+			};
 
 			mockRes.error = function () {
 				errorCalled = true;
@@ -483,6 +488,11 @@ describe("Woodland Security Tests", () => {
 			middleware(mockReq, mockRes, () => {
 				nextCalled = true;
 			});
+
+			// Simulate the 'end' event
+			if (endHandler) {
+				endHandler();
+			}
 
 			assert.strictEqual(nextCalled, true, "Should call next for request within limit");
 			assert.strictEqual(errorCalled, false, "Should not call error for valid request size");
@@ -641,15 +651,21 @@ describe("Woodland Security Tests", () => {
 				nextCalled = true;
 			});
 
-			assert.strictEqual(nextCalled, true, "Should call next for streaming request setup");
-			assert.strictEqual(errorCalled, false, "Should not call error during setup");
-			assert.ok(mockReq.on !== undefined, "Should set up request.on method");
+			// Simulate the 'end' event
+			if (onHandlers.end) {
+				onHandlers.end();
+			}
+
+			assert.strictEqual(nextCalled, true, "Should call next when request ends normally");
+			assert.strictEqual(errorCalled, false, "Should not call error during normal request");
+			assert.ok(onHandlers.data !== undefined, "Should set up data event handler");
+			assert.ok(onHandlers.end !== undefined, "Should set up end event handler");
 		});
 
-		it("should use instance maxUploadByteSize when no custom limit provided", () => {
+		it("should use instance maxUpload when no custom limit provided", () => {
 			const customApp = new Woodland({
 				logging: { enabled: false },
-				maxUploadByteSize: 500 // Custom default
+				maxUpload: { byteSize: 500 } // Custom default
 			});
 
 			const middleware = customApp.requestSizeLimit(); // No custom limit

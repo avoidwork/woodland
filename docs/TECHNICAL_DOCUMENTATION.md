@@ -685,30 +685,33 @@ requestSizeLimit(maxSize) {
       }
     }
 
-    // Set up body size tracking for streaming requests without Content-Length
-    let bodySize = 0;
-    const originalOn = req.on.bind(req);
+         // Set up body size tracking for streaming requests without Content-Length
+     let bodySize = 0;
+     let sizeExceeded = false;
 
-    req.on = function (event, callback) {
-      if (event === "data") {
-        const wrappedCallback = chunk => {
-          bodySize += chunk.length;
+     // Add our own event listeners without overriding req.on
+     req.on("data", chunk => {
+       if (sizeExceeded) {
+         return; // Already handling size exceeded
+       }
 
-          if (bodySize > limit) {
-            // Destroy the request stream to stop reading
-            req.destroy();
-            res.error(413); // 413 Payload Too Large
-            return;
-          }
+       bodySize += chunk.length;
 
-          callback(chunk);
-        };
+       if (bodySize > limit) {
+         sizeExceeded = true;
+         this.log(`type=requestSizeLimit, method=${req.method}, ip=${req.ip || "unknown"}, size=${bodySize}, limit=${limit}, message="Streaming request body size limit exceeded"`, ERROR);
+         
+         // Destroy the request stream to stop reading
+         req.destroy();
+         res.error(413); // 413 Payload Too Large
+       }
+     });
 
-        return originalOn(event, wrappedCallback);
-      }
-
-      return originalOn(event, callback);
-    };
+     req.on("error", err => {
+       if (!sizeExceeded) {
+         res.error(500, err);
+       }
+     });
 
     return nextHandler();
   };

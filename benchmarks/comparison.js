@@ -51,6 +51,8 @@ function createWoodlandServer () {
 		cacheTTL: 10000,
 		etags: false, // Disable for fair comparison
 		logging: {enabled: false}, // Disable logging for benchmarks
+		maxHeader: {enabled: false}, // Disable logging for benchmarks
+		maxUpload: {enabled: false}, // Disable logging for benchmarks
 		origins: [], // Disable logging for benchmarks
 		time: false // Disable timing for fair comparison
 	});

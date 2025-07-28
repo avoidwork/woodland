@@ -156,8 +156,12 @@ export class Woodland extends EventEmitter {
 	 * @param {boolean} [config.etags=true] - Enable ETag generation
 	 * @param {string[]} [config.indexes=['index.htm', 'index.html']] - Index file names
 	 * @param {Object} [config.logging={}] - Logging configuration
-	 * @param {number} [config.maxHeaderByteSize=14336] - Maximum size for any individual header value in bytes (14 KiB)
-	 * @param {number} [config.maxUploadByteSize=51200] - Maximum request body size in bytes (50 KiB)
+	 * @param {Object} [config.maxHeader] - HTTP header size limits configuration
+	 * @param {boolean} [config.maxHeader.enabled=true] - Enable header size validation
+	 * @param {number} [config.maxHeader.byteSize=14336] - Maximum individual header value size in bytes
+	 * @param {Object} [config.maxUpload] - Request body size limits configuration
+	 * @param {boolean} [config.maxUpload.enabled=true] - Enable request body size validation
+	 * @param {number} [config.maxUpload.byteSize=51200] - Maximum request body size in bytes
 	 * @param {string[]} [config.origins=[]] - Allowed CORS origins (empty array denies all cross-origin requests)
 	 * @param {boolean} [config.silent=false] - Disable default headers
 	 * @param {boolean} [config.time=false] - Enable response time tracking
@@ -175,8 +179,14 @@ export class Woodland extends EventEmitter {
 			INDEX_HTML
 		],
 		logging = {},
-		maxHeaderByteSize = INT_14336,
-		maxUploadByteSize = INT_51200,
+		maxHeader = {
+			enabled: true,
+			byteSize: INT_14336
+		},
+		maxUpload = {
+			enabled: true,
+			byteSize: INT_51200
+		},
 		origins = [],
 		silent = false,
 		time = false
@@ -210,12 +220,23 @@ export class Woodland extends EventEmitter {
 			format: logging?.format ?? LOG_FORMAT,
 			level: logging?.level ?? INFO
 		};
-		this.maxHeaderByteSize = maxHeaderByteSize;
-		this.maxUploadByteSize = maxUploadByteSize;
+		this.maxHeader = {
+			enabled: (maxHeader?.enabled ?? true) !== false,
+			byteSize: maxHeader.byteSize ?? INT_14336
+		};
+		this.maxUpload = {
+			enabled: (maxUpload?.enabled ?? true) !== false,
+			byteSize: maxUpload.byteSize ?? INT_51200
+		};
 		this.methods = [];
 		this.middleware = new Map();
 		this.origins = structuredClone(origins);
 		this.time = time;
+
+		if (this.maxUpload.enabled) {
+			const fnRequestSizeLimit = this.requestSizeLimit();
+			this.always(fnRequestSizeLimit).ignore(fnRequestSizeLimit);
+		}
 
 		if (this.etags !== null) {
 			this.get(this.etags.middleware).ignore(this.etags.middleware);
@@ -661,15 +682,15 @@ export class Woodland extends EventEmitter {
 
 	/**
 	 * Creates middleware to validate request body size limits
-	 * @param {number} [maxSize] - Maximum body size in bytes (defaults to instance maxUploadByteSize)
+	 * @param {number} [customLimit] - Custom size limit in bytes (defaults to instance maxUpload.byteSize)
 	 * @returns {Function} Middleware function that validates request body size
 	 */
-	requestSizeLimit (maxSize) {
-		const limit = maxSize ?? this.maxUploadByteSize;
+	requestSizeLimit (customLimit) {
+		const limit = customLimit ?? this.maxUpload.byteSize;
 
-		return (req, res, nextHandler) => {
+		return (req, res, nextHandler) => { // eslint-disable-line consistent-return
 			// Skip validation for methods that don't typically have bodies
-			if (req.method === GET || req.method === HEAD || req.method === OPTIONS) {
+			if (this.maxUpload.enabled === false || req.method === GET || req.method === HEAD || req.method === OPTIONS) {
 				return nextHandler();
 			}
 
@@ -693,31 +714,37 @@ export class Woodland extends EventEmitter {
 
 			// Set up body size tracking for streaming requests without Content-Length
 			let bodySize = 0;
-			const originalOn = req.on.bind(req);
+			let sizeExceeded = false;
 
-			req.on = function (event, callback) {
-				if (event === "data") {
-					const wrappedCallback = chunk => {
-						bodySize += chunk.length;
-
-						if (bodySize > limit) {
-							// Destroy the request stream to stop reading
-							req.destroy();
-							res.error(INT_413); // 413 Payload Too Large
-
-							return;
-						}
-
-						callback(chunk);
-					};
-
-					return originalOn(event, wrappedCallback);
+			// Add our own event listeners without overriding req.on
+			req.on("data", chunk => {
+				if (sizeExceeded) {
+					return; // Already handling size exceeded
 				}
 
-				return originalOn(event, callback);
-			};
+				bodySize += chunk.length;
 
-			return nextHandler();
+				if (bodySize > limit) {
+					sizeExceeded = true;
+					this.log(`type=requestSizeLimit, method=${req.method}, ip=${req.ip || "unknown"}, size=${bodySize}, limit=${limit}, message="Streaming request body size limit exceeded"`, ERROR);
+
+					// Destroy the request stream to stop reading
+					req.destroy();
+					res.error(INT_413); // 413 Payload Too Large
+				}
+			});
+
+			req.on("error", err => {
+				if (!sizeExceeded) {
+					res.error(INT_500, err);
+				}
+			});
+
+			req.on("end", () => {
+				if (!sizeExceeded) {
+					nextHandler();
+				}
+			});
 		};
 	}
 
@@ -732,16 +759,19 @@ export class Woodland extends EventEmitter {
 			method = req.method === HEAD ? GET : req.method;
 
 		// Security: Validate individual header values to prevent header overflow attacks
-		for (const [name, value] of Object.entries(req.headers)) {
-			if (typeof name === "string" && typeof value === "string") {
-				const headerValueSize = Buffer.byteLength(value, "utf8");
+		if (this.maxHeader.enabled) {
+			const maxHeaderByteSize = this.maxHeader.byteSize;
+			for (const [name, value] of Object.entries(req.headers)) {
+				if (typeof name === "string" && typeof value === "string") {
+					const headerValueSize = Buffer.byteLength(value, "utf8");
 
-				if (headerValueSize > this.maxHeaderByteSize) {
-					this.log(`type=route, method=${req.method}, ip=${req.connection?.remoteAddress || "unknown"}, header="${name}", headerSize=${headerValueSize}, maxSize=${this.maxHeaderByteSize}, message="Individual header value size limit exceeded"`, ERROR);
-					res.writeHead(INT_400, {"Content-Type": "text/plain"});
-					res.end("Request header value too large");
+					if (headerValueSize > maxHeaderByteSize) {
+						this.log(`type=route, method=${req.method}, ip=${req.connection?.remoteAddress || "unknown"}, header="${name}", headerSize=${headerValueSize}, maxSize=${maxHeaderByteSize}, message="Individual header value size limit exceeded"`, ERROR);
+						res.writeHead(INT_400, {"Content-Type": "text/plain"});
+						res.end("Request header value too large");
 
-					return;
+						return;
+					}
 				}
 			}
 		}
