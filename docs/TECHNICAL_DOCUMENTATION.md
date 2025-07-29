@@ -185,15 +185,19 @@ The main class extending EventEmitter that orchestrates all operations:
 class Woodland extends EventEmitter {
   constructor(config = {}) {
     // Configuration options:
-    // - autoindex: Enable directory listing
+    // - autoindex: Enable directory listing (default: false)
     // - cacheSize: LRU cache size (default: 1000)
     // - cacheTTL: Cache TTL in ms (default: 10000)
     // - charset: Default charset (default: 'utf-8')
-    // - defaultHeaders: Default HTTP headers
-    // - etags: Enable ETag generation
-    // - origins: CORS allowed origins
-    // - silent: Disable default headers
-    // - time: Enable response time tracking
+    // - corsExpose: CORS headers to expose to client (default: '')
+    // - defaultHeaders: Default HTTP headers (default: {})
+    // - digit: Timing precision digits (default: 3)
+    // - etags: Enable ETag generation (default: true)
+    // - indexes: Index file names (default: ['index.htm', 'index.html'])
+    // - logging: Logging configuration (default: {})
+    // - origins: CORS allowed origins (default: [])
+    // - silent: Disable default headers (default: false)
+    // - time: Enable response time tracking (default: false)
   }
 }
 ```
@@ -273,19 +277,55 @@ graph LR
 Woodland implements multiple layers of protection against directory traversal attacks:
 
 ```javascript
-// Security validation pipeline
-export function isSafeFilePath(filePath) {
-  if (!filePath || typeof filePath !== 'string') {
+// Security validation in serve method
+async serve(req, res, arg, folder = process.cwd()) {
+  const fp = resolve(folder, arg);
+  
+  // Security: Ensure resolved path stays within the allowed directory
+  if (!fp.startsWith(resolve(folder))) {
+    this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path outside allowed directory", path="${arg}"`, ERROR);
+    res.error(INT_403);
+    return;
+  }
+  // ... rest of serve method
+}
+
+// HTML escaping for output safety
+export function escapeHtml(str = '') {
+  const htmlEscapes = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  };
+  
+  return str.replace(/[&<>"']/g, match => htmlEscapes[match]);
+}
+
+// IP address validation
+export function isValidIP(ip) {
+  if (!ip || typeof ip !== "string") {
     return false;
   }
   
-  const normalized = path.normalize(filePath);
-  return !normalized.startsWith('..') && !path.isAbsolute(normalized);
-}
-
-export function sanitizeFilePath(filePath) {
-  // Remove dangerous characters and sequences
-  return filePath.replace(/[<>:"|?*]/g, '').replace(/\.\.+/g, '.');
+  // IPv4 validation with octet range checking
+  if (!ip.includes(":")) {
+    const ipv4Pattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+    const match = ip.match(ipv4Pattern);
+    
+    if (!match) {
+      return false;
+    }
+    
+    return match.slice(1).every(octet => {
+      const num = parseInt(octet, 10);
+      return num >= 0 && num <= 255;
+    });
+  }
+  
+  // IPv6 validation including IPv4-mapped addresses
+  // ... (implementation continues)
 }
 ```
 
@@ -686,10 +726,11 @@ const app = woodland({
   cacheSize: 1000,        // LRU cache size
   cacheTTL: 10000,        // Cache TTL in milliseconds
   charset: 'utf-8',       // Default character encoding
+  corsExpose: '',         // CORS headers to expose to the client
   defaultHeaders: {},     // Default HTTP headers
   digit: 3,               // Timing precision digits
   etags: true,            // Enable ETag generation
-  indexes: ['index.html'], // Index file names
+  indexes: ['index.htm', 'index.html'], // Index file names
   logging: {},            // Logging configuration
   origins: [],            // CORS allowed origins
   silent: false,          // Disable default headers
@@ -707,9 +748,11 @@ app.put('/path', handler);
 app.patch('/path', handler);
 app.delete('/path', handler);
 app.options('/path', handler);
-app.head('/path', handler);
 app.trace('/path', handler);
 app.connect('/path', handler);
+
+// Note: HEAD requests are automatically handled when GET routes are defined
+// Cannot register HEAD routes directly - use GET instead
 
 // Middleware for all methods
 app.use('/path', middleware);

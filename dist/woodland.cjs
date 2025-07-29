@@ -3,7 +3,7 @@
  *
  * @copyright 2025 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.2.0
+ * @version 20.2.1
  */
 'use strict';
 
@@ -1233,7 +1233,7 @@ class Woodland extends node_events.EventEmitter {
 				reduce(uri, this.middleware.get(method), result);
 			}
 
-			// Optimized: Count without creating intermediate array
+			// Optimized: Count without creating an intermediate array
 			result.visible = INT_0;
 			for (const middleware of result.middleware) {
 				if (this.ignored.has(middleware) === false) {

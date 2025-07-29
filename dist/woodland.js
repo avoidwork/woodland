@@ -3,7 +3,7 @@
  *
  * @copyright 2025 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.2.0
+ * @version 20.2.1
  */
 import {STATUS_CODES,METHODS}from'node:http';import {join,extname,resolve}from'node:path';import {EventEmitter}from'node:events';import {stat,readdir}from'node:fs/promises';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {lru}from'tiny-lru';import {createRequire}from'node:module';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';const __dirname$1 = fileURLToPath(new URL(".", import.meta.url));
 const require = createRequire(import.meta.url);
@@ -1213,7 +1213,7 @@ class Woodland extends EventEmitter {
 				reduce(uri, this.middleware.get(method), result);
 			}
 
-			// Optimized: Count without creating intermediate array
+			// Optimized: Count without creating an intermediate array
 			result.visible = INT_0;
 			for (const middleware of result.middleware) {
 				if (this.ignored.has(middleware) === false) {

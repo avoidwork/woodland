@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "20.2.0",
+  "version": "20.2.1",
   "description": "High-performance HTTP framework",
   "type": "module",
   "types": "types/woodland.d.ts",

@@ -24,27 +24,34 @@
 - **Security first**: Always consider security implications
 - **Performance awareness**: Write efficient code without premature optimization
 - **Documentation**: Code should be self-documenting with appropriate comments
+- **Pragmatic formatting**: Prioritize readability over strict line length limits for logging and complex expressions
 
 ### Formatting
-- Use **tabs** for indentation.
-- Maximum line length: **100 characters**
+- Use **tabs for indentation, not spaces**
+- Maximum line length: **120 characters** (longer lines are acceptable for logging and complex expressions)
 - Use **semicolons** consistently
-- Trailing commas in multiline objects and arrays
-- Use **single quotes** for strings unless double quotes are required
+- **No trailing commas** in multiline objects and arrays
+- Use **double quotes** for import statements and **single quotes** for other strings when possible
 
 ```javascript
 // Good
+import {createServer} from "node:http";
+import {woodland} from "woodland";
+
 const config = {
 	autoindex: false,
 	cacheSize: 1000,
-	charset: 'utf-8',
+	charset: 'utf-8'
 };
 
-// Bad
+// Acceptable - Long lines for logging
+this.log(`type=route, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ROUTING}"`);
+
+// Bad - Using spaces instead of tabs
 const config = {
   autoindex: false,
   cacheSize: 1000,
-  charset: "utf-8"
+  charset: "utf-8",  // Also bad - trailing comma
 }
 ```
 
@@ -66,6 +73,9 @@ tests/
 
 docs/                     # Documentation
 types/                    # TypeScript definitions
+benchmarks/               # Performance benchmarks
+tpl/                      # HTML templates
+test-files/               # Test file assets
 ```
 
 ### File Naming
@@ -276,20 +286,42 @@ const ignored = new Set();
 
 ```javascript
 // Good - Input validation and sanitization
-export function sanitizeFilePath(filePath) {
-	if (!filePath || typeof filePath !== 'string') {
-		throw new Error('Invalid file path');
+export function escapeHtml(str = '') {
+	// Use lookup table for single-pass replacement
+	const htmlEscapes = {
+		'&': '&amp;',
+		'<': '&lt;',
+		'>': '&gt;',
+		'"': '&quot;',
+		"'": '&#39;'
+	};
+	
+	return str.replace(/[&<>"']/g, match => htmlEscapes[match]);
+}
+
+// Good - IP address validation
+export function isValidIP(ip) {
+	if (!ip || typeof ip !== 'string') {
+		return false;
 	}
 	
-	// Remove dangerous characters
-	const sanitized = filePath.replace(/[<>:"|?*]/g, '');
-	
-	// Prevent directory traversal
-	if (sanitized.includes('..')) {
-		throw new Error('Directory traversal not allowed');
+	// IPv4 validation
+	if (!ip.includes(':')) {
+		const ipv4Pattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+		const match = ip.match(ipv4Pattern);
+		
+		if (!match) {
+			return false;
+		}
+		
+		// Check octets are in valid range (0-255)
+		return match.slice(1).every(octet => {
+			const num = parseInt(octet, 10);
+			return num >= 0 && num <= 255;
+		});
 	}
 	
-	return sanitized;
+	// IPv6 validation continues...
 }
 ```
 
@@ -319,14 +351,18 @@ function escapeHtml(str = '') {
 - Implement proper access controls
 
 ```javascript
-// Good - Safe file path handling
-export function isSafeFilePath(filePath) {
-	if (!filePath || typeof filePath !== 'string') {
-		return false;
+// Good - Safe file path handling using actual Woodland implementation
+async serve(req, res, arg, folder = process.cwd()) {
+	const fp = resolve(folder, arg);
+	
+	// Security: Ensure resolved path stays within the allowed directory
+	if (!fp.startsWith(resolve(folder))) {
+		this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path outside allowed directory", path="${arg}"`, ERROR);
+		res.error(INT_403);
+		return;
 	}
 	
-	const normalized = path.normalize(filePath);
-	return !normalized.startsWith('..') && !path.isAbsolute(normalized);
+	// Continue with file serving...
 }
 ```
 
