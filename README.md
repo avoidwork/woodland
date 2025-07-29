@@ -1117,14 +1117,32 @@ app.get("/users/([0-9]+)", handler);   // ✅ RegExp pattern
 #### Middleware Order
 
 ```javascript
-// Problem: Middleware not executing
-// Solution: Register middleware before routes
-app.always(bodyParser);  // ✅ Before routes
-app.post("/users", createUser);
+// The 'routes' method builds middleware execution order as follows:
+// 1. Always middleware (WILDCARD) - added first to the middleware array
+// 2. Route-specific middleware - added after all always middleware
 
-// Not this:
-app.post("/users", createUser);
-app.always(bodyParser);  // ❌ After routes
+// ✅ Understanding the routes method behavior:
+app.always(corsHandler);        // Added to WILDCARD middleware map
+app.always(requestLogger);      // Added to WILDCARD middleware map  
+app.post("/users", authenticate, createUser);  // Added to POST middleware map
+
+// When routes("/users", "POST") is called, the middleware array becomes:
+// [corsHandler, requestLogger, authenticate, createUser]
+// with exit point set between requestLogger and authenticate
+
+// ✅ Always middleware executes first regardless of registration order:
+app.post("/api/users", validate, createUser);  // Route registered first
+app.always(securityHeaders);   // Always middleware registered after
+app.always(bodyParser);        // Another always middleware
+
+// Execution order for POST /api/users:
+// 1. securityHeaders (always middleware) 
+// 2. bodyParser (always middleware)
+// 3. validate (route middleware)
+// 4. createUser (route handler)
+
+// ❌ Common misconception - registration order between always/route doesn't matter:
+// The routes method ALWAYS puts always middleware first in the execution chain
 ```
 
 #### Memory Issues
