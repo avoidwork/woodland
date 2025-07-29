@@ -7,12 +7,13 @@
 3. [Data Flow](#data-flow)
 4. [Core Components](#core-components)
 5. [Security Features](#security-features)
-6. [Performance Characteristics](#performance-characteristics)
-7. [Test Coverage](#test-coverage)
-8. [Usage Examples for 2025](#usage-examples-for-2025)
-9. [API Reference](#api-reference)
-10. [Deployment Patterns](#deployment-patterns)
-11. [Best Practices](#best-practices)
+6. [OWASP Security Assessment](#owasp-security-assessment)
+7. [Performance Characteristics](#performance-characteristics)
+8. [Test Coverage](#test-coverage)
+9. [Usage Examples for 2025](#usage-examples-for-2025)
+10. [API Reference](#api-reference)
+11. [Deployment Patterns](#deployment-patterns)
+12. [Best Practices](#best-practices)
 
 ---
 
@@ -404,6 +405,132 @@ const app = woodland({
 // - Dynamic CORS header injection
 // - Security enforcement
 ```
+
+### OWASP Security Assessment
+
+Woodland demonstrates **excellent adherence to OWASP security guidelines** with a comprehensive security-first design approach.
+
+#### ✅ Strong OWASP Compliance Areas
+
+##### A03:2021 - Injection Prevention
+- **Path Traversal Protection**: Robust implementation prevents directory traversal attacks
+  ```javascript
+  // Security validation in serve method
+  if (!fp.startsWith(resolve(folder))) {
+    res.error(403); // Blocks path traversal attempts
+  }
+  ```
+- **HTML Escaping**: All user input is properly escaped to prevent XSS
+- **Parameter Validation**: URL parameters are decoded and escaped safely
+- **Input Sanitization**: Comprehensive validation for file paths, IP addresses, and user input
+
+##### A05:2021 - Security Misconfiguration
+- **Secure Defaults**: CORS disabled by default (empty origins array denies all cross-origin requests)
+- **Autoindex Disabled**: Directory browsing disabled by default for security
+- **Security Headers**: `X-Content-Type-Options: nosniff` set automatically
+- **Configurable Security**: Support for custom security headers and policies
+
+##### A07:2021 - Identification and Authentication Failures
+- **IP Validation**: Robust IP address extraction with validation from `X-Forwarded-For` headers
+- **CORS Origin Validation**: Strict allowlist-based origin checking
+- **Header Validation**: Comprehensive validation of security-critical headers
+
+##### A01:2021 - Broken Access Control
+- **Default Deny CORS**: No cross-origin requests allowed unless explicitly configured
+- **File Access Control**: Path validation ensures files can only be served from allowed directories
+- **Method Validation**: Proper HTTP method validation and error handling
+- **Allowlist-based Security**: All security decisions based on explicit allowlists
+
+#### 🛡️ Security Features Implementation
+
+##### Comprehensive Input Validation
+```javascript
+// HTML escaping function
+function escapeHtml(str = '') {
+  const htmlEscapes = {
+    "&": "&amp;", "<": "&lt;", ">": "&gt;",
+    '"': "&quot;", "'": "&#39;"
+  };
+  return str.replace(/[&<>"']/g, match => htmlEscapes[match]);
+}
+
+// IP validation with IPv4 and IPv6 support
+export function isValidIP(ip) {
+  // Comprehensive IPv4/IPv6 validation logic
+  // Validates octet ranges, compression notation, etc.
+}
+```
+
+##### Security Headers Implementation
+- **X-Content-Type-Options**: `nosniff` (prevents MIME type sniffing)
+- **Configurable Security Headers**: Framework supports adding additional security headers
+- **Server Identification**: Can be disabled with `silent: true` option
+
+##### Error Handling Security
+- **Information Disclosure Prevention**: Error messages don't expose internal paths or sensitive data
+- **Graceful Error Handling**: Multiple error calls handled safely without information leakage
+- **Secure Status Codes**: Appropriate HTTP status codes for security violations
+
+#### ⚠️ Enhancement Recommendations
+
+##### Additional Security Headers (OWASP Recommended)
+While Woodland supports custom headers, consider adding these for enhanced security:
+
+```javascript
+const app = woodland({
+  defaultHeaders: {
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "DENY", 
+    "x-xss-protection": "1; mode=block",
+    "strict-transport-security": "max-age=31536000; includeSubDomains",
+    "content-security-policy": "default-src 'self'",
+    "referrer-policy": "strict-origin-when-cross-origin"
+  }
+});
+```
+
+##### External Security Considerations
+- **Rate Limiting**: Should be handled at reverse proxy level or with middleware
+- **Content Size Limits**: Configure at application level based on requirements
+- **TLS Configuration**: Handle at reverse proxy or server level
+
+#### 🧪 Security Testing Coverage
+
+Woodland includes comprehensive security tests covering:
+- **Path traversal attempts** (including encoded attacks)
+- **CORS policy enforcement** (default deny, explicit allow, wildcard handling)
+- **Input validation** (null bytes, newlines, malformed URIs)
+- **HTML escaping in autoindex** (XSS prevention)
+- **Error handling security** (information disclosure prevention)
+- **IP address extraction security** (header spoofing prevention)
+
+#### 📊 OWASP Top 10 Assessment Summary
+
+| OWASP Category | Compliance Level | Implementation Notes |
+|---|---|---|
+| **A01: Broken Access Control** | ✅ Excellent | Strong CORS & file access controls |
+| **A02: Cryptographic Failures** | ✅ Good | Secure error handling, no sensitive exposure |
+| **A03: Injection** | ✅ Excellent | Comprehensive input validation & escaping |
+| **A04: Insecure Design** | ✅ Excellent | Security-first architecture |
+| **A05: Security Misconfiguration** | ✅ Good | Secure defaults, configurable security |
+| **A06: Vulnerable Components** | ✅ Good | Minimal dependencies, regular updates |
+| **A07: Authentication Failures** | ⚠️ Partial | No built-in auth (by design) |
+| **A08: Software Integrity Failures** | ✅ N/A | Minimal serialization/deserialization |
+| **A09: Security Logging Failures** | ✅ Good | Comprehensive logging with CLF support |
+| **A10: Server-Side Request Forgery** | ✅ N/A | No outbound request functionality |
+
+#### 🎯 Security Assessment Conclusion
+
+**Woodland demonstrates excellent adherence to OWASP security guidance** with a security-first design philosophy. The framework implements robust protections against the most critical web application security risks including:
+
+- **Injection Prevention**: Comprehensive input validation and output encoding
+- **Access Control**: Strict file system and CORS access controls  
+- **Secure Configuration**: Secure defaults with flexibility for additional hardening
+- **Error Handling**: Secure error responses without information disclosure
+
+While lightweight by design, Woodland provides the security foundation needed for production applications. Additional security measures (rate limiting, advanced headers, authentication) can be layered on top based on specific application requirements.
+
+**Security Rating**: ⭐⭐⭐⭐⭐ *Excellent* - Strong security implementation with comprehensive testing coverage.
 
 ---
 
