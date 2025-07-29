@@ -1213,7 +1213,7 @@ class Woodland extends EventEmitter {
 				reduce(uri, this.middleware.get(method), result);
 			}
 
-			// Optimized: Count without creating intermediate array
+			// Optimized: Count without creating an intermediate array
 			result.visible = INT_0;
 			for (const middleware of result.middleware) {
 				if (this.ignored.has(middleware) === false) {
