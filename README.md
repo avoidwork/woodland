@@ -289,7 +289,8 @@ app.always((req, res, next) => {
 // Route-specific middleware
 app.get("/protected", authenticate, authorize, handler);
 
-// Error handling middleware
+// ❌ WRONG: Do NOT register error middleware with 'always'
+// This will execute BEFORE route handlers, not after errors occur
 app.always((error, req, res, next) => {
   if (error) {
     console.error(error);
@@ -298,7 +299,39 @@ app.always((error, req, res, next) => {
     next();
   }
 });
+
+// ✅ CORRECT: Register error middleware with specific routes LAST
+app.get("/api/users", 
+  authenticate,        // Normal middleware
+  authorize,          // Normal middleware
+  getUserHandler,     // Route handler
+  (error, req, res, next) => {  // Error middleware - LAST
+    if (error) {
+      console.error(error);
+      res.error(500);
+    } else {
+      next();
+    }
+  }
+);
+
+// ✅ CORRECT: Global error handling should be done with route patterns
+app.use("/(.*)", (error, req, res, next) => {
+  if (error) {
+    console.error(`Global error for ${req.url}:`, error);
+    res.error(500, "Internal Server Error");
+  } else {
+    next();
+  }
+});
 ```
+
+**Important Notes:**
+- **Error middleware** (functions with 4 parameters: `error, req, res, next`) should **never** be registered with `app.always()`
+- Error middleware registered with `always` will execute **before** route handlers, making them ineffective for catching route errors
+- **`.use()` without a method defaults to GET** - it behaves like `.get()`, not like `.always()`
+- Always register error middleware **last** in the middleware chain for each route
+- For global error handling, use `app.use("/(.*)", errorHandler)` as the **last route registration**
 
 ### Middleware Examples
 
