@@ -329,31 +329,80 @@ export function isValidIP(ip) {
 }
 ```
 
-### CORS Security Model
+### CORS Implementation
+
+**Woodland provides comprehensive automatic CORS handling** when origins are configured. The framework handles all CORS complexity internally, requiring minimal developer configuration.
+
+#### Automatic CORS Features
+
+When you configure `origins` in the constructor, Woodland automatically:
+
+1. **Registers Preflight Routes**: Automatically adds an OPTIONS handler for all paths using `this.options(fnCorsRequest).ignore(fnCorsRequest)`
+2. **Sets CORS Headers**: Dynamically adds all required CORS headers during request decoration
+3. **Validates Origins**: Checks request origin against configured allowlist with security enforcement
+4. **Manages Credentials**: Sets `Access-Control-Allow-Credentials: true` for valid origins
+5. **Exposes Headers**: Configures `Access-Control-Expose-Headers` based on `corsExpose` setting
+6. **Method Detection**: `Access-Control-Allow-Methods` reflects actual registered routes via `req.allow`
+
+#### Technical Implementation Flow
 
 ```mermaid
 graph TB
-    A[Request with Origin] --> B{Origin in allowlist?}
-    B -->|Yes| C[Set CORS Headers]
-    B -->|No| D[Reject Request]
+    A[Request with Origin] --> B{Origins Configured?}
+    B -->|No| C[No CORS Headers]
+    B -->|Yes| D{Origin in Allowlist?}
+    D -->|No| E[Reject/403]
+    D -->|Yes| F[Automatic CORS Headers]
     
-    C --> E[Access-Control-Allow-Origin]
-    C --> F[Access-Control-Allow-Methods]
-    C --> G[Access-Control-Allow-Headers]
-    C --> H[Access-Control-Expose-Headers]
+    F --> G[Access-Control-Allow-Origin: {origin}]
+    F --> H[Access-Control-Allow-Credentials: true]
+    F --> I[Access-Control-Allow-Methods: {req.allow}]
+    F --> J[Timing-Allow-Origin: {origin}]
+    F --> K{OPTIONS Request?}
+    K -->|Yes| L[Access-Control-Allow-Headers]
+    K -->|No| M[Access-Control-Expose-Headers]
     
-    subgraph "CORS Configuration"
-        I[origins: Array of allowed origins]
-        J[Wildcard: '*' for all origins]
-        K[Empty array: Deny all CORS]
-        L[Specific domains only]
+    subgraph "Constructor Auto-Setup"
+        N[if origins.length > 0]
+        O[Register OPTIONS Handler]
+        P[Mark as Ignored Middleware]
     end
     
-    B -.-> I
+    subgraph "Request Decoration"
+        Q[req.corsHost = corsHost check]
+        R[req.cors = validation result]
+        S[Batch header setting]
+    end
     
-    style D fill:#dc2626,stroke:#b91c1c,stroke-width:2px,color:#ffffff
-    style C fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
-    style I fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#ffffff
+    style E fill:#dc2626,stroke:#b91c1c,stroke-width:2px,color:#ffffff
+    style F fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
+    style N fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#ffffff
+```
+
+#### Security Model
+
+- **Default Deny**: Empty origins array (`[]`) denies all CORS requests
+- **Origin Validation**: Strict comparison against configured allowlist
+- **Cross-Origin Detection**: `corsHost()` method compares origin vs host headers
+- **Preflight Security**: Automatic 204 response for valid preflight requests
+- **Header Sanitization**: Only configured headers are exposed via `corsExpose`
+
+#### Configuration Options
+
+```javascript
+const app = woodland({
+  origins: [
+    "https://app.example.com",     // Specific domains
+    "https://api.example.com"
+  ],
+  corsExpose: "x-custom-header,x-request-id"  // Headers to expose
+});
+
+// Results in automatic:
+// - OPTIONS routes for preflight handling
+// - Origin validation on every request
+// - Dynamic CORS header injection
+// - Security enforcement
 ```
 
 ---
