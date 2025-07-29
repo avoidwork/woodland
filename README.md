@@ -34,14 +34,24 @@ Woodland follows a **security-first design philosophy** with strong adherence to
 - **✅ Access Control**: Strict file access controls and allowlist-based CORS validation
 - **✅ XSS Protection**: All user input properly escaped, security headers included
 - **🛡️ Security Headers**: `X-Content-Type-Options: nosniff` set automatically, [`helmet`](https://helmetjs.github.io/) recommended for comprehensive headers
+- **⚡ Rate Limiting**: Built for middleware compatibility - use [`express-rate-limit`](https://github.com/express-rate-limit/express-rate-limit) or similar
 - **🔍 Comprehensive Testing**: 100+ dedicated security tests covering attack vectors and edge cases
 
 **OWASP Top 10 Coverage**: Excellent protection against injection attacks, broken access control, security misconfigurations, and cross-site scripting. See [Technical Documentation](docs/TECHNICAL_DOCUMENTATION.md#owasp-security-assessment) for complete assessment.
 
-**💡 Quick Security Setup**: Use `helmet` middleware for production-ready security headers:
+**💡 Quick Security Setup**: Add essential security middleware for production deployment:
 ```javascript
 import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+
+// Security headers
 app.use(helmet());
+
+// Rate limiting
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+}));
 ```
 
 ## 💡 Why Choose Woodland?

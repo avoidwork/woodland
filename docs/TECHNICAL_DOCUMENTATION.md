@@ -522,10 +522,67 @@ const app = woodland({
 });
 ```
 
+##### Rate Limiting with Third-Party Middleware
+Woodland does not include built-in rate limiting by design (keeping the core lightweight). Implement rate limiting using proven third-party middleware:
+
+**Recommended: express-rate-limit**
+```javascript
+import { woodland } from 'woodland';
+import rateLimit from 'express-rate-limit';
+
+const app = woodland();
+
+// Basic rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
+app.use(limiter);
+
+// Strict rate limiting for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5, // Limit auth attempts
+  skipSuccessfulRequests: true,
+});
+
+app.use('/api/auth', authLimiter);
+```
+
+**Alternative: rate-limiter-flexible** (Redis/memory store)
+```javascript
+import { RateLimiterMemory } from 'rate-limiter-flexible';
+
+const rateLimiter = new RateLimiterMemory({
+  keyGenerator: (req) => req.ip,
+  points: 100, // Number of requests
+  duration: 900, // Per 15 minutes (900 seconds)
+});
+
+app.use(async (req, res, next) => {
+  try {
+    await rateLimiter.consume(req.ip);
+    next();
+  } catch (rejRes) {
+    res.status(429).send('Too Many Requests');
+  }
+});
+```
+
+**Why Third-Party Middleware?**
+- **Specialized Solutions**: Dedicated libraries focus solely on rate limiting
+- **Multiple Stores**: Support for Redis, database, or memory storage
+- **Advanced Features**: Sliding windows, different algorithms, distributed limiting
+- **Battle-Tested**: Used by thousands of production applications
+
 ##### External Security Considerations
-- **Rate Limiting**: Should be handled at reverse proxy level or with middleware
 - **Content Size Limits**: Configure at application level based on requirements
 - **TLS Configuration**: Handle at reverse proxy or server level
+- **DDoS Protection**: Consider services like Cloudflare or AWS Shield for large-scale attacks
 
 #### 🧪 Security Testing Coverage
 
@@ -547,7 +604,7 @@ Woodland includes comprehensive security tests covering:
 | **A04: Insecure Design** | ✅ Excellent | Security-first architecture |
 | **A05: Security Misconfiguration** | ✅ Good | Secure defaults, configurable security |
 | **A06: Vulnerable Components** | ✅ Good | Minimal dependencies, regular updates |
-| **A07: Authentication Failures** | ⚠️ Partial | No built-in auth (by design) |
+| **A07: Authentication Failures** | ⚠️ Partial | No built-in auth, rate limiting via middleware |
 | **A08: Software Integrity Failures** | ✅ N/A | Minimal serialization/deserialization |
 | **A09: Security Logging Failures** | ✅ Good | Comprehensive logging with CLF support |
 | **A10: Server-Side Request Forgery** | ✅ N/A | No outbound request functionality |
