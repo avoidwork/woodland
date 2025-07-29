@@ -354,13 +354,13 @@ graph TB
     D -->|No| E[Reject/403]
     D -->|Yes| F[Automatic CORS Headers]
     
-    F --> G[Access-Control-Allow-Origin: {origin}]
-    F --> H[Access-Control-Allow-Credentials: true]
-    F --> I[Access-Control-Allow-Methods: {req.allow}]
-    F --> J[Timing-Allow-Origin: {origin}]
+    F --> G["Access-Control-Allow-Origin: (origin)"]
+    F --> H["Access-Control-Allow-Credentials: true"]
+    F --> I["Access-Control-Allow-Methods: (req.allow)"]
+    F --> J["Timing-Allow-Origin: (origin)"]
     F --> K{OPTIONS Request?}
-    K -->|Yes| L[Access-Control-Allow-Headers]
-    K -->|No| M[Access-Control-Expose-Headers]
+    K -->|Yes| L["Access-Control-Allow-Headers"]
+    K -->|No| M["Access-Control-Expose-Headers"]
     
     subgraph "Constructor Auto-Setup"
         N[if origins.length > 0]
