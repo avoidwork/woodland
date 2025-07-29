@@ -33,10 +33,16 @@ Woodland follows a **security-first design philosophy** with strong adherence to
 - **✅ Secure Defaults**: CORS disabled by default, autoindex disabled, secure error handling
 - **✅ Access Control**: Strict file access controls and allowlist-based CORS validation
 - **✅ XSS Protection**: All user input properly escaped, security headers included
-- **🛡️ Security Headers**: `X-Content-Type-Options: nosniff` set automatically, supports custom security headers
+- **🛡️ Security Headers**: `X-Content-Type-Options: nosniff` set automatically, [`helmet`](https://helmetjs.github.io/) recommended for comprehensive headers
 - **🔍 Comprehensive Testing**: 100+ dedicated security tests covering attack vectors and edge cases
 
 **OWASP Top 10 Coverage**: Excellent protection against injection attacks, broken access control, security misconfigurations, and cross-site scripting. See [Technical Documentation](docs/TECHNICAL_DOCUMENTATION.md#owasp-security-assessment) for complete assessment.
+
+**💡 Quick Security Setup**: Use `helmet` middleware for production-ready security headers:
+```javascript
+import helmet from 'helmet';
+app.use(helmet());
+```
 
 ## 💡 Why Choose Woodland?
 

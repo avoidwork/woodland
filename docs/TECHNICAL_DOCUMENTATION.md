@@ -473,8 +473,41 @@ export function isValidIP(ip) {
 
 #### ⚠️ Enhancement Recommendations
 
-##### Additional Security Headers (OWASP Recommended)
-While Woodland supports custom headers, consider adding these for enhanced security:
+##### Security Headers with Helmet (Recommended)
+For production applications, use the [`helmet`](https://helmetjs.github.io/) middleware for comprehensive security headers:
+
+```javascript
+import { woodland } from 'woodland';
+import helmet from 'helmet';
+
+const app = woodland();
+
+// Use helmet for production-ready security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"]
+    }
+  },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  }
+}));
+```
+
+**Why Helmet?**
+- **Battle-tested**: Industry standard with regular updates for new threats
+- **Comprehensive**: Sets 15+ security headers automatically
+- **Configurable**: Fine-grained control over each header
+- **Maintained**: Active development and security advisories
+
+##### Manual Security Headers (Alternative)
+If you prefer manual configuration, Woodland supports custom headers:
 
 ```javascript
 const app = woodland({
