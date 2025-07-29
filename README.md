@@ -422,25 +422,12 @@ app.files("/", "./public");
 
 ## 🌐 CORS
 
-### Basic CORS
+**Woodland handles CORS automatically when you configure origins.** Here's what you get for free:
 
 ```javascript
 const app = woodland({
   origins: ["https://myapp.com", "https://api.myapp.com"],
   corsExpose: "x-total-count,x-page-count"
-});
-```
-
-### Advanced CORS
-
-**Woodland handles CORS automatically when you configure origins.** Here's what you get for free:
-
-#### Automatic CORS Features
-
-```javascript
-const app = woodland({
-  origins: ["https://myapp.com", "https://admin.myapp.com"],
-  corsExpose: "x-custom-header,x-request-id"
 });
 
 // Woodland automatically provides:
@@ -454,7 +441,7 @@ const app = woodland({
 // ✅ Origin validation and security
 ```
 
-#### What Woodland Does Automatically
+### What Woodland Does Automatically
 
 1. **Preflight Route Registration**: When origins are configured, Woodland automatically registers an OPTIONS handler that responds with 204 No Content
 2. **CORS Headers**: For valid cross-origin requests, automatically sets all required CORS headers
@@ -462,7 +449,7 @@ const app = woodland({
 4. **Method Detection**: Access-Control-Allow-Methods reflects actual registered routes
 5. **Security**: Empty origins array denies all CORS requests by default
 
-#### Manual CORS Control (When Needed)
+### Manual CORS Control (When Needed)
 
 ```javascript
 // Override automatic behavior for specific routes
