@@ -316,7 +316,7 @@ app.get("/api/users",
 );
 
 // ✅ CORRECT: Global error handling should be done with route patterns
-app.get("/(.*)", (error, req, res, next) => {
+app.use("/(.*)", (error, req, res, next) => {
   if (error) {
     console.error(`Global error for ${req.url}:`, error);
     res.error(500, "Internal Server Error");
@@ -329,9 +329,9 @@ app.get("/(.*)", (error, req, res, next) => {
 **Important Notes:**
 - **Error middleware** (functions with 4 parameters: `error, req, res, next`) should **never** be registered with `app.always()`
 - Error middleware registered with `always` will execute **before** route handlers, making them ineffective for catching route errors
-- **`.use()` has the same behavior as `.always()`** - it will also execute before route handlers
+- **`.use()` without a method defaults to GET** - it behaves like `.get()`, not like `.always()`
 - Always register error middleware **last** in the middleware chain for each route
-- For global error handling, register error middleware with specific HTTP methods (`.get()`, `.post()`, etc.) as the **last route registration**
+- For global error handling, use `app.use("/(.*)", errorHandler)` as the **last route registration**
 
 ### Middleware Examples
 
