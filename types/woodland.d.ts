@@ -111,8 +111,8 @@ export class Woodland extends EventEmitter {
     list(method?: string, type?: string): any;
     log(msg: string, level?: string): this;
     onDone(req: IncomingMessage, res: ServerResponse, body: any, headers: Record<string, any>): void;
-    onReady(req: IncomingMessage, res: ServerResponse, body: any, status: number, headers: Record<string, any>): [Record<string, any>, Record<string, any>];
-    onSend(req: IncomingMessage, res: ServerResponse, body: any, status: number, headers: Record<string, any>): [Record<string, any>, Record<string, any>];
+    onReady(req: IncomingMessage, res: ServerResponse, body: any, status: number, headers: Record<string, any>): [any, number, Record<string, any>];
+    onSend(req: IncomingMessage, res: ServerResponse, body: any, status: number, headers: Record<string, any>): [any, number, Record<string, any>];
     options(...args: (string | MiddlewareFunction | ErrorMiddlewareFunction)[]): this;
     patch(...args: (string | MiddlewareFunction | ErrorMiddlewareFunction)[]): this;
     path(arg?: string): string;

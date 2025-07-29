@@ -146,7 +146,7 @@ const api = new MyAPI();
 const app = woodland({
   autoindex: false,        // Enable directory browsing
   cacheSize: 1000,        // Internal cache size
-  cacheTTL: 300000,       // Cache TTL (5 minutes)
+  cacheTTL: 10000,        // Cache TTL (10 seconds)
   charset: "utf-8",       // Default charset
   corsExpose: "",         // CORS exposed headers
   defaultHeaders: {},     // Default response headers
@@ -161,7 +161,7 @@ const app = woodland({
     format: "%h %l %u %t \"%r\" %>s %b", // Log format
     level: "info"        // Log level
   },
-  origins: ["*"],        // CORS origins
+  origins: [],           // CORS origins (empty array denies all cross-origin requests)
   silent: false,         // Disable default headers
   time: false           // Enable response timing
 });
@@ -676,6 +676,7 @@ new Woodland(config)
 - `req.allow` - Allowed methods for current path
 - `req.body` - Request body (populate with middleware)
 - `req.cors` - Boolean indicating CORS request
+- `req.corsHost` - Boolean indicating "origin" and "host" request headers are in sync
 - `req.host` - Request hostname
 - `req.ip` - Client IP address
 - `req.params` - Route parameters
