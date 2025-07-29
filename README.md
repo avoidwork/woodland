@@ -37,7 +37,7 @@ Woodland follows a **security-first design philosophy** with strong adherence to
 - **⚡ Rate Limiting**: Built for middleware compatibility - use [`express-rate-limit`](https://github.com/express-rate-limit/express-rate-limit) or similar
 - **🔍 Comprehensive Testing**: 100+ dedicated security tests covering attack vectors and edge cases
 
-**OWASP Top 10 Coverage**: Excellent protection against injection attacks, broken access control, security misconfigurations, and cross-site scripting. See [Technical Documentation](docs/TECHNICAL_DOCUMENTATION.md#owasp-security-assessment) for complete assessment.
+**OWASP Top 10 Coverage**: Excellent protection against injection attacks, broken access control, security misconfigurations, and cross-site scripting. See [Technical Documentation](https://github.com/avoidwork/woodland/blob/master/docs/TECHNICAL_DOCUMENTATION.md#owasp-security-assessment) for complete assessment.
 
 **💡 Quick Security Setup**: Add essential security middleware for production deployment:
 ```javascript
