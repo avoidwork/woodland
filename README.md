@@ -433,30 +433,73 @@ const app = woodland({
 
 ### Advanced CORS
 
+**Woodland handles CORS automatically when you configure origins.** Here's what you get for free:
+
+#### Automatic CORS Features
+
 ```javascript
-// Dynamic CORS
+const app = woodland({
+  origins: ["https://myapp.com", "https://admin.myapp.com"],
+  corsExpose: "x-custom-header,x-request-id"
+});
+
+// Woodland automatically provides:
+// ✅ Preflight OPTIONS route for all paths
+// ✅ Access-Control-Allow-Origin header (set to request origin if allowed)
+// ✅ Access-Control-Allow-Credentials: true
+// ✅ Access-Control-Allow-Methods (based on registered routes)
+// ✅ Access-Control-Allow-Headers (for OPTIONS requests)
+// ✅ Access-Control-Expose-Headers (for non-OPTIONS requests)
+// ✅ Timing-Allow-Origin header
+// ✅ Origin validation and security
+```
+
+#### What Woodland Does Automatically
+
+1. **Preflight Route Registration**: When origins are configured, Woodland automatically registers an OPTIONS handler that responds with 204 No Content
+2. **CORS Headers**: For valid cross-origin requests, automatically sets all required CORS headers
+3. **Origin Validation**: Checks request origin against configured allowed origins
+4. **Method Detection**: Access-Control-Allow-Methods reflects actual registered routes
+5. **Security**: Empty origins array denies all CORS requests by default
+
+#### Manual CORS Control (When Needed)
+
+```javascript
+// Override automatic behavior for specific routes
+app.options("/api/special", (req, res) => {
+  res.header("access-control-allow-methods", "GET,POST"); // Restrict methods
+  res.header("access-control-allow-headers", "content-type"); // Restrict headers
+  res.header("access-control-max-age", "86400"); // Set cache duration
+  res.send("");
+});
+
+// Dynamic origin validation (replaces automatic validation)
 app.always((req, res, next) => {
   const origin = req.headers.origin;
-  const allowedOrigins = [
-    "https://myapp.com",
-    "https://admin.myapp.com"
-  ];
   
-  if (allowedOrigins.includes(origin)) {
+  // Custom logic for origin validation
+  if (isValidOriginForUser(origin, req.user)) {
     res.header("access-control-allow-origin", origin);
   }
   
   next();
 });
 
-// Preflight handling
-app.options("*", (req, res) => {
-  res.header("access-control-allow-methods", "GET,POST,PUT,DELETE,OPTIONS");
-  res.header("access-control-allow-headers", "content-type,authorization");
-  res.header("access-control-max-age", "86400");
-  res.send("");
+// Conditional CORS (disable automatic CORS, use manual)
+const app = woodland({
+  origins: [] // Empty = no automatic CORS
+});
+
+app.always((req, res, next) => {
+  if (shouldAllowCORS(req)) {
+    res.header("access-control-allow-origin", req.headers.origin);
+    res.header("access-control-allow-credentials", "true");
+  }
+  next();
 });
 ```
+
+**Most applications only need to configure `origins` and `corsExpose` - manual CORS handling is rarely necessary.**
 
 ## ❌ Error Handling
 
