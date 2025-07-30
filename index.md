@@ -12,9 +12,9 @@ permalink: /
 <div align="center">
   <img src="https://avoidwork.github.io/woodland/logo.svg" width="150" alt="Woodland Logo" />
 
-# Woodland
+<h1>Woodland</h1>
 
-*High-performance HTTP framework*
+<strong>High-performance HTTP framework</strong>
 </div>
 
 ## 🚀 Features
