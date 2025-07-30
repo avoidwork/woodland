@@ -1,8 +1,12 @@
-title: woodland
-description: Lightweight HTTP/HTTPS router with virtual hosts
-google_analytics: 
+title: "Woodland"
+description: "High-performance HTTP framework for Node.js"
+google_analytics:
 show_downloads: true
 theme: jekyll-theme-slate
+keywords: "nodejs, http, framework, performance, express, fastify, cors, security, middleware, routing"
+author: "Jason Mulligan"
+version: "latest"
+repository: "https://github.com/avoidwork/woodland"
 
 gems:
   - jekyll-mentions
