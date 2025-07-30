@@ -1,16 +1,20 @@
+---
+layout: default
+title: "Woodland - High-Performance HTTP Framework"
+description: "High-performance HTTP framework for Node.js - 29% faster than raw Node.js, 56% faster than Express.js, competitive with Fastify"
+keywords: "nodejs, http, framework, performance, express, fastify, cors, security, middleware, routing"
+author: "Jason Mulligan"
+version: "latest"
+repository: "https://github.com/avoidwork/woodland"
+permalink: /
+---
+
 <div align="center">
   <img src="https://avoidwork.github.io/woodland/logo.svg" width="150" alt="Woodland Logo" />
 
 # Woodland
 
 *High-performance HTTP framework*
-
-[![npm version](https://badge.fury.io/js/woodland.svg)](https://badge.fury.io/js/woodland)
-[![Node.js Version](https://img.shields.io/node/v/woodland.svg)](https://nodejs.org/)
-[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
-[![Build Status](https://github.com/avoidwork/woodland/actions/workflows/ci.yml/badge.svg)](https://github.com/avoidwork/woodland/actions)
-[![Test Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](https://github.com/avoidwork/woodland)
-
 </div>
 
 ## 🚀 Features
