@@ -483,7 +483,7 @@ import helmet from 'helmet';
 const app = woodland();
 
 // Use helmet for production-ready security headers
-app.use(helmet({
+app.always(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
@@ -541,7 +541,7 @@ const limiter = rateLimit({
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
 
-app.use(limiter);
+app.always(limiter);
 
 // Strict rate limiting for auth endpoints
 const authLimiter = rateLimit({
@@ -550,7 +550,7 @@ const authLimiter = rateLimit({
   skipSuccessfulRequests: true,
 });
 
-app.use('/api/auth', authLimiter);
+app.always('/api/auth', authLimiter);
 ```
 
 **Alternative: rate-limiter-flexible** (Redis/memory store)
@@ -563,7 +563,7 @@ const rateLimiter = new RateLimiterMemory({
   duration: 900, // Per 15 minutes (900 seconds)
 });
 
-app.use(async (req, res, next) => {
+app.always(async (req, res, next) => {
   try {
     await rateLimiter.consume(req.ip);
     next();
@@ -844,7 +844,7 @@ const app = woodland({
 });
 
 // JWT Authentication middleware
-app.use('/api/*', (req, res, next) => {
+app.always('/api/*', (req, res, next) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
   
   if (!token) {
@@ -1021,7 +1021,7 @@ app.connect('/path', handler);
 // Cannot register HEAD routes directly - use GET instead
 
 // Middleware for all methods
-app.use('/path', middleware);
+app.always('/path', middleware);
 app.always(middleware); // All routes
 ```
 

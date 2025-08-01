@@ -45,10 +45,10 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 
 // Security headers
-app.use(helmet());
+app.always(helmet());
 
 // Rate limiting
-app.use(rateLimit({
+app.always(rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100 // limit each IP to 100 requests per windowMs
 }));
