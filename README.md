@@ -481,12 +481,9 @@ const app = woodland({
 ### Manual CORS Control (When Needed)
 
 ```javascript
-// Override automatic behavior for specific routes
-app.options("/api/special", (req, res) => {
-  res.header("access-control-allow-methods", "GET,POST"); // Restrict methods
-  res.header("access-control-allow-headers", "content-type"); // Restrict headers
-  res.header("access-control-max-age", "86400"); // Set cache duration
-  res.send("");
+// Conditional CORS (disable automatic CORS, use manual)
+const app = woodland({
+  origins: [] // Empty = no automatic CORS
 });
 
 // Dynamic origin validation (replaces automatic validation)
@@ -501,17 +498,20 @@ app.always((req, res, next) => {
   next();
 });
 
-// Conditional CORS (disable automatic CORS, use manual)
-const app = woodland({
-  origins: [] // Empty = no automatic CORS
-});
-
 app.always((req, res, next) => {
   if (shouldAllowCORS(req)) {
     res.header("access-control-allow-origin", req.headers.origin);
     res.header("access-control-allow-credentials", "true");
   }
   next();
+});
+
+// Override automatic behavior for specific routes
+app.options("/api/special", (req, res) => {
+  res.header("access-control-allow-methods", "GET,POST"); // Restrict methods
+  res.header("access-control-allow-headers", "content-type"); // Restrict headers
+  res.header("access-control-max-age", "86400"); // Set cache duration
+  res.send("");
 });
 ```
 
@@ -748,7 +748,7 @@ new Woodland(config)
 
 #### Utility Methods
 
-- `always(path, ...middleware)` - All HTTP methods
+- `always(path, ...middleware)` - All HTTP methods - executes before request HTTP method middleware
 - `use(path, ...middleware, method)` - Generic middleware registration
 - `files(root, folder)` - Static file serving
 - `ignore(fn)` - Ignore middleware for `Allow` header
