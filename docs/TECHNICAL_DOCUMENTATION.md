@@ -329,6 +329,9 @@ $$\mathcal{M}_{\text{reduce}}(uri, map, arg) = \begin{cases}
 \text{if params: arg.params = true, arg.getParams = regex}
 \end{cases}$$
 
+Array spreading cost:
+$$\mathcal{M}_{\text{spread}}(handlers) = O(|handlers|) \text{ for spread operation}$$
+
 Parameter extraction:
 $$\text{extract}(uri, regex) = \text{regex.exec(uri).slice(1)}$$
 
@@ -346,7 +349,13 @@ For middleware chain $[f_1, f_2, \ldots, f_n]$ with iterator $i$:
 
 $$\mathcal{E}(req, res, [f_1, f_2, \ldots, f_n], i) = \text{next}(req, res, i)$$
 
-The `next()` function implements the iterator pattern:
+The `next()` function implements the iterator pattern with event loop scheduling:
+$$\text{next}(req, res, middleware, immediate) = \begin{cases}
+\text{immediate execution} & \text{if } immediate = \text{true} \\
+\text{process.nextTick(execution)} & \text{if } immediate = \text{false}
+\end{cases}$$
+
+Iterator execution:
 $$\text{next}(req, res, i) = \begin{cases}
 f_i(req, res, \text{next}(req, res, i+1)) & \text{if } i < n \\
 \text{undefined} & \text{if } i \geq n
@@ -378,6 +387,9 @@ Cache types:
 - **ETag Cache**: Cached ETag values for files
 - **File Stats Cache**: Cached file system statistics
 
+Cache initialization:
+$$\mathcal{C}_{\text{init}}(size, ttl) = \text{lru(size, ttl)} \text{ for both route and permission caches}$$
+
 #### Security Validation Functions
 
 ##### Path Traversal Protection
@@ -398,6 +410,9 @@ $$\mathcal{P}(arg, folder) = \begin{cases}
 
 Security logging:
 $$\mathcal{P}_{\text{log}}(req, arg) = \text{log("Path outside allowed directory", path="${arg}")}$$
+
+Path resolution cost:
+$$\mathcal{P}_{\text{resolve}}(path) = O(d) \text{ where } d \text{ is path depth}$$
 
 ##### CORS Validation
 
@@ -430,6 +445,12 @@ $$\mathcal{O}_{\text{setup}}(origins) = \begin{cases}
 \text{register OPTIONS handler} & \text{if } |origins| > 0 \\
 \text{mark as ignored middleware} \\
 \text{no-op} & \text{if } |origins| = 0
+\end{cases}$$
+
+CORS header injection:
+$$\mathcal{O}_{\text{headers}}(req, res, config) = \begin{cases}
+\text{add CORS headers to batch} & \text{if } req.cors = \text{true} \\
+\text{no-op} & \text{otherwise}
 \end{cases}$$
 
 ##### IP Address Validation
@@ -484,6 +505,7 @@ $$\mathcal{I}_{\text{ipv6}}(ip) = \begin{cases}
 - **Space Complexity**: $O(n)$ for route storage plus $O(m)$ per compiled regex
 - **Cache Hit**: $O(1)$ for cached routes
 - **Regex Matching**: $O(m)$ per pattern match
+- **Array Spreading**: $O(h)$ where $h$ is number of handlers per route
 
 ##### Middleware Execution
 
@@ -492,6 +514,7 @@ $$\mathcal{I}_{\text{ipv6}}(ip) = \begin{cases}
   - $s$ is array spreading cost for handler addition
 - **Iterator Overhead**: $O(1)$ per middleware call for iterator management
 - **Regex Reset**: $O(1)$ per pattern for `lastIndex` reset
+- **Event Loop Tick**: $O(1)$ per non-immediate middleware for `process.nextTick()`
 - **Space Complexity**: $O(1)$ per request (iterator state only)
 
 ##### File Serving
@@ -515,6 +538,14 @@ $$(f \circ g) \circ h \neq f \circ (g \circ h)$$
 Instead, middleware follows iterator sequence:
 $$\text{next}(req, res, [f_1, f_2, \ldots, f_n], i) = f_i(req, res, \text{next}(req, res, [f_1, f_2, \ldots, f_n], i+1))$$
 
+##### Event Loop Scheduling
+
+Middleware execution respects event loop scheduling:
+$$\text{next}(req, res, middleware, immediate) = \begin{cases}
+\text{synchronous} & \text{if } immediate = \text{true} \\
+\text{asynchronous} & \text{if } immediate = \text{false}
+\end{cases}$$
+
 ##### Cache Commutativity
 
 LRU cache operations are commutative for different keys:
@@ -525,6 +556,11 @@ $$\mathcal{C}(k_1, v_1, t) \cup \mathcal{C}(k_2, v_2, t) = \mathcal{C}(k_2, v_2,
 Event emission is idempotent but not commutative:
 $$\mathcal{E}_{\text{event}}(e, d, L) = \mathcal{E}_{\text{event}}(e, d, L)$$
 $$\mathcal{E}_{\text{event}}(e_1, d_1, L) \circ \mathcal{E}_{\text{event}}(e_2, d_2, L) \neq \mathcal{E}_{\text{event}}(e_2, d_2, L) \circ \mathcal{E}_{\text{event}}(e_1, d_1, L)$$
+
+##### Structured Clone Properties
+
+Structured clone operations are deterministic:
+$$\text{structuredClone}(obj) = \text{structuredClone}(obj) \text{ for same input}$$
 
 #### Event-Driven Architecture Model
 
@@ -595,7 +631,7 @@ Key decorations:
 
 Memory usage can be modeled as:
 
-$$\mathcal{M}(t) = \mathcal{M}_{\text{base}} + \mathcal{M}_{\text{middleware}}(t) + \mathcal{M}_{\text{cache}}(t) + \mathcal{M}_{\text{active}}(t) + \mathcal{M}_{\text{events}}(t)$$
+$$\mathcal{M}(t) = \mathcal{M}_{\text{base}} + \mathcal{M}_{\text{middleware}}(t) + \mathcal{M}_{\text{cache}}(t) + \mathcal{M}_{\text{active}}(t) + \mathcal{M}_{\text{events}}(t) + \mathcal{M}_{\text{clone}}(t)$$
 
 Where:
 - $\mathcal{M}_{\text{base}}$ = Base framework memory (EventEmitter, configuration)
@@ -603,6 +639,7 @@ Where:
 - $\mathcal{M}_{\text{cache}}(t)$ = LRU cache memory (routes, permissions, ETags)
 - $\mathcal{M}_{\text{active}}(t)$ = Active request/response objects and decoration overhead
 - $\mathcal{M}_{\text{events}}(t)$ = Event listener storage and event queue
+- $\mathcal{M}_{\text{clone}}(t)$ = Structured clone memory (origins, indexes arrays)
 
 Memory components:
 - **Route Storage**: $O(n \cdot m)$ for $n$ routes with average pattern length $m$
@@ -613,6 +650,9 @@ Memory components:
   - $p$ is number of decorated properties (parsed, allow, cors, ip, etc.)
 - **Stream Buffers**: $O(b)$ for file serving buffer size $b$
 - **Header Batching**: $O(h)$ for batch header operations with $h$ headers
+- **Structured Clone**: $O(s \cdot n)$ for cloned objects where:
+  - $s$ is object size
+  - $n$ is number of cloned objects (origins, indexes arrays)
 
 #### Error Handling Model
 
