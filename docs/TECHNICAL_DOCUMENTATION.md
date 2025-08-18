@@ -315,7 +315,7 @@ $$\mathcal{M}(u, p, r) = \begin{cases}
 
 Route registration in `use()` method:
 $$\mathcal{M}_{\text{register}}(path, handlers, method) = \begin{cases}
-\text{compile regex: } /^path$/ \\
+\text{compile regex: } \texttt{/^path\$/} \\
 \text{store: } \{handlers, params, regex\} \\
 \text{add to: } \text{middleware.get(method)}
 \end{cases}$$
