@@ -432,7 +432,7 @@ $$\mathcal{O}(origin, allowed, headers) = \begin{cases}
 \end{cases}$$
 
 Cross-origin detection:
-$$\mathcal{O}_{\text{host}}(req) = \text{ORIGIN} \in req.headers \land req.headers.origin.replace(\text{PROTOCOL_REGEX}, "") \neq req.headers.host$$
+$$\mathcal{O}_{\text{host}}(req) = \text{ORIGIN} \in req.headers \land req.headers.origin.replace(\text{PROTOCOL\_REGEX}, "") \neq req.headers.host$$
 
 CORS preflight handling:
 $$\mathcal{O}_{\text{preflight}}(req, res) = \begin{cases}
