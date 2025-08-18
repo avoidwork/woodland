@@ -409,7 +409,7 @@ $$\mathcal{P}(arg, folder) = \begin{cases}
 \end{cases}$$
 
 Security logging:
-$$\mathcal{P}_{\text{log}}(req, arg) = \text{log("Path outside allowed directory", path="${arg}")}$$
+$$\mathcal{P}_{\text{log}}(req, arg) = \text{log("Path outside allowed directory", path=arg)}$$
 
 Path resolution cost:
 $$\mathcal{P}_{\text{resolve}}(path) = O(d) \text{ where } d \text{ is path depth}$$
