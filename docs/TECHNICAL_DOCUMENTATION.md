@@ -315,14 +315,14 @@ $$\mathcal{M}(u, p, r) = \begin{cases}
 
 Route registration in `use()` method:
 $$\mathcal{M}_{\text{register}}(path, handlers, method) = \begin{cases}
-\text{compile regex: } /^${path}$/ \\
+\text{compile regex: } /^path$/ \\
 \text{store: } \{handlers, params, regex\} \\
 \text{add to: } \text{middleware.get(method)}
 \end{cases}$$
 
 Route reduction in `reduce()` function:
 $$\mathcal{M}_{\text{reduce}}(uri, map, arg) = \begin{cases}
-\text{for each middleware in map:} \\
+\text{iterate over middleware map} \\
 \text{reset regex.lastIndex = 0} \\
 \text{if regex.test(uri):} \\
 \text{arg.middleware.push(...handlers)} \\
@@ -436,14 +436,13 @@ $$\mathcal{O}_{\text{host}}(req) = \text{ORIGIN} \in req.headers \land req.heade
 
 CORS preflight handling:
 $$\mathcal{O}_{\text{preflight}}(req, res) = \begin{cases}
-\text{res.status(204).send("")} & \text{if } req.method = \text{OPTIONS} \\
+\text{res.status(204).send(empty)} & \text{if } req.method = \text{OPTIONS} \\
 \text{no-op} & \text{otherwise}
 \end{cases}$$
 
 Automatic CORS setup:
 $$\mathcal{O}_{\text{setup}}(origins) = \begin{cases}
-\text{register OPTIONS handler} & \text{if } |origins| > 0 \\
-\text{mark as ignored middleware} \\
+\text{register OPTIONS handler and mark as ignored} & \text{if } |origins| > 0 \\
 \text{no-op} & \text{if } |origins| = 0
 \end{cases}$$
 
@@ -472,7 +471,7 @@ $$\mathcal{I}(headers, fallback) = \begin{cases}
 
 IP validation function:
 $$\mathcal{I}_{\text{valid}}(ip) = \begin{cases}
-\text{true} & \text{if IPv4: } /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/ \land \text{octets} \in [0,255] \\
+\text{true} & \text{if IPv4: } \text{pattern match} \land \text{octets} \in [0,255] \\
 \text{true} & \text{if IPv6: valid IPv6 format} \\
 \text{false} & \text{otherwise}
 \end{cases}$$
@@ -482,13 +481,13 @@ $$\mathcal{I}_{\text{extract}}(req) = \begin{cases}
 \text{first valid IP in X-Forwarded-For} & \text{if header exists and valid} \\
 \text{connection.remoteAddress} & \text{if available} \\
 \text{socket.remoteAddress} & \text{if available} \\
-\text{"127.0.0.1"} & \text{fallback}
+\text{127.0.0.1} & \text{fallback}
 \end{cases}$$
 
 IPv6 validation details:
 $$\mathcal{I}_{\text{ipv6}}(ip) = \begin{cases}
-\text{true} & \text{if valid characters: } /^[0-9a-fA-F:.]+$/ \\
-\text{true} & \text{if IPv4-mapped: } /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/ \\
+\text{true} & \text{if valid characters: } \text{hex pattern} \\
+\text{true} & \text{if IPv4-mapped: } \text{IPv4 pattern} \\
 \text{true} & \text{if compressed notation: } \text{groups} < 8 \\
 \text{true} & \text{if full notation: } \text{groups} = 8 \\
 \text{false} & \text{otherwise}
