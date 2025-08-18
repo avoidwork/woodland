@@ -294,34 +294,63 @@ Where:
 
 #### Route Matching Function
 
-Route matching is defined by the function:
+Route matching is defined by the function using compiled regex patterns:
 
-$$\mathcal{M}: \mathbb{U} \times \mathbb{P} \rightarrow \mathbb{B} \times \mathbb{V}$$
+$$\mathcal{M}: \mathbb{U} \times \mathbb{P} \times \mathbb{R} \rightarrow \mathbb{B} \times \mathbb{V} \times \mathbb{F}$$
 
 Where:
 - $\mathbb{U}$ = URI space
 - $\mathbb{P}$ = Route pattern set
+- $\mathbb{R}$ = Compiled regex patterns
 - $\mathbb{B}$ = Boolean match result
 - $\mathbb{V}$ = Parameter values
+- $\mathbb{F}$ = Middleware functions
 
-For a route pattern $p$ and URI $u$:
+For a route pattern $p$ with compiled regex $r$ and URI $u$:
 
-$$\mathcal{M}(u, p) = \begin{cases}
-(\text{true}, \text{extract}(u, p)) & \text{if } u \text{ matches } p \\
-(\text{false}, \emptyset) & \text{otherwise}
+$$\mathcal{M}(u, p, r) = \begin{cases}
+(\text{true}, \text{extract}(u, r), \text{handlers}) & \text{if } r.test(u) \\
+(\text{false}, \emptyset, \emptyset) & \text{otherwise}
 \end{cases}$$
+
+Route registration in `use()` method:
+$$\mathcal{M}_{\text{register}}(path, handlers, method) = \begin{cases}
+\text{compile regex: } /^${path}$/ \\
+\text{store: } \{handlers, params, regex\} \\
+\text{add to: } \text{middleware.get(method)}
+\end{cases}$$
+
+Route reduction in `reduce()` function:
+$$\mathcal{M}_{\text{reduce}}(uri, map, arg) = \begin{cases}
+\text{for each middleware in map:} \\
+\text{reset regex.lastIndex = 0} \\
+\text{if regex.test(uri):} \\
+\text{arg.middleware.push(...handlers)} \\
+\text{if params: arg.params = true, arg.getParams = regex}
+\end{cases}$$
+
+Parameter extraction:
+$$\text{extract}(uri, regex) = \text{regex.exec(uri).slice(1)}$$
 
 #### Middleware Chain Execution
 
-The middleware execution chain is modeled as a composition of functions:
+The middleware execution chain uses an iterator-based pattern with the `next()` function:
 
-$$\mathcal{E}: \mathbb{R} \times \mathbb{R} \times [\mathbb{F}] \rightarrow \mathbb{R} \times \mathbb{R}$$
+$$\mathcal{E}: \mathbb{R} \times \mathbb{R} \times [\mathbb{F}] \times \mathbb{I} \rightarrow \mathbb{R} \times \mathbb{R}$$
 
-Where $[\mathbb{F}]$ is the sequence of middleware functions.
+Where:
+- $[\mathbb{F}]$ is the sequence of middleware functions
+- $\mathbb{I}$ is the iterator state for middleware execution
 
-For middleware chain $[f_1, f_2, \ldots, f_n]$:
+For middleware chain $[f_1, f_2, \ldots, f_n]$ with iterator $i$:
 
-$$\mathcal{E}(req, res, [f_1, f_2, \ldots, f_n]) = f_n \circ f_{n-1} \circ \ldots \circ f_1(req, res)$$
+$$\mathcal{E}(req, res, [f_1, f_2, \ldots, f_n], i) = \text{next}(req, res, i)$$
+
+The `next()` function implements the iterator pattern:
+$$\text{next}(req, res, i) = \begin{cases}
+f_i(req, res, \text{next}(req, res, i+1)) & \text{if } i < n \\
+\text{undefined} & \text{if } i \geq n
+\end{cases}$$
 
 #### Caching Function
 
@@ -340,30 +369,107 @@ v & \text{if } t - t_{\text{insert}} < \text{TTL} \\
 \text{null} & \text{otherwise}
 \end{cases}$$
 
+Cache key generation:
+$$\mathcal{C}_{\text{key}}(method, uri) = \text{method} + \text{DELIMITER} + \text{uri}$$
+
+Cache types:
+- **Route Cache**: Cached route resolution results
+- **Permission Cache**: Cached allowed methods per URI
+- **ETag Cache**: Cached ETag values for files
+- **File Stats Cache**: Cached file system statistics
+
 #### Security Validation Functions
 
 ##### Path Traversal Protection
 
-The path validation function:
+The path validation function in the `serve()` method:
 
 $$\mathcal{P}: \mathbb{S} \times \mathbb{S} \rightarrow \mathbb{B}$$
 
 Where $\mathbb{S}$ is the string space (file paths).
 
-$$\mathcal{P}(requested, base) = \text{normalize}(requested) \subseteq \text{normalize}(base)$$
+$$\mathcal{P}(requested, base) = \text{resolve}(requested).startsWith(\text{resolve}(base))$$
+
+Implementation checks:
+$$\mathcal{P}(arg, folder) = \begin{cases}
+\text{true} & \text{if } \text{resolve}(folder, arg) \subseteq \text{resolve}(folder) \\
+\text{false} & \text{otherwise (403 Forbidden)}
+\end{cases}$$
+
+Security logging:
+$$\mathcal{P}_{\text{log}}(req, arg) = \text{log("Path outside allowed directory", path="${arg}")}$$
 
 ##### CORS Validation
 
-CORS origin validation:
+CORS origin validation with security enforcement:
 
-$$\mathcal{O}: \mathbb{O} \times \mathbb{A} \rightarrow \mathbb{B}$$
+$$\mathcal{O}: \mathbb{O} \times \mathbb{A} \times \mathbb{H} \rightarrow \mathbb{B}$$
 
 Where:
 - $\mathbb{O}$ = Origin space
 - $\mathbb{A}$ = Allowed origins set
+- $\mathbb{H}$ = Request headers space
 
-$$\mathcal{O}(origin, allowed) = \begin{cases}
+$$\mathcal{O}(origin, allowed, headers) = \begin{cases}
+\text{false} & \text{if } allowed = \emptyset \text{ (default deny)} \\
 \text{true} & \text{if } origin \in allowed \text{ or } '*' \in allowed \\
+\text{false} & \text{otherwise}
+\end{cases}$$
+
+Cross-origin detection:
+$$\mathcal{O}_{\text{host}}(req) = \text{ORIGIN} \in req.headers \land req.headers.origin.replace(\text{PROTOCOL_REGEX}, "") \neq req.headers.host$$
+
+CORS preflight handling:
+$$\mathcal{O}_{\text{preflight}}(req, res) = \begin{cases}
+\text{res.status(204).send("")} & \text{if } req.method = \text{OPTIONS} \\
+\text{no-op} & \text{otherwise}
+\end{cases}$$
+
+Automatic CORS setup:
+$$\mathcal{O}_{\text{setup}}(origins) = \begin{cases}
+\text{register OPTIONS handler} & \text{if } |origins| > 0 \\
+\text{mark as ignored middleware} \\
+\text{no-op} & \text{if } |origins| = 0
+\end{cases}$$
+
+##### IP Address Validation
+
+IP address extraction and validation:
+
+$$\mathcal{I}: \mathbb{H} \times \mathbb{S} \rightarrow \mathbb{S}$$
+
+Where:
+- $\mathbb{H}$ = Request headers space
+- $\mathbb{S}$ = String space (IP addresses)
+
+$$\mathcal{I}(headers, fallback) = \begin{cases}
+\text{first valid IP in } X\text{-Forwarded-For} & \text{if header exists} \\
+\text{connection.remoteAddress} & \text{if available} \\
+\text{socket.remoteAddress} & \text{if available} \\
+\text{fallback} & \text{otherwise}
+\end{cases}$$
+
+IP validation function:
+$$\mathcal{I}_{\text{valid}}(ip) = \begin{cases}
+\text{true} & \text{if IPv4: } /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/ \land \text{octets} \in [0,255] \\
+\text{true} & \text{if IPv6: valid IPv6 format} \\
+\text{false} & \text{otherwise}
+\end{cases}$$
+
+IP extraction with validation:
+$$\mathcal{I}_{\text{extract}}(req) = \begin{cases}
+\text{first valid IP in X-Forwarded-For} & \text{if header exists and valid} \\
+\text{connection.remoteAddress} & \text{if available} \\
+\text{socket.remoteAddress} & \text{if available} \\
+\text{"127.0.0.1"} & \text{fallback}
+\end{cases}$$
+
+IPv6 validation details:
+$$\mathcal{I}_{\text{ipv6}}(ip) = \begin{cases}
+\text{true} & \text{if valid characters: } /^[0-9a-fA-F:.]+$/ \\
+\text{true} & \text{if IPv4-mapped: } /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/ \\
+\text{true} & \text{if compressed notation: } \text{groups} < 8 \\
+\text{true} & \text{if full notation: } \text{groups} = 8 \\
 \text{false} & \text{otherwise}
 \end{cases}$$
 
@@ -371,91 +477,190 @@ $$\mathcal{O}(origin, allowed) = \begin{cases}
 
 ##### Route Resolution
 
-- **Time Complexity**: $O(n \cdot m)$ where $n$ is the number of routes and $m$ is the average pattern length
-- **Space Complexity**: $O(n)$ for route storage
+- **Time Complexity**: $O(n \cdot m \cdot r)$ where:
+  - $n$ is the number of routes
+  - $m$ is the average pattern length
+  - $r$ is regex compilation cost
+- **Space Complexity**: $O(n)$ for route storage plus $O(m)$ per compiled regex
 - **Cache Hit**: $O(1)$ for cached routes
+- **Regex Matching**: $O(m)$ per pattern match
 
 ##### Middleware Execution
 
-- **Time Complexity**: $O(k)$ where $k$ is the number of middleware functions
-- **Space Complexity**: $O(1)$ per request (no additional storage)
+- **Time Complexity**: $O(k \cdot s)$ where:
+  - $k$ is the number of middleware functions
+  - $s$ is array spreading cost for handler addition
+- **Iterator Overhead**: $O(1)$ per middleware call for iterator management
+- **Regex Reset**: $O(1)$ per pattern for `lastIndex` reset
+- **Space Complexity**: $O(1)$ per request (iterator state only)
 
 ##### File Serving
 
-- **Time Complexity**: $O(1)$ for file existence check, $O(f)$ for file size $f$
+- **Time Complexity**: $O(1)$ for path validation, $O(f)$ for file size $f$ with streaming
 - **Space Complexity**: $O(1)$ with streaming, $O(f)$ without streaming
+- **Path Resolution**: $O(p)$ where $p$ is path depth for security validation
 
 #### Mathematical Properties
 
 ##### Idempotency
 
-For stateless operations:
+For stateless operations (GET requests without side effects):
 $$\mathcal{W}(req, config, middleware) = \mathcal{W}(req, config, middleware)$$
 
-##### Associativity
+##### Middleware Iterator Properties
 
-Middleware composition is associative:
-$$(f \circ g) \circ h = f \circ (g \circ h)$$
+Middleware execution is not associative due to iterator pattern:
+$$(f \circ g) \circ h \neq f \circ (g \circ h)$$
 
-##### Commutativity
+Instead, middleware follows iterator sequence:
+$$\text{next}(req, res, [f_1, f_2, \ldots, f_n], i) = f_i(req, res, \text{next}(req, res, [f_1, f_2, \ldots, f_n], i+1))$$
 
-Cache operations are commutative:
+##### Cache Commutativity
+
+LRU cache operations are commutative for different keys:
 $$\mathcal{C}(k_1, v_1, t) \cup \mathcal{C}(k_2, v_2, t) = \mathcal{C}(k_2, v_2, t) \cup \mathcal{C}(k_1, v_1, t)$$
 
-#### State Transition Model
+##### Event Emission Properties
 
-The framework can be modeled as a state machine:
+Event emission is idempotent but not commutative:
+$$\mathcal{E}_{\text{event}}(e, d, L) = \mathcal{E}_{\text{event}}(e, d, L)$$
+$$\mathcal{E}_{\text{event}}(e_1, d_1, L) \circ \mathcal{E}_{\text{event}}(e_2, d_2, L) \neq \mathcal{E}_{\text{event}}(e_2, d_2, L) \circ \mathcal{E}_{\text{event}}(e_1, d_1, L)$$
 
-$$\mathcal{S} = (Q, \Sigma, \delta, q_0, F)$$
+#### Event-Driven Architecture Model
 
-Where:
-- $Q$ = Set of states (idle, processing, error, serving)
-- $\Sigma$ = Input alphabet (HTTP requests, configuration changes)
-- $\delta$ = Transition function
-- $q_0$ = Initial state (idle)
-- $F$ = Final states (response sent, error handled)
+The framework follows an event-driven pattern using EventEmitter:
 
-#### Event Emission Model
-
-Event emission follows the pattern:
-
-$$\mathcal{E}: \mathbb{E} \times \mathbb{D} \rightarrow \mathbb{V}$$
+$$\mathcal{E}_{\text{event}}: \mathbb{E} \times \mathbb{D} \times \mathbb{L} \rightarrow \mathbb{V}$$
 
 Where:
-- $\mathbb{E}$ = Event type space
-- $\mathbb{D}$ = Event data space
+- $\mathbb{E}$ = Event type space (connect, finish, stream, error)
+- $\mathbb{D}$ = Event data space (request, response, error objects)
+- $\mathbb{L}$ = Listener set from EventEmitter
 - $\mathbb{V}$ = Void (no return value)
 
-For event $e$ with data $d$:
-$$\mathcal{E}(e, d) = \text{emit}(e, d)$$
+Event emission pattern with listener checking:
+$$\mathcal{E}_{\text{check}}(e, L) = \begin{cases}
+\text{emit}(e, d) & \text{if } |L| > 0 \\
+\text{no-op} & \text{otherwise}
+\end{cases}$$
+
+Event emission pattern:
+$$\mathcal{E}_{\text{event}}(e, d, L) = \mathcal{E}_{\text{check}}(e, L) \text{ for all } l \in L$$
+
+Response event binding:
+$$\mathcal{E}_{\text{response}}(req, res, evf) = \text{res.on(evf, () => emit(evf, req, res))}$$
+
+Key events:
+- `connect`: Request processing started (with listener count check)
+- `finish`: Response completed (with automatic binding)
+- `stream`: File streaming initiated (emitted after file processing)
+- `error`: Error occurred during processing
+
+#### Request Decoration Model
+
+Request and response objects are decorated with additional properties and methods:
+
+$$\mathcal{D}: \mathbb{R} \times \mathbb{R} \times \mathbb{C} \rightarrow \mathbb{R}' \times \mathbb{R}'$$
+
+Where:
+- $\mathbb{R}$ = Original request/response space
+- $\mathbb{R}'$ = Decorated request/response space
+- $\mathbb{C}$ = Configuration space
+
+Decoration function with batch operations:
+$$\mathcal{D}(req, res, config) = \begin{cases}
+req' = req \cup \{parsed, allow, body, corsHost, cors, host, ip, params, valid, precise\} \\
+res' = res \cup \{locals, error, header, json, redirect, send, set, status\}
+\end{cases}$$
+
+Batch header operations:
+$$\mathcal{H}_{\text{batch}}(req, res, config) = \begin{cases}
+\text{headersBatch} = \{ALLOW: req.allow, X_CONTENT_TYPE_OPTIONS: NO_SNIFF\} \\
+\text{add default headers} \\
+\text{add CORS headers if } req.cors = \text{true} \\
+\text{res.set(headersBatch)}
+\end{cases}$$
+
+Key decorations:
+- `req.parsed`: Parsed URL object
+- `req.allow`: Allowed HTTP methods for URI
+- `req.cors`: CORS validation result
+- `req.ip`: Client IP address with validation
+- `req.precise`: Timing precision object (if time enabled)
+- `res.send`: Response sending function
+- `res.json`: JSON response function
+- **Batch Headers**: Optimized header setting for performance
 
 #### Memory Management Model
 
 Memory usage can be modeled as:
 
-$$\mathcal{M}(t) = \mathcal{M}_{\text{base}} + \sum_{i=1}^{n} \mathcal{M}_{\text{route}_i} + \mathcal{M}_{\text{cache}}(t) + \mathcal{M}_{\text{active}}(t)$$
+$$\mathcal{M}(t) = \mathcal{M}_{\text{base}} + \mathcal{M}_{\text{middleware}}(t) + \mathcal{M}_{\text{cache}}(t) + \mathcal{M}_{\text{active}}(t) + \mathcal{M}_{\text{events}}(t)$$
 
 Where:
-- $\mathcal{M}_{\text{base}}$ = Base framework memory
-- $\mathcal{M}_{\text{route}_i}$ = Memory per route
-- $\mathcal{M}_{\text{cache}}(t)$ = Cache memory at time $t$
-- $\mathcal{M}_{\text{active}}(t)$ = Active request memory at time $t$
+- $\mathcal{M}_{\text{base}}$ = Base framework memory (EventEmitter, configuration)
+- $\mathcal{M}_{\text{middleware}}(t)$ = Middleware function closures and compiled regex patterns
+- $\mathcal{M}_{\text{cache}}(t)$ = LRU cache memory (routes, permissions, ETags)
+- $\mathcal{M}_{\text{active}}(t)$ = Active request/response objects and decoration overhead
+- $\mathcal{M}_{\text{events}}(t)$ = Event listener storage and event queue
+
+Memory components:
+- **Route Storage**: $O(n \cdot m)$ for $n$ routes with average pattern length $m$
+- **Middleware Closures**: $O(k \cdot c)$ for $k$ middleware with closure size $c$
+- **Cache Memory**: $O(s \cdot v)$ for cache size $s$ with average value size $v$
+- **Request Decoration**: $O(d \cdot p)$ per request where:
+  - $d$ is decoration overhead per property
+  - $p$ is number of decorated properties (parsed, allow, cors, ip, etc.)
+- **Stream Buffers**: $O(b)$ for file serving buffer size $b$
+- **Header Batching**: $O(h)$ for batch header operations with $h$ headers
 
 #### Error Handling Model
 
-Error propagation follows the function:
+Error propagation follows multiple paths in the framework:
 
-$$\mathcal{E}: \mathbb{E} \times \mathbb{R} \times \mathbb{R} \rightarrow \mathbb{S} \times \mathbb{B}$$
+$$\mathcal{E}_{\text{route}}: \mathbb{E} \times \mathbb{R} \times \mathbb{R} \rightarrow \mathbb{S} \times \mathbb{B}$$
+
+$$\mathcal{E}_{\text{middleware}}: \mathbb{E} \times \mathbb{R} \times \mathbb{R} \times \mathbb{F} \rightarrow \mathbb{V}$$
+
+$$\mathcal{E}_{\text{file}}: \mathbb{E} \times \mathbb{R} \times \mathbb{R} \times \mathbb{P} \rightarrow \mathbb{S} \times \mathbb{B}$$
 
 Where:
 - $\mathbb{E}$ = Error space
 - $\mathbb{R}$ = Request/Response space
 - $\mathbb{S}$ = Status code space
 - $\mathbb{B}$ = Response body space
+- $\mathbb{F}$ = Middleware function space
+- $\mathbb{P}$ = File path space
+- $\mathbb{V}$ = Void (error propagation)
 
-$$\mathcal{E}(error, req, res) = \begin{cases}
-(500, \text{Internal Server Error}) & \text{if } error \text{ is unhandled} \\
-(\text{status}, \text{error message}) & \text{if } error \text{ is handled}
+Error handling paths:
+$$\mathcal{E}_{\text{route}}(error, req, res) = \begin{cases}
+(403, \text{Forbidden}) & \text{if CORS validation fails} \\
+(404, \text{Not Found}) & \text{if route not found} \\
+(405, \text{Method Not Allowed}) & \text{if method not allowed}
+\end{cases}$$
+
+$$\mathcal{E}_{\text{middleware}}(error, req, res, next) = \begin{cases}
+\text{next(error)} & \text{if error passed to next()} \\
+\text{res.error(500, error)} & \text{if unhandled error}
+\end{cases}$$
+
+$$\mathcal{E}_{\text{file}}(error, req, res, path) = \begin{cases}
+(403, \text{Forbidden}) & \text{if path traversal detected} \\
+(404, \text{Not Found}) & \text{if file not found} \\
+(500, \text{Internal Server Error}) & \text{if file system error}
+\end{cases}$$
+
+$$\mathcal{E}_{\text{stream}}(error, req, res, body) = \begin{cases}
+\text{body.on(ERROR, err => res.error(500, err))} & \text{if stream error} \\
+(416, \text{Range Not Satisfiable}) & \text{if invalid range request} \\
+(500, \text{Internal Server Error}) & \text{if stream processing error}
+\end{cases}$$
+
+$$\mathcal{E}_{\text{range}}(error, req, res, size) = \begin{cases}
+(206, \text{Partial Content}) & \text{if valid range} \\
+(416, \text{Range Not Satisfiable}) & \text{if invalid range} \\
+\text{fallback to full content} & \text{otherwise}
 \end{cases}$$
 
 ---
