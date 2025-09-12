@@ -28,12 +28,10 @@
     "rollup": "rollup --config",
     "test": "npm run lint && c8 npm run mocha"
   },
-  "pre-commit": {
-    "run": [
-      "lint",
-      "test"
-    ]
-  },
+  "pre-commit": [
+    "coverage",
+    "add"
+  ],
   "c8": {
     "exclude": [
       "dist/**",
