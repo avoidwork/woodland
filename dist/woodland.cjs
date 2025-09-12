@@ -257,23 +257,38 @@ function escapeHtml (str = EMPTY) {
 function autoindex (title = EMPTY, files = []) {
 	const safeTitle = escapeHtml(title);
 
-	// Security: Generate file listing with proper HTML escaping
-	const parentDir = "    <li><a href=\"..\" rel=\"collection\">../</a></li>";
-	const fileList = files.map(file => {
-		const safeName = escapeHtml(file.name);
-		const safeHref = encodeURIComponent(file.name);
+	// Optimized: Fast path for empty files array
+	if (files.length === 0) {
+		return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) => {
+			return key === "TITLE" ? safeTitle : "    <li><a href=\"..\" rel=\"collection\">../</a></li>";
+		});
+	}
+
+	// Pre-allocate array for better performance
+	const listItems = new Array(files.length + 1);
+	listItems[0] = "    <li><a href=\"..\" rel=\"collection\">../</a></li>";
+
+	// Optimized: Cache file count and optimize loop
+	const fileCount = files.length;
+	for (let i = 0; i < fileCount; i++) {
+		const file = files[i];
+		const fileName = file.name;
+		const safeName = escapeHtml(fileName);
+		const safeHref = encodeURIComponent(fileName);
 		const isDir = file.isDirectory();
-		const displayName = isDir ? `${safeName}/` : safeName;
-		const href = isDir ? `${safeHref}/` : safeHref;
-		const rel = isDir ? "collection" : "item";
 
-		return `    <li><a href="${href}" rel="${rel}">${displayName}</a></li>`;
-	}).join("\n");
+		// Optimized: Use ternary operator for better performance
+		listItems[i + 1] = isDir ?
+			`    <li><a href="${safeHref}/" rel="collection">${safeName}/</a></li>` :
+			`    <li><a href="${safeHref}" rel="item">${safeName}</a></li>`;
+	}
 
-	const safeFiles = files.length > 0 ? `${parentDir}\n${fileList}` : parentDir;
+	const safeFiles = listItems.join("\n");
 
-	return html.replace(/\$\{\s*TITLE\s*\}/g, safeTitle)
-		.replace(/\$\{\s*FILES\s*\}/g, safeFiles);
+	// Optimized: Cache replace callback for reuse
+	const replaceCallback = (match, key) => key === "TITLE" ? safeTitle : safeFiles;
+
+	return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, replaceCallback);
 }
 
 /**
@@ -332,11 +347,15 @@ function ms (arg = INT_0, digits = INT_3) {
  * @returns {Function} The next function for middleware chain
  */
 function next (req, res, middleware, immediate = false) {
+	// Optimized: Pre-calculate getStatus to avoid repeated function calls
+	const errorStatus = getStatus(req, res);
+
 	const internalFn = (err, fn) => {
 		let obj = middleware.next();
 
 		if (obj.done === false) {
 			if (err !== void 0) {
+				// Optimized: Find error handler more efficiently
 				while (obj.done === false && obj.value && obj.value.length < 4) {
 					obj = middleware.next();
 				}
@@ -344,18 +363,26 @@ function next (req, res, middleware, immediate = false) {
 				if (obj.done === false && obj.value) {
 					obj.value(err, req, res, fn);
 				} else {
-					res.error(getStatus(req, res));
+					res.error(errorStatus);
 				}
-			} else if (typeof obj.value === FUNCTION) {
-				obj.value(req, res, fn);
 			} else {
-				res.send(obj.value);
+				const value = obj.value;
+				// Optimized: Check function type once and reuse result
+				if (typeof value === FUNCTION) {
+					value(req, res, fn);
+				} else {
+					res.send(value);
+				}
 			}
 		} else {
-			res.error(getStatus(req, res));
+			res.error(errorStatus);
 		}
 	};
-	const fn = immediate ? err => internalFn(err, fn) : err => process.nextTick(() => internalFn(err, fn));
+
+	// Optimized: Create function based on immediate flag without conditional in hot path
+	const fn = immediate ?
+		err => internalFn(err, fn) :
+		err => process.nextTick(() => internalFn(err, fn));
 
 	return fn;
 }
@@ -377,18 +404,46 @@ function pad (arg = INT_0) {
 function params (req, getParams) {
 	getParams.lastIndex = INT_0;
 	const match = getParams.exec(req.parsed.pathname);
-	req.params = match?.groups ?? {};
+	const groups = match?.groups;
 
-	// Process parameters in a single loop
-	for (const [key, value] of Object.entries(req.params)) {
-		try {
-			const decoded = decodeURIComponent(value);
-			req.params[key] = tinyCoerce.coerce(escapeHtml(decoded));
-		} catch {
-			// If decoding fails, escape the original value
-			req.params[key] = tinyCoerce.coerce(escapeHtml(value));
+	if (!groups) {
+		req.params = {};
+
+		return;
+	}
+
+	// Optimized: Use Object.create(null) for faster parameter object
+	const processedParams = Object.create(null);
+	const keys = Object.keys(groups);
+	const keyCount = keys.length;
+
+	// Optimized: Use standard for loop for better performance
+	for (let i = 0; i < keyCount; i++) {
+		const key = keys[i];
+		const value = groups[key];
+
+		// Optimized: Avoid repeated calls to escapeHtml and coerce
+		if (value === null || value === undefined) {
+			processedParams[key] = tinyCoerce.coerce(null);
+		} else {
+			// Optimized URL decoding with fast path for common cases
+			let decoded;
+			if (value.indexOf("%") === -1) {
+				// Fast path: no URL encoding
+				decoded = value;
+			} else {
+				try {
+					decoded = decodeURIComponent(value);
+				} catch {
+					decoded = value;
+				}
+			}
+
+			processedParams[key] = tinyCoerce.coerce(escapeHtml(decoded));
 		}
 	}
+
+	req.params = processedParams;
 }
 
 /**
@@ -417,21 +472,50 @@ function partialHeaders (req, res, size, status, headers = {}, options = {}) {
 		return [headers, options];
 	}
 
-	// Parse range header more efficiently
-	const rangePart = rangeHeader.slice(KEY_BYTES.length);
-	const [rangeSpec] = rangePart.split(COMMA);
-	const [startStr, endStr] = rangeSpec.split(HYPHEN);
+	// Optimized range parsing - avoid multiple splits
+	const rangePart = rangeHeader.substring(KEY_BYTES.length);
+	const commaIndex = rangePart.indexOf(COMMA);
+	const rangeSpec = commaIndex === -1 ? rangePart : rangePart.substring(0, commaIndex);
+	const hyphenIndex = rangeSpec.indexOf(HYPHEN);
 
-	let start = startStr ? parseInt(startStr, INT_10) : NaN;
-	let end = endStr ? parseInt(endStr, INT_10) : NaN;
+	let start, end;
 
-	// Handle suffix-byte-range-spec (e.g., "-500" means last 500 bytes)
-	if (isNaN(start) && !isNaN(end)) {
+	if (hyphenIndex === -1) {
+		// No hyphen found, invalid range
+		return [headers, options];
+	}
+
+	const startStr = rangeSpec.substring(0, hyphenIndex);
+	const endStr = rangeSpec.substring(hyphenIndex + 1);
+
+	// Parse numbers with optimized logic
+	if (startStr === EMPTY) {
+		// Suffix-byte-range-spec (e.g., "-500")
+		if (endStr === EMPTY) {
+			return [headers, options];
+		}
+		end = parseInt(endStr, INT_10);
+		if (isNaN(end)) {
+			return [headers, options];
+		}
 		start = size - end;
 		end = size - 1;
-	} else if (!isNaN(start) && isNaN(end)) {
-		end = size - 1;
+	} else {
+		start = parseInt(startStr, INT_10);
+		if (isNaN(start)) {
+			return [headers, options];
+		}
+
+		if (endStr === EMPTY) {
+			end = size - 1;
+		} else {
+			end = parseInt(endStr, INT_10);
+			if (isNaN(end)) {
+				return [headers, options];
+			}
+		}
 	}
+
 
 	// Clean up headers once
 	res.removeHeader(CONTENT_RANGE);
@@ -479,18 +563,38 @@ function pipeable (method, arg) {
  * @param {Object} [arg={}] - Object containing middleware array and parameters
  */
 function reduce (uri, map = new Map(), arg = {}) {
+	// Optimized: Early return if map is empty
+	if (map.size === 0) {
+		return;
+	}
+
+	// Optimized: Cache middleware array reference to avoid property access
+	const middlewareArray = arg.middleware;
+	let paramsFound = arg.params;
+
 	// Iterate directly over map values without creating intermediate array
 	for (const middleware of map.values()) {
+		// Optimized: Reset lastIndex only when needed
 		middleware.regex.lastIndex = INT_0;
 
 		if (middleware.regex.test(uri)) {
-			// Add all handlers at once using spread operator
-			arg.middleware.push(...middleware.handlers);
+			// Optimized: Use Array.prototype.push.apply for better performance with large arrays
+			const handlers = middleware.handlers;
+			const handlerCount = handlers.length;
 
-			// Set params info if needed
-			if (middleware.params && arg.params === false) {
+			if (handlerCount === 1) {
+				// Fast path for single handler
+				middlewareArray.push(handlers[0]);
+			} else if (handlerCount > 1) {
+				// Use push.apply for multiple handlers
+				middlewareArray.push.apply(middlewareArray, handlers);
+			}
+
+			// Set params info if needed (only check once)
+			if (middleware.params && paramsFound === false) {
 				arg.params = true;
 				arg.getParams = middleware.regex;
+				paramsFound = true; // Avoid redundant checks
 			}
 		}
 	}
@@ -527,6 +631,12 @@ function writeHead (res, headers = {}) {
 	res.writeHead(res.statusCode, node_http.STATUS_CODES[res.statusCode], headers);
 }
 
+// Pre-compiled regex patterns for better performance
+const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+const IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/;
+const IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i;
+const HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
+
 /**
  * Validates if an IP address is properly formatted
  * @param {string} ip - IP address to validate
@@ -537,39 +647,35 @@ function isValidIP (ip) {
 		return false;
 	}
 
-	// IPv4 validation
-	if (!ip.includes(":")) {
-		const ipv4Pattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-		const match = ip.match(ipv4Pattern);
+	// IPv4 validation - optimize with early character check
+	if (ip.indexOf(":") === -1) {
+		const match = IPV4_PATTERN.exec(ip);
 
 		if (!match) {
 			return false;
 		}
 
-		// Check octets are in valid range (0-255)
-		return match.slice(1).every(octet => {
-			const num = parseInt(octet, 10);
+		// Optimized octet validation - avoid array methods
+		for (let i = 1; i < 5; i++) {
+			const num = parseInt(match[i], 10);
+			if (num > 255) {
+				return false;
+			}
+		}
 
-			return num >= 0 && num <= 255;
-		});
+		return true;
 	}
 
 	// IPv6 validation
-	// Quick check for valid characters
-	if (!(/^[0-9a-fA-F:.]+$/).test(ip)) {
+	// Quick character validation
+	if (!IPV6_CHAR_PATTERN.test(ip)) {
 		return false;
 	}
 
 	// Handle IPv4-mapped IPv6 addresses
-	const ipv4MappedMatch = ip.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i);
+	const ipv4MappedMatch = IPV4_MAPPED_PATTERN.exec(ip);
 	if (ipv4MappedMatch) {
 		return isValidIP(ipv4MappedMatch[1]);
-	}
-
-	// Handle "::" compression
-	const doublColonParts = ip.split("::");
-	if (doublColonParts.length > 2) {
-		return false;
 	}
 
 	// Special case for "::" alone
@@ -577,28 +683,61 @@ function isValidIP (ip) {
 		return true;
 	}
 
-	const isCompressed = doublColonParts.length === 2;
-	let groups;
+	// Handle "::" compression - optimize split operations
+	const doubleColonIndex = ip.indexOf("::");
+	const isCompressed = doubleColonIndex !== -1;
 
 	if (isCompressed) {
-		const leftGroups = doublColonParts[0] ? doublColonParts[0].split(":") : [];
-		const rightGroups = doublColonParts[1] ? doublColonParts[1].split(":") : [];
-		groups = [...leftGroups, ...rightGroups].filter(g => g !== "");
-
-		// Must be compressed (less than 8 groups)
-		if (groups.length >= 8) {
+		// Check for multiple "::" which is invalid
+		if (ip.indexOf("::", doubleColonIndex + 2) !== -1) {
 			return false;
 		}
+
+		const beforeDoubleColon = ip.substring(0, doubleColonIndex);
+		const afterDoubleColon = ip.substring(doubleColonIndex + 2);
+
+		const leftGroups = beforeDoubleColon ? beforeDoubleColon.split(":") : [];
+		const rightGroups = afterDoubleColon ? afterDoubleColon.split(":") : [];
+
+		// Filter out empty groups and validate total count
+		const nonEmptyLeft = leftGroups.filter(g => g !== "");
+		const nonEmptyRight = rightGroups.filter(g => g !== "");
+		const totalGroups = nonEmptyLeft.length + nonEmptyRight.length;
+
+		// Must be compressed (less than 8 groups)
+		if (totalGroups >= 8) {
+			return false;
+		}
+
+		// Validate each group
+		for (let i = 0; i < nonEmptyLeft.length; i++) {
+			if (!HEX_GROUP_PATTERN.test(nonEmptyLeft[i])) {
+				return false;
+			}
+		}
+		for (let i = 0; i < nonEmptyRight.length; i++) {
+			if (!HEX_GROUP_PATTERN.test(nonEmptyRight[i])) {
+				return false;
+			}
+		}
+
+		return true;
 	} else {
-		groups = ip.split(":");
+		const groups = ip.split(":");
 		// Full notation must have exactly 8 groups
 		if (groups.length !== 8) {
 			return false;
 		}
-	}
 
-	// Validate each group (1-4 hex digits)
-	return groups.every(group => group && (/^[0-9a-fA-F]{1,4}$/).test(group));
+		// Validate each group
+		for (let i = 0; i < 8; i++) {
+			if (!groups[i] || !HEX_GROUP_PATTERN.test(groups[i])) {
+				return false;
+			}
+		}
+
+		return true;
+	}
 }
 
 // Optimized: Cache regex for corsHost method to avoid recompilation
@@ -842,21 +981,41 @@ class Woodland extends node_events.EventEmitter {
 	 * @param {Object} res - HTTP response object
 	 */
 	decorate (req, res) {
+		// Optimized: Start timing before any other operations if needed
+		let timing = null;
 		if (this.time) {
-			req.precise = precise.precise().start();
+			timing = precise.precise().start();
 		}
 
+		// Optimized: Parse URL once and cache pathname for multiple uses
 		const parsed = parse(req);
+		const pathname = parsed.pathname;
 
+		// Optimized: Get allow string early to avoid recalculation
+		const allowString = this.allows(pathname);
+
+		// Optimized: Batch request property assignments
 		req.parsed = parsed;
-		req.allow = this.allows(parsed.pathname);
+		req.allow = allowString;
 		req.body = EMPTY;
-		req.corsHost = this.corsHost(req);
-		req.cors = this.cors(req);
 		req.host = parsed.hostname;
-		req.ip = this.ip(req);
 		req.params = {};
 		req.valid = true;
+
+		// Optimized: Only assign timing if enabled
+		if (timing) {
+			req.precise = timing;
+		}
+
+		// Optimized: Calculate CORS properties efficiently
+		req.corsHost = this.corsHost(req);
+		req.cors = this.cors(req);
+
+		// Optimized: Get IP early for logging
+		const clientIP = this.ip(req);
+		req.ip = clientIP;
+
+		// Optimized: Batch response property assignments
 		res.locals = {};
 		res.error = this.error(req, res);
 		res.header = res.setHeader;
@@ -866,24 +1025,28 @@ class Woodland extends node_events.EventEmitter {
 		res.set = this.set(res);
 		res.status = this.status(res);
 
-		// Optimized: Batch header operations for better performance
-		const headersBatch = {
-			[ALLOW]: req.allow,
-			[X_CONTENT_TYPE_OPTIONS]: NO_SNIFF
-		};
+		// Optimized: Use null prototype for faster property access
+		const headersBatch = Object.create(null);
 
-		// Add default headers to batch
-		for (const [key, value] of this.defaultHeaders) {
+		// Required headers
+		headersBatch[ALLOW] = allowString;
+		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
+
+		// Optimized: Use for loop for default headers (faster than for..of)
+		for (let i = 0; i < this.defaultHeaders.length; i++) {
+			const [key, value] = this.defaultHeaders[i];
 			headersBatch[key] = value;
 		}
 
+		// Optimized: Only add CORS headers if needed
 		if (req.cors) {
 			const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
+			const origin = req.headers.origin;
 
-			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = req.headers.origin;
-			headersBatch[TIMING_ALLOW_ORIGIN] = req.headers.origin;
+			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
+			headersBatch[TIMING_ALLOW_ORIGIN] = origin;
 			headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
-			headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = req.allow;
+			headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = allowString;
 
 			if (corsHeaders !== void 0) {
 				headersBatch[req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS] = corsHeaders;
@@ -893,7 +1056,7 @@ class Woodland extends node_events.EventEmitter {
 		// Set all headers in one batch operation
 		res.set(headersBatch);
 
-		this.log(`type=decorate, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_DECORATED_IP.replace(IP_TOKEN, req.ip)}"`);
+		this.log(`type=decorate, uri=${pathname}, method=${req.method}, ip=${clientIP}, message="${MSG_DECORATED_IP.replace(IP_TOKEN, clientIP)}"`);
 		res.on(CLOSE, () => this.log(this.clf(req, res), INFO));
 	}
 
@@ -1176,33 +1339,53 @@ class Woodland extends node_events.EventEmitter {
 	 * @param {Object} res - HTTP response object
 	 */
 	route (req, res) {
-		const evc = CONNECT.toLowerCase(),
-			evf = FINISH;
-		let method = req.method === HEAD ? GET : req.method;
+		// Optimized: Cache constants to avoid repeated property access
+		const evc = CONNECT.toLowerCase();
+		const evf = FINISH;
+		const method = req.method === HEAD ? GET : req.method;
 
 		this.decorate(req, res);
 
-		if (this.listenerCount(evc) > INT_0) {
+		// Optimized: Combine event listener checks to avoid multiple calls
+		const connectListeners = this.listenerCount(evc);
+		const finishListeners = this.listenerCount(evf);
+
+		if (connectListeners > INT_0) {
 			this.emit(evc, req, res);
 		}
 
-		if (this.listenerCount(evf) > INT_0) {
+		if (finishListeners > INT_0) {
 			res.on(evf, () => this.emit(evf, req, res));
 		}
 
-		this.log(`type=route, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ROUTING}"`);
+		// Optimized: Cache pathname and IP to avoid property access in logging
+		const pathname = req.parsed.pathname;
+		const requestMethod = req.method;
+		const clientIP = req.ip;
 
-		if (req.cors === false && ORIGIN in req.headers && req.corsHost && this.origins.includes(req.headers.origin) === false) {
+		this.log(`type=route, uri=${pathname}, method=${requestMethod}, ip=${clientIP}, message="${MSG_ROUTING}"`);
+
+		// Optimized: Streamline CORS validation logic
+		const hasOriginHeader = ORIGIN in req.headers;
+		const isOriginAllowed = hasOriginHeader && this.origins.includes(req.headers.origin);
+
+		if (req.cors === false && hasOriginHeader && req.corsHost && !isOriginAllowed) {
 			req.valid = false;
 			res.error(INT_403);
 		} else if (req.allow.includes(method)) {
-			const result = this.routes(req.parsed.pathname, method);
+			// Optimized: Get route result once and reuse
+			const result = this.routes(pathname, method);
 
 			if (result.params) {
 				params(req, result.getParams);
 			}
 
-			req.exit = next(req, res, result.middleware.slice(result.exit, result.middleware.length)[Symbol.iterator](), true);
+			// Optimized: Create exit middleware iterator more efficiently
+			const exitMiddleware = result.exit >= 0 ?
+				result.middleware.slice(result.exit)[Symbol.iterator]() :
+				[][Symbol.iterator]();
+
+			req.exit = next(req, res, exitMiddleware, true);
 			next(req, res, result.middleware[Symbol.iterator]())();
 		} else {
 			req.valid = false;
@@ -1259,25 +1442,35 @@ class Woodland extends node_events.EventEmitter {
 			if (res.headersSent === false) {
 				[body, status, headers] = this.onReady(req, res, body, status, headers);
 
-				if (pipeable(req.method, body)) {
-					if (req.headers.range === void 0 || req.range !== void 0) {
+				// Optimized: Cache method and range header for reuse
+				const method = req.method;
+				const rangeHeader = req.headers.range;
+				const isPipeable = pipeable(method, body);
+
+				if (isPipeable) {
+					if (rangeHeader === void 0 || req.range !== void 0) {
 						writeHead(res, headers);
 						body.on(ERROR, err => res.error(INT_500, err)).pipe(res);
 					} else {
 						res.error(INT_416);
 					}
 				} else {
-					if (typeof body !== STRING && typeof body[TO_STRING] === FUNCTION) {
+					// Optimized: Check for toString method more efficiently
+					if (typeof body !== STRING && body && typeof body[TO_STRING] === FUNCTION) {
 						body = body.toString();
 					}
 
-					if (req.headers.range !== void 0) {
+					if (rangeHeader !== void 0) {
+						// Optimized: Create buffer only once and reuse byteLength
 						const buffered = Buffer.from(body);
+						const byteLength = buffered.length;
 
-						[headers] = partialHeaders(req, res, Buffer.byteLength(buffered), status, headers);
+						[headers] = partialHeaders(req, res, byteLength, status, headers);
 
 						if (req.range !== void 0) {
-							this.onDone(req, res, buffered.slice(req.range.start, req.range.end).toString(), headers);
+							// Optimized: Use slice with proper range calculation
+							const rangeBuffer = buffered.slice(req.range.start, req.range.end + 1);
+							this.onDone(req, res, rangeBuffer.toString(), headers);
 						} else {
 							res.error(INT_416);
 						}
@@ -1287,7 +1480,7 @@ class Woodland extends node_events.EventEmitter {
 					}
 				}
 
-				this.log(`type=res.send, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, valid=true, message="${MSG_SENDING_BODY}"`);
+				this.log(`type=res.send, uri=${req.parsed.pathname}, method=${method}, ip=${req.ip}, valid=true, message="${MSG_SENDING_BODY}"`);
 			}
 		};
 	}

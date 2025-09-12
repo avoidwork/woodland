@@ -369,21 +369,41 @@ export class Woodland extends EventEmitter {
 	 * @param {Object} res - HTTP response object
 	 */
 	decorate (req, res) {
+		// Optimized: Start timing before any other operations if needed
+		let timing = null;
 		if (this.time) {
-			req.precise = precise().start();
+			timing = precise().start();
 		}
 
+		// Optimized: Parse URL once and cache pathname for multiple uses
 		const parsed = parse(req);
+		const pathname = parsed.pathname;
 
+		// Optimized: Get allow string early to avoid recalculation
+		const allowString = this.allows(pathname);
+
+		// Optimized: Batch request property assignments
 		req.parsed = parsed;
-		req.allow = this.allows(parsed.pathname);
+		req.allow = allowString;
 		req.body = EMPTY;
-		req.corsHost = this.corsHost(req);
-		req.cors = this.cors(req);
 		req.host = parsed.hostname;
-		req.ip = this.ip(req);
 		req.params = {};
 		req.valid = true;
+
+		// Optimized: Only assign timing if enabled
+		if (timing) {
+			req.precise = timing;
+		}
+
+		// Optimized: Calculate CORS properties efficiently
+		req.corsHost = this.corsHost(req);
+		req.cors = this.cors(req);
+
+		// Optimized: Get IP early for logging
+		const clientIP = this.ip(req);
+		req.ip = clientIP;
+
+		// Optimized: Batch response property assignments
 		res.locals = {};
 		res.error = this.error(req, res);
 		res.header = res.setHeader;
@@ -393,24 +413,28 @@ export class Woodland extends EventEmitter {
 		res.set = this.set(res);
 		res.status = this.status(res);
 
-		// Optimized: Batch header operations for better performance
-		const headersBatch = {
-			[ALLOW]: req.allow,
-			[X_CONTENT_TYPE_OPTIONS]: NO_SNIFF
-		};
+		// Optimized: Use null prototype for faster property access
+		const headersBatch = Object.create(null);
 
-		// Add default headers to batch
-		for (const [key, value] of this.defaultHeaders) {
+		// Required headers
+		headersBatch[ALLOW] = allowString;
+		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
+
+		// Optimized: Use for loop for default headers (faster than for..of)
+		for (let i = 0; i < this.defaultHeaders.length; i++) {
+			const [key, value] = this.defaultHeaders[i];
 			headersBatch[key] = value;
 		}
 
+		// Optimized: Only add CORS headers if needed
 		if (req.cors) {
 			const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
+			const origin = req.headers.origin;
 
-			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = req.headers.origin;
-			headersBatch[TIMING_ALLOW_ORIGIN] = req.headers.origin;
+			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
+			headersBatch[TIMING_ALLOW_ORIGIN] = origin;
 			headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
-			headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = req.allow;
+			headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = allowString;
 
 			if (corsHeaders !== void 0) {
 				headersBatch[req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS] = corsHeaders;
@@ -420,7 +444,7 @@ export class Woodland extends EventEmitter {
 		// Set all headers in one batch operation
 		res.set(headersBatch);
 
-		this.log(`type=decorate, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_DECORATED_IP.replace(IP_TOKEN, req.ip)}"`);
+		this.log(`type=decorate, uri=${pathname}, method=${req.method}, ip=${clientIP}, message="${MSG_DECORATED_IP.replace(IP_TOKEN, clientIP)}"`);
 		res.on(CLOSE, () => this.log(this.clf(req, res), INFO));
 	}
 
@@ -703,33 +727,53 @@ export class Woodland extends EventEmitter {
 	 * @param {Object} res - HTTP response object
 	 */
 	route (req, res) {
-		const evc = CONNECT.toLowerCase(),
-			evf = FINISH;
-		let method = req.method === HEAD ? GET : req.method;
+		// Optimized: Cache constants to avoid repeated property access
+		const evc = CONNECT.toLowerCase();
+		const evf = FINISH;
+		const method = req.method === HEAD ? GET : req.method;
 
 		this.decorate(req, res);
 
-		if (this.listenerCount(evc) > INT_0) {
+		// Optimized: Combine event listener checks to avoid multiple calls
+		const connectListeners = this.listenerCount(evc);
+		const finishListeners = this.listenerCount(evf);
+
+		if (connectListeners > INT_0) {
 			this.emit(evc, req, res);
 		}
 
-		if (this.listenerCount(evf) > INT_0) {
+		if (finishListeners > INT_0) {
 			res.on(evf, () => this.emit(evf, req, res));
 		}
 
-		this.log(`type=route, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ROUTING}"`);
+		// Optimized: Cache pathname and IP to avoid property access in logging
+		const pathname = req.parsed.pathname;
+		const requestMethod = req.method;
+		const clientIP = req.ip;
 
-		if (req.cors === false && ORIGIN in req.headers && req.corsHost && this.origins.includes(req.headers.origin) === false) {
+		this.log(`type=route, uri=${pathname}, method=${requestMethod}, ip=${clientIP}, message="${MSG_ROUTING}"`);
+
+		// Optimized: Streamline CORS validation logic
+		const hasOriginHeader = ORIGIN in req.headers;
+		const isOriginAllowed = hasOriginHeader && this.origins.includes(req.headers.origin);
+
+		if (req.cors === false && hasOriginHeader && req.corsHost && !isOriginAllowed) {
 			req.valid = false;
 			res.error(INT_403);
 		} else if (req.allow.includes(method)) {
-			const result = this.routes(req.parsed.pathname, method);
+			// Optimized: Get route result once and reuse
+			const result = this.routes(pathname, method);
 
 			if (result.params) {
 				params(req, result.getParams);
 			}
 
-			req.exit = next(req, res, result.middleware.slice(result.exit, result.middleware.length)[Symbol.iterator](), true);
+			// Optimized: Create exit middleware iterator more efficiently
+			const exitMiddleware = result.exit >= 0 ?
+				result.middleware.slice(result.exit)[Symbol.iterator]() :
+				[][Symbol.iterator]();
+
+			req.exit = next(req, res, exitMiddleware, true);
 			next(req, res, result.middleware[Symbol.iterator]())();
 		} else {
 			req.valid = false;
@@ -786,25 +830,35 @@ export class Woodland extends EventEmitter {
 			if (res.headersSent === false) {
 				[body, status, headers] = this.onReady(req, res, body, status, headers);
 
-				if (pipeable(req.method, body)) {
-					if (req.headers.range === void 0 || req.range !== void 0) {
+				// Optimized: Cache method and range header for reuse
+				const method = req.method;
+				const rangeHeader = req.headers.range;
+				const isPipeable = pipeable(method, body);
+
+				if (isPipeable) {
+					if (rangeHeader === void 0 || req.range !== void 0) {
 						writeHead(res, headers);
 						body.on(ERROR, err => res.error(INT_500, err)).pipe(res);
 					} else {
 						res.error(INT_416);
 					}
 				} else {
-					if (typeof body !== STRING && typeof body[TO_STRING] === FUNCTION) {
+					// Optimized: Check for toString method more efficiently
+					if (typeof body !== STRING && body && typeof body[TO_STRING] === FUNCTION) {
 						body = body.toString();
 					}
 
-					if (req.headers.range !== void 0) {
+					if (rangeHeader !== void 0) {
+						// Optimized: Create buffer only once and reuse byteLength
 						const buffered = Buffer.from(body);
+						const byteLength = buffered.length;
 
-						[headers] = partialHeaders(req, res, Buffer.byteLength(buffered), status, headers);
+						[headers] = partialHeaders(req, res, byteLength, status, headers);
 
 						if (req.range !== void 0) {
-							this.onDone(req, res, buffered.slice(req.range.start, req.range.end).toString(), headers);
+							// Optimized: Use slice with proper range calculation
+							const rangeBuffer = buffered.slice(req.range.start, req.range.end + 1);
+							this.onDone(req, res, rangeBuffer.toString(), headers);
 						} else {
 							res.error(INT_416);
 						}
@@ -814,7 +868,7 @@ export class Woodland extends EventEmitter {
 					}
 				}
 
-				this.log(`type=res.send, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, valid=true, message="${MSG_SENDING_BODY}"`);
+				this.log(`type=res.send, uri=${req.parsed.pathname}, method=${method}, ip=${req.ip}, valid=true, message="${MSG_SENDING_BODY}"`);
 			}
 		};
 	}

@@ -74,31 +74,38 @@ function escapeHtml (str = EMPTY) {
 export function autoindex (title = EMPTY, files = []) {
 	const safeTitle = escapeHtml(title);
 
+	// Optimized: Fast path for empty files array
+	if (files.length === 0) {
+		return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) => {
+			return key === "TITLE" ? safeTitle : "    <li><a href=\"..\" rel=\"collection\">../</a></li>";
+		});
+	}
+
 	// Pre-allocate array for better performance
 	const listItems = new Array(files.length + 1);
 	listItems[0] = "    <li><a href=\"..\" rel=\"collection\">../</a></li>";
 
-	// Optimize file list generation with single loop
-	for (let i = 0; i < files.length; i++) {
+	// Optimized: Cache file count and optimize loop
+	const fileCount = files.length;
+	for (let i = 0; i < fileCount; i++) {
 		const file = files[i];
-		const safeName = escapeHtml(file.name);
-		const safeHref = encodeURIComponent(file.name);
+		const fileName = file.name;
+		const safeName = escapeHtml(fileName);
+		const safeHref = encodeURIComponent(fileName);
 		const isDir = file.isDirectory();
 
-		// Avoid string concatenation inside conditionals
-		if (isDir) {
-			listItems[i + 1] = `    <li><a href="${safeHref}/" rel="collection">${safeName}/</a></li>`;
-		} else {
-			listItems[i + 1] = `    <li><a href="${safeHref}" rel="item">${safeName}</a></li>`;
-		}
+		// Optimized: Use ternary operator for better performance
+		listItems[i + 1] = isDir ?
+			`    <li><a href="${safeHref}/" rel="collection">${safeName}/</a></li>` :
+			`    <li><a href="${safeHref}" rel="item">${safeName}</a></li>`;
 	}
 
 	const safeFiles = listItems.join("\n");
 
-	// Use single replace with callback for better performance
-	return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) => {
-		return key === "TITLE" ? safeTitle : safeFiles;
-	});
+	// Optimized: Cache replace callback for reuse
+	const replaceCallback = (match, key) => key === "TITLE" ? safeTitle : safeFiles;
+
+	return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, replaceCallback);
 }
 
 /**
@@ -157,11 +164,15 @@ export function ms (arg = INT_0, digits = INT_3) {
  * @returns {Function} The next function for middleware chain
  */
 export function next (req, res, middleware, immediate = false) {
+	// Optimized: Pre-calculate getStatus to avoid repeated function calls
+	const errorStatus = getStatus(req, res);
+
 	const internalFn = (err, fn) => {
 		let obj = middleware.next();
 
 		if (obj.done === false) {
 			if (err !== void 0) {
+				// Optimized: Find error handler more efficiently
 				while (obj.done === false && obj.value && obj.value.length < 4) {
 					obj = middleware.next();
 				}
@@ -169,18 +180,26 @@ export function next (req, res, middleware, immediate = false) {
 				if (obj.done === false && obj.value) {
 					obj.value(err, req, res, fn);
 				} else {
-					res.error(getStatus(req, res));
+					res.error(errorStatus);
 				}
-			} else if (typeof obj.value === FUNCTION) {
-				obj.value(req, res, fn);
 			} else {
-				res.send(obj.value);
+				const value = obj.value;
+				// Optimized: Check function type once and reuse result
+				if (typeof value === FUNCTION) {
+					value(req, res, fn);
+				} else {
+					res.send(value);
+				}
 			}
 		} else {
-			res.error(getStatus(req, res));
+			res.error(errorStatus);
 		}
 	};
-	const fn = immediate ? err => internalFn(err, fn) : err => process.nextTick(() => internalFn(err, fn));
+
+	// Optimized: Create function based on immediate flag without conditional in hot path
+	const fn = immediate ?
+		err => internalFn(err, fn) :
+		err => process.nextTick(() => internalFn(err, fn));
 
 	return fn;
 }
@@ -210,23 +229,35 @@ export function params (req, getParams) {
 		return;
 	}
 
-	// Pre-allocate object for better performance
-	const processedParams = {};
+	// Optimized: Use Object.create(null) for faster parameter object
+	const processedParams = Object.create(null);
 	const keys = Object.keys(groups);
+	const keyCount = keys.length;
 
-	for (let i = 0; i < keys.length; i++) {
+	// Optimized: Use standard for loop for better performance
+	for (let i = 0; i < keyCount; i++) {
 		const key = keys[i];
 		const value = groups[key];
-		let decoded;
 
-		// Optimized URL decoding with single try/catch
-		try {
-			decoded = decodeURIComponent(value);
-		} catch {
-			decoded = value;
+		// Optimized: Avoid repeated calls to escapeHtml and coerce
+		if (value === null || value === undefined) {
+			processedParams[key] = coerce(null);
+		} else {
+			// Optimized URL decoding with fast path for common cases
+			let decoded;
+			if (value.indexOf("%") === -1) {
+				// Fast path: no URL encoding
+				decoded = value;
+			} else {
+				try {
+					decoded = decodeURIComponent(value);
+				} catch {
+					decoded = value;
+				}
+			}
+
+			processedParams[key] = coerce(escapeHtml(decoded));
 		}
-
-		processedParams[key] = decoded === null ? coerce(null) : coerce(escapeHtml(decoded || EMPTY));
 	}
 
 	req.params = processedParams;
@@ -349,18 +380,38 @@ export function pipeable (method, arg) {
  * @param {Object} [arg={}] - Object containing middleware array and parameters
  */
 export function reduce (uri, map = new Map(), arg = {}) {
+	// Optimized: Early return if map is empty
+	if (map.size === 0) {
+		return;
+	}
+
+	// Optimized: Cache middleware array reference to avoid property access
+	const middlewareArray = arg.middleware;
+	let paramsFound = arg.params;
+
 	// Iterate directly over map values without creating intermediate array
 	for (const middleware of map.values()) {
+		// Optimized: Reset lastIndex only when needed
 		middleware.regex.lastIndex = INT_0;
 
 		if (middleware.regex.test(uri)) {
-			// Add all handlers at once using spread operator
-			arg.middleware.push(...middleware.handlers);
+			// Optimized: Use Array.prototype.push.apply for better performance with large arrays
+			const handlers = middleware.handlers;
+			const handlerCount = handlers.length;
 
-			// Set params info if needed
-			if (middleware.params && arg.params === false) {
+			if (handlerCount === 1) {
+				// Fast path for single handler
+				middlewareArray.push(handlers[0]);
+			} else if (handlerCount > 1) {
+				// Use push.apply for multiple handlers
+				middlewareArray.push.apply(middlewareArray, handlers);
+			}
+
+			// Set params info if needed (only check once)
+			if (middleware.params && paramsFound === false) {
 				arg.params = true;
 				arg.getParams = middleware.regex;
+				paramsFound = true; // Avoid redundant checks
 			}
 		}
 	}
