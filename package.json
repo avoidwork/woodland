@@ -17,7 +17,6 @@
     "types"
   ],
   "scripts": {
-    "add": "git commit --amend --no-edit",
     "benchmark": "npm install express fastify --no-save && node benchmark.js",
     "build": "npm run test:src && npm run rollup && npm run test:cli",
     "changelog": "auto-changelog -p",
