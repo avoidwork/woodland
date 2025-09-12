@@ -18,15 +18,24 @@
   ],
   "scripts": {
     "benchmark": "npm install express fastify --no-save && node benchmark.js",
-    "build": "npm run lint && npm run rollup && npm run mocha",
+    "build": "npm run test:src && npm run rollup && npm run test:cli",
     "changelog": "auto-changelog -p",
-    "fix": "eslint --fix *.js src/*.js tests/**/*.test.js benchmarks/*.js",
-    "lint": "eslint *.js src/*.js tests/**/*.test.js benchmarks/*.js",
+    "clean": "rimraf dist coverage coverage.txt",
+    "coverage": "c8 --reporter=text npm run mocha 2>&1 | sed -n '/^---/,$p' > coverage.txt",
+    "lint": "eslint --fix *.js src/*.js tests/**/*.test.js benchmarks/*.js",
+    "lint:check": "eslint *.js src/*.js tests/**/*.test.js benchmarks/*.js",
     "mocha": "mocha tests/**/*.test.js",
+    "prebuild": "npm run clean",
     "rollup": "rollup --config",
     "test": "npm run lint && c8 npm run mocha",
-    "prepare": "husky"
+    "test:cli": "mocha tests/unit/cli.test.js",
+    "test:src": "npm run lint && c8 mocha tests/unit/constants.test.js tests/unit/utility.test.js tests/unit/woodland*.test.js tests/integration/*.test.js",
+    "test:watch": "npm run mocha -- --watch",
+    "precommit": "npm run test"
   },
+  "pre-commit": [
+    "precommit"
+  ],
   "c8": {
     "exclude": [
       "dist/**",
@@ -45,10 +54,10 @@
       "lcov"
     ],
     "check-coverage": true,
-    "lines": 90,
-    "functions": 90,
-    "branches": 85,
-    "statements": 90
+    "lines": 100,
+    "functions": 100,
+    "branches": 100,
+    "statements": 100
   },
   "repository": {
     "type": "git",
@@ -82,14 +91,15 @@
     "precise": "^4.0.3",
     "tiny-coerce": "^3.0.2",
     "tiny-etag": "^4.0.5",
-    "tiny-lru": "^11.3.3"
+    "tiny-lru": "^11.4.5"
   },
   "devDependencies": {
     "auto-changelog": "^2.5.0",
     "c8": "^10.1.3",
-    "eslint": "^9.30.1",
-    "husky": "^9.1.7",
-    "mocha": "^11.7.1",
-    "rollup": "^4.44.2"
+    "eslint": "^9.35.0",
+    "mocha": "^11.7.2",
+    "pre-commit": "^1.2.2",
+    "rimraf": "^6.0.1",
+    "rollup": "^4.50.1"
   }
 }

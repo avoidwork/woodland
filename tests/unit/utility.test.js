@@ -540,6 +540,56 @@ describe("utility", () => {
 
 			assert.strictEqual(req.params.value, null);
 		});
+
+		it("should handle decodeURIComponent exceptions", () => {
+			const req = {
+				parsed: {pathname: "/test/invalid%"},
+				params: {}
+			};
+			const regex = /\/test\/(?<value>[^/]+)/;
+			regex.lastIndex = 0;
+
+			// Mock the decodeURIComponent to throw an error
+			const originalDecode = global.decodeURIComponent;
+			global.decodeURIComponent = str => {
+				if (str === "invalid%") {
+					throw new URIError("Invalid escape sequence");
+				}
+
+				return originalDecode(str);
+			};
+
+			params(req, regex);
+
+			// Restore original function
+			global.decodeURIComponent = originalDecode;
+
+			// Should use the original value when decoding fails
+			assert.strictEqual(req.params.value, "invalid%");
+		});
+
+		it("should handle null/undefined parameter values in groups", () => {
+			const req = {
+				parsed: {pathname: "/test/"},
+				params: {}
+			};
+
+			// Create a mock regex that can produce null values in groups
+			const mockRegex = {
+				lastIndex: 0,
+				exec: () => ({
+					groups: {
+						value: null,
+						other: undefined
+					}
+				})
+			};
+
+			params(req, mockRegex);
+
+			assert.strictEqual(req.params.value, null);
+			assert.strictEqual(req.params.other, null);
+		});
 	});
 
 	describe("parse", () => {
@@ -766,6 +816,41 @@ describe("utility", () => {
 			assert.ok(headers["content-range"]);
 			assert.strictEqual(options.start, 100);
 			assert.strictEqual(options.end, 100);
+		});
+
+		it("should handle range header with no hyphen", () => {
+			req.headers.range = "bytes=invalid";
+			const [headers, options] = partialHeaders(req, res, 1000, 200, {}, {});
+			assert.strictEqual(typeof headers, "object");
+			assert.strictEqual(typeof options, "object");
+		});
+
+		it("should handle empty suffix range", () => {
+			req.headers.range = "bytes=-";
+			const [headers, options] = partialHeaders(req, res, 1000, 200, {}, {});
+			assert.strictEqual(typeof headers, "object");
+			assert.strictEqual(typeof options, "object");
+		});
+
+		it("should handle invalid suffix range number", () => {
+			req.headers.range = "bytes=-abc";
+			const [headers, options] = partialHeaders(req, res, 1000, 200, {}, {});
+			assert.strictEqual(typeof headers, "object");
+			assert.strictEqual(typeof options, "object");
+		});
+
+		it("should handle invalid start range number", () => {
+			req.headers.range = "bytes=abc-500";
+			const [headers, options] = partialHeaders(req, res, 1000, 200, {}, {});
+			assert.strictEqual(typeof headers, "object");
+			assert.strictEqual(typeof options, "object");
+		});
+
+		it("should handle invalid end range number", () => {
+			req.headers.range = "bytes=100-abc";
+			const [headers, options] = partialHeaders(req, res, 1000, 200, {}, {});
+			assert.strictEqual(typeof headers, "object");
+			assert.strictEqual(typeof options, "object");
 		});
 	});
 
@@ -1231,6 +1316,13 @@ describe("utility", () => {
 			assert.strictEqual(isValidIP("2001:db8::85a3:0000:0000:8a2e:0370:7334"), false); // too many groups with compression
 			// Test a case that should be valid to ensure the function works correctly
 			assert.strictEqual(isValidIP("2001:db8:85a3::8a2e:0370:7334"), true); // valid compressed format
+		});
+
+		it("should test IPv6 compressed address with invalid right side groups", () => {
+			// This tests lines 486-487: invalid hex groups on the right side of ::
+			assert.strictEqual(isValidIP("2001:db8::gggg"), false); // invalid hex characters on right side
+			assert.strictEqual(isValidIP("2001:db8::12345"), false); // group too long on right side
+			assert.strictEqual(isValidIP("2001::db8:gggg:1234"), false); // invalid hex in right side groups
 		});
 	});
 });

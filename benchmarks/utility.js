@@ -1,7 +1,9 @@
 // Note: Using source utility functions since they are not exported from dist
+import {woodland} from "../src/woodland.js";
 import {
 	autoindex,
 	getStatus,
+	isValidIP,
 	mime,
 	ms,
 	next,
@@ -14,6 +16,19 @@ import {
 	timeOffset,
 	writeHead
 } from "../src/utility.js";
+
+/**
+ * Create a fresh Woodland app instance for benchmarks
+ * @returns {Object} Woodland app instance
+ */
+const createFreshApp = () => {
+	return woodland({
+		cacheSize: 1000,
+		cacheTTL: 10000,
+		etags: true,
+		logging: {enabled: false}
+	});
+};
 
 // Test data for benchmarking
 const testUrls = [
@@ -78,6 +93,25 @@ const testTimezoneOffsets = [
 	60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 660, 720
 ];
 
+const testIPAddresses = [
+	"192.168.1.1",
+	"10.0.0.1",
+	"172.16.0.1",
+	"127.0.0.1",
+	"255.255.255.255",
+	"0.0.0.0",
+	"::1",
+	"2001:db8::1",
+	"fe80::1%lo0",
+	"::ffff:192.168.1.1",
+	"::",
+	"2001:0db8:85a3::8a2e:370:7334",
+	"invalid.ip",
+	"256.256.256.256",
+	"192.168.1",
+	"gggg::1"
+];
+
 // Mock request objects for testing
 const createMockRequest = (method = "GET", url = "/", headers = {}) => ({
 	method,
@@ -115,7 +149,15 @@ const createMockResponse = () => {
 			}
 		},
 		headers: headers,
-		end: () => {}
+		end: () => {},
+		// Add event handling methods that Woodland expects
+		on: (_event, _callback) => {},
+		once: (_event, _callback) => {},
+		emit: (_event, ..._args) => {},
+		// Add response helper methods
+		send: _data => {},
+		json: _data => {},
+		redirect: (_url, _statusCode) => {}
 	};
 };
 
@@ -338,8 +380,17 @@ function benchmarkWriteHead () {
  * Benchmark next() function - middleware chain progression
  */
 function benchmarkNext () {
-	const req = createMockRequest();
+	// Create a realistic Woodland app to properly set up the request
+	const freshApp = createFreshApp();
+
+	// Add a route so the app has allowed methods
+	freshApp.get("/test", (req, res) => res.send("OK"));
+
+	const req = createMockRequest("GET", "/test");
 	const res = createMockResponse();
+
+	// Use Woodland's actual decorate method to properly set up req.allow and other properties
+	freshApp.decorate(req, res);
 
 	// Create a simple middleware iterator
 	const middleware = [
@@ -416,6 +467,15 @@ function benchmarkComplexMime () {
 	return mime(filename);
 }
 
+/**
+ * Benchmark isValidIP() function - IP address validation
+ */
+function benchmarkIsValidIP () {
+	const ip = testIPAddresses[Math.floor(Math.random() * testIPAddresses.length)];
+
+	return isValidIP(ip);
+}
+
 // Export benchmark functions
 export default {
 	"parse() - URL strings": benchmarkParse,
@@ -433,5 +493,6 @@ export default {
 	"reduce() - route reduction": benchmarkReduce,
 	"writeHead() - header writing": benchmarkWriteHead,
 	"next() - middleware chain": benchmarkNext,
-	"parse() - edge cases": benchmarkParseEdgeCases
+	"parse() - edge cases": benchmarkParseEdgeCases,
+	"isValidIP() - IP validation": benchmarkIsValidIP
 };

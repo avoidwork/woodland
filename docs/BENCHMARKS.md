@@ -21,12 +21,12 @@ This benchmark suite provides detailed performance measurements for all critical
 
 - **✅ Statistical accuracy**: 5 comprehensive benchmark runs (5000+ individual tests) for statistical reliability
 - **✅ Framework comparison accuracy**: Precise measurements show Fastify slightly ahead of Woodland in pure performance
-- **✅ Performance leadership confirmed**: Woodland significantly outperforms raw Node.js (+28%) and Express.js (+51%)
-- **✅ Competitive positioning**: Woodland delivers 98% of Fastify's performance while maintaining superior developer experience
+- **✅ Performance leadership confirmed**: Woodland outperforms raw Node.js (+14%) and is competitive with Express.js (+2%)
+- **✅ Competitive positioning**: Woodland delivers 97% of Fastify's performance while maintaining superior developer experience
 - **✅ Comprehensive ecosystem analysis**: Complete comparison across all major Node.js HTTP frameworks
 - **✅ Enhanced benchmarking**: Updated all performance claims with averaged data for maximum accuracy
 
-**Performance Discovery**: Averaged across 5 runs, Fastify framework (14,452 ops/sec) leads by 2%, followed closely by Woodland framework (14,173 ops/sec), while both significantly outperform raw Node.js HTTP module (11,061 ops/sec) and Express.js framework (9,374 ops/sec), confirming Woodland's position as a top-tier high-performance framework.
+**Performance Discovery**: Averaged across 5 runs, Fastify framework (13,263 ops/sec) leads by 3%, followed closely by Woodland framework (12,836 ops/sec) and Express.js framework (12,596 ops/sec), while all three significantly outperform raw Node.js HTTP module (11,263 ops/sec), confirming Woodland's position as a top-tier high-performance framework.
 
 ### v2.4 - Framework Comparison Benchmark & Performance Discovery
 
@@ -123,11 +123,11 @@ node benchmark.js comparison -i 500 -w 50
 **Revolutionary discovery**: Compares Woodland framework performance against all major Node.js HTTP frameworks including raw Node.js HTTP module, Express.js framework, and Fastify framework to measure framework overhead and optimizations.
 
 **Key Findings (averaged across 5 runs):**
-- Fastify framework: **14,452 ops/sec** (0.069ms avg) 🥇 **FASTEST**
-- Woodland framework: **14,173 ops/sec** (0.071ms avg) 🥈 **Very close second**
-- Raw Node.js HTTP: **11,061 ops/sec** (0.090ms avg) 🥉 **Third place**
-- Express.js framework: **9,374 ops/sec** (0.107ms avg)
-- **Performance improvement: +28% faster than raw Node.js, +51% faster than Express.js, 98% of Fastify's performance**
+- Fastify framework: **13,263 ops/sec** (0.075ms avg) 🥇 **FASTEST**
+- Woodland framework: **12,836 ops/sec** (0.078ms avg) 🥈 **Close second**
+- Express.js framework: **12,596 ops/sec** (0.080ms avg) 🥉 **Third place**
+- Raw Node.js HTTP: **11,263 ops/sec** (0.089ms avg)
+- **Performance improvement: +14% faster than raw Node.js, +2% faster than Express.js, 97% of Fastify's performance**
 
 **Test Methodology:**
 - Identical JSON response scenarios across all four frameworks for fair comparison
@@ -146,13 +146,13 @@ node benchmark.js comparison -i 500 -w 50
 
 **Example Output (averaged across 5 runs):**
 ```
-raw Node.js HTTP server: 11,061 ops/sec
-Express.js framework: 9,374 ops/sec
-Fastify framework: 14,452 ops/sec
-Woodland framework: 14,173 ops/sec
+raw Node.js HTTP server: 11,263 ops/sec
+Express.js framework: 12,596 ops/sec
+Fastify framework: 13,263 ops/sec
+Woodland framework: 12,836 ops/sec
 ```
 
-**Strategic Impact:** This benchmark confirms Woodland is among the **top-tier HTTP frameworks in the Node.js ecosystem**, delivering 98% of Fastify's performance while offering superior developer experience and maintaining significant advantages over Express.js and raw Node.js. Woodland eliminates the traditional trade-off between framework convenience and performance, delivering both comprehensive features and exceptional speed.
+**Strategic Impact:** This benchmark confirms Woodland is among the **top-tier HTTP frameworks in the Node.js ecosystem**, delivering 97% of Fastify's performance while offering superior developer experience and maintaining advantages over Express.js and raw Node.js. Woodland eliminates the traditional trade-off between framework convenience and performance, delivering both comprehensive features and competitive speed.
 
 ### 2. Routing Benchmarks (`benchmarks/routing.js`)
 
@@ -372,7 +372,7 @@ Each benchmark reports:
 3. **Caching Effects**: Compare cached vs non-cached performance
 4. **Relative Performance**: Compare between different approaches or configurations
 5. **Performance Ranges**: Expect different performance characteristics:
-   - Framework comparison: 9,000-15,000 ops/sec (Express.js: ~9.6K, Raw Node.js: ~11K, Woodland: ~14.4K ops/sec)
+   - Framework comparison: 11,000-14,000 ops/sec (Raw Node.js: ~11.3K, Express.js: ~12.6K, Woodland: ~12.8K, Fastify: ~13.3K ops/sec)
    - Utility functions: 100,000+ ops/sec
    - Middleware operations: 1,000-100,000 ops/sec
    - HTTP requests: 100-10,000 ops/sec (depends on complexity)
