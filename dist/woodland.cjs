@@ -1381,9 +1381,7 @@ class Woodland extends node_events.EventEmitter {
 			}
 
 			// Optimized: Create exit middleware iterator more efficiently
-			const exitMiddleware = result.exit >= 0 ?
-				result.middleware.slice(result.exit)[Symbol.iterator]() :
-				[][Symbol.iterator]();
+			const exitMiddleware = result.middleware.slice(result.exit)[Symbol.iterator]();
 
 			req.exit = next(req, res, exitMiddleware, true);
 			next(req, res, result.middleware[Symbol.iterator]())();
