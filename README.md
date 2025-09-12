@@ -1293,3 +1293,4 @@ Licensed under the **BSD-3-Clause** license.
 <div align="center">
   <sub>Built with ❤️ by <a href="https://github.com/avoidwork">Jason Mulligan</a></sub>
 </div>
+# Testing pre-commit without loop
