@@ -359,6 +359,7 @@ $$\text{next}(req, res, middleware, immediate) = \begin{cases}
 \end{cases}$$
 
 Iterator execution:
+
 $$\text{next}(req, res, i) = \begin{cases}
 f_i(req, res, \text{next}(req, res, i+1)) & \text{if } i < n \\
 \text{undefined} & \text{if } i \geq n
@@ -376,6 +377,7 @@ Where:
 - $T$ = Time domain
 
 Cache lookup with TTL:
+
 $$C(k, v, t) = \begin{cases}
 v & \text{if } t - t_{\text{insert}} < \text{TTL} \\
 \text{null} & \text{otherwise}
@@ -406,6 +408,7 @@ Where $S$ is the string space (file paths).
 $$P(requested, base) = \text{resolve}(requested).startsWith(\text{resolve}(base))$$
 
 Implementation checks:
+
 $$P(arg, folder) = \begin{cases}
 \text{true} & \text{if } \text{resolve}(folder, arg) \in \text{resolve}(folder) \\
 \text{false} & \text{otherwise (403 Forbidden)}
