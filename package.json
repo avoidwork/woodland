@@ -22,8 +22,7 @@
     "build": "npm run lint && npm run rollup && npm run mocha",
     "changelog": "auto-changelog -p",
     "coverage": "npm run lint && c8 --reporter=text npm run mocha 2>&1 | sed -n '/^---/,$p' > coverage.txt",
-    "fix": "eslint --fix *.js src/*.js tests/**/*.test.js benchmarks/*.js",
-    "lint": "eslint *.js src/*.js tests/**/*.test.js benchmarks/*.js",
+    "lint": "eslint --fix *.js src/*.js tests/**/*.test.js benchmarks/*.js",
     "mocha": "mocha tests/**/*.test.js",
     "rollup": "rollup --config",
     "test": "npm run lint && c8 npm run mocha"
@@ -50,10 +49,10 @@
       "lcov"
     ],
     "check-coverage": true,
-    "lines": 90,
-    "functions": 90,
-    "branches": 85,
-    "statements": 90
+    "lines": 100,
+    "functions": 100,
+    "branches": 100,
+    "statements": 100
   },
   "repository": {
     "type": "git",
