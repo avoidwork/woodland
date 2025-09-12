@@ -567,6 +567,29 @@ describe("utility", () => {
 			// Should use the original value when decoding fails
 			assert.strictEqual(req.params.value, "invalid%");
 		});
+
+		it("should handle null/undefined parameter values in groups", () => {
+			const req = {
+				parsed: {pathname: "/test/"},
+				params: {}
+			};
+
+			// Create a mock regex that can produce null values in groups
+			const mockRegex = {
+				lastIndex: 0,
+				exec: () => ({
+					groups: {
+						value: null,
+						other: undefined
+					}
+				})
+			};
+
+			params(req, mockRegex);
+
+			assert.strictEqual(req.params.value, null);
+			assert.strictEqual(req.params.other, null);
+		});
 	});
 
 	describe("parse", () => {

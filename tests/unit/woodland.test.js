@@ -2324,6 +2324,39 @@ describe("Woodland Middleware Execution and Error Propagation", () => {
 		app.route(mockReq, mockRes);
 	});
 
+	it("should handle exit middleware path when result.exit >= 0", done => {
+		const exitApp = woodland();
+		const exitReq = {
+			method: "GET",
+			url: "/test/exit",
+			headers: {host: "localhost:8000"},
+			socket: {remoteAddress: "127.0.0.1"},
+			connection: {server: {address: () => ({port: 8000})}}
+		};
+		const exitRes = {
+			writeHead: () => {},
+			setHeader: () => {},
+			on: () => {},
+			end: () => {
+				// Verify that exit middleware iterator was created
+				done();
+			},
+			finished: false
+		};
+
+		// Add wildcard middleware (this sets result.exit to middleware.length)
+		exitApp.always((req, res, next) => {
+			next();
+		});
+
+		// Add method-specific middleware
+		exitApp.get("/test/exit", (req, res) => {
+			res.end("test");
+		});
+
+		exitApp.route(exitReq, exitRes);
+	});
+
 	it("should handle parameterized routes correctly", done => {
 		app.get("/users/:id", (req, res) => {
 			executionOrder.push("param-handler");

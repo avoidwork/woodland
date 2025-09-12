@@ -20,6 +20,7 @@
     "benchmark": "npm install express fastify --no-save && node benchmark.js",
     "build": "npm run lint && npm run rollup && npm run mocha",
     "changelog": "auto-changelog -p",
+    "coverage": "npm run lint && c8 --reporter=text npm run mocha 2>&1 | sed -n '/^---/,$p' > coverage.txt",
     "fix": "eslint --fix *.js src/*.js tests/**/*.test.js benchmarks/*.js",
     "lint": "eslint *.js src/*.js tests/**/*.test.js benchmarks/*.js",
     "mocha": "mocha tests/**/*.test.js",
