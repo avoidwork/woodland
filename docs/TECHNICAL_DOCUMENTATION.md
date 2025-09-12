@@ -332,9 +332,11 @@ $$M_{\text{reduce}}(uri, map, arg) = \begin{cases}
 \end{cases}$$
 
 Array spreading cost:
+
 $$M_{\text{spread}}(handlers) = O(|handlers|) \text{ for spread operation}$$
 
 Parameter extraction:
+
 $$\text{extract}(uri, regex) = \text{regex.exec(uri).slice(1)}$$
 
 #### Middleware Chain Execution
@@ -384,6 +386,7 @@ v & \text{if } t - t_{\text{insert}} < \text{TTL} \\
 \end{cases}$$
 
 Cache key generation:
+
 $$C_{\text{key}}(method, uri) = \text{method} + \text{DELIMITER} + \text{uri}$$
 
 Cache types:
@@ -415,9 +418,11 @@ $$P(arg, folder) = \begin{cases}
 \end{cases}$$
 
 Security logging:
+
 $$P_{\text{log}}(req, arg) = \text{log("Path outside allowed directory", path=arg)}$$
 
 Path resolution cost:
+
 $$P_{\text{resolve}}(path) = O(d) \text{ where } d \text{ is path depth}$$
 
 ##### CORS Validation
@@ -438,9 +443,11 @@ $$O(origin, allowed, headers) = \begin{cases}
 \end{cases}$$
 
 Cross-origin detection:
+
 $$O_{\text{host}}(req) = \text{ORIGIN} \in req.headers \text{ and } req.headers.origin.replace(\text{PROTOCOL-REGEX}, "") \neq req.headers.host$$
 
 CORS preflight handling:
+
 $$O_{\text{preflight}}(req, res) = \begin{cases}
 \text{res.status(204).send("")} & \text{if } req.method = \text{OPTIONS} \\
 \text{no-op} & \text{otherwise}
@@ -455,6 +462,7 @@ $$O_{\text{setup}}(origins) = \begin{cases}
 \end{cases}$$
 
 CORS header injection:
+
 $$O_{\text{headers}}(req, res, config) = \begin{cases}
 \text{add CORS headers to batch} & \text{if } req.cors = \text{true} \\
 \text{no-op} & \text{otherwise}
@@ -478,6 +486,7 @@ $$I(headers, fallback) = \begin{cases}
 \end{cases}$$
 
 IP validation function:
+
 $$I_{\text{valid}}(ip) = \begin{cases}
 \text{true} & \text{if IPv4: } /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/ \text{ and octets} \in [0,255] \\
 \text{true} & \text{if IPv6: valid IPv6 format} \\
@@ -485,6 +494,7 @@ $$I_{\text{valid}}(ip) = \begin{cases}
 \end{cases}$$
 
 IP extraction with validation:
+
 $$I_{\text{extract}}(req) = \begin{cases}
 \text{first valid IP in X-Forwarded-For} & \text{if header exists and valid} \\
 \text{connection.remoteAddress} & \text{if available} \\
@@ -493,6 +503,7 @@ $$I_{\text{extract}}(req) = \begin{cases}
 \end{cases}$$
 
 IPv6 validation details:
+
 $$I_{\text{ipv6}}(ip) = \begin{cases}
 \text{true} & \text{if valid characters: } /^[0-9a-fA-F:.]+$/ \\
 \text{true} & \text{if IPv4-mapped: } /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/ \\
@@ -548,6 +559,7 @@ $$\text{next}(req, res, [f_1, f_2, ..., f_n], i) = f_i(req, res, \text{next}(req
 ##### Event Loop Scheduling
 
 Middleware execution respects event loop scheduling:
+
 $$\text{next}(req, res, middleware, immediate) = \begin{cases}
 \text{synchronous} & \text{if } immediate = \text{true} \\
 \text{asynchronous} & \text{if } immediate = \text{false}
@@ -556,17 +568,20 @@ $$\text{next}(req, res, middleware, immediate) = \begin{cases}
 ##### Cache Commutativity
 
 LRU cache operations are commutative for different keys:
+
 $$C(k_1, v_1, t) \cup C(k_2, v_2, t) = C(k_2, v_2, t) \cup C(k_1, v_1, t)$$
 
 ##### Event Emission Properties
 
 Event emission is idempotent but not commutative:
+
 $$E_{\text{event}}(e, d, L) = E_{\text{event}}(e, d, L)$$
 $$E_{\text{event}}(e_1, d_1, L) \circ E_{\text{event}}(e_2, d_2, L) \neq E_{\text{event}}(e_2, d_2, L) \circ E_{\text{event}}(e_1, d_1, L)$$
 
 ##### Structured Clone Properties
 
 Structured clone operations are deterministic:
+
 $$\text{structuredClone}(obj) = \text{structuredClone}(obj) \text{ for same input}$$
 
 #### Event-Driven Architecture Model
@@ -582,15 +597,18 @@ Where:
 - $V$ = Void (no return value)
 
 Event emission pattern with listener checking:
+
 $$E_{\text{check}}(e, L) = \begin{cases}
 \text{emit}(e, d) & \text{if } |L| > 0 \\
 \text{no-op} & \text{otherwise}
 \end{cases}$$
 
 Event emission pattern:
+
 $$E_{\text{event}}(e, d, L) = E_{\text{check}}(e, L) \text{ for all } l \in L$$
 
 Response event binding:
+
 $$E_{\text{response}}(req, res, evf) = \text{res.on(evf, () => emit(evf, req, res))}$$
 
 Key events:
@@ -611,6 +629,7 @@ Where:
 - $C$ = Configuration space
 
 Decoration function with batch operations:
+
 $$D(req, res, config) = \begin{cases}
 req' = req \cup \{parsed, allow, body, corsHost, cors, host, ip, params, valid, precise\} \\
 res' = res \cup \{locals, error, header, json, redirect, send, set, status\}
@@ -682,6 +701,7 @@ Where:
 - $\mathbb{V}$ = Void (error propagation)
 
 Error handling paths:
+
 $$E_{\text{route}}(error, req, res) = \begin{cases}
 (403, \text{Forbidden}) & \text{if CORS validation fails} \\
 (404, \text{Not Found}) & \text{if route not found} \\
