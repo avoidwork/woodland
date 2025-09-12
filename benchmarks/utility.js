@@ -1,4 +1,5 @@
 // Note: Using source utility functions since they are not exported from dist
+import {woodland} from "../src/woodland.js";
 import {
 	autoindex,
 	getStatus,
@@ -15,6 +16,19 @@ import {
 	timeOffset,
 	writeHead
 } from "../src/utility.js";
+
+/**
+ * Create a fresh Woodland app instance for benchmarks
+ * @returns {Object} Woodland app instance
+ */
+const createFreshApp = () => {
+	return woodland({
+		cacheSize: 1000,
+		cacheTTL: 10000,
+		etags: true,
+		logging: {enabled: false}
+	});
+};
 
 // Test data for benchmarking
 const testUrls = [
@@ -135,7 +149,15 @@ const createMockResponse = () => {
 			}
 		},
 		headers: headers,
-		end: () => {}
+		end: () => {},
+		// Add event handling methods that Woodland expects
+		on: (_event, _callback) => {},
+		once: (_event, _callback) => {},
+		emit: (_event, ..._args) => {},
+		// Add response helper methods
+		send: _data => {},
+		json: _data => {},
+		redirect: (_url, _statusCode) => {}
 	};
 };
 
@@ -358,8 +380,17 @@ function benchmarkWriteHead () {
  * Benchmark next() function - middleware chain progression
  */
 function benchmarkNext () {
-	const req = createMockRequest();
+	// Create a realistic Woodland app to properly set up the request
+	const freshApp = createFreshApp();
+
+	// Add a route so the app has allowed methods
+	freshApp.get("/test", (req, res) => res.send("OK"));
+
+	const req = createMockRequest("GET", "/test");
 	const res = createMockResponse();
+
+	// Use Woodland's actual decorate method to properly set up req.allow and other properties
+	freshApp.decorate(req, res);
 
 	// Create a simple middleware iterator
 	const middleware = [

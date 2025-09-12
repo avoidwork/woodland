@@ -132,7 +132,7 @@ export default [
 			"no-underscore-dangle": [0],
 			"no-unreachable": [2],
 			"no-unused-expressions": [2],
-			"no-unused-vars": [2, {"vars": "all", "args": "after-used"}],
+			"no-unused-vars": [2, {"vars": "all", "args": "after-used", "argsIgnorePattern": "^_", "varsIgnorePattern": "^_"}],
 			"no-use-before-define": [2],
 			"no-void": [0],
 			"no-warning-comments": [0, {"terms": ["todo", "fixme", "xxx"], "location": "start"}],
