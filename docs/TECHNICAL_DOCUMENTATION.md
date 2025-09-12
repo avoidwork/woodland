@@ -322,13 +322,13 @@ $$\mathcal{M}_{\text{register}}(path, handlers, method) = \begin{cases}
 \end{cases}$$
 
 Route reduction in the `reduce()` function:
-$$\mathcal{M}_{\text{reduce}}(uri, map, arg) = \begin{cases}
-\text{for each middleware in map:} \\
-\text{reset regex.lastIndex = 0} \\
-\text{if regex.test(uri):} \\
-\text{arg.middleware.push(...handlers)} \\
-\text{if params: arg.params = true, arg.getParams = regex}
-\end{cases}$$
+$$\mathcal{M}_{\text{reduce}}(uri, map, arg) = \begin{aligned}
+&\text{for each middleware in } map: \\
+&\quad \text{reset } regex.lastIndex = 0 \\
+&\quad \text{if } regex.test(uri): \\
+&\quad \quad arg.middleware.push(...handlers) \\
+&\quad \quad \text{if params: } arg.params = true, arg.getParams = regex
+\end{aligned}$$
 
 Array spreading cost:
 $$\mathcal{M}_{\text{spread}}(handlers) = O(|handlers|) \text{ for spread operation}$$
