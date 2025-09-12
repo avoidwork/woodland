@@ -317,8 +317,8 @@ Route registration in the `use()` method:
 
 $$\mathcal{M}_{\text{register}}(path, handlers, method) = \begin{cases}
 \text{compile regex pattern} \\
-\text{store handlers, params, regex} \\
-\text{add to middleware.get(method)}
+\hspace{1em}\text{store handlers, params, regex} \\
+\hspace{1em}\text{add to middleware.get(method)}
 \end{cases}$$
 
 Route reduction in the `reduce()` function:
@@ -443,9 +443,10 @@ $$\mathcal{O}_{\text{preflight}}(req, res) = \begin{cases}
 \end{cases}$$
 
 Automatic CORS setup:
+
 $$\mathcal{O}_{\text{setup}}(origins) = \begin{cases}
 \text{register OPTIONS handler} & \text{if } |origins| > 0 \\
-\text{mark as ignored middleware} \\
+\hspace{1em}\text{mark as ignored middleware} \\
 \text{no-op} & \text{if } |origins| = 0
 \end{cases}$$
 
@@ -612,11 +613,12 @@ res' = res \cup \{locals, error, header, json, redirect, send, set, status\}
 \end{cases}$$
 
 Batch header operations:
+
 $$\mathcal{H}_{\text{batch}}(req, res, config) = \begin{cases}
 \text{headersBatch} = \{ALLOW: req.allow, X_CONTENT_TYPE_OPTIONS: NO_SNIFF\} \\
-\text{add default headers} \\
-\text{add CORS headers if } req.cors = \text{true} \\
-\text{res.set(headersBatch)}
+\hspace{1em}\text{add default headers} \\
+\hspace{1em}\text{add CORS headers if } req.cors = \text{true} \\
+\hspace{1em}\text{res.set(headersBatch)}
 \end{cases}$$
 
 Key decorations:
