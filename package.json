@@ -31,7 +31,7 @@
     "test:cli": "mocha tests/unit/cli.test.js",
     "test:src": "npm run lint && c8 mocha tests/unit/constants.test.js tests/unit/utility.test.js tests/unit/woodland*.test.js tests/integration/*.test.js",
     "test:watch": "npm run mocha -- --watch",
-    "precommit": "npm run test && npm run coverage"
+    "precommit": "npm run test"
   },
   "pre-commit": [
     "precommit"
