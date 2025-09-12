@@ -2,6 +2,7 @@
 import {
 	autoindex,
 	getStatus,
+	isValidIP,
 	mime,
 	ms,
 	next,
@@ -76,6 +77,25 @@ const testNumbers = [
 const testTimezoneOffsets = [
 	0, -60, -120, -180, -240, -300, -360, -420, -480, -540, -600, -660, -720,
 	60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 660, 720
+];
+
+const testIPAddresses = [
+	"192.168.1.1",
+	"10.0.0.1",
+	"172.16.0.1",
+	"127.0.0.1",
+	"255.255.255.255",
+	"0.0.0.0",
+	"::1",
+	"2001:db8::1",
+	"fe80::1%lo0",
+	"::ffff:192.168.1.1",
+	"::",
+	"2001:0db8:85a3::8a2e:370:7334",
+	"invalid.ip",
+	"256.256.256.256",
+	"192.168.1",
+	"gggg::1"
 ];
 
 // Mock request objects for testing
@@ -416,6 +436,15 @@ function benchmarkComplexMime () {
 	return mime(filename);
 }
 
+/**
+ * Benchmark isValidIP() function - IP address validation
+ */
+function benchmarkIsValidIP () {
+	const ip = testIPAddresses[Math.floor(Math.random() * testIPAddresses.length)];
+
+	return isValidIP(ip);
+}
+
 // Export benchmark functions
 export default {
 	"parse() - URL strings": benchmarkParse,
@@ -433,5 +462,6 @@ export default {
 	"reduce() - route reduction": benchmarkReduce,
 	"writeHead() - header writing": benchmarkWriteHead,
 	"next() - middleware chain": benchmarkNext,
-	"parse() - edge cases": benchmarkParseEdgeCases
+	"parse() - edge cases": benchmarkParseEdgeCases,
+	"isValidIP() - IP validation": benchmarkIsValidIP
 };

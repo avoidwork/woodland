@@ -74,23 +74,31 @@ function escapeHtml (str = EMPTY) {
 export function autoindex (title = EMPTY, files = []) {
 	const safeTitle = escapeHtml(title);
 
-	// Security: Generate file listing with proper HTML escaping
-	const parentDir = "    <li><a href=\"..\" rel=\"collection\">../</a></li>";
-	const fileList = files.map(file => {
+	// Pre-allocate array for better performance
+	const listItems = new Array(files.length + 1);
+	listItems[0] = "    <li><a href=\"..\" rel=\"collection\">../</a></li>";
+
+	// Optimize file list generation with single loop
+	for (let i = 0; i < files.length; i++) {
+		const file = files[i];
 		const safeName = escapeHtml(file.name);
 		const safeHref = encodeURIComponent(file.name);
 		const isDir = file.isDirectory();
-		const displayName = isDir ? `${safeName}/` : safeName;
-		const href = isDir ? `${safeHref}/` : safeHref;
-		const rel = isDir ? "collection" : "item";
 
-		return `    <li><a href="${href}" rel="${rel}">${displayName}</a></li>`;
-	}).join("\n");
+		// Avoid string concatenation inside conditionals
+		if (isDir) {
+			listItems[i + 1] = `    <li><a href="${safeHref}/" rel="collection">${safeName}/</a></li>`;
+		} else {
+			listItems[i + 1] = `    <li><a href="${safeHref}" rel="item">${safeName}</a></li>`;
+		}
+	}
 
-	const safeFiles = files.length > 0 ? `${parentDir}\n${fileList}` : parentDir;
+	const safeFiles = listItems.join("\n");
 
-	return html.replace(/\$\{\s*TITLE\s*\}/g, safeTitle)
-		.replace(/\$\{\s*FILES\s*\}/g, safeFiles);
+	// Use single replace with callback for better performance
+	return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) => {
+		return key === "TITLE" ? safeTitle : safeFiles;
+	});
 }
 
 /**
@@ -194,18 +202,34 @@ export function pad (arg = INT_0) {
 export function params (req, getParams) {
 	getParams.lastIndex = INT_0;
 	const match = getParams.exec(req.parsed.pathname);
-	req.params = match?.groups ?? {};
+	const groups = match?.groups;
 
-	// Process parameters in a single loop
-	for (const [key, value] of Object.entries(req.params)) {
-		try {
-			const decoded = decodeURIComponent(value);
-			req.params[key] = coerce(escapeHtml(decoded));
-		} catch {
-			// If decoding fails, escape the original value
-			req.params[key] = coerce(escapeHtml(value));
-		}
+	if (!groups) {
+		req.params = {};
+
+		return;
 	}
+
+	// Pre-allocate object for better performance
+	const processedParams = {};
+	const keys = Object.keys(groups);
+
+	for (let i = 0; i < keys.length; i++) {
+		const key = keys[i];
+		const value = groups[key];
+		let decoded;
+
+		// Optimized URL decoding with single try/catch
+		try {
+			decoded = decodeURIComponent(value);
+		} catch {
+			decoded = value;
+		}
+
+		processedParams[key] = decoded === null ? coerce(null) : coerce(escapeHtml(decoded || EMPTY));
+	}
+
+	req.params = processedParams;
 }
 
 /**
@@ -234,21 +258,50 @@ export function partialHeaders (req, res, size, status, headers = {}, options = 
 		return [headers, options];
 	}
 
-	// Parse range header more efficiently
-	const rangePart = rangeHeader.slice(KEY_BYTES.length);
-	const [rangeSpec] = rangePart.split(COMMA);
-	const [startStr, endStr] = rangeSpec.split(HYPHEN);
+	// Optimized range parsing - avoid multiple splits
+	const rangePart = rangeHeader.substring(KEY_BYTES.length);
+	const commaIndex = rangePart.indexOf(COMMA);
+	const rangeSpec = commaIndex === -1 ? rangePart : rangePart.substring(0, commaIndex);
+	const hyphenIndex = rangeSpec.indexOf(HYPHEN);
 
-	let start = startStr ? parseInt(startStr, INT_10) : NaN;
-	let end = endStr ? parseInt(endStr, INT_10) : NaN;
+	let start, end;
 
-	// Handle suffix-byte-range-spec (e.g., "-500" means last 500 bytes)
-	if (isNaN(start) && !isNaN(end)) {
+	if (hyphenIndex === -1) {
+		// No hyphen found, invalid range
+		return [headers, options];
+	}
+
+	const startStr = rangeSpec.substring(0, hyphenIndex);
+	const endStr = rangeSpec.substring(hyphenIndex + 1);
+
+	// Parse numbers with optimized logic
+	if (startStr === EMPTY) {
+		// Suffix-byte-range-spec (e.g., "-500")
+		if (endStr === EMPTY) {
+			return [headers, options];
+		}
+		end = parseInt(endStr, INT_10);
+		if (isNaN(end)) {
+			return [headers, options];
+		}
 		start = size - end;
 		end = size - 1;
-	} else if (!isNaN(start) && isNaN(end)) {
-		end = size - 1;
+	} else {
+		start = parseInt(startStr, INT_10);
+		if (isNaN(start)) {
+			return [headers, options];
+		}
+
+		if (endStr === EMPTY) {
+			end = size - 1;
+		} else {
+			end = parseInt(endStr, INT_10);
+			if (isNaN(end)) {
+				return [headers, options];
+			}
+		}
 	}
+
 
 	// Clean up headers once
 	res.removeHeader(CONTENT_RANGE);
@@ -344,6 +397,12 @@ export function writeHead (res, headers = {}) {
 	res.writeHead(res.statusCode, STATUS_CODES[res.statusCode], headers);
 }
 
+// Pre-compiled regex patterns for better performance
+const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+const IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/;
+const IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i;
+const HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
+
 /**
  * Validates if an IP address is properly formatted
  * @param {string} ip - IP address to validate
@@ -354,39 +413,35 @@ export function isValidIP (ip) {
 		return false;
 	}
 
-	// IPv4 validation
-	if (!ip.includes(":")) {
-		const ipv4Pattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-		const match = ip.match(ipv4Pattern);
+	// IPv4 validation - optimize with early character check
+	if (ip.indexOf(":") === -1) {
+		const match = IPV4_PATTERN.exec(ip);
 
 		if (!match) {
 			return false;
 		}
 
-		// Check octets are in valid range (0-255)
-		return match.slice(1).every(octet => {
-			const num = parseInt(octet, 10);
+		// Optimized octet validation - avoid array methods
+		for (let i = 1; i < 5; i++) {
+			const num = parseInt(match[i], 10);
+			if (num > 255) {
+				return false;
+			}
+		}
 
-			return num >= 0 && num <= 255;
-		});
+		return true;
 	}
 
 	// IPv6 validation
-	// Quick check for valid characters
-	if (!(/^[0-9a-fA-F:.]+$/).test(ip)) {
+	// Quick character validation
+	if (!IPV6_CHAR_PATTERN.test(ip)) {
 		return false;
 	}
 
 	// Handle IPv4-mapped IPv6 addresses
-	const ipv4MappedMatch = ip.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i);
+	const ipv4MappedMatch = IPV4_MAPPED_PATTERN.exec(ip);
 	if (ipv4MappedMatch) {
 		return isValidIP(ipv4MappedMatch[1]);
-	}
-
-	// Handle "::" compression
-	const doublColonParts = ip.split("::");
-	if (doublColonParts.length > 2) {
-		return false;
 	}
 
 	// Special case for "::" alone
@@ -394,26 +449,60 @@ export function isValidIP (ip) {
 		return true;
 	}
 
-	const isCompressed = doublColonParts.length === 2;
-	let groups;
+	// Handle "::" compression - optimize split operations
+	const doubleColonIndex = ip.indexOf("::");
+	const isCompressed = doubleColonIndex !== -1;
 
 	if (isCompressed) {
-		const leftGroups = doublColonParts[0] ? doublColonParts[0].split(":") : [];
-		const rightGroups = doublColonParts[1] ? doublColonParts[1].split(":") : [];
-		groups = [...leftGroups, ...rightGroups].filter(g => g !== "");
-
-		// Must be compressed (less than 8 groups)
-		if (groups.length >= 8) {
+		// Check for multiple "::" which is invalid
+		if (ip.indexOf("::", doubleColonIndex + 2) !== -1) {
 			return false;
 		}
+
+		const beforeDoubleColon = ip.substring(0, doubleColonIndex);
+		const afterDoubleColon = ip.substring(doubleColonIndex + 2);
+
+		const leftGroups = beforeDoubleColon ? beforeDoubleColon.split(":") : [];
+		const rightGroups = afterDoubleColon ? afterDoubleColon.split(":") : [];
+
+		// Filter out empty groups and validate total count
+		const nonEmptyLeft = leftGroups.filter(g => g !== "");
+		const nonEmptyRight = rightGroups.filter(g => g !== "");
+		const totalGroups = nonEmptyLeft.length + nonEmptyRight.length;
+
+		// Must be compressed (less than 8 groups)
+		if (totalGroups >= 8) {
+			return false;
+		}
+
+		// Validate each group
+		for (let i = 0; i < nonEmptyLeft.length; i++) {
+			if (!HEX_GROUP_PATTERN.test(nonEmptyLeft[i])) {
+				return false;
+			}
+		}
+		for (let i = 0; i < nonEmptyRight.length; i++) {
+			if (!HEX_GROUP_PATTERN.test(nonEmptyRight[i])) {
+				return false;
+			}
+		}
+
+		return true;
 	} else {
-		groups = ip.split(":");
+		const groups = ip.split(":");
 		// Full notation must have exactly 8 groups
 		if (groups.length !== 8) {
 			return false;
 		}
-	}
 
-	// Validate each group (1-4 hex digits)
-	return groups.every(group => group && (/^[0-9a-fA-F]{1,4}$/).test(group));
+		// Validate each group
+		for (let i = 0; i < 8; i++) {
+			if (!groups[i] || !HEX_GROUP_PATTERN.test(groups[i])) {
+				return false;
+			}
+		}
+
+		return true;
+	}
 }
+
