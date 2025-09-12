@@ -313,14 +313,15 @@ $$\mathcal{M}(u, p, r) = \begin{cases}
 (\text{false}, \emptyset, \emptyset) & \text{otherwise}
 \end{cases}$$
 
-Route registration in `use()` method:
+Route registration in the `use()` method:
+
 $$\mathcal{M}_{\text{register}}(path, handlers, method) = \begin{cases}
-\text{compile regex: } /^${path}$/ \\
-\text{store: } \{handlers, params, regex\} \\
-\text{add to: } \text{middleware.get(method)}
+\text{compile regex pattern} \\
+\text{store handlers, params, regex} \\
+\text{add to middleware.get(method)}
 \end{cases}$$
 
-Route reduction in `reduce()` function:
+Route reduction in the `reduce()` function:
 $$\mathcal{M}_{\text{reduce}}(uri, map, arg) = \begin{cases}
 \text{for each middleware in map:} \\
 \text{reset regex.lastIndex = 0} \\
