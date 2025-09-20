@@ -15,7 +15,7 @@
 
 ## 🚀 Features
 
-- **🏆 Performance Leader**: **26% faster than raw Node.js, 44% faster than Express.js, 91% of Fastify's performance** - proven by benchmarks
+- **🏆 Performance Leader**: **15% faster than raw Node.js, 3% faster than Express.js, 87% of Fastify's performance** - proven by benchmarks
 - **⚡ Zero Overhead**: Framework features with performance gains, not costs
 - **🔒 Security First**: Built-in CORS, ETags, and comprehensive security headers
 - **🛤️ Smart Routing**: Parameter syntax (`/users/:id`) and RegExp support with caching
@@ -58,7 +58,7 @@ app.always(rateLimit({
 
 **Stop accepting framework overhead.** Most HTTP frameworks slow you down in exchange for convenience. Woodland breaks that trade-off.
 
-🏆 **Proven Performance**: Comprehensive benchmarks show Woodland **outperforms raw Node.js by 26%, Express.js by 44%, and delivers 91% of Fastify's performance**  
+🏆 **Proven Performance**: Comprehensive benchmarks show Woodland **outperforms raw Node.js by 15%, Express.js by 3%, and delivers 87% of Fastify's performance**  
 ⚡ **Zero Compromise**: Get all the framework features you need with better performance than hand-coding  
 🚀 **Battle-Tested**: 100% statement coverage with 416 comprehensive tests, production-ready security, and enterprise-grade reliability  
 🔧 **Developer Experience**: Express-compatible API means zero learning curve for your team  
@@ -791,24 +791,24 @@ new Woodland(config)
 
 ### 🏆 Framework Performance Showdown
 
-**Competitive Performance**: Woodland delivers excellent performance that significantly outperforms both raw Node.js and Express.js, while achieving 91% of Fastify's performance - an outstanding showing for a framework that prioritizes developer experience alongside speed.
+**Competitive Performance**: Woodland delivers excellent performance that outperforms both raw Node.js and Express.js, while achieving 87% of Fastify's performance - a strong showing for a framework that prioritizes developer experience alongside speed.
 
 ```
 Framework Comparison (JSON Response) - 5-run average
 Platform: Apple Mac Mini M4 Pro, Node.js 24.8.0
 
-Fastify framework:        14,077 ops/sec  (0.071ms avg)  🥇 FASTEST
-Woodland framework:       12,865 ops/sec  (0.078ms avg)  🥈 Strong second
-Raw Node.js HTTP module:  10,246 ops/sec  (0.098ms avg)  🥉 Third place
-Express.js framework:      8,907 ops/sec  (0.112ms avg)
+Fastify framework:        14,283 ops/sec  (0.070ms avg)  🥇 FASTEST
+Woodland framework:       12,478 ops/sec  (0.080ms avg)  🥈 Strong second
+Express.js framework:     12,112 ops/sec  (0.083ms avg)  🥉 Third place
+Raw Node.js HTTP module:  10,888 ops/sec  (0.092ms avg)
 
-Performance improvement: +26% faster than raw Node.js, +44% faster than Express.js, 91% of Fastify's performance
+Performance improvement: +15% faster than raw Node.js, +3% faster than Express.js, 87% of Fastify's performance
 ```
 
 **Why Woodland delivers competitive performance:**
-- **vs Raw Node.js**: Optimized request/response pipeline that eliminates common inefficiencies (+26% faster)
-- **vs Express.js**: Lightweight middleware system that significantly outperforms while maintaining developer experience (+44% faster)
-- **vs Fastify**: Balanced approach that trades some raw speed for enhanced usability (91% of Fastify's performance)
+- **vs Raw Node.js**: Optimized request/response pipeline that eliminates common inefficiencies (+15% faster)
+- **vs Express.js**: Lightweight middleware system that outperforms while maintaining developer experience (+3% faster)
+- **vs Fastify**: Balanced approach that trades some raw speed for enhanced usability (87% of Fastify's performance)
 - Built-in JSON response optimization with smart serialization
 - Efficient header management and intelligent caching strategies
 - Developer-friendly architecture that doesn't sacrifice performance for convenience
@@ -830,7 +830,7 @@ Large response:      814 ops/sec       (1.228ms avg)
 
 ### Performance Tips
 
-1. **Choose Woodland over alternatives**: Woodland provides 26% better performance than raw Node.js and 44% better than Express.js for JSON responses
+1. **Choose Woodland over alternatives**: Woodland provides 15% better performance than raw Node.js and 3% better than Express.js for JSON responses
 2. **Enable Route Caching**: Route caching provides significant performance improvement - allows() with cache: 4.8M ops/sec vs without: 300K ops/sec
 3. **Optimize Route Order**: Place frequently accessed routes first in your application
 4. **Use Parameter Routes**: Parameter routes perform competitively with static routes (~2.4M vs ~2.5M ops/sec)

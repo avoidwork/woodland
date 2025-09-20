@@ -3,6 +3,13 @@ import express from "express";
 import fastify from "fastify";
 import {woodland} from "../dist/woodland.js";
 
+// Shared data object in lexical scope for all frameworks
+const data = {
+	message: "Hello World",
+	timestamp: Date.now(),
+	success: true
+};
+
 // Test server configuration
 const SERVER_CONFIG = {
 	port: 0, // Use random available port
@@ -29,13 +36,7 @@ function createRawServer () {
 		res.setHeader("Content-Type", "application/json; charset=utf-8");
 		res.setHeader("X-Powered-By", "nodejs");
 
-		// Simple JSON response
-		const data = {
-			message: "Hello World",
-			timestamp: Date.now(),
-			success: true
-		};
-
+		// Use shared data object from lexical scope
 		res.writeHead(200);
 		res.end(JSON.stringify(data));
 	});
@@ -54,12 +55,9 @@ function createWoodlandServer () {
 		time: false // Disable timing for fair comparison
 	});
 
+	// Use shared data object from lexical scope
 	app.get("/", (req, res) => {
-		res.json({
-			message: "Hello World",
-			timestamp: Date.now(),
-			success: true
-		});
+		res.json(data);
 	});
 
 	return app;
@@ -72,12 +70,9 @@ function createWoodlandServer () {
 function createExpressServer () {
 	const app = express();
 
+	// Use shared data object from lexical scope
 	app.get("/", (req, res) => {
-		res.json({
-			message: "Hello World",
-			timestamp: Date.now(),
-			success: true
-		});
+		res.json(data);
 	});
 
 	return app;
@@ -92,12 +87,9 @@ function createFastifyServer () {
 		logger: false // Disable logging for benchmarks
 	});
 
+	// Use shared data object from lexical scope
 	app.get("/", async () => {
-		return {
-			message: "Hello World",
-			timestamp: Date.now(),
-			success: true
-		};
+		return data;
 	});
 
 	return app;
