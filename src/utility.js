@@ -269,7 +269,15 @@ export function params (req, getParams) {
  * @returns {URL} Parsed URL object
  */
 export function parse (arg) {
-	return new URL(typeof arg === STRING ? arg : `http://${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || "8000"}`}${arg.url}`);
+	if (typeof arg === STRING) {
+		return new URL(arg);
+	}
+
+	const host = arg.headers?.host || "localhost:8000";
+	const port = host.includes(":") && !host.startsWith("[") ? host.split(":")[1] : "8000";
+	const connectionIP = arg.connection?.remoteAddress || arg.socket?.remoteAddress || "localhost";
+
+	return new URL(`${arg.url}`, `http://${connectionIP}:${port}`);
 }
 
 /**
@@ -449,10 +457,10 @@ export function writeHead (res, headers = {}) {
 }
 
 // Pre-compiled regex patterns for better performance
-const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-const IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/;
-const IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i;
-const HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
+const IPV4_PATTERN = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+const IPV6_CHAR_PATTERN = /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|::(?:[0-9a-fA-F]{1,4}:){0,6}[0-9a-fA-F]{1,4}|[0-9a-fA-F]{1,4}::(?:[0-9a-fA-F]{1,4}:){0,5}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|::1|::$/;
+const IPV4_MAPPED_PATTERN = /^::ffff:(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/i;
+const HEX_GROUP_PATTERN = /^(?:[0-9a-fA-F]{1,4})$/;
 
 /**
  * Validates if an IP address is properly formatted
