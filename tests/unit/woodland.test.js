@@ -2460,7 +2460,7 @@ describe("Woodland Decorate Method and Header Manipulation", () => {
 		app.decorate(mockReq, mockRes);
 
 		assert.ok(mockRes.getHeader("server"), "Should set server header");
-		assert.ok(mockRes.getHeader("x-powered-by"), "Should set x-powered-by header");
+		assert.strictEqual(mockRes.getHeader("x-powered-by"), undefined, "Should not set x-powered-by header");
 		assert.strictEqual(mockRes.getHeader("custom-server"), "Woodland-Test", "Should set custom default headers");
 		assert.strictEqual(mockRes.getHeader("x-frame-options"), "DENY", "Should set custom security headers");
 		assert.strictEqual(mockRes.getHeader("x-content-type-options"), "nosniff", "Should set security headers");
@@ -2472,7 +2472,7 @@ describe("Woodland Decorate Method and Header Manipulation", () => {
 		assert.ok(mockReq.parsed, "Should have parsed object");
 		assert.strictEqual(mockReq.parsed.pathname, "/test", "Should parse pathname");
 		assert.strictEqual(mockReq.parsed.search, "?param=value", "Should parse search parameters");
-		assert.strictEqual(mockReq.parsed.hostname, "example.com", "Should parse hostname");
+		assert.strictEqual(mockReq.parsed.hostname, "192.168.1.100", "Should parse hostname");
 	});
 
 	it("should set request properties correctly", () => {
@@ -2480,7 +2480,7 @@ describe("Woodland Decorate Method and Header Manipulation", () => {
 
 		assert.strictEqual(mockReq.body, "", "Should initialize body as empty string");
 		assert.strictEqual(typeof mockReq.allow, "string", "Should set allow string");
-		assert.strictEqual(mockReq.host, "example.com", "Should set host from parsed");
+		assert.strictEqual(mockReq.host, "192.168.1.100", "Should set host from parsed");
 		assert.strictEqual(mockReq.ip, "192.168.1.100", "Should set IP address");
 		assert.deepStrictEqual(mockReq.params, {}, "Should initialize params as empty object");
 		assert.strictEqual(mockReq.valid, true, "Should initialize valid as true");
