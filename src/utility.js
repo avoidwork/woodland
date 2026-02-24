@@ -535,15 +535,17 @@ export function isValidIP (ip) {
 
 		return true;
 	} else {
-		// Full notation: regex ensures 8 groups of 1-4 hex digits
-		if (!IPV6_CHAR_PATTERN.test(ip)) {
-			return false;
-		}
-
-		// Full notation must have exactly 8 groups
+		// Full notation: check for exactly 8 groups and 1-4 hex digits per group
 		const groups = ip.split(":");
 		if (groups.length !== 8) {
 			return false;
+		}
+
+		// Validate each group has at most 4 hex digits
+		for (const group of groups) {
+			if (group.length > 4) {
+				return false;
+			}
 		}
 
 		return true;

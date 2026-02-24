@@ -1301,8 +1301,32 @@ describe("utility", () => {
 			assert.strictEqual(isValidIP("2001:db8:123456::1"), false);
 			// Also test non-hex characters (regex matches, validation rejects)
 			assert.strictEqual(isValidIP("2001:gghh::1"), false);
-			// Full notation with too many groups
+			// Full notation with 8 groups - groups too long (validation loop)
+			assert.strictEqual(isValidIP("2001:12345:85a3:0000:0000:8a2e:0370:7334"), false);
+			assert.strictEqual(isValidIP("2001:0db8:123456:0000:0000:8a2e:0370:7334"), false);
+			assert.strictEqual(isValidIP("2001:0db8:85a3:12345:0000:8a2e:0370:7334"), false);
+			assert.strictEqual(isValidIP("2001:0db8:85a3:0000:12345:8a2e:0370:7334"), false);
+			assert.strictEqual(isValidIP("2001:0db8:85a3:0000:0000:12345:0370:7334"), false);
+			assert.strictEqual(isValidIP("2001:0db8:85a3:0000:0000:8a2e:12345:7334"), false);
+			assert.strictEqual(isValidIP("2001:0db8:85a3:0000:0000:8a2e:0370:12345"), false);
+			// Full notation with too many groups (8 groups validation)
 			assert.strictEqual(isValidIP("2001:0db8:85a3:0000:0000:8a2e:0370:7334:0000"), false);
+		});
+
+		it("should test IPv6 compressed notation with edge cases", () => {
+			// Test compressed notation edge cases that trigger validation
+			// Line 525-526: totalGroups >= 8 check
+			assert.strictEqual(isValidIP("1:2:3:4:5:6:7::8:9"), false);
+			assert.strictEqual(isValidIP("1:2:3:4:5:6::7:8:9"), false);
+			assert.strictEqual(isValidIP("1:2:3:4:5::6:7:8:9"), false);
+			assert.strictEqual(isValidIP("1:2:3:4::5:6:7:8:9"), false);
+			assert.strictEqual(isValidIP("1:2:3::4:5:6:7:8:9"), false);
+			assert.strictEqual(isValidIP("1:2::3:4:5:6:7:8:9"), false);
+			assert.strictEqual(isValidIP("1::2:3:4:5:6:7:8:9"), false);
+			assert.strictEqual(isValidIP("::1:2:3:4:5:6:7:8:9"), false);
+			// Line 540-541: group length and hex character validation in compressed notation
+			assert.strictEqual(isValidIP("2001:gghh:3:4:5:6:7:8"), false);
+			assert.strictEqual(isValidIP("1:gggg:3:4:5:6:7:8"), false);
 		});
 
 		it("should handle compressed IPv6 addresses correctly", () => {
