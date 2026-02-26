@@ -1,0 +1,486 @@
+
+> woodland@20.2.10 test:src
+> npm run lint && c8 mocha tests/unit/constants.test.js tests/unit/utility.test.js tests/unit/woodland*.test.js tests/integration/*.test.js
+
+
+> woodland@20.2.10 lint
+> eslint --fix *.js src/*.js tests/**/*.test.js benchmarks/*.js
+
+
+
+  Constants
+    HTTP Methods
+      ✔ should export HTTP method constants
+    HTTP Status Codes
+      ✔ should export status code constants
+    HTTP Headers
+      ✔ should export header name constants
+      ✔ should export CORS header constants
+      ✔ should export security header constants
+    Content Types
+      ✔ should export content type constants
+      ✔ should export charset constants
+    Server Information
+      ✔ should export server value constants
+      ✔ should export default server constants
+    File System Constants
+      ✔ should export index file constants
+      ✔ should export file system related constants
+    Numeric Constants
+      ✔ should export basic numeric constants
+    String and Symbol Constants
+      ✔ should export common symbols and strings
+    Export Validation
+      ✔ should not export undefined values
+      ✔ should export at least basic required constants
+
+  utility
+    autoindex
+      ✔ should return HTML with empty title and files
+      ✔ should replace TITLE placeholder with uppercase pattern
+      ✔ should escape HTML in title parameter
+      ✔ should handle string files parameter
+      ✔ should process files parameter
+      ✔ should escape HTML in file names
+      ✔ should properly encode URLs in href attributes
+      ✔ should handle special characters in title
+      ✔ should always include parent directory link
+    getStatus
+      ✔ should return 404 when allow array is empty
+      ✔ should return 405 when method is not GET and allow has items
+      ✔ should return 404 when GET not in allow list
+      ✔ should return 500 when GET is allowed and statusCode > 500
+      ✔ should return 500 when GET is allowed and statusCode <= 500
+      ✔ should handle multiple methods in allow array
+      ✔ should handle GET method with high status codes
+      ✔ should handle edge case with status code exactly 500
+    mime
+      ✔ should return application/octet-stream for unknown extension
+      ✔ should return correct mime type for known extensions
+      ✔ should handle files without extension
+      ✔ should handle empty string
+      ✔ should handle common file extensions
+      ✔ should handle paths with multiple dots
+      ✔ should handle null and undefined
+      ✔ should handle case sensitivity
+    ms
+      ✔ should format nanoseconds to milliseconds with default precision
+      ✔ should handle custom precision
+      ✔ should handle zero value
+      ✔ should handle negative values
+      ✔ should handle very large values
+      ✔ should handle different precision values
+      ✔ should handle undefined and null inputs
+    next
+      ✔ should create a function
+      ✔ should handle immediate execution
+      ✔ should handle middleware with function value
+      ✔ should handle middleware with non-function value
+      ✔ should handle error middleware
+      ✔ should call res.error when middleware is done and no error handler
+      ✔ should handle error when middleware is done and no error handler found
+      ✔ should handle error when no error middleware available
+    pad
+      ✔ should pad single digit numbers
+      ✔ should not pad double digit numbers
+      ✔ should handle zero
+      ✔ should handle default parameter
+      ✔ should handle negative numbers
+      ✔ should handle numbers larger than 99
+      ✔ should handle string numbers
+      ✔ should handle null and undefined
+    params
+      ✔ should extract params from URL
+      ✔ should handle URL decoding
+      ✔ should handle no matches
+      ✔ should handle multiple parameters
+      ✔ should handle special characters in parameters
+      ✔ should handle empty parameter values
+      ✔ should coerce numeric strings to numbers
+      ✔ should handle boolean-like strings
+      ✔ should handle non-string parameter values after decoding
+      ✔ should handle decodeURIComponent exceptions
+      ✔ should handle null/undefined parameter values in groups
+    parse
+      ✔ should parse URL string
+      ✔ should parse request object
+      ✔ should handle missing host header
+      ✔ should handle complex URLs with query strings
+      ✔ should handle request object with custom port
+      ✔ should handle IPv6 addresses
+      ✔ should extract port from connection key when host header missing
+      ✔ should handle request object with null host header
+      ✔ should fallback to port 8000 when connection key is invalid
+      ✔ should handle missing socket server
+    partialHeaders
+      ✔ should handle no range header
+      ✔ should process valid range header
+      ✔ should handle suffix range
+      ✔ should handle prefix range
+      ✔ should handle invalid range (start > end)
+      ✔ should handle range exceeding file size
+      ✔ should handle malformed range header
+      ✔ should handle multiple ranges (takes first)
+      ✔ should set status code to 206 for valid range
+      ✔ should calculate content-length correctly
+      ✔ should handle edge case where start equals end
+      ✔ should handle range header with no hyphen
+      ✔ should handle empty suffix range
+      ✔ should handle invalid suffix range number
+      ✔ should handle invalid start range number
+      ✔ should handle invalid end range number
+    pipeable
+      ✔ should return true for pipeable object with non-HEAD method
+      ✔ should return false for HEAD method
+      ✔ should return false for null object
+      ✔ should return false for object without 'on' method
+      ✔ should return false for undefined object
+      ✔ should return false when 'on' is not a function
+      ✔ should handle various HTTP methods
+      ✔ should handle case sensitivity of HEAD method
+    reduce
+      ✔ should process middleware map
+      ✔ should set params when needed
+      ✔ should handle empty map
+      ✔ should handle multiple matching routes
+      ✔ should not match non-matching routes
+      ✔ should handle params priority (first match wins)
+      ✔ should handle default parameters
+      ✔ should reset regex lastIndex for each test
+    timeOffset
+      ✔ should format positive offset
+      ✔ should format negative offset
+      ✔ should handle zero offset
+      ✔ should handle larger values
+      ✔ should handle decimal values
+      ✔ should handle large negative values
+      ✔ should handle default parameter
+      ✔ should handle null and undefined
+      ✔ should handle small positive values
+      ✔ should handle small negative values
+      ✔ should format minutes correctly when there are no integer hours
+    writeHead
+      ✔ should call writeHead on response object
+      ✔ should pass custom headers
+      ✔ should handle empty headers
+      ✔ should pass correct status message
+      ✔ should handle various status codes
+      ✔ should handle complex headers object
+    isValidIP
+      ✔ should validate IPv4 addresses
+      ✔ should reject invalid IPv4 addresses
+      ✔ should validate IPv6 addresses
+      ✔ should reject invalid IPv6 addresses
+      ✔ should reject non-string inputs
+      ✔ should reject empty and whitespace strings
+      ✔ should reject obviously invalid formats
+      ✔ should handle edge cases
+      ✔ should validate special IPv6 addresses
+      ✔ should reject malformed IPv6
+      ✔ should handle IPv6 addresses with multiple double colons
+      ✔ should handle IPv6 addresses with too many groups
+      ✔ should handle IPv6 addresses with invalid characters
+      ✔ should handle IPv6 addresses with groups too long
+      ✔ should handle compressed IPv6 addresses correctly
+      ✔ should reject IPv6 addresses with invalid empty groups
+      ✔ should test IPv6 groups.every validation edge cases
+      ✔ should test IPv6 compressed address with invalid right side groups
+
+  Woodland Security Tests
+    Path Traversal Protection
+      ✔ should block path traversal attempts with ../
+      ✔ should block path traversal attempts with ..
+      ✔ should block null byte injection
+      ✔ should block newline injection
+      ✔ should allow safe file paths
+      ✔ should handle malformed URI encoding in files() method
+    IP Address Security
+      ✔ should return connection IP when no X-Forwarded-For header
+      ✔ should validate and extract IP from X-Forwarded-For header
+      ✔ should accept private IPs in X-Forwarded-For header
+      ✔ should handle invalid X-Forwarded-For header
+      ✔ should handle empty X-Forwarded-For header
+      ✔ should handle IPv6 addresses
+    CORS Security
+      ✔ should deny CORS when origins array is empty
+      ✔ should allow CORS when origin is explicitly configured
+      ✔ should allow CORS with wildcard if explicitly configured
+      ✔ should deny CORS for non-configured origins
+      ✔ should deny CORS when corsHost is false
+    Autoindex Security
+      ✔ should properly escape HTML in directory names
+      ✔ should properly encode hrefs in directory listings
+    Error Handling Security
+      ✔ should not expose sensitive information in error messages
+      ✔ should handle multiple error calls gracefully
+    Security Headers
+      ✔ should set X-Content-Type-Options header
+      ✔ should set secure default headers
+
+  Woodland Security Integration
+    ✔ should create instance with secure defaults
+    ✔ should allow explicit security configuration
+
+  Woodland
+    constructor
+      ✔ should create instance extending EventEmitter
+      ✔ should set default configuration
+      ✔ should accept custom configuration
+      ✔ should set default headers when not silent
+      ✔ should not set default headers when silent
+      ✔ should initialize etags when enabled
+      ✔ should not initialize etags when disabled
+    HTTP method handlers
+      ✔ should register GET routes
+      ✔ should register POST routes
+      ✔ should register PUT routes
+      ✔ should register DELETE routes
+      ✔ should register PATCH routes
+      ✔ should register OPTIONS routes
+      ✔ should register TRACE routes
+      ✔ should register CONNECT routes
+    use
+      ✔ should register middleware with route pattern
+      ✔ should register middleware without route pattern
+      ✔ should register middleware with specific method
+      ✔ should throw error for invalid method
+      ✔ should throw error for HEAD method
+      ✔ should handle parameterized routes
+      ✔ should return instance for chaining
+    always
+      ✔ should register wildcard middleware
+      ✔ should return instance for chaining
+    allowed
+      ✔ should return true for allowed method
+      ✔ should return false for disallowed method
+      ✔ should handle override parameter
+    allows
+      ✔ should return comma-separated list of allowed methods
+      ✔ should include OPTIONS for routes without GET
+      ✔ should include OPTIONS for single non-GET method routes
+      ✔ should include HEAD only when GET is present
+      ✔ should not include duplicate OPTIONS
+      ✔ should not include duplicate HEAD
+      ✔ should cache results
+      ✔ should handle override parameter
+      ✔ should return empty for routes with no methods
+    cors and corsHost
+      ✔ should detect cross-origin requests
+      ✔ should not detect same-origin requests
+      ✔ should allow CORS for wildcard origins
+      ✔ should allow CORS for specific origins
+      ✔ should deny CORS for unlisted origins
+    ip
+      ✔ should extract IP from connection
+      ✔ should extract IP from X-Forwarded-For header
+      ✔ should handle missing remoteAddress by using socket fallback
+      ✔ should fallback to 127.0.0.1 when no IP available
+    ignore
+      ✔ should add function to ignored set
+      ✔ should return instance for chaining
+    list
+      ✔ should return array of routes by default
+      ✔ should return object when type is object
+      ✔ should filter by method
+    log
+      ✔ should log messages when logging enabled
+      ✔ should return instance for chaining
+      ✔ should use console.error for error level logging
+test error
+      ✔ should use console.log for debug level logging
+type=use, route=/.*, method=GET, message="Registering middleware"
+type=ignore, message="Added function to ignored Set", name="bound middleware"
+test debug
+      ✔ should handle log levels correctly for console output
+test info
+test warn
+test error
+    path
+      ✔ should convert route parameters to regex groups
+      ✔ should handle multiple parameters
+      ✔ should return unchanged string for no parameters
+      ✔ should handle empty string
+    etag
+      ✔ should generate etag for GET requests
+      ✔ should generate etag for HEAD requests
+      ✔ should generate etag for OPTIONS requests
+      ✔ should return empty string for other methods
+      ✔ should return empty string when etags disabled
+    routes
+      ✔ should return route information
+      ✔ should include wildcard middleware
+      ✔ should cache results
+      ✔ should handle override parameter
+    helper method factories
+      json
+        ✔ should create json response function
+      redirect
+        ✔ should create redirect function
+      send
+        ✔ should create send function
+      set
+        ✔ should create header setting function
+      status
+        ✔ should create status setting function
+      error
+        ✔ should create error handler function
+    files
+      ✔ should register file serving route
+      ✔ should handle default parameters
+    routing edge cases
+      ✔ should fallback OPTIONS to GET when no OPTIONS route exists
+      ✔ should emit connect event when there are listeners
+      ✔ should emit connect event with proper listener count
+      ✔ should emit connect event on fresh instance
+      ✔ should emit connect event with HEAD method request
+      ✔ should emit finish event when there are listeners
+      ✔ should handle CORS rejection
+      ✔ should handle method not allowed
+    advanced route handling
+      ✔ should extract parameters from parameterized routes
+      ✔ should handle middleware with exit functionality
+
+  woodland factory function
+    ✔ should create Woodland instance
+    ✔ should pass configuration to constructor
+    ✔ should bind route method
+
+  Woodland CLF (Common Log Format)
+    ✔ should generate CLF with all fields populated
+    ✔ should include referer and user-agent with custom format
+    ✔ should handle missing host header
+    ✔ should handle missing IP
+    ✔ should handle missing username
+    ✔ should handle missing referer header
+    ✔ should handle missing user-agent header
+    ✔ should handle missing content-length
+    ✔ should format timestamp correctly
+    ✔ should include timezone offset
+    ✔ should handle custom logging format
+    ✔ should work when timing is disabled
+
+  Woodland Timing and Hooks
+    ✔ should add response time header when timing enabled
+    ✔ should not override existing response time header
+    ✔ should call onSend hook
+    ✔ should work when timing is disabled
+
+  Woodland Stream Method
+    ✔ should set basic file headers for GET request
+    ✔ should handle different file types correctly
+    ✔ should handle HEAD requests
+    ✔ should handle OPTIONS requests
+    ✔ should handle range requests
+    ✔ should handle invalid range requests and serve full file
+    ✔ should work without etags enabled
+    ✔ should emit stream event
+    ✔ should handle binary files correctly
+    ✔ should reach full coverage by testing edge cases
+    ✔ should throw TypeError for invalid file descriptor in stream method
+
+  Woodland Range Requests and Partial Content
+    ✔ should handle range requests for string content
+    ✔ should return 416 for invalid range
+    ✔ should handle range requests for streams
+    ✔ should send full content when no range specified
+
+  Woodland Cache Functionality
+    ✔ should cache route information
+    ✔ should cache allows results
+    ✔ should respect cache override
+    ✔ should handle cache eviction (151ms)
+    ✔ should handle permissions cache
+
+  Woodland Serve Method
+    ✔ should serve existing text files
+    ✔ should serve HTML files with correct MIME type
+    ✔ should serve binary files
+    ✔ should return 404 for non-existent files
+    ✔ should redirect directories without trailing slash
+    ✔ should serve index files from directories
+    ✔ should serve autoindex when enabled and no index file
+    ✔ should return 404 for directories when autoindex disabled and no index
+    ✔ should handle different file types correctly
+    ✔ should use default folder when not specified
+    ✔ should generate etag based on file stats
+    ✔ should handle nested directory paths
+    ✔ should handle large files
+    ✔ should handle custom folder parameter
+    ✔ should handle additional security check in serve method
+
+  Woodland Middleware Execution and Error Propagation
+    ✔ should execute wildcard middleware before specific method middleware
+    ✔ should stop execution when middleware doesn't call next
+    ✔ should handle middleware errors
+    ✔ should provide exit function for skipping remaining middleware
+    ✔ should handle exit middleware path when result.exit >= 0
+    ✔ should handle parameterized routes correctly
+    ✔ should handle multiple middleware functions on same route
+
+  Woodland Decorate Method and Header Manipulation
+    ✔ should set all default headers
+    ✔ should parse request URL correctly
+    ✔ should set request properties correctly
+    ✔ should set response helper methods
+    ✔ should handle CORS requests correctly
+    ✔ should handle CORS preflight requests
+    ✔ should set CORS expose headers for non-preflight requests
+    ✔ should initialize precise timer when timing enabled
+    ✔ should not initialize timer when timing disabled
+    ✔ should emit close event
+    ✔ should handle same-origin requests
+    ✔ should handle CORS when corsHeaders is undefined
+    ✔ should handle CORS headers for OPTIONS method
+    ✔ should handle CORS headers for non-OPTIONS method
+    ✔ should set allow header based on routes
+
+  Woodland Helper Method Edge Cases
+    ✔ should handle json response with custom headers
+    ✔ should handle redirect with temporary redirect
+    ✔ should handle redirect with permanent redirect
+    ✔ should handle set method with Map object
+    ✔ should handle set method with Headers object
+    ✔ should handle status method
+    ✔ should handle error method with Error object
+    ✔ should handle error method when headers already sent
+    ✔ should handle 404 errors by clearing Allow header
+    ✔ should handle send with object that has toString method
+    ✔ should handle 404 error with CORS enabled
+
+  Security Integration Tests
+    Path Traversal Protection
+      ✔ should block path traversal attempts through file serving
+      ✔ should block encoded path traversal attempts
+      ✔ should allow access to safe files
+      ✔ should handle malformed URI encoding
+    IP Address Security
+      ✔ should handle X-Forwarded-For header securely
+      ✔ should extract valid IP from X-Forwarded-For
+      ✔ should handle invalid X-Forwarded-For header
+    CORS Security
+      ✔ should deny CORS by default
+      ✔ should allow CORS when explicitly configured
+      ✔ should deny CORS for non-configured origins
+    Autoindex Security
+      ✔ should escape HTML in directory listings
+      ✔ should properly encode hrefs in directory listings
+      ✔ should not expose autoindex when disabled
+    Security Headers
+      ✔ should set X-Content-Type-Options header
+      ✔ should set secure default headers
+      ✔ should allow disabling default headers
+    Error Handling Security
+      ✔ should not expose sensitive information in error responses
+      ✔ should handle 404 errors securely
+
+
+  367 passing (301ms)
+
+--------------|---------|----------|---------|---------|-------------------
+File          | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+--------------|---------|----------|---------|---------|-------------------
+All files     |     100 |      100 |     100 |     100 |                   
+ constants.js |     100 |      100 |     100 |     100 |                   
+ utility.js   |     100 |      100 |     100 |     100 |                   
+ woodland.js  |     100 |      100 |     100 |     100 |                   
+--------------|---------|----------|---------|---------|-------------------

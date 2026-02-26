@@ -1,7 +1,7 @@
 import {METHODS, STATUS_CODES} from "node:http";
 import {join, resolve} from "node:path";
 import {EventEmitter} from "node:events";
-import {readdir, stat} from "node:fs/promises";
+import {readdir, realpath, stat} from "node:fs/promises";
 import {createReadStream} from "node:fs";
 import {etag} from "tiny-etag";
 import {precise} from "precise";
@@ -107,8 +107,6 @@ import {
 	WILDCARD,
 	X_CONTENT_TYPE_OPTIONS,
 	X_FORWARDED_FOR,
-	X_POWERED_BY,
-	X_POWERED_BY_VALUE,
 	X_RESPONSE_TIME
 } from "./constants.js";
 import {
@@ -178,8 +176,6 @@ export class Woodland extends EventEmitter {
 			if (SERVER in defaultHeaders === false) {
 				defaultHeaders[SERVER] = SERVER_VALUE;
 			}
-
-			defaultHeaders[X_POWERED_BY] = X_POWERED_BY_VALUE;
 		}
 
 		this.autoindex = autoindex;
@@ -542,7 +538,8 @@ export class Woodland extends EventEmitter {
 	 */
 	ip (req) {
 		// Optimized: Cache fallback IP and fast path for common case
-		const fallbackIP = req.connection.remoteAddress || req.socket.remoteAddress || "127.0.0.1";
+		const connectionIP = req.connection?.remoteAddress || req.socket?.remoteAddress;
+		const fallbackIP = connectionIP || "127.0.0.1";
 
 		// Fast path: If no X-Forwarded-For header or empty, return connection IP
 		const forwardedHeader = req.headers[X_FORWARDED_FOR];
@@ -901,7 +898,23 @@ export class Woodland extends EventEmitter {
 		const fp = resolve(folder, arg);
 
 		// Security: Ensure resolved path stays within the allowed directory
-		if (!fp.startsWith(resolve(folder))) {
+		const folderPath = resolve(folder);
+		let fpPath = fp;
+
+		try {
+			// Use realpath to resolve symlinks and normalize the path
+			fpPath = await realpath(fp);
+		} catch {
+			// If realpath fails, use normalized path
+			fpPath = fp;
+		}
+
+		// Normalize both paths to absolute paths
+		const normalizedFolder = resolve(folderPath);
+		const normalizedFp = resolve(fpPath);
+
+		// Check if the resolved file is outside the allowed directory
+		if (!normalizedFp.startsWith(normalizedFolder)) {
 			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path outside allowed directory", path="${arg}"`, ERROR);
 			res.error(INT_403);
 
@@ -1000,7 +1013,7 @@ export class Woodland extends EventEmitter {
 		res.header(CONTENT_TYPE, file.charset.length > INT_0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path));
 		res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
 
-		if (this.etags && file.etag.length > INT_0) {
+		if (this.etags !== null && file.etag.length > INT_0) {
 			res.header(ETAG, file.etag);
 			res.removeHeader(CACHE_CONTROL);
 		}

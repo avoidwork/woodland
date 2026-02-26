@@ -345,7 +345,7 @@ describe("Woodland Security Tests", () => {
 
 			// Check that default headers include security headers
 			const headers = secureApp.defaultHeaders.map(h => h[0]);
-			assert.ok(headers.includes("x-powered-by"), "Should include X-Powered-By header");
+			assert.ok(!headers.includes("x-powered-by"), "Should not include X-Powered-By header");
 		});
 	});
 });

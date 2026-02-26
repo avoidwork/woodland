@@ -417,7 +417,7 @@ describe("Security Integration Tests", () => {
 					const response = await makeRequest("/test");
 
 					assert.strictEqual(response.statusCode, 200, "Should return 200");
-					assert.ok(response.headers["x-powered-by"], "Should set X-Powered-By header");
+					assert.strictEqual(response.headers["x-powered-by"], undefined, "Should not set X-Powered-By header");
 					assert.ok(response.headers.server, "Should set Server header");
 					done();
 				} catch (err) {

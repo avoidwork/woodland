@@ -269,7 +269,15 @@ export function params (req, getParams) {
  * @returns {URL} Parsed URL object
  */
 export function parse (arg) {
-	return new URL(typeof arg === STRING ? arg : `http://${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || "8000"}`}${arg.url}`);
+	if (typeof arg === STRING) {
+		return new URL(arg);
+	}
+
+	const host = arg.headers?.host || "localhost:8000";
+	const port = host.includes(":") && !host.startsWith("[") ? host.split(":")[1] : "8000";
+	const connectionIP = arg.connection?.remoteAddress || arg.socket?.remoteAddress || "localhost";
+
+	return new URL(`${arg.url}`, `http://${connectionIP}:${port}`);
 }
 
 /**
@@ -449,10 +457,9 @@ export function writeHead (res, headers = {}) {
 }
 
 // Pre-compiled regex patterns for better performance
-const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-const IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/;
-const IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i;
-const HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
+const IPV4_PATTERN = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+const IPV6_CHAR_PATTERN = /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|::(?:[0-9a-fA-F]{1,4}:){0,6}[0-9a-fA-F]{1,4}|[0-9a-fA-F]{1,4}::(?:[0-9a-fA-F]{1,4}:){0,5}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|::1|::$/;
+const IPV4_MAPPED_PATTERN = /^::ffff:(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/i;
 
 /**
  * Validates if an IP address is properly formatted
@@ -472,14 +479,6 @@ export function isValidIP (ip) {
 			return false;
 		}
 
-		// Optimized octet validation - avoid array methods
-		for (let i = 1; i < 5; i++) {
-			const num = parseInt(match[i], 10);
-			if (num > 255) {
-				return false;
-			}
-		}
-
 		return true;
 	}
 
@@ -492,7 +491,7 @@ export function isValidIP (ip) {
 	// Handle IPv4-mapped IPv6 addresses
 	const ipv4MappedMatch = IPV4_MAPPED_PATTERN.exec(ip);
 	if (ipv4MappedMatch) {
-		return isValidIP(ipv4MappedMatch[1]);
+		return isValidIP(ipv4MappedMatch[0].replace(/^::ffff:/, ""));
 	}
 
 	// Special case for "::" alone
@@ -526,29 +525,25 @@ export function isValidIP (ip) {
 			return false;
 		}
 
-		// Validate each group
-		for (let i = 0; i < nonEmptyLeft.length; i++) {
-			if (!HEX_GROUP_PATTERN.test(nonEmptyLeft[i])) {
-				return false;
-			}
-		}
-		for (let i = 0; i < nonEmptyRight.length; i++) {
-			if (!HEX_GROUP_PATTERN.test(nonEmptyRight[i])) {
+		// Validate each group has at most 4 hex digits and only hex characters
+		const allGroups = [...nonEmptyLeft, ...nonEmptyRight];
+		for (const group of allGroups) {
+			if (group.length > 4 || !(/^[0-9a-fA-F]+$/).test(group)) {
 				return false;
 			}
 		}
 
 		return true;
 	} else {
+		// Full notation: check for exactly 8 groups and 1-4 hex digits per group
 		const groups = ip.split(":");
-		// Full notation must have exactly 8 groups
 		if (groups.length !== 8) {
 			return false;
 		}
 
-		// Validate each group
-		for (let i = 0; i < 8; i++) {
-			if (!groups[i] || !HEX_GROUP_PATTERN.test(groups[i])) {
+		// Validate each group has at most 4 hex digits
+		for (const group of groups) {
+			if (group.length > 4) {
 				return false;
 			}
 		}
