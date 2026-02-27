@@ -28,13 +28,15 @@ const argv = process.argv.filter(i => i.charAt(0) === HYPHEN && i.charAt(1) === 
 	ip = argv.ip ?? LOCALHOST,
 	logging = argv.logging ?? true,
 	port = argv.port ?? INT_8000,
+	maxBodySize = argv["max-body-size"] ? parseInt(argv["max-body-size"], 10) : undefined,
 	app = woodland({
 		autoindex: true,
 		defaultHeaders: {[CACHE_CONTROL]: NO_CACHE, [CONTENT_TYPE]: `${TEXT_PLAIN}; ${CHAR_SET}`},
 		logging: {
 			enabled: logging
 		},
-		time: true
+		time: true,
+		maxBodySize
 	});
 
 let validPort = Number(port);

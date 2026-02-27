@@ -42,6 +42,7 @@ import {
 	INT_0,
 	INT_1e3,
 	INT_1e4,
+	INT_1e6,
 	INT_200,
 	INT_204,
 	INT_3,
@@ -51,6 +52,7 @@ import {
 	INT_4,
 	INT_403,
 	INT_404,
+	INT_413,
 	INT_416,
 	INT_500,
 	IP_TOKEN,
@@ -150,6 +152,7 @@ export class Woodland extends EventEmitter {
 	 * @param {boolean} [config.etags=true] - Enable ETag generation
 	 * @param {string[]} [config.indexes=['index.htm', 'index.html']] - Index file names
 	 * @param {Object} [config.logging={}] - Logging configuration
+	 * @param {number} [config.maxBodySize=1048576] - Maximum request body size in bytes (default: 1MB)
 	 * @param {string[]} [config.origins=[]] - Allowed CORS origins (empty array denies all cross-origin requests)
 	 * @param {boolean} [config.silent=false] - Disable default headers
 	 * @param {boolean} [config.time=false] - Enable response time tracking
@@ -168,6 +171,7 @@ export class Woodland extends EventEmitter {
 			INDEX_HTML
 		],
 		logging = {},
+		maxBodySize = INT_1e6,
 		origins = [],
 		silent = false,
 		time = false
@@ -191,6 +195,7 @@ export class Woodland extends EventEmitter {
 		this.digit = digit;
 		this.etags = etags ? etag({cacheSize, cacheTTL}) : null;
 		this.indexes = structuredClone(indexes);
+		this.maxBodySize = maxBodySize;
 		this.permissions = lru(cacheSize, cacheTTL);
 		this.logging = {
 			enabled: (logging?.enabled ?? true) !== false,
@@ -402,6 +407,17 @@ export class Woodland extends EventEmitter {
 		// Optimized: Get IP early for logging
 		const clientIP = this.ip(req);
 		req.ip = clientIP;
+
+		// Security: Check request body size limit
+		if (req.headers[CONTENT_LENGTH]) {
+			const contentLength = parseInt(req.headers[CONTENT_LENGTH], 10);
+			if (!Number.isNaN(contentLength) && contentLength > this.maxBodySize) {
+				req.valid = false;
+				res.error(INT_413);
+
+				return;
+			}
+		}
 
 		// Optimized: Batch response property assignments
 		res.locals = {};

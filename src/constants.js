@@ -32,6 +32,7 @@ export const INT_400 = 400;
 export const INT_403 = 403;
 export const INT_404 = 404;
 export const INT_405 = 405;
+export const INT_413 = 413;
 export const INT_416 = 416;
 export const INT_500 = 500;
 
