@@ -372,4 +372,240 @@ describe("Woodland Security Integration", () => {
 		assert.deepStrictEqual(secureApp.origins, ["https://trusted.com"], "Should accept explicit origins");
 		assert.strictEqual(secureApp.autoindex, false, "Should respect autoindex setting");
 	});
+
+	it("should reject requests with body larger than maxBodySize", () => {
+		// Create app with small body size limit (100 bytes)
+		const limitedApp = new Woodland({ logging: { enabled: false }, maxBodySize: 100 });
+
+		const req = {
+			method: "POST",
+			url: "/test",
+			headers: {
+				host: "localhost:3000",
+				"content-length": "500"
+			},
+			connection: { remoteAddress: "127.0.0.1" },
+			socket: { remoteAddress: "127.0.0.1" },
+			parsed: { pathname: "/test", hostname: "localhost", search: "" }
+		};
+
+		const res = {
+			statusCode: 200,
+			headersSent: false,
+			_headers: {},
+			valid: true,
+			errorCalled: false,
+			errorStatusCode: null,
+			setHeader: function (name, value) {
+				this._headers[name.toLowerCase()] = value;
+			},
+			header: function (name, value) {
+				this.setHeader(name, value);
+			},
+			removeHeader: function (name) {
+				delete this._headers[name.toLowerCase()];
+			},
+			getHeader: function (name) {
+				return this._headers[name.toLowerCase()];
+			},
+			error: function (status) {
+				this.statusCode = status;
+				this.errorCalled = true;
+				this.errorStatusCode = status;
+			},
+			end: function () {
+				this.ended = true;
+			},
+			writeHead: function (status, headers) {
+				this.statusCode = status;
+				if (headers) {
+					Object.assign(this._headers, headers);
+				}
+			}
+		};
+
+		limitedApp.decorate(req, res);
+
+		assert.strictEqual(res.errorCalled, true, "Error should be called for oversized body");
+		assert.strictEqual(res.errorStatusCode, 413, "Should return 413 Payload Too Large");
+		assert.strictEqual(req.valid, false, "Request should be marked as invalid");
+	});
+
+	it("should allow requests within maxBodySize limit", () => {
+		// Create app with reasonable body size limit (1MB)
+		const appWithLimit = new Woodland({ logging: { enabled: false }, maxBodySize: 1048576 });
+
+		const req = {
+			method: "POST",
+			url: "/test",
+			headers: {
+				host: "localhost",
+				"content-length": "100" // 100 bytes is within limit
+			},
+			connection: { remoteAddress: "127.0.0.1" },
+			socket: { remoteAddress: "127.0.0.1" },
+			parsed: { pathname: "/test", hostname: "localhost", search: "" }
+		};
+
+		const res = {
+			statusCode: 200,
+			headersSent: false,
+			_headers: {},
+			valid: true,
+			errorCalled: false,
+			on: function (event, callback) {
+				if (event === "close") {
+					setTimeout(callback, 0);
+				}
+			},
+			setHeader: function (name, value) {
+				this._headers[name.toLowerCase()] = value;
+			},
+			header: function (name, value) {
+				this.setHeader(name, value);
+			},
+			removeHeader: function (name) {
+				delete this._headers[name.toLowerCase()];
+			},
+			getHeader: function (name) {
+				return this._headers[name.toLowerCase()];
+			},
+			error: function (status) {
+				this.statusCode = status;
+				this.errorCalled = true;
+			},
+			end: function () {
+				this.ended = true;
+			},
+			writeHead: function (status, headers) {
+				this.statusCode = status;
+				if (headers) {
+					Object.assign(this._headers, headers);
+				}
+			}
+		};
+
+		appWithLimit.decorate(req, res);
+
+		assert.strictEqual(res.errorCalled, false, "Error should not be called for valid body");
+		assert.strictEqual(req.valid, true, "Request should remain valid");
+	});
+
+	it("should handle requests with no content-length header", () => {
+		const appNoContentLength = new Woodland({ logging: { enabled: false }, maxBodySize: 1000 });
+
+		const req = {
+			method: "POST",
+			url: "/test",
+			headers: {
+				host: "localhost"
+				// No content-length header
+			},
+			connection: { remoteAddress: "127.0.0.1" },
+			socket: { remoteAddress: "127.0.0.1" },
+			parsed: { pathname: "/test", hostname: "localhost", search: "" }
+		};
+
+		const res = {
+			statusCode: 200,
+			headersSent: false,
+			_headers: {},
+			valid: true,
+			errorCalled: false,
+			on: function (event, callback) {
+				if (event === "close") {
+					setTimeout(callback, 0);
+				}
+			},
+			setHeader: function (name, value) {
+				this._headers[name.toLowerCase()] = value;
+			},
+			header: function (name, value) {
+				this.setHeader(name, value);
+			},
+			removeHeader: function (name) {
+				delete this._headers[name.toLowerCase()];
+			},
+			getHeader: function (name) {
+				return this._headers[name.toLowerCase()];
+			},
+			error: function (status) {
+				this.statusCode = status;
+				this.errorCalled = true;
+			},
+			end: function () {
+				this.ended = true;
+			},
+			writeHead: function (status, headers) {
+				this.statusCode = status;
+				if (headers) {
+					Object.assign(this._headers, headers);
+				}
+			}
+		};
+
+		appNoContentLength.decorate(req, res);
+
+		assert.strictEqual(res.errorCalled, false, "Should not error without content-length");
+		assert.strictEqual(req.valid, true, "Request should remain valid");
+	});
+
+	it("should handle invalid content-length header", () => {
+		const appInvalidHeader = new Woodland({ logging: { enabled: false }, maxBodySize: 1000 });
+
+		const req = {
+			method: "POST",
+			url: "/test",
+			headers: {
+				host: "localhost",
+				"content-length": "not-a-number"
+			},
+			connection: { remoteAddress: "127.0.0.1" },
+			socket: { remoteAddress: "127.0.0.1" },
+			parsed: { pathname: "/test", hostname: "localhost", search: "" }
+		};
+
+		const res = {
+			statusCode: 200,
+			headersSent: false,
+			_headers: {},
+			valid: true,
+			errorCalled: false,
+			on: function (event, callback) {
+				if (event === "close") {
+					setTimeout(callback, 0);
+				}
+			},
+			setHeader: function (name, value) {
+				this._headers[name.toLowerCase()] = value;
+			},
+			header: function (name, value) {
+				this.setHeader(name, value);
+			},
+			removeHeader: function (name) {
+				delete this._headers[name.toLowerCase()];
+			},
+			getHeader: function (name) {
+				return this._headers[name.toLowerCase()];
+			},
+			error: function (status) {
+				this.statusCode = status;
+				this.errorCalled = true;
+			},
+			end: function () {
+				this.ended = true;
+			},
+			writeHead: function (status, headers) {
+				this.statusCode = status;
+				if (headers) {
+					Object.assign(this._headers, headers);
+				}
+			}
+		};
+
+		appInvalidHeader.decorate(req, res);
+
+		assert.strictEqual(res.errorCalled, false, "Should not error on invalid content-length");
+		assert.strictEqual(req.valid, true, "Request should remain valid");
+	});
 });
