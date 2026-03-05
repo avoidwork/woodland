@@ -53,13 +53,15 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url)),
  * @returns {string} The escaped string with HTML entities
  */
 function escapeHtml (str = EMPTY) {
-	// Use lookup table for single-pass replacement
+	// Security: Encode & LAST to prevent XSS bypass via existing entities
+	// Example bypass: "&lt;script&gt;" without & encoding preserves &lt; and &gt; as literals
+	// Solution: Sort replacements alphabetically so & is always last
 	const htmlEscapes = {
+		"'": "&#39;",
 		"&": "&amp;",
+		"\"": "&quot;",
 		"<": "&lt;",
-		">": "&gt;",
-		'"': "&quot;",
-		"'": "&#39;"
+		">": "&gt;"
 	};
 
 	return str.replace(/[&<>"']/g, match => htmlEscapes[match]);

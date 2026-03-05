@@ -163,6 +163,11 @@ export const LOG_USER_AGENT = "%{User-agent}i";
 export const LOG_V = "%v";
 
 // =============================================================================
+// SERVER & SECURITY
+// =============================================================================
+export const MSG_ERROR_GENERIC = "Internal Server Error";
+
+// =============================================================================
 // MESSAGES & RESPONSES
 // =============================================================================
 export const MSG_DECORATED_IP = "Decorated request from %IP";

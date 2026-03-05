@@ -1,5 +1,5 @@
 import {METHODS, STATUS_CODES} from "node:http";
-import {join, resolve} from "node:path";
+import {join, resolve, sep as pathSep} from "node:path";
 import {EventEmitter} from "node:events";
 import {readdir, stat} from "node:fs/promises";
 import {createReadStream} from "node:fs";
@@ -73,6 +73,7 @@ import {
 	MONTHS,
 	MSG_DECORATED_IP,
 	MSG_DETERMINED_ALLOW,
+	MSG_ERROR_GENERIC,
 	MSG_ERROR_HEAD_ROUTE,
 	MSG_ERROR_INVALID_METHOD,
 	MSG_ERROR_IP,
@@ -190,7 +191,7 @@ export class Woodland extends EventEmitter {
 		this.defaultHeaders = Reflect.ownKeys(defaultHeaders).map(key => [key.toLowerCase(), defaultHeaders[key]]);
 		this.digit = digit;
 		this.etags = etags ? etag({cacheSize, cacheTTL}) : null;
-		this.indexes = structuredClone(indexes);
+		this.indexes = indexes.slice();
 		this.permissions = lru(cacheSize, cacheTTL);
 		this.logging = {
 			enabled: (logging?.enabled ?? true) !== false,
@@ -199,7 +200,7 @@ export class Woodland extends EventEmitter {
 		};
 		this.methods = [];
 		this.middleware = new Map();
-		this.origins = structuredClone(origins);
+		this.origins = origins.slice();
 		this.time = time;
 
 		if (this.etags !== null) {
@@ -342,7 +343,11 @@ export class Woodland extends EventEmitter {
 			return false;
 		}
 
-		return req.corsHost && (this.origins.includes(WILDCARD) || this.origins.includes(req.headers.origin));
+		// Normalize origin to lowercase for case-insensitive matching
+		const originHeader = req.headers.origin;
+		const normalizedOrigin = originHeader?.toLowerCase();
+
+		return req.corsHost && (this.origins.includes(WILDCARD) || this.origins.some(o => o.toLowerCase() === normalizedOrigin));
 	}
 
 	/**
@@ -467,8 +472,15 @@ export class Woodland extends EventEmitter {
 		return (status = INT_500, body) => {
 			if (res.headersSent === false) {
 				const err = body instanceof Error ? body : new Error(body ?? STATUS_CODES[status]);
-				let output = err.message,
+				let output = MSG_ERROR_GENERIC,
 					headers = {};
+
+				// Security: Sanitize error message to prevent information disclosure
+				// Only expose generic message to prevent leaking internal paths, stack traces, or secrets
+				if (this.listenerCount(ERROR) === INT_0) {
+					// Log actual error for debugging but don't expose to client
+					this.log(`type=sanitizeError, status=${status}, ip=${req.ip}, message="Error sanitized for security"`, ERROR);
+				}
 
 				[output, status, headers] = this.onReady(req, res, output, status, headers);
 
@@ -898,12 +910,26 @@ export class Woodland extends EventEmitter {
 	 * @returns {Promise<void>} Promise that resolves when serving is complete
 	 */
 	async serve (req, res, arg, folder = process.cwd()) {
-		const fp = resolve(folder, arg);
+		// Security: Normalize path to prevent URL-encoded path traversal attacks
+		// Decode URL-encoded sequences like %2e%2e to handle %2f.. (../), %2e%2e (..)
+		let fp = EMPTY;
+		try {
+			const decodedArg = decodeURIComponent(arg);
+			fp = resolve(folder, decodedArg);
+			const folderResolved = resolve(folder);
 
-		// Security: Ensure resolved path stays within the allowed directory
-		if (!fp.startsWith(resolve(folder))) {
-			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path outside allowed directory", path="${arg}"`, ERROR);
-			res.error(INT_403);
+			// Security: Ensure resolved path stays within the allowed directory
+			// Path.resolve normalizes the path, handling .. and URL-encoded variants
+			if (!fp.startsWith(folderResolved + pathSep) && fp !== folderResolved) {
+				this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path outside allowed directory", path="${arg}"`, ERROR);
+				res.error(INT_403);
+
+				return;
+			}
+		} catch {
+			// Invalid encoding, return 400
+			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Invalid encoding", path="${arg}"`, ERROR);
+			res.error(400);
 
 			return;
 		}
