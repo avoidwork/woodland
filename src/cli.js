@@ -1,5 +1,11 @@
 #!/usr/bin/env node
 
+/**
+ * CLI shell utility for Woodland framework - parses arguments and creates HTTP server instance
+ * Parses command-line arguments for port, IP, logging configuration and creates Woodland server
+ * @param {string[]} [args] - Process arguments (default: process.argv)
+ * @returns {Woodland} Woodland app instance with file serving configured
+ */
 import {createServer} from "node:http";
 import {coerce} from "tiny-coerce";
 import {woodland} from "woodland";
