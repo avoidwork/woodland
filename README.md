@@ -60,7 +60,7 @@ app.always(rateLimit({
 
 🏆 **Proven Performance**: Comprehensive benchmarks show Woodland **outperforms raw Node.js by 15%, Express.js by 3%, and delivers 87% of Fastify's performance**  
 ⚡ **Zero Compromise**: Get all the framework features you need with better performance than hand-coding  
-🚀 **Battle-Tested**: 100% statement coverage with 416 comprehensive tests, production-ready security, and enterprise-grade reliability  
+🚀 **Battle-Tested**: 100% test coverage with 386 comprehensive tests, production-ready security, and enterprise-grade reliability  
 🔧 **Developer Experience**: Express-compatible API means zero learning curve for your team  
 
 **The Result?** Your applications run faster, your servers handle more traffic, and your infrastructure costs less.
@@ -168,6 +168,32 @@ const api = new MyAPI();
 - [Troubleshooting](#-troubleshooting)
 
 ## ⚙️ Configuration
+
+### Logging Configuration
+
+The `logging` option is an object with three sub-properties:
+
+```javascript
+const app = woodland({
+  logging: {
+    enabled: true,      // Disable logging when false (default: true)
+    level: 'info',      // Minimum log level (emerg, alert, crit, error, warn, notice, info, debug)
+    format: '%h %l %u %t "%r" %>s %b'  // Log format string (Common Log Format by default)
+  }
+});
+```
+
+**Log Format Tokens:**
+- `%h` - Remote IP address
+- `%l` - Remote log name (always `-`)
+- `%u` - Authenticated user name
+- `%t` - Request timestamp
+- `%r` - Request line (METHOD PATH HTTP/1.1)
+- `%>s` - Final status code
+- `%b` - Bytes sent
+- `%{Referer}i` - Referer header
+- `%{User-agent}i` - User-Agent header
+- `%v` - Server virtual host
 
 ### Default Configuration
 
@@ -765,27 +791,29 @@ new Woodland(config)
 
 ### Request Object Extensions
 
-- `req.allow` - Allowed methods for current path
-- `req.body` - Request body (populate with middleware)
-- `req.cors` - Boolean indicating CORS request
-- `req.corsHost` - Boolean indicating "origin" and "host" request headers are in sync
-- `req.host` - Request hostname
-- `req.ip` - Client IP address
-- `req.params` - Route parameters
-- `req.parsed` - Parsed URL object
-- `req.valid` - Request validation status
-- `req.exit()` - Exit middleware chain
+- `req.allow` - Comma-separated allowed HTTP methods for current URI
+- `req.body` - Request body storage (starts as empty string)
+- `req.cors` - Boolean indicating if CORS should be applied
+- `req.corsHost` - Boolean indicating if origin header differs from host header (cross-origin detection)
+- `req.host` - Request hostname from parsed URL
+- `req.ip` - Client IP address (extracted from X-Forwarded-For or socket.remoteAddress)
+- `req.params` - Route parameter values (object with extracted parameters)
+- `req.parsed` - Parsed URL object (hostname, pathname, search, etc.)
+- `req.valid` - Request validation status (false if CORS rejected or invalid method)
+- `req.precise` - Timing object (if time option enabled)
+- `req.range` - Range request options (start, end) for partial content
+- `req.exit()` - Exit middleware chain immediately, skip remaining middleware
 
 ### Response Object Extensions
 
-- `res.locals` - Local variables object
-- `res.error(status, body, headers)` - Send error response
-- `res.header(key, value)` - Set response header
-- `res.json(body, status, headers)` - Send JSON response
-- `res.redirect(url, permanent)` - Send redirect response
-- `res.send(body, status, headers)` - Send response
-- `res.set(headers)` - Set multiple headers
-- `res.status(code)` - Set status code
+- `res.locals` - Object for per-request middleware data storage
+- `res.error(status, body)` - Send error response (handles multiple calls safely)
+- `res.header(key, value)` - Alias for setHeader (stored during decoration)
+- `res.json(body, status, headers)` - Send JSON response with proper content-type
+- `res.redirect(url, permanent)` - Send redirect (permanent by default with 308)
+- `res.send(body, status, headers)` - Unified response sender (handles strings, streams, buffering)
+- `res.set(headers)` - Batch header setter (supports objects, Maps, Headers) - faster than individual header calls
+- `res.status(code)` - Set status code (chainable, returns res)
 
 ## ⚡ Performance
 
@@ -874,7 +902,7 @@ node benchmark.js utility -i 500 -w 50
 
 ### Test Coverage
 
-Woodland maintains **100%** statement coverage with comprehensive testing across all features. The CLI module achieves **100% coverage** with rigorous testing of all code paths including successful server startup, and the utility module achieves **100% line coverage** with comprehensive edge case testing.
+Woodland maintains **100%** test coverage across all features - 386 comprehensive tests covering CLI, security, routing, middleware, file serving, caching, response helpers, and error handling. The CLI module achieves **100% coverage** with rigorous testing of argument parsing, port/IP validation, server startup with HTTP verification, error handling scenarios, and actual HTTP request serving. Response methods support objects, Maps, and Headers for flexible batch setting.
 
 ```bash
 npm test

@@ -25,6 +25,8 @@
 - **Performance awareness**: Write efficient code without premature optimization
 - **Documentation**: Code should be self-documenting with appropriate comments
 - **Pragmatic formatting**: Prioritize readability over strict line length limits for logging and complex expressions
+- **Modern JavaScript**: Use ES6+ features (arrow functions, destructuring, template literals) consistently
+- **Event-driven architecture**: Leverage EventEmitter for decoupled components
 
 ### Formatting
 - Use **tabs for indentation, not spaces**
@@ -594,13 +596,56 @@ export const CONTENT_TYPE_HTML = 'text/html';
 - Handle **edge cases** gracefully
 
 ```javascript
-// Good - Utility function pattern
+// Good - Utility function pattern (reflects Woodland implementation)
 export function formatTime(timestamp, precision = 3) {
 	if (!timestamp || typeof timestamp !== 'number') {
 		return '0.000ms';
 	}
 	
 	return `${(timestamp / 1e6).toFixed(precision)}ms`;
+}
+
+// Good - Pure function with edge case handling
+export function escapeHtml(str = '') {
+	const htmlEscapes = {
+		'&': '&amp;',
+		'<': '&lt;',
+		'>': '&gt;',
+		'"': '&quot;',
+		"'": '&#39;'
+	};
+	
+	// Single-pass replacement with lookup table
+	return str.replace(/[&<>"']/g, match => htmlEscapes[match]);
+}
+
+// Good - IP validation with IPv4/IPv6 support and range validation
+export function isValidIP(ip) {
+	if (!ip || typeof ip !== 'string') {
+		return false;
+	}
+	
+	// IPv4 validation - optimized with early character check
+	if (!ip.includes(':')) {
+		const ipv4Pattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+		const match = ip.match(ipv4Pattern);
+		
+		if (!match) {
+			return false;
+		}
+		
+		// Check octets are in valid range (0-255)
+		for (let i = 1; i < 5; i++) {
+			const num = parseInt(match[i], 10);
+			if (num > 255) {
+				return false;
+			}
+		}
+		
+		return true;
+	}
+	
+	// IPv6 validation with compression and IPv4-mapped support continues...
 }
 ```
 
