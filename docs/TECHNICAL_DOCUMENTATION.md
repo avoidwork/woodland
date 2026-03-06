@@ -175,6 +175,42 @@ graph LR
     style N fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#ffffff
 ```
 
+### Request Decoration
+
+Before routes are processed, the `decorate()` method extends both `req` and `res` objects:
+
+**Request Decorations:**
+- `req.parsed`: Parsed URL object (hostname, pathname, search)
+- `req.allow`: Comma-separated allowed HTTP methods for current URI
+- `req.body`: Empty string (body storage)
+- `req.host`: Request hostname
+- `req.params`: Object containing extracted route parameters
+- `req.valid`: Boolean indicating URI validation status
+- `req.cors`: Boolean for CORS applicability
+- `req.corsHost`: Boolean for cross-origin detection
+- `req.corsHost`: Boolean indicating if origin differs from host
+- `req.ip`: Client IP address (extracted from X-Forwarded-For or socket)
+- `req.precise`: Timing object (if time option enabled)
+- `req.range`: Range request options (start, end) for partial content
+
+**Response Decorations:**
+- `res.locals`: Object for middleware data storage
+- `res.error(status, body)`: Error handler function
+- `res.setHeader`: Stored as `res.header` for header manipulation
+- `res.json(data, status, headers)`: JSON response helper
+- `res.redirect(url, permanent)`: Redirect helper function
+- `res.send(body, status, headers)`: Unified response sender
+- `res.set(headers)`: Batch header setter (supports Headers, Map, plain objects)
+- `res.status(code)`: Status code setter (chainable)
+
+**Batch Header Operations:**
+- Headers set atomically via `res.set({})` for performance
+- Default headers applied: `X-Content-Type-Options: nosniff`, `Server`, `X-Powered-By`
+- CORS headers auto-injected when `req.cors === true`
+- `Allow` header reflects `req.allow` to enumerate method options
+
+---
+
 ---
 
 ## Core Components
@@ -1450,41 +1486,84 @@ server.listen(process.env.PORT || 3000);
 
 ```javascript
 const app = woodland({
-  autoindex: false,        // Enable directory listing
-  cacheSize: 1000,        // LRU cache size
-  cacheTTL: 10000,        // Cache TTL in milliseconds
-  charset: 'utf-8',       // Default character encoding
-  corsExpose: '',         // CORS headers to expose to the client
-  defaultHeaders: {},     // Default HTTP headers
-  digit: 3,               // Timing precision digits
-  etags: true,            // Enable ETag generation
-  indexes: ['index.htm', 'index.html'], // Index file names
-  logging: {},            // Logging configuration
-  origins: [],            // CORS allowed origins
-  silent: false,          // Disable default headers
-  time: false             // Enable response time tracking
+  autoindex: false,        // Enable directory listing (default: false)
+  cacheSize: 1000,        // LRU cache size (routes + permissions, default: 1000)
+  cacheTTL: 10000,        // Cache time-to-live in milliseconds (default: 10000)
+  charset: 'utf-8',       // Default character encoding (default: 'utf-8')
+  corsExpose: '',         // CORS headers to expose to client (default: '')
+  defaultHeaders: {},     // Default HTTP headers as object (default: {})
+  digit: 3,               // Response time precision digits (default: 3)
+  etags: true,            // Enable ETag generation for file serving (default: true)
+  indexes: ['index.htm', 'index.html'], // Index filenames for directories (default:
+                                    //   `['index.htm', 'index.html']`)
+  logging: {},            // Logging configuration object (see Logging section)
+  origins: [],            // Allowed CORS origins array (empty denies all CORS; default: [])
+  silent: false,          // Disable default Server/X-Powered-By headers (default: false)
+  time: false             // Enable X-Response-Time header tracking (default: false)
 });
 ```
+
+### Logging Configuration
+
+The `logging` option accepts an object with three properties:
+
+```javascript
+const app = woodland({
+  logging: {
+    enabled: true,        // Disable logging when false (default: true)
+    level: 'info',        // Minimum log level: emerg, alert, crit, error, warn,
+                          // notice, info, debug (default: 'info')
+    format: '%h %l %u %t "%r" %>s %b'  // Common Log Format string (default: CLF)
+  }
+});
+```
+
+**Supported Log Levels:**
+- `emerg`: Emergencies
+- `alert`: Immediate action needed
+- `crit`: Critical conditions
+- `error`: Error conditions
+- `warn`: Warning conditions
+- `notice`: Normal but significant condition
+- `info`: Informational messages (default)
+- `debug`: Debug-level details
+
+**Log Format Tokens:**
+- `%h`: Remote log hostname
+- `%l`: Remote log user (always `-`)
+- `%u`: Authenticated user name
+- `%t`: Request timestamp in `[DD/Mon/YYYY:HH:MM:SS +0000]` format
+- `%r`: Request line (`METHOD PATH HTTP/1.1`)
+- `%>s`: Final status code
+- `%b`: Bytes sent
+- `%{Referer}i`: Referer header
+- `%{User-agent}i`: User-Agent header
+- `%v`: Server virtual host
+- `%u`: IP address (via `req.ip`)
 
 ### HTTP Methods
 
 ```javascript
-// Route registration
-app.get('/path', handler);
-app.post('/path', handler);
-app.put('/path', handler);
-app.patch('/path', handler);
-app.delete('/path', handler);
-app.options('/path', handler);
-app.trace('/path', handler);
-app.connect('/path', handler);
+// Standard HTTP method routing
+app.get('/path', handler);           // GET requests
+app.post('/path', handler);           // POST requests
+app.put('/path', handler);            // PUT requests
+app.patch('/path', handler);          // PATCH requests
+app.delete('/path', handler);         // DELETE requests
+app.options('/path', handler);        // OPTIONS requests
+app.trace('/path', handler);          // TRACE requests
+app.connect('/path', handler);        // CONNECT requests
 
-// Note: HEAD requests are automatically handled when GET routes are defined
-// Cannot register HEAD routes directly - use GET instead
+// Note: HEAD requests are auto-enabled when GET routes exist
+// Direct HEAD route registration throws TypeError - use GET instead
 
-// Middleware for all methods
-app.always('/path', middleware);
-app.always(middleware); // All routes
+// Wildcard middleware for all methods
+app.always('/path', middleware);      // Scoped to specific path
+app.always(middleware);               // Global (matches all paths)
+
+// Route pattern parameter syntax
+app.get('/user/:id', handler);        // Captures `:id` parameter
+app.get('/post/:title(.*)?', handler); // Optional parameter with regex
 ```
 
 ### Response Methods
@@ -1499,21 +1578,24 @@ res.redirect(url, permanent);
 res.error(statusCode, body);
 ```
 
+### Middleware API
+
 ### Utility Methods
 
 ```javascript
-// Route information
-app.allowed(method, uri);
-app.allows(uri);
-app.routes(uri, method);
+// Route information and inspection
+app.allowed(method, uri, override=false);    // Boolean: method allowed for URI?
+app.allows(uri, override=false);              // String: comma-separated allowed methods
+app.routes(uri, method, override=false);      // Object: route details (middleware, params)
+app.list(method='get', type='array');         // Array|Object: list registered routes
 
 // File serving
-app.files(route, directory);
-app.serve(req, res, path, folder);
+app.files(route='/', directory);              // Register file serving for directory
+app.serve(req, res, path, folder='cwd');      // Serve single file or directory
 
 // Middleware management
-app.ignore(middleware);
-app.list(method, type);
+app.ignore(fn);                               // Mark middleware as ignored for visibility
+app.routes(uri, method, override=false);      // Get route resolution result
 ```
 
 ---
@@ -1521,6 +1603,51 @@ app.list(method, type);
 ## Deployment Patterns
 
 ### CLI Deployment
+
+The Woodland CLI provides a quick development server with sensible security defaults:
+
+```bash
+# Basic usage - serve current directory on port 8000
+woodland
+
+# Custom server configuration
+woodland --ip=192.168.1.100 --port=3000
+woodland --logging=false
+
+# Combined configuration
+woodland --ip=0.0.0.0 --port=8080 --logging=true
+```
+
+**Configuration Options:**
+- `--ip=IP_ADDRESS`: Server binding IP (default: `127.0.0.1`, IPv4 only)
+- `--port=NUMBER`: Listen port (default: `8000`, range: 0-65535)
+- `--logging=boolean`: Enable request logging (default: `true`)
+
+**Auto-Configuration:**
+The CLI automatically initializes Woodland with:
+- `autoindex: true` - Directory listing enabled
+- `cacheControl: no-cache` - Prevents cached directory listings
+- `contentType: text/plain; charset=utf-8` - Default content type
+- `time: true` - Response time tracking enabled
+
+**Validation:**
+- Port must be integer in range 0-65535
+- IP must be valid IPv4 format
+- Invalid configuration triggers exit code 1 with error message
+
+**Process Lifecycle:**
+- Server binds on specified IP:port
+- Logs startup with `id=woodland` marker and connection details
+- Serves static files with security validation (path traversal protection)
+- Graceful shutdown via SIGTERM/SIGINT signals
+- Automatic OPTIONS route registration if origins configured (CLI: none configured)
+
+The CLI module achieves **100% test coverage** with comprehensive unit tests covering:
+- Successful startup scenarios with default and custom arguments
+- Validation logic for port ranges and IPv4 addresses
+- Error handling for malformed arguments
+- Process behavior including signal handling and HTTP serving verification
+- Output validation for log format and error messages
 
 For quick development, testing, or simple static file serving, Woodland includes a built-in CLI:
 
@@ -1536,20 +1663,6 @@ woodland --ip=0.0.0.0 --port=3000 --logging=false
 # --port: Server port (default: 8000)  
 # --logging: Enable/disable request logging (default: true)
 ```
-
-The CLI automatically configures Woodland with:
-- Auto-indexing enabled for directory browsing
-- Security headers and CORS protection
-- File serving with proper MIME types
-- Request logging in Common Log Format
-
-This deployment pattern is ideal for:
-- Local development servers
-- Quick file sharing
-- Static site previewing
-- Testing and prototyping
-
-The CLI module achieves **100% test coverage** with comprehensive unit tests covering argument parsing, validation logic, server configuration, error handling scenarios, and actual HTTP request serving verification. This ensures production-ready reliability for all deployment scenarios.
 
 ### Container Deployment
 
