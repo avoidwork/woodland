@@ -187,7 +187,6 @@ Before routes are processed, the `decorate()` method extends both `req` and `res
 - `req.params`: Object containing extracted route parameters
 - `req.valid`: Boolean indicating URI validation status
 - `req.cors`: Boolean for CORS applicability
-- `req.corsHost`: Boolean for cross-origin detection
 - `req.corsHost`: Boolean indicating if origin differs from host
 - `req.ip`: Client IP address (extracted from X-Forwarded-For or socket)
 - `req.precise`: Timing object (if time option enabled)
@@ -1150,9 +1149,9 @@ Woodland maintains exceptional test coverage with **100% coverage across all met
 
 ### Coverage Metrics
 
-```
-File          | % Stmts | % Branch | % Funcs | % Lines | Status
---------------|---------|----------|---------|---------|--------
+```  
+File | % Stmts | % Branch | % Funcs | % Lines | Status
+|---|---|---|---|---|---|
 All files     |     100 |      100 |     100 |     100 | 🎯 Perfect
 cli.js        |     100 |      100 |     100 |     100 | 🎯 Perfect
 constants.js  |     100 |      100 |     100 |     100 | 🎯 Perfect  
@@ -1419,16 +1418,17 @@ const app = woodland({
   time: true
 });
 
-// WebSocket upgrade handling
 const wss = new WebSocketServer({noServer: true});
 
-app.on('upgrade', (request, socket, head) => {
+// Handle WebSocket upgrades at the HTTP server level
+const server = createServer(app.route);
+
+server.on('upgrade', (request, socket, head) => {
   wss.handleUpgrade(request, socket, head, (ws) => {
     wss.emit('connection', ws, request);
   });
 });
 
-// Chat message endpoint
 app.post('/api/messages', async (req, res) => {
   const message = await saveMessage(req.body);
   
@@ -1441,6 +1441,8 @@ app.post('/api/messages', async (req, res) => {
   
   res.json(message);
 });
+
+server.listen(3000);
 ```
 
 ### 5. Container-Ready Static Server
@@ -1579,6 +1581,23 @@ res.error(statusCode, body);
 ```
 
 ### Middleware API
+
+```javascript
+// Register routes by HTTP method
+app.get('/path', handler);
+app.post('/path', handler);
+app.put('/path', handler);
+app.patch('/path', handler);
+app.delete('/path', handler);
+app.options('/path', handler);
+
+// Wildcard middleware for all methods
+app.always(handler);
+app.always('/path', handler);
+
+// Ignore middleware from visibility
+app.ignore(fn);
+```
 
 ### Utility Methods
 
