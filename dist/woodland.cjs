@@ -334,7 +334,6 @@ function mime (arg = EMPTY) {
 
 /**
  * Formats response time in milliseconds with configurable decimal places
- * Converts milliseconds to nanosecond-equivalent string with 'ms' suffix
  * @param {number} [ms=0] - Time value in milliseconds to format
  * @param {number} [digits=3] - Number of decimal places for precision (0-10)
  * @returns {string} Formatted time string (e.g., "123.456ms")
