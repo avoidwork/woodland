@@ -205,7 +205,7 @@ const app = woodland({
 **Log Format Tokens:**
 
 | Token | Description |
-|-----|------------|
+|--|------|
 | `%h` | Remote IP address |
 | `%l` | Remote log name (always `-`) |
 | `%u` | Authenticated user name |
