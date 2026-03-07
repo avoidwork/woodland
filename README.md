@@ -725,16 +725,6 @@ app.log("Debug information", "debug");
 ### Log Format Placeholders
 
 | Placeholder | Description |
-|-------------|--------------|
-| `%h` | Remote IP address |
-| `%l` | Remote logname (always `-`) |
-| `%u` | Remote user (always `-`) |
-| `%t` | Timestamp |
-| `%r` | First line of request |
-| `%s` | Status code |
-| `%b` | Response size |
-| `%{Header}i` | Request header |
-| `%{Header}o` | Response header |
 
 ## 💻 CLI Usage
 
