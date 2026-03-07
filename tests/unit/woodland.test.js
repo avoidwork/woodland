@@ -2123,36 +2123,50 @@ describe("Woodland Serve Method", () => {
 		assert.strictEqual(mockRes.sendCalled, true, "Should serve from custom folder");
 	});
 
-	it("should handle additional security check in serve method", async () => {
-		// Mock the path traversal to test the additional security check
-		// This is a complex test that requires mocking file system behavior
+	it("should trigger path traversal protection in serve method", async () => {
+		// Mock file system to allow the path check to complete without file access
+		const fs = await import("node:fs");
+		const originalStat = fs.promises.stat;
+		fs.promises.stat = async () => {
+			const error = new Error("ENOENT");
+			error.code = "ENOENT";
+			throw error;
+		};
 
-		// Create a mock request for a potentially malicious path
+		let errorCalled = false;
+		let errorStatus = null;
+
 		const maliciousReq = {
 			method: "GET",
 			headers: { host: "localhost" },
 			parsed: { pathname: "/test", search: "" },
-			connection: { remoteAddress: "127.0.0.1" }
+			connection: { remoteAddress: "127.0.0.1" },
+			serviceIp () {
+				return "127.0.0.1";
+			}
 		};
 
 		const maliciousRes = {
 			statusCode: 200,
 			error: function (status) {
+				errorCalled = true;
+				errorStatus = status;
 				this.statusCode = status;
-				this.errorCalled = true;
 			}
 		};
 
-		// This test verifies that the path boundary validation works correctly.
-		// With path.resolve handling path normalization, we test that the method
-		// works correctly with normal paths and relies on boundary checking for security.
+		// Attempt path traversal through serve method
+		// The path goes through path.resolve which should normalize it
+		// But we need to test the boundary check at lines 904-909
+		await app.serve(maliciousReq, maliciousRes, "../test.js", "./test-files");
 
-		await app.serve(maliciousReq, maliciousRes, "safe-file.txt", "./test-files");
+		// Restore fs.stat
+		fs.promises.stat = originalStat;
 
-		// The serve method should complete without triggering the additional security error
-		// since we're using a safe path. The path would need to be crafted in a very
-		// specific way to trigger the additional check, which is intentionally difficult.
-		assert.ok(true, "Serve method handles security checks correctly");
+		// The path traversal attempt should be caught by the serve method’s
+		// security check that ensures resolved paths stay within allowed directory
+		assert.strictEqual(errorCalled, true, "Should detect path traversal attempt");
+		assert.strictEqual(errorStatus, 403, "Should return 403 Forbidden");
 	});
 });
 
