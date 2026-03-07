@@ -1,29 +1,55 @@
 <div align="center">
+  <h1>Woodland</h1>
   <img src="https://avoidwork.github.io/woodland/logo.svg" width="150" alt="Woodland Logo" />
-  
-  # Woodland
-  
-  *High-performance HTTP framework*
-  
-  [![npm version](https://badge.fury.io/js/woodland.svg)](https://badge.fury.io/js/woodland)
-  [![Node.js Version](https://img.shields.io/node/v/woodland.svg)](https://nodejs.org/)
-  [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
-  [![Build Status](https://github.com/avoidwork/woodland/actions/workflows/ci.yml/badge.svg)](https://github.com/avoidwork/woodland/actions)
-  [![Test Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](https://github.com/avoidwork/woodland)
-  
 </div>
+
+*High-performance HTTP framework for Node.js*
+
+[![npm version](https://badge.fury.io/js/woodland.svg)](https://badge.fury.io/js/woodland)
+[![Node.js Version](https://img.shields.io/node/v/woodland.svg)](https://nodejs.org/)
+[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+[![Build Status](https://github.com/avoidwork/woodland/actions/workflows/ci.yml/badge.svg)](https://github.com/avoidwork/woodland/actions)
+[![Test Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](https://github.com/avoidwork/woodland)
+
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Configuration](#configuration)
+- [Routing](#routing)
+- [Middleware](#middleware)
+- [Static Files](#static-files)
+- [CORS](#cors)
+- [Error Handling](#error-handling)
+- [Response Helpers](#response-helpers)
+- [Event Handlers](#event-handlers)
+- [Logging](#logging)
+- [CLI Usage](#cli-usage)
+- [API Reference](#api-reference)
+- [Performance](#performance)
+- [Testing](#testing)
+- [TypeScript](#typescript)
+- [Examples](#examples)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [Support](#support)
+
+## ⚡ Performance Leader
+
+Outperforms raw Node.js by 15%, Express.js by 3%, and delivers 87% of Fastify's performance.
 
 ## 🚀 Features
 
-- **🏆 Performance Leader**: **15% faster than raw Node.js, 3% faster than Express.js, 87% of Fastify's performance** - proven by benchmarks
-- **⚡ Zero Overhead**: Framework features with performance gains, not costs
-- **🔒 Security First**: Built-in CORS, ETags, and comprehensive security headers
-- **🛤️ Smart Routing**: Parameter syntax (`/users/:id`) and RegExp support with caching
-- **🔧 Express Compatible**: Familiar middleware with `req, res, next` pattern
-- **📁 File Serving**: High-performance static file server with streaming
-- **📘 TypeScript Ready**: Full TypeScript definitions included
-- **📊 Production Logging**: Common Log Format with customizable levels
-- **🚀 Modern Architecture**: ES6+ modules optimized for Node.js 17+
+- **⚡ Zero Overhead** - Framework features with performance gains, not costs
+- **🔒 Security First** - Built-in CORS, ETags, and comprehensive security headers
+- **🛤️ Smart Routing** - Parameter syntax (`/users/:id`) and RegExp support with caching
+- **🔧 Express Compatible** - Familiar middleware with `req, res, next` pattern
+- **📁 File Serving** - High-performance static file server with streaming
+- **📘 TypeScript Ready** - Full TypeScript definitions included
+- **📊 Production Logging** - Common Log Format with customizable levels
+- **🚀 Modern Architecture** - ES6+ modules optimized for Node.js 17+
 
 ## 🔒 Security & OWASP Compliance
 
@@ -54,16 +80,9 @@ app.always(rateLimit({
 }));
 ```
 
-## 💡 Why Choose Woodland?
+#/🚜## 🚀 Quick Start
 
-**Stop accepting framework overhead.** Most HTTP frameworks slow you down in exchange for convenience. Woodland breaks that trade-off.
-
-🏆 **Proven Performance**: Comprehensive benchmarks show Woodland **outperforms raw Node.js by 15%, Express.js by 3%, and delivers 87% of Fastify's performance**  
-⚡ **Zero Compromise**: Get all the framework features you need with better performance than hand-coding  
-🚀 **Battle-Tested**: 100% statement coverage with 416 comprehensive tests, production-ready security, and enterprise-grade reliability  
-🔧 **Developer Experience**: Express-compatible API means zero learning curve for your team  
-
-**The Result?** Your applications run faster, your servers handle more traffic, and your infrastructure costs less.
+See the [Quick Start](#quick-start) section below for complete examples.
 
 ## 📦 Installation
 
@@ -168,6 +187,38 @@ const api = new MyAPI();
 - [Troubleshooting](#-troubleshooting)
 
 ## ⚙️ Configuration
+
+### Logging Configuration
+
+The `logging` option is an object with three sub-properties:
+
+```javascript
+const app = woodland({
+  logging: {
+    enabled: true,      // Disable logging when false (default: true)
+    level: 'info',      // Minimum log level (emerg, alert, crit, error, warn, notice, info, debug)
+    format: '%h %l %u %t "%r" %>s %b'  // Log format string (Common Log Format by default)
+  }
+});
+```
+
+**Log Format Tokens:**
+
+| Token       | Description                                     |
+|-------------|-------------------------------------------------|
+| `%h`        | Remote IP address                               |
+| `%l`        | Remote logname (identity, usually `-`)          |
+| `%u`        | Remote user (or `-` if not authenticated)       |
+| `%t`        | Time the request was received                   |
+| `%r`        | Request line (METHOD PATH Protocol version)     |
+| `%>s`       | Status code sent to client                      |
+| `%b`        | Bytes sent (excluding HTTP headers)             |
+| `%v`        | Server name requested                           |
+| `%{FIELD}i` | Request header `FIELD` (e.g., `%{User-Agent}i`) |
+| `%{FIELD}o` | Response header `FIELD`                         |
+| `%{FIELD}e` | Environmental variable `FIELD`                  |
+| `%D`        | Time taken to serve the request in microseconds |
+| `%T`        | Time taken to serve the request in seconds      |
 
 ### Default Configuration
 
@@ -674,20 +725,6 @@ app.log("Custom message", "info");
 app.log("Debug information", "debug");
 ```
 
-### Log Format Placeholders
-
-| Placeholder | Description |
-|-------------|-------------|
-| `%h` | Remote IP address |
-| `%l` | Remote logname (always `-`) |
-| `%u` | Remote user (always `-`) |
-| `%t` | Timestamp |
-| `%r` | First line of request |
-| `%s` | Status code |
-| `%b` | Response size |
-| `%{Header}i` | Request header |
-| `%{Header}o` | Response header |
-
 ## 💻 CLI Usage
 
 ### Basic Usage
@@ -710,11 +747,11 @@ The CLI achieves **100% test coverage** with comprehensive unit tests covering a
 
 ### CLI Options
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--ip` | `127.0.0.1` | Server IP address |
-| `--port` | `8000` | Server port |
-| `--logging` | `true` | Enable/disable request logging |
+| Option      | Default     | Description                    |
+|-------------|-------------|--------------------------------|
+| `--ip`      | `127.0.0.1` | Server IP address              |
+| `--port`    | `8000`      | Server port                    |
+| `--logging` | `true`      | Enable/disable request logging |
 
 ### Example Output
 
@@ -765,68 +802,64 @@ new Woodland(config)
 
 ### Request Object Extensions
 
-- `req.allow` - Allowed methods for current path
-- `req.body` - Request body (populate with middleware)
-- `req.cors` - Boolean indicating CORS request
-- `req.corsHost` - Boolean indicating "origin" and "host" request headers are in sync
-- `req.host` - Request hostname
-- `req.ip` - Client IP address
-- `req.params` - Route parameters
-- `req.parsed` - Parsed URL object
-- `req.valid` - Request validation status
-- `req.exit()` - Exit middleware chain
+- `req.allow` - Comma-separated allowed HTTP methods for current URI
+- `req.body` - Request body storage (starts as empty string)
+- `req.cors` - Boolean indicating if CORS should be applied
+- `req.corsHost` - Boolean indicating if origin header differs from host header (cross-origin detection)
+- `req.host` - Request hostname from parsed URL
+- `req.ip` - Client IP address (extracted from X-Forwarded-For or socket.remoteAddress)
+- `req.params` - Route parameter values (object with extracted parameters)
+- `req.parsed` - Parsed URL object (hostname, pathname, search, etc.)
+- `req.valid` - Request validation status (false if CORS rejected or invalid method)
+- `req.precise` - Timing object (if time option enabled)
+- `req.range` - Range request options (start, end) for partial content
+- `req.exit()` - Exit middleware chain immediately, skip remaining middleware
 
 ### Response Object Extensions
 
-- `res.locals` - Local variables object
-- `res.error(status, body, headers)` - Send error response
-- `res.header(key, value)` - Set response header
-- `res.json(body, status, headers)` - Send JSON response
-- `res.redirect(url, permanent)` - Send redirect response
-- `res.send(body, status, headers)` - Send response
-- `res.set(headers)` - Set multiple headers
-- `res.status(code)` - Set status code
+- `res.locals` - Object for per-request middleware data storage
+- `res.error(status, body)` - Send error response (handles multiple calls safely)
+- `res.header(key, value)` - Alias for setHeader (stored during decoration)
+- `res.json(body, status, headers)` - Send JSON response with proper content-type
+- `res.redirect(url, permanent)` - Send redirect (permanent by default with 308)
+- `res.send(body, status, headers)` - Unified response sender (handles strings, streams, buffering)
+- `res.set(headers)` - Batch header setter (supports objects, Maps, Headers) - faster than individual header calls
+- `res.status(code)` - Set status code (chainable, returns res)
 
 ## ⚡ Performance
 
-### 🏆 Framework Performance Showdown
+### Framework Performance Comparison
 
-**Competitive Performance**: Woodland delivers excellent performance that outperforms both raw Node.js and Express.js, while achieving 87% of Fastify's performance - a strong showing for a framework that prioritizes developer experience alongside speed.
+Woodland delivers excellent performance that outperforms both raw Node.js and Express.js, while achieving 87% of Fastify's performance.
 
-```
-Framework Comparison (JSON Response) - 5-run average
-Platform: Apple Mac Mini M4 Pro, Node.js 24.8.0
-
-Fastify framework:        14,283 ops/sec  (0.070ms avg)  🥇 FASTEST
-Woodland framework:       12,478 ops/sec  (0.080ms avg)  🥈 Strong second
-Express.js framework:     12,112 ops/sec  (0.083ms avg)  🥉 Third place
-Raw Node.js HTTP module:  10,888 ops/sec  (0.092ms avg)
-
-Performance improvement: +15% faster than raw Node.js, +3% faster than Express.js, 87% of Fastify's performance
-```
+| Platform | Ops/sec | Avg (ms) | Notes |
+|---|-----------|----------|-------------|
+| Fastify | 14,283 | 0.070 | Fastest |
+| Woodland | 12,478 | 0.080 | Strong second |
+| Express.js | 12,112 | 0.083 | Third place |
+| Raw Node.js | 10,888 | 0.092 | Baseline |
 
 **Why Woodland delivers competitive performance:**
 - **vs Raw Node.js**: Optimized request/response pipeline that eliminates common inefficiencies (+15% faster)
 - **vs Express.js**: Lightweight middleware system that outperforms while maintaining developer experience (+3% faster)
-- **vs Fastify**: Balanced approach that trades some raw speed for enhanced usability (87% of Fastify's performance)
+- **vs Fastify**: Balanced approach that trades some raw speed for enhanced usability
 - Built-in JSON response optimization with smart serialization
 - Efficient header management and intelligent caching strategies
 - Developer-friendly architecture that doesn't sacrifice performance for convenience
 
 ### Benchmark Results
 
-*Node.js 24.8.0 (1000 iterations, 100 warmup, averaged across 5 runs)*
+**Node.js 24.8.0** (1000 iterations, 100 warmup, 5 runs averaged)
 
-```
-HTTP Operations
-404 handling:        16,570 ops/sec    (0.060ms avg)
-Parameterized routes: 14,971 ops/sec   (0.067ms avg)
-Error handling:      14,859 ops/sec    (0.067ms avg)
-JSON response:       14,422 ops/sec    (0.069ms avg)
-Simple GET:          13,497 ops/sec    (0.074ms avg)
-Middleware chain:    12,108 ops/sec    (0.083ms avg)
-Large response:      814 ops/sec       (1.228ms avg)
-```
+| Operation            | Ops/sec | Avg (ms) |
+|----------------------|---------|----------|
+| 404 handling         | 16,570  | 0.060    |
+| Parameterized routes | 14,971  | 0.067    |
+| Error handling       | 14,859  | 0.067    |
+| JSON response        | 14,422  | 0.069    |
+| Simple GET           | 13,497  | 0.074    |
+| Middleware chain     | 12,108  | 0.083    |
+| Large response       | 814     | 1.228    |
 
 ### Performance Tips
 
@@ -874,7 +907,7 @@ node benchmark.js utility -i 500 -w 50
 
 ### Test Coverage
 
-Woodland maintains **100%** statement coverage with comprehensive testing across all features. The CLI module achieves **100% coverage** with rigorous testing of all code paths including successful server startup, and the utility module achieves **100% line coverage** with comprehensive edge case testing.
+Woodland maintains **100%** test coverage with comprehensive tests covering CLI, security, routing, middleware, file serving, caching, response helpers, and error handling.
 
 ```bash
 npm test
@@ -882,19 +915,14 @@ npm test
 
 ### Test Results
 
-```
-386 passing (6s)
+**370 passing tests (4s average)**
 
---------------|---------|----------|---------|---------|-------------------
-File          | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
---------------|---------|----------|---------|---------|-------------------
-All files     |     100 |      100 |     100 |     100 |                   
- cli.js       |     100 |      100 |     100 |     100 |                   
- constants.js |     100 |      100 |     100 |     100 |                   
- utility.js   |     100 |      100 |     100 |     100 |                   
- woodland.js  |     100 |      100 |     100 |     100 |                   
---------------|---------|----------|---------|---------|-------------------
-```
+| File      | Statements | Branches | Functions | Lines |
+|-----------|------------|----------|-----------|-------|
+| CLI       | 100%       | 100%     | 100%      | 100%  |
+| Constants | 100%       | 100%     | 100%      | 100%  |
+| Utility   | 100%       | 100%     | 100%      | 100%  |
+| Woodland  | 100%       | 100%     | 100%      | 100%  |
 
 ### Test Categories
 
@@ -1231,7 +1259,7 @@ app.log("Debug message", "debug");
 
 ## 📄 License
 
-Copyright (c) 2025 Jason Mulligan
+Copyright (c) 2026 Jason Mulligan
 
 Licensed under the **BSD-3-Clause** license.
 
@@ -1246,7 +1274,6 @@ Licensed under the **BSD-3-Clause** license.
 ## 📞 Support
 
 - **Issues**: [GitHub Issues](https://github.com/avoidwork/woodland/issues)
-- **Documentation**: [GitHub Wiki](https://github.com/avoidwork/woodland/wiki)
 - **Discussions**: [GitHub Discussions](https://github.com/avoidwork/woodland/discussions)
 
 ---
@@ -1254,4 +1281,3 @@ Licensed under the **BSD-3-Clause** license.
 <div align="center">
   <sub>Built with ❤️ by <a href="https://github.com/avoidwork">Jason Mulligan</a></sub>
 </div>
-# Testing pre-commit without loop

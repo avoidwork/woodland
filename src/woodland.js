@@ -138,21 +138,21 @@ const PROTOCOL_REGEX = /^http(s)?:\/\//;
  */
 export class Woodland extends EventEmitter {
 	/**
-	 * Creates a new Woodland instance
-	 * @param {Object} [config={}] - Configuration object
-	 * @param {boolean} [config.autoindex=false] - Enable automatic directory indexing
-	 * @param {number} [config.cacheSize=1000] - Size of internal cache
-	 * @param {number} [config.cacheTTL=10000] - Cache time-to-live in milliseconds
-	 * @param {string} [config.charset='utf-8'] - Default character encoding
-	 * @param {string} [config.corsExpose=''] - CORS headers to expose to the client
-	 * @param {Object} [config.defaultHeaders={}] - Default HTTP headers
-	 * @param {number} [config.digit=3] - Number of digits for timing precision
-	 * @param {boolean} [config.etags=true] - Enable ETag generation
-	 * @param {string[]} [config.indexes=['index.htm', 'index.html']] - Index file names
-	 * @param {Object} [config.logging={}] - Logging configuration
-	 * @param {string[]} [config.origins=[]] - Allowed CORS origins (empty array denies all cross-origin requests)
-	 * @param {boolean} [config.silent=false] - Disable default headers
-	 * @param {boolean} [config.time=false] - Enable response time tracking
+	 * Creates a new Woodland HTTP server framework instance
+	 * @param {WoodlandConfig} [config={}] - Server configuration options
+	 * @param {boolean} [config.autoindex=false] - Enable directory listing for static file server
+	 * @param {number} [config.cacheSize=1000] - Max entries for route and permission caches
+	 * @param {number} [config.cacheTTL=10000] - Cache entry TTL in milliseconds
+	 * @param {string} [config.charset='utf-8'] - Character encoding for responses
+	 * @param {string} [config.corsExpose=''] - Comma-separated CORS headers to expose to client
+	 * @param {Record<string,string>} [config.defaultHeaders={}] - Default HTTP headers for all responses
+	 * @param {number} [config.digit=3] - Decimal places in response time header
+	 * @param {boolean} [config.etags=true] - Generate ETags for static file responses
+	 * @param {string[]} [config.indexes=['index.htm','index.html']] - Index filenames for directory listing
+	 * @param {LoggingConfig} [config.logging={}] - Logging configuration
+	 * @param {string[]} [config.origins=[]] - Allowed CORS origins (empty array = deny all CORS, default: [])
+	 * @param {boolean} [config.silent=false] - Omit Server/X-Powered-By headers when true
+	 * @param {boolean} [config.time=false] - Add X-Response-Time header to successful responses
 	 */
 	constructor ({
 		autoindex = false,

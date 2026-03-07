@@ -48,9 +48,10 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url)),
 	}, {});
 
 /**
- * Escapes HTML special characters to prevent XSS attacks
- * @param {string} [str=""] - The string to escape
- * @returns {string} The escaped string with HTML entities
+ * Escapes HTML entities to prevent Cross-Site Scripting (XSS) attacks
+ * Transforms &, <, >, ", ' into their respective HTML entities
+ * @param {string} [str=""] - Input string containing potential XSS vectors
+ * @returns {string} HTML-safe string with special characters escaped
  */
 function escapeHtml (str = EMPTY) {
 	// Use lookup table for single-pass replacement
@@ -66,10 +67,11 @@ function escapeHtml (str = EMPTY) {
 }
 
 /**
- * Generates an HTML autoindex page for directory listings
- * @param {string} [title=""] - The title for the autoindex page
- * @param {Array} [files=[]] - Array of file objects from fs.readdir with withFileTypes: true
- * @returns {string} The complete HTML string for the autoindex page
+ * Generates HTML autoindex page for directory browser interface
+ * Escapes HTML content and creates styled list of files/directories with ../ navigation
+ * @param {string} [title=""] - Page display title (will be HTML-escaped)
+ * @param {Array} [files=[]] - Array of fs.Dirent objects (from readdir withFileTypes:true)
+ * @returns {string} Complete HTML document with autoindex template
  */
 export function autoindex (title = EMPTY, files = []) {
 	const safeTitle = escapeHtml(title);
@@ -109,10 +111,11 @@ export function autoindex (title = EMPTY, files = []) {
 }
 
 /**
- * Determines the appropriate HTTP status code based on request and response state
- * @param {Object} req - The HTTP request object
- * @param {Object} res - The HTTP response object
- * @returns {number} The appropriate HTTP status code
+ * Determines HTTP response status code based on request/response state
+ * Returns 404, 405, 500, or existing status depending on methods, allow list, and error state
+ * @param {IncomingMessage} req - HTTP request (must have allow[], method properties)
+ * @param {ServerResponse} res - HTTP response (must have statusCode property)
+ * @returns {number} Appropriate status code (404, 405, 500, or existing status)
  */
 export function getStatus (req, res) {
 	// No allowed methods - always 404
@@ -135,9 +138,10 @@ export function getStatus (req, res) {
 }
 
 /**
- * Gets the MIME type for a file based on its extension
- * @param {string} [arg=""] - The filename or path to get the MIME type for
- * @returns {string} The MIME type or application/octet-stream as default
+ * Gets MIME type string for file based on extension lookup in mime-db
+ * Returns application/octet-stream for unknown extensions
+ * @param {string} [filePath=""] - File path or filename to determine MIME type for
+ * @returns {string} MIME type string (e.g., "text/plain", "image/png")
  */
 export function mime (arg = EMPTY) {
 	const ext = extname(arg);
@@ -146,22 +150,23 @@ export function mime (arg = EMPTY) {
 }
 
 /**
- * Formats a time value in milliseconds with specified precision
- * @param {number} [arg=0] - The time value in nanoseconds
- * @param {number} [digits=3] - Number of decimal places for precision
- * @returns {string} Formatted time string with "ms" suffix
+ * Formats response time in milliseconds with configurable decimal places
+ * @param {number} [ms=0] - Time value in milliseconds to format
+ * @param {number} [digits=3] - Number of decimal places for precision (0-10)
+ * @returns {string} Formatted time string (e.g., "123.456ms")
  */
 export function ms (arg = INT_0, digits = INT_3) {
 	return TIME_MS.replace(TOKEN_N, Number(arg / INT_1e6).toFixed(digits));
 }
 
 /**
- * Creates a next function for middleware processing with error handling
- * @param {Object} req - The HTTP request object
- * @param {Object} res - The HTTP response object
- * @param {Iterator} middleware - The middleware iterator
- * @param {boolean} [immediate=false] - Whether to execute immediately or on next tick
- * @returns {Function} The next function for middleware chain
+ * Creates callback-based middleware executor with error handling and async support
+ * Builds async recursion for middleware chain, handles errors by finding error handlers or returning status
+ * @param {IncomingMessage} req - HTTP request context for error status calculation
+ * @param {ServerResponse} res - HTTP response object with error, send methods
+ * @param {Iterator<Function>} middleware - Middleware generator iterator from next()
+ * @param {boolean} [immediate=false] - Execute on next tick (false) or immediately (true)
+ * @returns {(err=*) => void} next() callback function for middleware chain
  */
 export function next (req, res, middleware, immediate = false) {
 	// Optimized: Pre-calculate getStatus to avoid repeated function calls
@@ -205,18 +210,21 @@ export function next (req, res, middleware, immediate = false) {
 }
 
 /**
- * Pads a number with leading zeros to make it 2 digits
- * @param {number} [arg=0] - The number to pad
- * @returns {string} The padded string representation
+ * Pads numeric values with leading zeros to ensure 2-digit width
+ * Used for timestamp formatting (hours, minutes, seconds)
+ * @param {number} [num=0] - Integer to pad
+ * @returns {string} Zero-padded string representation (e.g., 5 → "05", 42 → "42")
  */
 export function pad (arg = INT_0) {
 	return String(arg).padStart(INT_2, STRING_0);
 }
 
 /**
- * Extracts and processes URL parameters from request path
- * @param {Object} req - The HTTP request object
- * @param {RegExp} getParams - Regular expression for parameter extraction
+ * Extracts, decodes, and URL-handles route parameters from request path
+ * Executes regex match, parses named groups, applies HTML escaping and coercion
+ * @param {IncomingMessage} req - HTTP request (must have parsed.pathname and params object)
+ * @param {RegExp} getParams - Compiled regex from route path with named captures
+ * @returns {void}
  */
 export function params (req, getParams) {
 	getParams.lastIndex = INT_0;
@@ -264,23 +272,25 @@ export function params (req, getParams) {
 }
 
 /**
- * Parses a URL string or request object into a URL object with security checks
- * @param {string|Object} arg - URL string or request object to parse
- * @returns {URL} Parsed URL object
+ * Parses URL string or request object into standardized URL object
+ * Handles request conversion by extracting host and URL from Node.js HTTP objects
+ * @param {string|IncomingMessage} arg - URL string or Node.js HTTP request object
+ * @returns {URL} Parsed URL object with protocol, host, pathname, search properties
  */
 export function parse (arg) {
 	return new URL(typeof arg === STRING ? arg : `http://${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || "8000"}`}${arg.url}`);
 }
 
 /**
- * Handles partial content headers for HTTP range requests
- * @param {Object} req - The HTTP request object
- * @param {Object} res - The HTTP response object
- * @param {number} size - Total size of the content
- * @param {number} status - HTTP status code
- * @param {Object} [headers={}] - Response headers object
- * @param {Object} [options={}] - Options for range processing
- * @returns {Array} Array containing [headers, options]
+ * Parses partial content range headers and validates range specifications
+ * Handles byte ranges, returns 206 partial content info or invalid range error
+ * @param {IncomingMessage} req - HTTP request (must have headers.range)
+ * @param {ServerResponse} res - HTTP response (must have header, removeHeader methods)
+ * @param {number} size - Total file/content size in bytes
+ * @param {number} status - Current or desired status code (becomes 206 if valid range)
+ * @param {Object} headers - Output headers map for Content-Range, Content-Length
+ * @param {Object} options - Output options object for range {start, end}
+ * @returns {[Object, Object]} [updatedHeaders, rangeOptions] with modified headers and optional range
  */
 export function partialHeaders (req, res, size, status, headers = {}, options = {}) {
 	const rangeHeader = req.headers.range;
@@ -364,20 +374,23 @@ export function partialHeaders (req, res, size, status, headers = {}, options = 
 }
 
 /**
- * Checks if an object is pipeable (has 'on' method and is not null)
- * @param {string} method - HTTP method
- * @param {*} arg - Object to check for pipeability
- * @returns {boolean} True if the object is pipeable
+ * Pipes HTTP method and response body to check if streamable
+ * Checks if method supports streaming and object has 'on' listener for error handling
+ * @param {string} method - HTTP request method (GET, HEAD, OPTIONS)
+ * @param {*|Stream} arg - Response body to check for pipeability (Stream, Buffer, or string)
+ * @returns {boolean} True if body can be piped to response (not HEAD and has on method)
  */
 export function pipeable (method, arg) {
 	return method !== HEAD && arg !== null && arg !== undefined && typeof arg.on === FUNCTION;
 }
 
 /**
- * Processes middleware map for a given URI and populates middleware array
- * @param {string} uri - The URI to match against
- * @param {Map} [map=new Map()] - Map of middleware handlers
- * @param {Object} [arg={}] - Object containing middleware array and parameters
+ * Processes middleware Map and array for URI matching, building route handler stack
+ * Tests URI against middleware regex patterns and accumulates handlers, tracks presence of params
+ * @param {string} uri - Request path URI to match against route patterns
+ * @param {Map<string, {regex:RegExp, handlers:Function[], params:boolean}>} map - Middleware Map from Woodland instance
+ * @param {{middleware:Function[], params:boolean, getParams:RegExp|null}} arg - Output object for populated middleware array and param detection
+ * @returns {void}
  */
 export function reduce (uri, map = new Map(), arg = {}) {
 	// Optimized: Early return if map is empty
@@ -440,9 +453,11 @@ export function timeOffset (arg = INT_0) {
 }
 
 /**
- * Writes HTTP response headers using writeHead method
- * @param {Object} res - The HTTP response object
- * @param {Object} [headers={}] - Headers object to write
+ * Writes all response headers at once using Node.js HTTP writeHead method
+ * Includes status code, status text from STATUS_CODES, and headers map
+ * @param {ServerResponse} res - HTTP response object (must have writeHead method)
+ * @param {Object} headers - Headers object to write (plain object or Headers instance)
+ * @returns {void}
  */
 export function writeHead (res, headers = {}) {
 	res.writeHead(res.statusCode, STATUS_CODES[res.statusCode], headers);
@@ -455,9 +470,10 @@ const IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i;
 const HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
 
 /**
- * Validates if an IP address is properly formatted
- * @param {string} ip - IP address to validate
- * @returns {boolean} True if IP is valid format
+ * Validates IPv4 or IPv6 address format including IPv4-mapped IPv6 and :: compression
+ * Performs rigorous format validation with octet ranges and hex group checking
+ * @param {string|number|*} ip - Address string to validate (must be string)
+ * @returns {boolean} True if valid IP address format (rejects non-string and invalid formats)
  */
 export function isValidIP (ip) {
 	if (!ip || typeof ip !== "string") {
