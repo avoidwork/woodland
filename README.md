@@ -204,18 +204,18 @@ const app = woodland({
 
 **Log Format Tokens:**
 
-| Token | Description |
-|--|------|
-| `%h` | Remote IP address |
-| `%l` | Remote log name (always `-`) |
-| `%u` | Authenticated user name |
-| `%t` | Request timestamp |
-| `%r` | Request line (METHOD PATH HTTP/1.1) |
-| `%s` | Final status code |
-| `%b` | Bytes sent |
-| `%{Referer}i` | Referer header |
-| `%{User-agent}i` | User-Agent header |
-| `%v` | Server virtual host |
+| Token            | Description                         |
+|------------------|-------------------------------------|
+| `%h`             | Remote IP address                   |
+| `%l`             | Remote log name (always `-`)        |
+| `%u`             | Authenticated user name             |
+| `%t`             | Request timestamp                   |
+| `%r`             | Request line (METHOD PATH HTTP/1.1) |
+| `%s`             | Final status code                   |
+| `%b`             | Bytes sent                          |
+| `%{Referer}i`    | Referer header                      |
+| `%{User-agent}i` | User-Agent header                   |
+| `%v`             | Server virtual host                 |
 
 ### Default Configuration
 
@@ -724,17 +724,17 @@ app.log("Debug information", "debug");
 
 ### Log Format Placeholders
 
-| Placeholder | Description |
-|-----------|-------------|
-| `%h` | Remote IP address |
-| `%l` | Remote log name (always `-`) |
-| `%u` | Authenticated user name (or `-`) |
-| `%t` | Request timestamp |
-| `%r` | Request line (METHOD PATH HTTP/1.1) |
-| `%s` | Final status code |
-| `%b` | Bytes sent |
-| `%{Referer}i` | Referer header |
-| `%{User-agent}i` | User-Agent header |
+| Placeholder      | Description                         |
+|------------------|-------------------------------------|
+| `%h`             | Remote IP address                   |
+| `%l`             | Remote log name (always `-`)        |
+| `%u`             | Authenticated user name (or `-`)    |
+| `%t`             | Request timestamp                   |
+| `%r`             | Request line (METHOD PATH HTTP/1.1) |
+| `%s`             | Final status code                   |
+| `%b`             | Bytes sent                          |
+| `%{Referer}i`    | Referer header                      |
+| `%{User-agent}i` | User-Agent header                   |
 
 ## 💻 CLI Usage
 
@@ -758,11 +758,11 @@ The CLI achieves **100% test coverage** with comprehensive unit tests covering a
 
 ### CLI Options
 
-| Option | Default | Description |
-|-----------|-------------|--|-------------|
-| `--ip` | `127.0.0.1` | Server IP address |
-| `--port` | `8000` | Server port |
-| `--logging` | `true` | Enable/disable request logging |
+| Option      | Default     | Description                    |
+|-------------|-------------|--------------------------------|
+| `--ip`      | `127.0.0.1` | Server IP address              |
+| `--port`    | `8000`      | Server port                    |
+| `--logging` | `true`      | Enable/disable request logging |
 
 ### Example Output
 
@@ -862,15 +862,15 @@ Woodland delivers excellent performance that outperforms both raw Node.js and Ex
 
 **Node.js 24.8.0** (1000 iterations, 100 warmup, 5 runs averaged)
 
-| Operation | Ops/sec | Avg (ms) |
-|------------|-----------|----------|
-| 404 handling | 16,570 | 0.060 |
-| Parameterized routes | 14,971 | 0.067 |
-| Error handling | 14,859 | 0.067 |
-| JSON response | 14,422 | 0.069 |
-| Simple GET | 13,497 | 0.074 |
-| Middleware chain | 12,108 | 0.083 |
-| Large response | 814 | 1.228 |
+| Operation            | Ops/sec | Avg (ms) |
+|----------------------|---------|----------|
+| 404 handling         | 16,570  | 0.060    |
+| Parameterized routes | 14,971  | 0.067    |
+| Error handling       | 14,859  | 0.067    |
+| JSON response        | 14,422  | 0.069    |
+| Simple GET           | 13,497  | 0.074    |
+| Middleware chain     | 12,108  | 0.083    |
+| Large response       | 814     | 1.228    |
 
 ### Performance Tips
 
@@ -928,12 +928,12 @@ npm test
 
 **370 passing tests (4s average)**
 
-| File | Statements | Branches | Functions | Lines |
-|------|------------|----------|-----------|-------|
-| CLI | 100% | 100% | 100% | 100% |
-| Constants | 100% | 100% | 100% | 100% |
-| Utility | 100% | 100% | 100% | 100% |
-| Woodland | 100% | 100% | 100% | 100% |
+| File      | Statements | Branches | Functions | Lines |
+|-----------|------------|----------|-----------|-------|
+| CLI       | 100%       | 100%     | 100%      | 100%  |
+| Constants | 100%       | 100%     | 100%      | 100%  |
+| Utility   | 100%       | 100%     | 100%      | 100%  |
+| Woodland  | 100%       | 100%     | 100%      | 100%  |
 
 ### Test Categories
 
@@ -1285,7 +1285,6 @@ Licensed under the **BSD-3-Clause** license.
 ## 📞 Support
 
 - **Issues**: [GitHub Issues](https://github.com/avoidwork/woodland/issues)
-- **Documentation**: [GitHub Wiki](https://github.com/avoidwork/woodland/wiki)
 - **Discussions**: [GitHub Discussions](https://github.com/avoidwork/woodland/discussions)
 
 ---
