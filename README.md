@@ -204,18 +204,21 @@ const app = woodland({
 
 **Log Format Tokens:**
 
-| Token            | Description                         |
-|------------------|-------------------------------------|
-| `%h`             | Remote IP address                   |
-| `%l`             | Remote log name (always `-`)        |
-| `%u`             | Authenticated user name             |
-| `%t`             | Request timestamp                   |
-| `%r`             | Request line (METHOD PATH HTTP/1.1) |
-| `%s`             | Final status code                   |
-| `%b`             | Bytes sent                          |
-| `%{Referer}i`    | Referer header                      |
-| `%{User-agent}i` | User-Agent header                   |
-| `%v`             | Server virtual host                 |
+| Token              | Description                                         |
+|-------------------|-----------------------------------------------------|
+| `%h`               | Remote IP address                                   |
+| `%l`               | Remote logname (identity, usually `-`)              |
+| `%u`               | Remote user (or `-` if not authenticated)           |
+| `%t`               | Time the request was received                       |
+| `%r`               | Request line (METHOD PATH Protocol version)         |
+| `%>s`              | Status code sent to client                          |
+| `%b`               | Bytes sent (excluding HTTP headers)                 |
+| `%v`               | Server name requested                               |
+| `%{FIELD}i`        | Request header `FIELD` (e.g., `%{User-Agent}i`)     |
+| `%{FIELD}o`        | Response header `FIELD`                             |
+| `%{FIELD}e`        | Environmental variable `FIELD`                      |
+| `%D`               | Time taken to serve the request in microseconds     |
+| `%T`               | Time taken to serve the request in seconds          |
 
 ### Default Configuration
 
