@@ -3,7 +3,7 @@
   
   # Woodland
   
-  *High-performance HTTP framework*
+  *The high-performance HTTP framework that's faster than hand-coded Node.js*
   
   [![npm version](https://badge.fury.io/js/woodland.svg)](https://badge.fury.io/js/woodland)
   [![Node.js Version](https://img.shields.io/node/v/woodland.svg)](https://nodejs.org/)
@@ -13,57 +13,183 @@
   
 </div>
 
-## 🚀 Features
+## 🚀 Quick Start
 
-- **🏆 Performance Leader**: **15% faster than raw Node.js, 3% faster than Express.js, 87% of Fastify's performance** - proven by benchmarks
-- **⚡ Zero Overhead**: Framework features with performance gains, not costs
-- **🔒 Security First**: Built-in CORS, ETags, and comprehensive security headers
-- **🛤️ Smart Routing**: Parameter syntax (`/users/:id`) and RegExp support with caching
-- **🔧 Express Compatible**: Familiar middleware with `req, res, next` pattern
-- **📁 File Serving**: High-performance static file server with streaming
-- **📘 TypeScript Ready**: Full TypeScript definitions included
-- **📊 Production Logging**: Common Log Format with customizable levels
-- **🚀 Modern Architecture**: ES6+ modules optimized for Node.js 17+
+Get a server running in **30 seconds**:
+
+```javascript
+import {createServer} from "node:http";
+import {woodland} from "woodland";
+
+const app = woodland();
+
+app.get("/", (req, res) => res.send("Hello World!"));
+app.get("/users/:id", (req, res) => res.json({id: req.params.id}));
+
+createServer(app.route).listen(3000, () => {
+  console.log("Server running at http://localhost:3000");
+});
+```
+
+That's it! You get routing, JSON responses, parameters, and more - **out of the box**.
+
+## 🏆 Why Woodland?
+
+Most HTTP frameworks slow you down. Woodland speeds you up.
+
+| Feature | Woodland | Express.js | Raw Node.js |
+|---------|----------|------------|------------|
+| **Performance** | 12,478 ops/sec | 12,112 ops/sec | 10,888 ops/sec |
+| **Learning Curve** | Express-compatible | Gentle | Steep |
+| **Built-in Features** | CORS, ETags, Logging | Limited | None |
+| **TypeScript** | ✅ First-class | ✅ | ❌ |
+
+### Benefits for Developers
+
+✅ **15% faster than raw Node.js** - Optimized pipeline, not overhead  
+✅ **Express-compatible** - Zero learning curve, drop-in middleware  
+✅ **Zero config** - Works out of the box, tune when you need to  
+✅ **Production-ready** - 100% test coverage, battle-tested security  
+✅ **TypeScript first** - Full type definitions included
+
+### What You Get
+
+🔥 **Smart Routing**: Parameter routes (`:id`), RegExp patterns, wildcards  
+🛡️ **Security Built-in**: CORS, ETags, secure defaults, injection protection  
+📦 **Static Files**: High-performance serving with streaming  
+🔧 **Middleware**: Express-compatible `req, res, next` pattern  
+📊 **Production Logging**: Common Log Format, customizable levels  
+🚀 **Modern JS**: ES6+ modules for Node.js 17+
 
 ## 🔒 Security & OWASP Compliance
 
-Woodland follows a **security-first design philosophy** with strong adherence to OWASP guidelines:
+Security isn't optional. Woodland provides it out of the box.
 
-- **✅ Injection Prevention**: Comprehensive input validation, HTML escaping, and path traversal protection
-- **✅ Secure Defaults**: CORS disabled by default, autoindex disabled, secure error handling
-- **✅ Access Control**: Strict file access controls and allowlist-based CORS validation
-- **✅ XSS Protection**: All user input properly escaped, security headers included
-- **🛡️ Security Headers**: `X-Content-Type-Options: nosniff` set automatically, [`helmet`](https://helmetjs.github.io/) recommended for comprehensive headers
-- **⚡ Rate Limiting**: Built for middleware compatibility - use [`express-rate-limit`](https://github.com/express-rate-limit/express-rate-limit) or similar
-- **🔍 Comprehensive Testing**: 100+ dedicated security tests covering attack vectors and edge cases
+**Automatic Protection:**
+- ✅ **Injection Prevention**: Input validation, HTML escaping, path traversal protection  
+- ✅ **Secure Defaults**: CORS disabled by default, safe error handling  
+- ✅ **XSS Protection**: All user input escaped, security headers included  
+- ✅ **Access Control**: Strict file access, allowlist-based CORS validation  
 
-**OWASP Top 10 Coverage**: Excellent protection against injection attacks, broken access control, security misconfigurations, and cross-site scripting. See [Technical Documentation](https://github.com/avoidwork/woodland/blob/master/docs/TECHNICAL_DOCUMENTATION.md#owasp-security-assessment) for complete assessment.
-
-**💡 Quick Security Setup**: Add essential security middleware for production deployment:
+**Production Setup** (add these once):
 ```javascript
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 
-// Security headers
-app.always(helmet());
-
-// Rate limiting
-app.always(rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
-}));
+app.always(helmet()); // Security headers
+app.always(rateLimit({windowMs: 15 * 60 * 1000, max: 100})); // Rate limiting
 ```
 
-## 💡 Why Choose Woodland?
+For complete OWASP Top 10 coverage and security architecture, see the [Technical Documentation](https://github.com/avoidwork/woodland/blob/master/docs/TECHNICAL_DOCUMENTATION.md#owasp-security-assessment).
 
-**Stop accepting framework overhead.** Most HTTP frameworks slow you down in exchange for convenience. Woodland breaks that trade-off.
+## 💡 Common Patterns
 
-🏆 **Proven Performance**: Comprehensive benchmarks show Woodland **outperforms raw Node.js by 15%, Express.js by 3%, and delivers 87% of Fastify's performance**  
-⚡ **Zero Compromise**: Get all the framework features you need with better performance than hand-coding  
-🚀 **Battle-Tested**: 100% statement coverage with 386 comprehensive tests, production-ready security, and enterprise-grade reliability  
-🔧 **Developer Experience**: Express-compatible API means zero learning curve for your team  
+### REST API with Body Parsing
+```javascript
+const app = woodland({defaultHeaders: {"content-type": "application/json"}});
 
-**The Result?** Your applications run faster, your servers handle more traffic, and your infrastructure costs less.
+// Body parser middleware
+app.always(async (req, res, next) => {
+  if (req.method === "POST" || req.method === "PUT") {
+    let body = "";
+    req.on("data", chunk => body += chunk);
+    req.on("end", () => {
+      req.body = JSON.parse(body || "{}");
+      next();
+    });
+  } else {
+    next();
+  }
+});
+
+// CRUD routes
+const users = new Map();
+
+app.get("/users", (req, res) => res.json(Array.from(users.values())));
+app.get("/users/:id", (req, res) => {
+  const user = users.get(req.params.id);
+  user ? res.json(user) : res.error(404);
+});
+app.post("/users", (req, res) => {
+  const id = Date.now().toString();
+  const user = {...req.body, id};
+  users.set(id, user);
+  res.json(user, 201);
+});
+```
+
+### CORS Setup for Frontend
+```javascript
+// Allow specific origins
+const app = woodland({
+  origins: ["https://myapp.com", "http://localhost:3000"],
+  corsExpose: "x-total-count,x-page-count" // Expose custom headers
+});
+
+// Woodland automatically handles:
+// - Preflight OPTIONS requests  
+// - Access-Control-Allow-Origin headers
+// - Access-Control-Allow-Methods based on your routes
+// - Origin validation and security
+```
+
+### Static File Server
+```javascript
+// Directory listing + file serving
+const app = woodland({autoindex: true});
+
+app.files("/", "./public"); // Serve /public folder at /
+```
+
+### Error Handling
+```javascript
+const app = woodland();
+
+// Global error handler (register last)
+app.use("/(.*)", (error, req, res, next) => {
+  console.error(error);
+  res.error(500, "Internal Server Error");
+});
+
+app.get("/users/:id", (req, res, next) => {
+  const user = findUser(req.params.id);
+  if (!user) {
+    return res.error(404, "User not found");
+  }
+  res.json(user);
+});
+```
+
+### Using the Class (for larger apps)
+```javascript
+import {Woodland} from "woodland";
+
+class API extends Woodland {
+  constructor() {
+    super({
+      defaultHeaders: {"x-api-version": "1.0.0"},
+      origins: ["https://myapp.com"]
+    });
+    
+    this.setupRoutes();
+  }
+  
+  setupRoutes() {
+    this.get("/health", this.healthCheck);
+    this.get("/users", this.getUsers);
+    this.post("/users", this.createUser);
+  }
+  
+  healthCheck(req, res) {
+    res.json({status: "ok", timestamp: new Date().toISOString()});
+  }
+  
+  getUsers(req, res) { /* ... */ }
+  createUser(req, res) { /* ... */ }
+}
+
+const api = new API();
+```
 
 ## 📦 Installation
 
@@ -81,521 +207,381 @@ pnpm add woodland
 npm install -g woodland
 ```
 
-## 🚀 Quick Start
+## 📖 Documentation
 
-### Basic Server
-
-```javascript
-import {createServer} from "node:http";
-import {woodland} from "woodland";
-
-const app = woodland({
-  defaultHeaders: {
-    "cache-control": "public, max-age=3600",
-    "content-type": "text/plain"
-  },
-  time: true
-});
-
-app.get("/", (req, res) => {
-  res.send("Hello World!");
-});
-
-app.get("/users/:id", (req, res) => {
-  res.json({
-    id: req.params.id,
-    name: `User ${req.params.id}`
-  });
-});
-
-createServer(app.route).listen(3000, () => {
-  console.log("Server running on http://localhost:3000");
-});
-```
-
-### Using the Class
-
-```javascript
-import {Woodland} from "woodland";
-
-class MyAPI extends Woodland {
-  constructor() {
-    super({
-      defaultHeaders: {
-        "x-api-version": "1.0.0"
-      },
-      origins: ["https://myapp.com"]
-    });
-    
-    this.setupRoutes();
-  }
-  
-  setupRoutes() {
-    this.get("/api/health", this.healthCheck);
-    this.post("/api/users", this.createUser);
-  }
-  
-  healthCheck(req, res) {
-    res.json({status: "healthy", timestamp: new Date().toISOString()});
-  }
-  
-  createUser(req, res) {
-    // Handle user creation
-    res.status(201).json({message: "User created"});
-  }
-}
-
-const api = new MyAPI();
-```
-
-## 📖 Table of Contents
-
-- [Configuration](#-configuration)
-- [Routing](#-routing)
-- [Middleware](#-middleware)
-- [Static Files](#-static-files)
-- [CORS](#-cors)
-- [Error Handling](#-error-handling)
-- [Response Helpers](#-response-helpers)
-- [Event Handlers](#-event-handlers)
-- [Logging](#-logging)
-- [CLI Usage](#-cli-usage)
-- [API Reference](#-api-reference)
-- [Performance](#-performance)
-- [Testing](#-testing)
-- [TypeScript](#-typescript)
-- [Examples](#-examples)
-- [Troubleshooting](#-troubleshooting)
+- **[Quick Start](#-quick-start)** - Get running in 30 seconds
+- **[Common Patterns](#-common-patterns)** - Real-world examples
+- **[Configuration](#-configuration)** - Options and customization
+- **[Routing](#-routing)** - Routes, parameters, and patterns
+- **[Middleware](#-middleware)** - Global and route-specific middleware
+- **[CORS](#-cors)** - Cross-origin resource sharing
+- **[Static Files](#-static-files)** - File serving and directory listing
+- **[Error Handling](#-error-handling)** - Error responses and global handlers
+- **[CLI](#-cli-usage)** - Command-line server
+- **[API Reference](#-api-reference)** - Complete method documentation
+- **[Performance](#-performance)** - Benchmarks and optimization
+- **[TypeScript](#-typescript)** - Type definitions and usage
+- **[Examples](#-examples)** - Complete working examples
+- **[Troubleshooting](#-troubleshooting)** - Common issues and solutions
+- **[Technical Documentation](https://github.com/avoidwork/woodland/wiki/technical-documentation)** - Deep dive into architecture
 
 ## ⚙️ Configuration
 
-### Default Configuration
+**Most apps need zero config**, but you can customize everything:
 
+### Minimal Setup
+```javascript
+const app = woodland(); // Defaults that work
+```
+
+### Production Setup
 ```javascript
 const app = woodland({
-  autoindex: false,        // Enable directory browsing
-  cacheSize: 1000,        // Internal cache size
-  cacheTTL: 10000,        // Cache TTL (10 seconds)
-  charset: "utf-8",       // Default charset
-  corsExpose: "",         // CORS exposed headers
-  defaultHeaders: {},     // Default response headers
-  digit: 3,              // Timing precision digits
-  etags: true,           // Enable ETag generation
-  indexes: [             // Index file names
-    "index.htm",
-    "index.html"
-  ],
-  logging: {
-    enabled: true,       // Enable logging
-    format: "%h %l %u %t \"%r\" %>s %b", // Log format
-    level: "info"        // Log level
+  origins: ["https://myapp.com"],       // CORS allowlist
+  defaultHeaders: {                     // Security headers
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "DENY"
   },
-  origins: [],           // CORS origins (empty array denies all cross-origin requests)
-  silent: false,         // Disable default headers
-  time: false           // Enable response timing
+  logging: {                            // Production logging
+    enabled: true,
+    level: "info",
+    format: "%h %t \"%r\" %>s %b"
+  },
+  cacheSize: 5000,                      // Performance tuning
+  cacheTTL: 600000,
+  time: true                            // Response timing
 });
 ```
 
-### Advanced Configuration
-
+### All Options
 ```javascript
 const app = woodland({
-  // Security headers
-  defaultHeaders: {
-    "x-content-type-options": "nosniff",
-    "x-frame-options": "DENY",
-    "x-xss-protection": "1; mode=block",
-    "strict-transport-security": "max-age=31536000; includeSubDomains"
-  },
-  
-  // CORS configuration
-  origins: [
-    "https://myapp.com",
-    "https://api.myapp.com"
-  ],
-  corsExpose: "x-custom-header,x-request-id",
-  
-  // Performance tuning
-  cacheSize: 5000,
-  cacheTTL: 600000, // 10 minutes
-  
-  // Detailed logging
+  autoindex: false,           // Directory browsing (false = safe)
+  cacheSize: 1000,            // Route cache size
+  cacheTTL: 10000,            // Cache TTL in ms
+  charset: "utf-8",           // Default charset
+  corsExpose: "",             // Exposed CORS headers
+  defaultHeaders: {},         // Default response headers
+  digit: 3,                   // Timing precision
+  etags: true,                // Enable ETags
+  indexes: ["index.html"],    // Index files
   logging: {
     enabled: true,
-    level: "debug",
-    format: "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\""
+    format: "%h %l %u %t \"%r\" %>s %b",
+    level: "info"
   },
-  
-  // Enable features
-  time: true,
-  etags: true,
-  autoindex: true
+  origins: [],                // CORS origins (empty = deny all)
+  silent: false,              // Disable default headers
+  time: false                 // X-Response-Time header
 });
 ```
 
 ## 🛤️ Routing
 
 ### Basic Routes
-
 ```javascript
-// HTTP methods
 app.get("/users", getAllUsers);
 app.post("/users", createUser);
-app.put("/users/:id", updateUser);
+app.put("/users/:id", updateUser);       // Parameter routes
 app.delete("/users/:id", deleteUser);
-app.patch("/users/:id", patchUser);
-app.options("/users", optionsHandler);
+app.get("/files/:path(.*)", serveFile);  // RegExp patterns
+```
 
-// Route parameters
+### Parameter Routes
+```javascript
+// Single parameter
 app.get("/users/:id", (req, res) => {
-  const userId = req.params.id;
-  res.json({id: userId});
+  res.json({id: req.params.id});
 });
 
 // Multiple parameters
 app.get("/users/:userId/posts/:postId", (req, res) => {
-  const {userId, postId} = req.params;
-  res.json({userId, postId});
-});
-```
-
-### Advanced Routing
-
-```javascript
-// RegExp patterns
-app.get("/api/v[1-3]/users", (req, res) => {
-  res.json({version: req.url.match(/v(\d)/)[1]});
+  res.json({userId: req.params.userId, postId: req.params.postId});
 });
 
-// Wildcard routes
-app.get("/files/(.*)", (req, res) => {
-  // Serve any file under /files/
-});
-
-// Route with validation
+// Typed parameters (numeric only)
 app.get("/users/:id(\\d+)", (req, res) => {
-  // Only matches numeric IDs
+  // Only matches /users/123, not /users/abc
   res.json({id: parseInt(req.params.id)});
 });
 ```
 
-### Route Groups
-
+### Route Groups & Middleware
 ```javascript
-// API v1 routes
-const apiV1 = (req, res, next) => {
-  req.version = "v1";
-  next();
-};
-
-app.get("/api/v1/users", apiV1, getAllUsers);
-app.post("/api/v1/users", apiV1, createUser);
-
-// Protected routes
+// Authentication middleware
 const authenticate = (req, res, next) => {
   const token = req.headers.authorization;
-  if (!token) {
-    return res.error(401);
-  }
-  // Verify token...
+  if (!token) return res.error(401);
+  req.user = verifyToken(token);
   next();
 };
 
+// Protect routes
 app.get("/admin/*", authenticate, adminHandler);
+app.post("/api/users", authenticate, createUser);
 ```
 
 ## 🔧 Middleware
 
-### Basic Middleware
+Woodland uses the familiar `req, res, next` pattern. Register global middleware with `always()`, route-specific middleware by adding handlers to routes.
 
+### Global Middleware
 ```javascript
-// Global middleware
+// Runs on every request
 app.always((req, res, next) => {
   console.log(`${req.method} ${req.url}`);
   next();
 });
 
-// Route-specific middleware
-app.get("/protected", authenticate, authorize, handler);
+// Multiple middleware execute in registration order
+app.always(loggingMiddleware);
+app.always(authMiddleware);
+app.always(bodyParser);
+```
 
-// ❌ WRONG: Do NOT register error middleware with 'always'
-// This will execute BEFORE route handlers, not after errors occur
-app.always((error, req, res, next) => {
-  if (error) {
+### Route-Specific Middleware
+```javascript
+// Middleware only runs for specific routes
+app.get("/protected", authenticate, authorize, handler);
+app.post("/api/*", validateUser, createResource);
+```
+
+### Error Handling Middleware
+Error middleware (4 parameters: `error, req, res, next`) must be registered **last** for each route:
+
+```javascript
+// ✅ Correct: Error handler registered last
+app.get("/users", 
+  authenticate,        // Normal middleware
+  getUsers,           // Route handler
+  (error, req, res, next) => {  // Error middleware - LAST
     console.error(error);
     res.error(500);
-  } else {
-    next();
-  }
-});
-
-// ✅ CORRECT: Register error middleware with specific routes LAST
-app.get("/api/users", 
-  authenticate,        // Normal middleware
-  authorize,          // Normal middleware
-  getUserHandler,     // Route handler
-  (error, req, res, next) => {  // Error middleware - LAST
-    if (error) {
-      console.error(error);
-      res.error(500);
-    } else {
-      next();
-    }
   }
 );
 
-// ✅ CORRECT: Global error handling should be done with route patterns
+// Global error handler
 app.use("/(.*)", (error, req, res, next) => {
   if (error) {
-    console.error(`Global error for ${req.url}:`, error);
+    console.error(`Error for ${req.url}:`, error);
     res.error(500, "Internal Server Error");
   } else {
     next();
   }
 });
+
+// ❌ Don't use app.always() for error middleware
+// app.always((error, req, res, next) => { ... }) // Wrong!
 ```
 
-**Important Notes:**
-- **Error middleware** (functions with 4 parameters: `error, req, res, next`) should **never** be registered with `app.always()`
-- Error middleware registered with `always` will execute **before** route handlers, making them ineffective for catching route errors
-- **`.use()` without a method defaults to GET** - it behaves like `.get()`, not like `.always()`
-- Always register error middleware **last** in the middleware chain for each route
-- For global error handling, use `app.use("/(.*)", errorHandler)` as the **last route registration**
+### Common Middleware Examples
 
-### Middleware Examples
-
+**Body Parser:**
 ```javascript
-// Request logging
-const requestLogger = (req, res, next) => {
-  const start = Date.now();
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    console.log(`${req.method} ${req.url} - ${res.statusCode} (${duration}ms)`);
-  });
-  next();
-};
-
-// Body parser
-const bodyParser = async (req, res, next) => {
-  if (req.method === "POST" || req.method === "PUT") {
-    let body = "";
-    req.on("data", chunk => body += chunk);
-    req.on("end", () => {
-      try {
-        req.body = JSON.parse(body);
-      } catch (e) {
-        req.body = body;
-      }
-      next();
-    });
-  } else {
-    next();
+app.always(async (req, res, next) => {
+  if (!["POST", "PUT", "PATCH"].includes(req.method)) {
+    return next();
   }
-};
+  
+  let body = "";
+  req.on("data", chunk => body += chunk);
+  req.on("end", () => {
+    try {
+      req.body = JSON.parse(body);
+    } catch (e) {
+      req.body = body;
+    }
+    next();
+  });
+});
+```
 
-// Rate limiting
+**Rate Limiter:**
+```javascript
 const rateLimit = (() => {
   const requests = new Map();
+  
   return (req, res, next) => {
     const ip = req.ip;
     const now = Date.now();
-    const window = 60000; // 1 minute
-    const limit = 100;
+    const windowMs = 60000; // 1 minute
+    const maxRequests = 100;
     
     if (!requests.has(ip)) {
       requests.set(ip, []);
     }
     
-    const ipRequests = requests.get(ip);
-    const recentRequests = ipRequests.filter(time => now - time < window);
+    const recent = requests.get(ip).filter(t => now - t < windowMs);
     
-    if (recentRequests.length >= limit) {
+    if (recent.length >= maxRequests) {
       return res.error(429);
     }
     
-    recentRequests.push(now);
-    requests.set(ip, recentRequests);
+    recent.push(now);
+    requests.set(ip, recent);
     next();
   };
 })();
+
+app.always(rateLimit);
+```
+
+**Request Logging:**
+```javascript
+app.always((req, res, next) => {
+  const start = Date.now();
+  
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    console.log(`${req.method} ${req.url} - ${res.statusCode} (${duration}ms)`);
+  });
+  
+  next();
+});
 ```
 
 ## 📁 Static Files
 
-### Basic File Serving
-
+### Directory Serving
 ```javascript
-// Serve files from public directory
+// Serve public folder at /static
 app.files("/static", "./public");
 
-// Serve with custom options
+// Directory listing enabled
+const app = woodland({autoindex: true});
+app.files("/", "./public");
+
+// Custom index files
+const app = woodland({
+  autoindex: true,
+  indexes: ["index.html", "index.htm", "default.html"]
+});
+```
+
+### Custom File Handling
+```javascript
+// Download endpoint
 app.get("/downloads/(.*)", (req, res) => {
   const filename = req.params[0];
   const filepath = path.join("./downloads", filename);
   
-  // Custom file serving logic
   app.serve(req, res, filename, "./downloads");
 });
 ```
 
-### Directory Browsing
-
-```javascript
-const app = woodland({
-  autoindex: true,  // Enable directory browsing
-  indexes: ["index.html", "index.htm", "default.html"]
-});
-
-app.files("/", "./public");
-```
-
 ## 🌐 CORS
 
-**Woodland handles CORS automatically when you configure origins.** Here's what you get for free:
+**Most apps only need to configure origins - Woodland handles the rest.**
 
+### Simple Setup
 ```javascript
 const app = woodland({
-  origins: ["https://myapp.com", "https://api.myapp.com"],
-  corsExpose: "x-total-count,x-page-count"
+  origins: ["https://myapp.com", "http://localhost:3000"],
+  corsExpose: "x-total-count" // Expose custom headers to client
 });
 
 // Woodland automatically provides:
-// ✅ Preflight OPTIONS route for all paths
-// ✅ Access-Control-Allow-Origin header (set to request origin if allowed)
+// ✅ Preflight OPTIONS requests
+// ✅ Access-Control-Allow-Origin headers  
+// ✅ Access-Control-Allow-Methods based on your routes
 // ✅ Access-Control-Allow-Credentials: true
-// ✅ Access-Control-Allow-Methods (based on registered routes)
-// ✅ Access-Control-Allow-Headers (for OPTIONS requests)
-// ✅ Access-Control-Expose-Headers (for non-OPTIONS requests)
-// ✅ Timing-Allow-Origin header
-// ✅ Origin validation and security
+// ✅ Origin validation (denies unknown origins)
 ```
 
-### What Woodland Does Automatically
-
-1. **Preflight Route Registration**: When origins are configured, Woodland automatically registers an OPTIONS handler that responds with 204 No Content
-2. **CORS Headers**: For valid cross-origin requests, automatically sets all required CORS headers
-3. **Origin Validation**: Checks request origin against configured allowed origins
-4. **Method Detection**: Access-Control-Allow-Methods reflects actual registered routes
-5. **Security**: Empty origins array denies all CORS requests by default
-
-### Manual CORS Control (When Needed)
-
+### Advanced CORS
 ```javascript
-// Conditional CORS (disable automatic CORS, use manual)
-const app = woodland({
-  origins: [] // Empty = no automatic CORS
-});
+// Conditional CORS (manual control)
+const app = woodland({origins: []}); // Disable automatic CORS
 
-// Dynamic origin validation (replaces automatic validation)
+// Dynamic origin validation
 app.always((req, res, next) => {
   const origin = req.headers.origin;
   
-  // Custom logic for origin validation
-  if (isValidOriginForUser(origin, req.user)) {
+  if (isValidOrigin(origin, req.user)) {
     res.header("access-control-allow-origin", origin);
+    res.header("access-control-allow-credentials", "true");
   }
   
   next();
 });
-
-app.always((req, res, next) => {
-  if (shouldAllowCORS(req)) {
-    res.header("access-control-allow-origin", req.headers.origin);
-    res.header("access-control-allow-credentials", "true");
-  }
-  next();
-});
-
-// Override automatic behavior for specific routes
-app.options("/api/special", (req, res) => {
-  res.header("access-control-allow-methods", "GET,POST"); // Restrict methods
-  res.header("access-control-allow-headers", "content-type"); // Restrict headers
-  res.header("access-control-max-age", "86400"); // Set cache duration
-  res.send("");
-});
 ```
-
-**Most applications only need to configure `origins` and `corsExpose` - manual CORS handling is rarely necessary.**
 
 ## ❌ Error Handling
 
-### Built-in Error Handling
-
+### Built-in Error Responses
 ```javascript
 app.get("/error", (req, res) => {
-  res.error(500, "Internal Server Error");
+  res.error(500, "Server Error");
 });
 
 app.get("/not-found", (req, res) => {
-  res.error(404);
+  res.error(404); // 404 Not Found
 });
 
-app.get("/custom-error", (req, res) => {
-  res.error(400, "Bad Request", {
+app.get("/bad-request", (req, res) => {
+  res.error(400, "Invalid input", {
     "content-type": "application/json"
   });
 });
 ```
 
-### Custom Error Handler
+### Global Error Handler
+```javascript
+// Register last, catches all errors
+app.use("/(.*)", (error, req, res, next) => {
+  console.error(`[${res.statusCode}] ${req.url}:`, error);
+  
+  if (res.statusCode >= 500) {
+    logError(error, req); // External logging
+  }
+  
+  res.error(res.statusCode, "Internal Server Error");
+});
+```
 
+### Event-Based Error Logging
 ```javascript
 app.on("error", (req, res, err) => {
-  console.error(`Error ${res.statusCode}: ${err}`);
-  
-  // Log to external service
-  if (res.statusCode >= 500) {
-    logError(err, req);
-  }
-});
-
-// Global error catching
-app.always((req, res, next) => {
-  try {
-    next();
-  } catch (error) {
-    res.error(500, error.message);
-  }
+  console.error(`Error ${res.statusCode} on ${req.url}:`, err);
 });
 ```
 
 ## 📤 Response Helpers
 
 ### JSON Responses
-
 ```javascript
 app.get("/users/:id", (req, res) => {
-  const user = {id: req.params.id, name: "John Doe"};
-  res.json(user);
+  res.json({id: req.params.id, name: "John"});
 });
 
 app.post("/users", (req, res) => {
   const user = createUser(req.body);
-  res.json(user, 201);
+  res.json(user, 201); // Custom status
 });
 ```
 
 ### Redirects
-
 ```javascript
-app.get("/old-path", (req, res) => {
-  res.redirect("/new-path");
+// Permanent redirect
+app.get("/old", (req, res) => {
+  res.redirect("/new");
 });
 
-app.get("/temporary", (req, res) => {
-  res.redirect("/permanent", false); // Temporary redirect
+// Temporary redirect
+app.get("/temp", (req, res) => {
+  res.redirect("/target", false); // false = temporary
 });
 ```
 
 ### Custom Headers
-
 ```javascript
-app.get("/api/data", (req, res) => {
+// Single header
+app.get("/api", (req, res) => {
   res.header("x-total-count", "100");
-  res.header("x-page", "1");
   res.json({data: []});
 });
 
+// Multiple headers
 app.get("/download", (req, res) => {
   res.set({
     "content-disposition": "attachment; filename=data.json",
@@ -607,114 +593,88 @@ app.get("/download", (req, res) => {
 
 ## 🎯 Event Handlers
 
-### Available Events
-
 ```javascript
-// Connection established
+// Log all connections
 app.on("connect", (req, res) => {
   console.log(`Connection from ${req.ip}`);
 });
 
-// Request finished
+// Analytics after each request
 app.on("finish", (req, res) => {
-  console.log(`Request completed: ${req.method} ${req.url}`);
-});
-
-// Error occurred
-app.on("error", (req, res, err) => {
-  console.error(`Error: ${err}`);
-});
-
-// File streaming
-app.on("stream", (req, res) => {
-  console.log(`Streaming file to ${req.ip}`);
-});
-```
-
-### Event-Driven Analytics
-
-```javascript
-app.on("finish", (req, res) => {
-  const metrics = {
+  analytics.track({
     method: req.method,
     url: req.url,
     status: res.statusCode,
-    ip: req.ip,
-    userAgent: req.headers["user-agent"],
-    timestamp: new Date().toISOString()
-  };
-  
-  // Send to analytics service
-  analytics.track(metrics);
+    ip: req.ip
+  });
+});
+
+// Centralized error logging
+app.on("error", (req, res, err) => {
+  console.error(`[${res.statusCode}] ${req.url}:`, err);
+  if (res.statusCode >= 500) {
+    logErrorToService(err, req);
+  }
 });
 ```
 
 ## 📊 Logging
 
-### Log Levels
-
-- `error`: Error messages
-- `warn`: Warning messages  
-- `info`: Informational messages
-- `debug`: Debug messages
-
-### Custom Logging
-
+### Configuration
 ```javascript
 const app = woodland({
   logging: {
     enabled: true,
-    level: "debug",
-    format: "%h %l %u %t \"%r\" %>s %b %D"
+    level: "debug",  // error, warn, info, debug
+    format: "%h %t \"%r\" %>s %b"
   }
 });
-
-// Manual logging
-app.log("Custom message", "info");
-app.log("Debug information", "debug");
 ```
 
-### Log Format Placeholders
-
+### Log Format
 | Placeholder | Description |
-|-------------|-------------|
-| `%h` | Remote IP address |
-| `%l` | Remote logname (always `-`) |
-| `%u` | Remote user (always `-`) |
+|--------|--|
+| `%h` | Remote IP |
 | `%t` | Timestamp |
-| `%r` | First line of request |
+| `%r` | Request line |
 | `%s` | Status code |
 | `%b` | Response size |
 | `%{Header}i` | Request header |
 | `%{Header}o` | Response header |
 
+### Manual Logging
+```javascript
+app.log("Custom message", "info");
+app.log("Debug info", "debug");
+```
+
 ## 💻 CLI Usage
 
-### Basic Usage
+Serve files quickly without writing code:
 
 ```bash
-# Serve current directory
+# Install globally
+npm install -g woodland
+
+# Serve current directory (default: http://127.0.0.1:8000)
 woodland
 
-# Custom IP and port
+# Custom port and IP
 woodland --ip=0.0.0.0 --port=3000
 
 # Disable logging
 woodland --logging=false
-
-# Serve specific directory
-cd /path/to/files && woodland
 ```
-
-The CLI achieves **100% test coverage** with comprehensive unit tests covering argument parsing, validation, server configuration, error handling scenarios, and actual HTTP request serving verification.
 
 ### CLI Options
 
 | Option | Default | Description |
-|--------|---------|-------------|
+|---|---|--|
 | `--ip` | `127.0.0.1` | Server IP address |
 | `--port` | `8000` | Server port |
-| `--logging` | `true` | Enable/disable request logging |
+| `--logging` | `true` | Enable/disable logging |
+
+The CLI achieves **100% test coverage** with comprehensive unit tests covering argument parsing, validation, server configuration, error handling, and actual HTTP request serving.
 
 ### Example Output
 
@@ -727,119 +687,118 @@ id=woodland, hostname=localhost, ip=127.0.0.1, port=3000
 
 ## 📚 API Reference
 
-### Woodland Class
-
-#### Constructor
-
+### Factory Function
 ```javascript
-new Woodland(config)
+import {woodland} from "woodland";
+
+const app = woodland(options);
 ```
 
-#### HTTP Methods
+### Class (for inheritance)
+```javascript
+import {Woodland} from "woodland";
 
-- `get(path, ...middleware)` - GET requests
-- `post(path, ...middleware)` - POST requests
-- `put(path, ...middleware)` - PUT requests
-- `delete(path, ...middleware)` - DELETE requests
-- `patch(path, ...middleware)` - PATCH requests
-- `options(path, ...middleware)` - OPTIONS requests
-- `trace(path, ...middleware)` - TRACE requests
-- `connect(path, ...middleware)` - CONNECT requests
+class MyAPI extends Woodland {
+  constructor() {
+    super(options);
+  }
+}
+```
 
-#### Utility Methods
+### HTTP Methods
 
-- `always(path, ...middleware)` - All HTTP methods - executes before request HTTP method middleware
-- `use(path, ...middleware, method)` - Generic middleware registration
-- `files(root, folder)` - Static file serving
-- `ignore(fn)` - Ignore middleware for `Allow` header
-- `allowed(method, uri)` - Check if method is allowed
-- `allows(uri)` - Get allowed methods string
-- `list(method, type)` - List registered routes
-- `log(message, level)` - Log a message
+| Method | Description |
+|--------|------------|
+| `app.get(path, ...handlers)` | GET route |
+| `app.post(path, ...handlers)` | POST route |
+| `app.put(path, ...handlers)` | PUT route |
+| `app.delete(path, ...handlers)` | DELETE route |
+| `app.patch(path, ...handlers)` | PATCH route |
+| `app.options(path, ...handlers)` | OPTIONS route |
+| `app.trace(path, ...handlers)` | TRACE route |
+| `app.connect(path, ...handlers)` | CONNECT route |
+| `app.use(path, ...handlers)` | Generic middleware |
 
-#### Lifecycle Hooks
+### Middleware
 
-- `onReady(req, res, body, status, headers)` - Before sending response
-- `onSend(req, res, body, status, headers)` - Customize response
-- `onDone(req, res, body, headers)` - Finalize response
+| Method | Description |
+|--|--|
+| `app.always(path, ...handlers)` | Global middleware (all requests) |
+| `app.files(path, folder)` | Static file server |
+| `app.ignore(fn)` | Ignore route patterns |
 
-### Request Object Extensions
+### Event Handlers
 
-- `req.allow` - Allowed methods for current path
-- `req.body` - Request body (populate with middleware)
-- `req.cors` - Boolean indicating CORS request
-- `req.corsHost` - Boolean indicating "origin" and "host" request headers are in sync
-- `req.host` - Request hostname
-- `req.ip` - Client IP address
-- `req.params` - Route parameters
-- `req.parsed` - Parsed URL object
-- `req.valid` - Request validation status
-- `req.exit()` - Exit middleware chain
+| Event | Description |
+|---|--|
+| `app.on("connect", handler)` | New connection |
+| `app.on("finish", handler)` | Request completed |
+| `app.on("error", handler)` | Error occurred |
+| `app.on("stream", handler)` | File streaming |
 
-### Response Object Extensions
+### Request Object (extensions)
 
-- `res.locals` - Local variables object
-- `res.error(status, body, headers)` - Send error response
-- `res.header(key, value)` - Set response header
-- `res.json(body, status, headers)` - Send JSON response
-- `res.redirect(url, permanent)` - Send redirect response
-- `res.send(body, status, headers)` - Send response
-- `res.set(headers)` - Set multiple headers
-- `res.status(code)` - Set status code
+| Property | Description |
+|--|--|
+| `req.allow` | Allowed methods for path |
+| `req.body` | Request body (set by middleware) |
+| `req.cors` | Is this a CORS request? |
+| `req.host` | Hostname from request |
+| `req.ip` | Client IP address |
+| `req.params` | Route parameters |
+| `req.parsed` | Parsed URL object |
+| `req.valid` | Request validation status |
+| `req.exit()` | Exit middleware chain |
+
+### Response Object (extensions)
+
+| Method | Description |
+|------|--|
+| `res.error(status, body, headers)` | Send error |
+| `res.header(key, value)` | Set header |
+| `res.json(body, status, headers)` | Send JSON |
+| `res.redirect(url, permanent)` | Redirect |
+| `res.send(body, status, headers)` | Send response |
+| `res.set(headers)` | Set multiple headers |
+| `res.status(code)` | Set status code |
+
+### Lifecycle Hooks
+
+| Hook | Description |
+|--|--|
+| `onReady(req, res, body)` | Before sending response |
+| `onSend(req, res, body)` | Customize response |
+| `onDone(req, res, body)` | Finalize response |
 
 ## ⚡ Performance
 
-### 🏆 Framework Performance Showdown
-
-**Competitive Performance**: Woodland delivers excellent performance that outperforms both raw Node.js and Express.js, while achieving 87% of Fastify's performance - a strong showing for a framework that prioritizes developer experience alongside speed.
-
-```
-Framework Comparison (JSON Response) - 5-run average
-Platform: Apple Mac Mini M4 Pro, Node.js 24.8.0
-
-Fastify framework:        14,283 ops/sec  (0.070ms avg)  🥇 FASTEST
-Woodland framework:       12,478 ops/sec  (0.080ms avg)  🥈 Strong second
-Express.js framework:     12,112 ops/sec  (0.083ms avg)  🥉 Third place
-Raw Node.js HTTP module:  10,888 ops/sec  (0.092ms avg)
-
-Performance improvement: +15% faster than raw Node.js, +3% faster than Express.js, 87% of Fastify's performance
-```
-
-**Why Woodland delivers competitive performance:**
-- **vs Raw Node.js**: Optimized request/response pipeline that eliminates common inefficiencies (+15% faster)
-- **vs Express.js**: Lightweight middleware system that outperforms while maintaining developer experience (+3% faster)
-- **vs Fastify**: Balanced approach that trades some raw speed for enhanced usability (87% of Fastify's performance)
-- Built-in JSON response optimization with smart serialization
-- Efficient header management and intelligent caching strategies
-- Developer-friendly architecture that doesn't sacrifice performance for convenience
-
 ### Benchmark Results
 
-*Node.js 24.8.0 (1000 iterations, 100 warmup, averaged across 5 runs)*
+Platform: Apple Mac Mini M4 Pro, Node.js 24.8.0 (1000 iterations, 5-run average)
 
-```
-HTTP Operations
-404 handling:        16,570 ops/sec    (0.060ms avg)
-Parameterized routes: 14,971 ops/sec   (0.067ms avg)
-Error handling:      14,859 ops/sec    (0.067ms avg)
-JSON response:       14,422 ops/sec    (0.069ms avg)
-Simple GET:          13,497 ops/sec    (0.074ms avg)
-Middleware chain:    12,108 ops/sec    (0.083ms avg)
-Large response:      814 ops/sec       (1.228ms avg)
-```
+| Framework | ops/sec | avg latency | Rank |
+|--|--|--|--|
+| Fastify | 14,283 | 0.070ms | 🥇 |
+| **Woodland** | **12,478** | **0.080ms** | **🥈** |
+| Express.js | 12,112 | 0.083ms | 🥉 |
+| Raw Node.js | 10,888 | 0.092ms | |
+
+**Woodland is 15% faster than raw Node.js, 3% faster than Express.js, 87% of Fastify's performance**
+
+### Why Woodland is Fast
+
+- Optimized request/response pipeline (vs raw Node.js)
+- Lightweight middleware system (vs Express.js)  
+- Built-in JSON optimization and efficient header management
+- Route caching with intelligent lookup (4.8M ops/sec cached)
 
 ### Performance Tips
 
-1. **Choose Woodland over alternatives**: Woodland provides 15% better performance than raw Node.js and 3% better than Express.js for JSON responses
-2. **Enable Route Caching**: Route caching provides significant performance improvement - allows() with cache: 4.8M ops/sec vs without: 300K ops/sec
-3. **Optimize Route Order**: Place frequently accessed routes first in your application
-4. **Use Parameter Routes**: Parameter routes perform competitively with static routes (~2.4M vs ~2.5M ops/sec)
-5. **Enable ETags**: Reduces bandwidth for unchanged resources (333K ops/sec with ETags)
-6. **Stream Large Files**: Use built-in streaming for files (330K ops/sec streaming performance)
-7. **Minimize Middleware**: Only use necessary middleware - complex middleware reduces performance
-8. **Leverage Built-in Utilities**: Use woodland's optimized utility functions (7.7M+ ops/sec for common operations)
-9. **Configure Appropriate Caching**: Set proper cache headers and TTL values
-10. **Use Proper HTTP Methods**: DELETE requests show best performance (15.7K ops/sec) for CRUD operations
+1. **Use cached routes**: Route caching provides 16x improvement
+2. **Minimize middleware**: Only use what you need
+3. **Enable ETags**: Reduce bandwidth for unchanged resources
+4. **Stream large files**: Built-in streaming (330K ops/sec)
+5. **Order routes strategically**: Frequently used routes first
 
 ### Running Benchmarks
 
@@ -851,28 +810,14 @@ npm install
 # Run all benchmarks
 npm run benchmark
 
-# Run specific benchmark suites
+# Specific suites
 node benchmark.js routing utility serving
-node benchmark.js http middleware comparison
-
-# Run with custom settings
 node benchmark.js --iterations 2000 --warmup 200
-
-# Run specific suite with custom settings
-node benchmark.js utility -i 500 -w 50
 ```
-
-**Available benchmark suites:**
-- `comparison` - Framework vs raw Node.js HTTP module performance
-- `http` - End-to-end HTTP server performance
-- `middleware` - Middleware registration and execution
-- `routing` - Route matching and resolution
-- `serving` - File serving and streaming
-- `utility` - Core utility functions
 
 ## 🧪 Testing
 
-### Test Coverage
+### Run Tests
 
 Woodland maintains **100%** statement coverage with comprehensive testing across all features. The CLI module achieves **100% coverage** with rigorous testing of all code paths including successful server startup, and the utility module achieves **100% line coverage** with comprehensive edge case testing.
 
@@ -943,7 +888,7 @@ describe("My API", () => {
 
 ## 📘 TypeScript
 
-### Type Definitions
+Woodland includes full TypeScript definitions:
 
 ```typescript
 import {Woodland, woodland} from "woodland";
@@ -954,280 +899,63 @@ const app = woodland({
   defaultHeaders: {"content-type": "application/json"}
 });
 
-// Using class
-class MyAPI extends Woodland {
-  constructor() {
-    super({time: true});
-  }
-}
-
-// Custom middleware with types
-interface CustomRequest extends IncomingMessage {
-  user?: {id: string, name: string};
+// Using class with custom types
+interface UserRequest extends IncomingMessage {
+  user?: {id: string; name: string};
 }
 
 const authenticate = (
-  req: CustomRequest,
+  req: UserRequest,
   res: ServerResponse,
   next: () => void
 ): void => {
   req.user = {id: "123", name: "John"};
   next();
 };
-```
 
-### Configuration Types
-
-```typescript
-interface WoodlandConfig {
-  autoindex?: boolean;
-  cacheSize?: number;
-  cacheTTL?: number;
-  charset?: string;
-  corsExpose?: string;
-  defaultHeaders?: Record<string, string>;
-  digit?: number;
-  etags?: boolean;
-  indexes?: string[];
-  logging?: {
-    enabled?: boolean;
-    format?: string;
-    level?: string;
-  };
-  origins?: string[];
-  silent?: boolean;
-  time?: boolean;
-}
-```
-
-## 🔍 Examples
-
-### REST API
-
-```javascript
-import {createServer} from "node:http";
-import {woodland} from "woodland";
-
-const app = woodland({
-  defaultHeaders: {"content-type": "application/json"},
-  time: true
-});
-
-const users = new Map();
-
-// Middleware
-app.always(async (req, res, next) => {
-  if (req.method === "POST" || req.method === "PUT") {
-    let body = "";
-    req.on("data", chunk => body += chunk);
-    req.on("end", () => {
-      try {
-        req.body = JSON.parse(body);
-      } catch (e) {
-        return res.error(400, "Invalid JSON");
-      }
-      next();
-    });
-  } else {
-    next();
-  }
-});
-
-// Routes
-app.get("/users", (req, res) => {
-  res.json(Array.from(users.values()));
-});
-
-app.get("/users/:id", (req, res) => {
-  const user = users.get(req.params.id);
-  if (!user) {
-    return res.error(404, "User not found");
-  }
+app.get("/protected", authenticate, (req, res) => {
+  const user = (req as UserRequest).user;
   res.json(user);
 });
-
-app.post("/users", (req, res) => {
-  const {name, email} = req.body;
-  if (!name || !email) {
-    return res.error(400, "Name and email required");
-  }
-  
-  const id = Date.now().toString();
-  const user = {id, name, email};
-  users.set(id, user);
-  res.json(user, 201);
-});
-
-app.put("/users/:id", (req, res) => {
-  const user = users.get(req.params.id);
-  if (!user) {
-    return res.error(404, "User not found");
-  }
-  
-  Object.assign(user, req.body);
-  res.json(user);
-});
-
-app.delete("/users/:id", (req, res) => {
-  if (!users.has(req.params.id)) {
-    return res.error(404, "User not found");
-  }
-  
-  users.delete(req.params.id);
-  res.status(204).send("");
-});
-
-createServer(app.route).listen(3000);
 ```
 
-### File Upload API
+## 🛠️ Troubleshooting
 
+### CORS Issues
 ```javascript
-import {createServer} from "node:http";
-import {woodland} from "woodland";
-import {createWriteStream} from "node:fs";
-import {pipeline} from "node:stream/promises";
-
-const app = woodland();
-
-app.post("/upload", async (req, res) => {
-  try {
-    const filename = req.headers["x-filename"] || "upload.bin";
-    const writeStream = createWriteStream(`./uploads/${filename}`);
-    
-    await pipeline(req, writeStream);
-    res.json({message: "Upload successful", filename});
-  } catch (error) {
-    res.error(500, "Upload failed");
-  }
-});
-
-createServer(app.route).listen(3000);
-```
-
-### WebSocket Integration
-
-```javascript
-import {createServer} from "node:http";
-import {WebSocketServer} from "ws";
-import {woodland} from "woodland";
-
-const app = woodland();
-const server = createServer(app.route);
-const wss = new WebSocketServer({server});
-
-app.get("/", (req, res) => {
-  res.send(`
-    <!DOCTYPE html>
-    <html>
-      <head><title>WebSocket Test</title></head>
-      <body>
-        <script>
-          const ws = new WebSocket('ws://localhost:3000');
-          ws.onmessage = e => console.log('Received:', e.data);
-          ws.onopen = () => ws.send('Hello Server!');
-        </script>
-      </body>
-    </html>
-  `);
-});
-
-wss.on("connection", (ws) => {
-  ws.send("Welcome to WebSocket server!");
-  ws.on("message", (data) => {
-    console.log("Received:", data.toString());
-  });
-});
-
-server.listen(3000);
-```
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-#### CORS Errors
-
-```javascript
-// Problem: CORS blocked requests
-// Solution: Configure origins properly
+// Problem: CORS blocked
+// Solution: Configure origins
 const app = woodland({
   origins: ["https://myapp.com", "http://localhost:3000"]
 });
 ```
 
-#### Route Not Found
-
+### Routes Not Matching
 ```javascript
-// Problem: Routes not matching
-// Solution: Check route patterns
-app.get("/users/:id", handler);        // ✅ Correct
-app.get("/users/:id/", handler);       // ❌ Trailing slash
-app.get("/users/([0-9]+)", handler);   // ✅ RegExp pattern
+// Problem: Route not matching
+// Solution: Check trailing slashes
+app.get("/users/:id", handler);     // ✅
+app.get("/users/:id/", handler);    // ❌ Trailing slash
 ```
 
-#### Middleware Order
-
+### High Memory Usage
 ```javascript
-// The 'routes' method builds middleware execution order as follows:
-// 1. Always middleware (WILDCARD) - added first to the middleware array
-// 2. Route-specific middleware - added after all always middleware
-
-// ✅ Understanding the routes method behavior:
-app.always(corsHandler);        // Added to WILDCARD middleware map
-app.always(requestLogger);      // Added to WILDCARD middleware map  
-app.post("/users", authenticate, createUser);  // Added to POST middleware map
-
-// When routes("/users", "POST") is called, the middleware array becomes:
-// [corsHandler, requestLogger, authenticate, createUser]
-// with exit point set between requestLogger and authenticate
-
-// ✅ Always middleware executes first regardless of registration order:
-app.post("/api/users", validate, createUser);  // Route registered first
-app.always(securityHeaders);   // Always middleware registered after
-app.always(bodyParser);        // Another always middleware
-
-// Execution order for POST /api/users:
-// 1. securityHeaders (always middleware) 
-// 2. bodyParser (always middleware)
-// 3. validate (route middleware)
-// 4. createUser (route handler)
-
-// ❌ Common misconception - registration order between always/route doesn't matter:
-// The routes method ALWAYS puts always middleware first in the execution chain
-```
-
-#### Memory Issues
-
-```javascript
-// Problem: High memory usage
-// Solution: Tune cache settings
+// Problem: High memory
+// Solution: Tune cache
 const app = woodland({
-  cacheSize: 100,    // Reduce cache size
-  cacheTTL: 60000   // Shorter TTL
+  cacheSize: 100,    // Reduce cache
+  cacheTTL: 60000    // Shorter TTL
 });
 ```
 
 ### Debug Mode
-
 ```javascript
 const app = woodland({
-  logging: {
-    enabled: true,
-    level: "debug"
-  }
+  logging: {level: "debug"}
 });
 
-// Enable debug logs
-app.log("Debug message", "debug");
+app.log("Debug info", "debug");
 ```
-
-### Performance Issues
-
-1. **Check middleware overhead**: Profile middleware execution
-2. **Optimize route patterns**: Use specific patterns vs wildcards
-3. **Enable caching**: Use ETags and cache headers
-4. **Monitor memory**: Watch for memory leaks in long-running apps
 
 ## 📄 License
 
@@ -1240,7 +968,7 @@ Licensed under the **BSD-3-Clause** license.
 1. Fork the repository
 2. Create a feature branch
 3. Add tests for new functionality
-4. Ensure all tests pass
+4. Ensure all tests pass (`npm test`)
 5. Submit a pull request
 
 ## 📞 Support
@@ -1254,4 +982,3 @@ Licensed under the **BSD-3-Clause** license.
 <div align="center">
   <sub>Built with ❤️ by <a href="https://github.com/avoidwork">Jason Mulligan</a></sub>
 </div>
-# Testing pre-commit without loop
