@@ -60,7 +60,7 @@ app.always(rateLimit({
 
 🏆 **Proven Performance**: Comprehensive benchmarks show Woodland **outperforms raw Node.js by 15%, Express.js by 3%, and delivers 87% of Fastify's performance**  
 ⚡ **Zero Compromise**: Get all the framework features you need with better performance than hand-coding  
-🚀 **Battle-Tested**: 100% statement coverage with 416 comprehensive tests, production-ready security, and enterprise-grade reliability  
+🚀 **Battle-Tested**: 100% statement coverage with 386 comprehensive tests, production-ready security, and enterprise-grade reliability  
 🔧 **Developer Experience**: Express-compatible API means zero learning curve for your team  
 
 **The Result?** Your applications run faster, your servers handle more traffic, and your infrastructure costs less.
@@ -1231,7 +1231,7 @@ app.log("Debug message", "debug");
 
 ## 📄 License
 
-Copyright (c) 2025 Jason Mulligan
+Copyright (c) 2026 Jason Mulligan
 
 Licensed under the **BSD-3-Clause** license.
 
