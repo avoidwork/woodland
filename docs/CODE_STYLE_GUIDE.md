@@ -41,14 +41,14 @@ import { createServer } from "node:http";
 import { woodland } from "woodland";
 
 const config = {
-  autoindex: false,
-  cacheSize: 1000,
-  charset: "utf-8",
+	autoindex: false,
+	cacheSize: 1000,
+	charset: "utf-8",
 };
 
 // Acceptable - Long lines for logging
 this.log(
-  `type=route, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ROUTING}"`,
+	`type=route, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ROUTING}"`,
 );
 
 // Bad - Using spaces instead of tabs
