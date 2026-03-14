@@ -80,6 +80,7 @@ export const SERVER_VALUE = `${name}/${version}`;
 export const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform}/${process.arch}`;
 export const LOCALHOST = "127.0.0.1";
 export const INT_8000 = 8000;
+export const IPV4_REGEX = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
 
 // =============================================================================
 // FILE SYSTEM & ROUTING

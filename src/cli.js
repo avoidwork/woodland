@@ -13,6 +13,7 @@ import {
 	INT_0,
 	INT_8000,
 	INT_65535,
+	IPV4_REGEX,
 	LOCALHOST,
 	NO_CACHE,
 	TEXT_PLAIN
@@ -42,7 +43,7 @@ if (!Number.isInteger(validPort) || validPort < INT_0 || validPort > INT_65535) 
 	console.error("Invalid port: must be an integer between 0 and 65535.");
 	process.exit(1);
 }
-let validIP = typeof ip === "string" && (/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/).test(ip);
+let validIP = typeof ip === "string" && IPV4_REGEX.test(ip);
 if (!validIP) {
 	console.error("Invalid IP: must be a valid IPv4 address.");
 	process.exit(1);
@@ -50,4 +51,4 @@ if (!validIP) {
 
 app.files();
 createServer(app.route).listen(validPort, ip);
-app.log(`id=woodland, hostname=localhost, ip=${ip}, port=${validPort}`, INFO);
+app.log(`id=woodland, ip=${ip}, port=${validPort}`, INFO);
