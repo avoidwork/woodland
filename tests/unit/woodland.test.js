@@ -640,7 +640,6 @@ describe("woodland", () => {
         end: () => {},
         error: () => {},
         set: () => {},
-        setHeader: () => {},
       };
 
       app.route(req, res);
@@ -670,7 +669,6 @@ describe("woodland", () => {
         end: () => {},
         error: () => {},
         set: () => {},
-        setHeader: () => {},
       };
 
       app.route(req, res);
@@ -700,7 +698,6 @@ describe("woodland", () => {
         end: () => {},
         error: () => {},
         set: () => {},
-        setHeader: () => {},
       };
 
       app.route(req, res);

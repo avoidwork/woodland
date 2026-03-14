@@ -89,7 +89,7 @@
 - `autoindex` template uses lowercase doctype: `<!doctype html>`
 - `params` uses `coerce()` to convert numeric strings to numbers
 - `partialHeaders` uses lowercase header names (e.g., `content-range`)
-- `timeOffset` sign convention: positive offset returns `-0500`, negative returns `0500` (no `+` prefix)
+- `timeOffset` uses JavaScript timezone offset convention: positive input (e.g., 300 for EST) returns `-0500`, negative input (e.g., -330 for IST) returns `0530`
 - IPv6 validation accepts incomplete compressed addresses (e.g., `2001:db8:::`)
 - Middleware execution is async via `process.nextTick`, tests need to wait
 - CORS check (`req.cors`) only true when origin host differs from request host
