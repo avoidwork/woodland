@@ -3,384 +3,384 @@ import { describe, it, beforeEach } from "node:test";
 import { reduce, getStatus, next, createMiddlewareRegistry } from "../../src/middleware.js";
 
 describe("middleware", () => {
-  describe("reduce", () => {
-    it("should return undefined for empty map", () => {
-      const result = reduce("/test", new Map(), { middleware: [], params: false });
+	describe("reduce", () => {
+		it("should return undefined for empty map", () => {
+			const result = reduce("/test", new Map(), { middleware: [], params: false });
 
-      assert.strictEqual(result, void 0);
-    });
+			assert.strictEqual(result, void 0);
+		});
 
-    it("should collect middleware for matching route", () => {
-      const middleware = new Map();
-      const middlewareArray = [];
+		it("should collect middleware for matching route", () => {
+			const middleware = new Map();
+			const middlewareArray = [];
 
-      middleware.set("/", {
-        regex: /^\/$/,
-        handlers: [() => {}],
-        params: false,
-      });
+			middleware.set("/", {
+				regex: /^\/$/,
+				handlers: [() => {}],
+				params: false,
+			});
 
-      reduce("/", middleware, { middleware: middlewareArray, params: false });
+			reduce("/", middleware, { middleware: middlewareArray, params: false });
 
-      assert.strictEqual(middlewareArray.length, 1);
-    });
+			assert.strictEqual(middlewareArray.length, 1);
+		});
 
-    it("should collect multiple handlers for matching route", () => {
-      const middleware = new Map();
-      const middlewareArray = [];
+		it("should collect multiple handlers for matching route", () => {
+			const middleware = new Map();
+			const middlewareArray = [];
 
-      middleware.set("/", {
-        regex: /^\/$/,
-        handlers: [() => {}, () => {}],
-        params: false,
-      });
+			middleware.set("/", {
+				regex: /^\/$/,
+				handlers: [() => {}, () => {}],
+				params: false,
+			});
 
-      reduce("/", middleware, { middleware: middlewareArray, params: false });
+			reduce("/", middleware, { middleware: middlewareArray, params: false });
 
-      assert.strictEqual(middlewareArray.length, 2);
-    });
+			assert.strictEqual(middlewareArray.length, 2);
+		});
 
-    it("should set params flag when parameterized route matches", () => {
-      const middleware = new Map();
-      const arg = { middleware: [], params: false };
+		it("should set params flag when parameterized route matches", () => {
+			const middleware = new Map();
+			const arg = { middleware: [], params: false };
 
-      middleware.set("/:id", {
-        regex: /^\/([^/]+)$/,
-        handlers: [() => {}],
-        params: true,
-      });
+			middleware.set("/:id", {
+				regex: /^\/([^/]+)$/,
+				handlers: [() => {}],
+				params: true,
+			});
 
-      reduce("/123", middleware, arg);
+			reduce("/123", middleware, arg);
 
-      assert.strictEqual(arg.params, true);
-      assert.ok(arg.getParams);
-    });
+			assert.strictEqual(arg.params, true);
+			assert.ok(arg.getParams);
+		});
 
-    it("should not override params flag once set", () => {
-      const middleware = new Map();
-      const arg = { middleware: [], params: true };
+		it("should not override params flag once set", () => {
+			const middleware = new Map();
+			const arg = { middleware: [], params: true };
 
-      middleware.set("/test", {
-        regex: /^\/test$/,
-        handlers: [() => {}],
-        params: true,
-      });
+			middleware.set("/test", {
+				regex: /^\/test$/,
+				handlers: [() => {}],
+				params: true,
+			});
 
-      reduce("/test", middleware, arg);
+			reduce("/test", middleware, arg);
 
-      assert.strictEqual(arg.params, true);
-    });
+			assert.strictEqual(arg.params, true);
+		});
 
-    it("should handle wildcard middleware", () => {
-      const middleware = new Map();
-      const middlewareArray = [];
+		it("should handle wildcard middleware", () => {
+			const middleware = new Map();
+			const middlewareArray = [];
 
-      middleware.set(".*", {
-        regex: /^.*$/,
-        handlers: [() => {}],
-        params: false,
-      });
+			middleware.set(".*", {
+				regex: /^.*$/,
+				handlers: [() => {}],
+				params: false,
+			});
 
-      reduce("/any/path", middleware, { middleware: middlewareArray, params: false });
+			reduce("/any/path", middleware, { middleware: middlewareArray, params: false });
 
-      assert.strictEqual(middlewareArray.length, 1);
-    });
+			assert.strictEqual(middlewareArray.length, 1);
+		});
 
-    it("should reset regex lastIndex for each test", () => {
-      const middleware = new Map();
-      const middlewareArray = [];
+		it("should reset regex lastIndex for each test", () => {
+			const middleware = new Map();
+			const middlewareArray = [];
 
-      middleware.set("/test", {
-        regex: /^\/test$/,
-        handlers: [() => {}],
-        params: false,
-      });
+			middleware.set("/test", {
+				regex: /^\/test$/,
+				handlers: [() => {}],
+				params: false,
+			});
 
-      reduce("/test", middleware, { middleware: middlewareArray, params: false });
-      reduce("/test", middleware, { middleware: middlewareArray, params: false });
+			reduce("/test", middleware, { middleware: middlewareArray, params: false });
+			reduce("/test", middleware, { middleware: middlewareArray, params: false });
 
-      assert.strictEqual(middlewareArray.length, 2);
-    });
-  });
+			assert.strictEqual(middlewareArray.length, 2);
+		});
+	});
 
-  describe("getStatus", () => {
-    it("should return 404 when allow array is empty", () => {
-      const req = { allow: [], method: "GET" };
-      const res = { statusCode: 200 };
+	describe("getStatus", () => {
+		it("should return 404 when allow array is empty", () => {
+			const req = { allow: [], method: "GET" };
+			const res = { statusCode: 200 };
 
-      const status = getStatus(req, res);
+			const status = getStatus(req, res);
 
-      assert.strictEqual(status, 404);
-    });
+			assert.strictEqual(status, 404);
+		});
 
-    it("should return 405 when method is not GET", () => {
-      const req = { allow: ["POST"], method: "POST" };
-      const res = { statusCode: 200 };
+		it("should return 405 when method is not GET", () => {
+			const req = { allow: ["POST"], method: "POST" };
+			const res = { statusCode: 200 };
 
-      const status = getStatus(req, res);
+			const status = getStatus(req, res);
 
-      assert.strictEqual(status, 405);
-    });
+			assert.strictEqual(status, 405);
+		});
 
-    it("should return 404 when GET not in allow list", () => {
-      const req = { allow: ["POST"], method: "GET" };
-      const res = { statusCode: 200 };
+		it("should return 404 when GET not in allow list", () => {
+			const req = { allow: ["POST"], method: "GET" };
+			const res = { statusCode: 200 };
 
-      const status = getStatus(req, res);
+			const status = getStatus(req, res);
 
-      assert.strictEqual(status, 404);
-    });
+			assert.strictEqual(status, 404);
+		});
 
-    it("should return 500 when GET is allowed and status <= 500", () => {
-      const req = { allow: ["GET"], method: "GET" };
-      const res = { statusCode: 500 };
+		it("should return 500 when GET is allowed and status <= 500", () => {
+			const req = { allow: ["GET"], method: "GET" };
+			const res = { statusCode: 500 };
 
-      const status = getStatus(req, res);
+			const status = getStatus(req, res);
 
-      assert.strictEqual(status, 500);
-    });
+			assert.strictEqual(status, 500);
+		});
 
-    it("should return custom status when > 500", () => {
-      const req = { allow: ["GET"], method: "GET" };
-      const res = { statusCode: 503 };
+		it("should return custom status when > 500", () => {
+			const req = { allow: ["GET"], method: "GET" };
+			const res = { statusCode: 503 };
 
-      const status = getStatus(req, res);
+			const status = getStatus(req, res);
 
-      assert.strictEqual(status, 503);
-    });
-  });
+			assert.strictEqual(status, 503);
+		});
+	});
 
-  describe("next", () => {
-    it("should create next function", () => {
-      const req = { allow: [], method: "GET" };
-      const res = { statusCode: 500, error: () => {} };
-      const middleware = { next: () => ({ done: true }) };
+	describe("next", () => {
+		it("should create next function", () => {
+			const req = { allow: [], method: "GET" };
+			const res = { statusCode: 500, error: () => {} };
+			const middleware = { next: () => ({ done: true }) };
 
-      const fn = next(req, res, middleware);
+			const fn = next(req, res, middleware);
 
-      assert.strictEqual(typeof fn, "function");
-    });
+			assert.strictEqual(typeof fn, "function");
+		});
 
-    it("should call error handler when middleware is done", async () => {
-      let errorCalled = false;
-      const req = { allow: [], method: "GET" };
-      const res = {
-        statusCode: 500,
-        error: () => {
-          errorCalled = true;
-        },
-      };
-      const middleware = { next: () => ({ done: true }) };
+		it("should call error handler when middleware is done", async () => {
+			let errorCalled = false;
+			const req = { allow: [], method: "GET" };
+			const res = {
+				statusCode: 500,
+				error: () => {
+					errorCalled = true;
+				},
+			};
+			const middleware = { next: () => ({ done: true }) };
 
-      const fn = next(req, res, middleware);
-      fn();
+			const fn = next(req, res, middleware);
+			fn();
 
-      await new Promise((resolve) => setTimeout(resolve, 10));
-      assert.strictEqual(errorCalled, true);
-    });
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			assert.strictEqual(errorCalled, true);
+		});
 
-    it("should create immediate next function when immediate is true", () => {
-      const req = { allow: [], method: "GET" };
-      const res = { statusCode: 500, error: () => {} };
-      const middleware = { next: () => ({ done: true }) };
+		it("should create immediate next function when immediate is true", () => {
+			const req = { allow: [], method: "GET" };
+			const res = { statusCode: 500, error: () => {} };
+			const middleware = { next: () => ({ done: true }) };
 
-      const fn = next(req, res, middleware, true);
+			const fn = next(req, res, middleware, true);
 
-      assert.strictEqual(typeof fn, "function");
-    });
-  });
+			assert.strictEqual(typeof fn, "function");
+		});
+	});
 
-  describe("createMiddlewareRegistry", () => {
-    let middleware, ignored, methods, cache;
+	describe("createMiddlewareRegistry", () => {
+		let middleware, ignored, methods, cache;
 
-    beforeEach(() => {
-      middleware = new Map();
-      ignored = new Set();
-      methods = [];
-      cache = new Map();
-    });
+		beforeEach(() => {
+			middleware = new Map();
+			ignored = new Set();
+			methods = [];
+			cache = new Map();
+		});
 
-    it("should create registry with all methods", () => {
-      const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+		it("should create registry with all methods", () => {
+			const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
 
-      assert.ok(registry.ignore);
-      assert.ok(registry.allowed);
-      assert.ok(registry.routes);
-      assert.ok(registry.register);
-      assert.ok(registry.list);
-    });
+			assert.ok(registry.ignore);
+			assert.ok(registry.allowed);
+			assert.ok(registry.routes);
+			assert.ok(registry.register);
+			assert.ok(registry.list);
+		});
 
-    describe("register", () => {
-      it("should register middleware for GET route", () => {
-        const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
-        const handler = () => {};
+		describe("register", () => {
+			it("should register middleware for GET route", () => {
+				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				const handler = () => {};
 
-        registry.register("/test", handler);
+				registry.register("/test", handler);
 
-        assert.ok(middleware.has("GET"));
-      });
+				assert.ok(middleware.has("GET"));
+			});
 
-      it("should register wildcard middleware", () => {
-        const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
-        const handler = () => {};
+			it("should register wildcard middleware", () => {
+				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				const handler = () => {};
 
-        registry.register(handler);
+				registry.register(handler);
 
-        assert.ok(middleware.has("GET"));
-        assert.ok(middleware.get("GET").has("/.*"));
-      });
+				assert.ok(middleware.has("GET"));
+				assert.ok(middleware.get("GET").has("/.*"));
+			});
 
-      it("should register middleware for specific method", () => {
-        const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
-        const handler = () => {};
+			it("should register middleware for specific method", () => {
+				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				const handler = () => {};
 
-        registry.register("/test", handler, "POST");
+				registry.register("/test", handler, "POST");
 
-        assert.ok(middleware.has("POST"));
-      });
+				assert.ok(middleware.has("POST"));
+			});
 
-      it("should throw error for invalid method", () => {
-        const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+			it("should throw error for invalid method", () => {
+				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
 
-        assert.throws(() => {
-          registry.register("/test", () => {}, "INVALID");
-        }, /Invalid HTTP method/);
-      });
+				assert.throws(() => {
+					registry.register("/test", () => {}, "INVALID");
+				}, /Invalid HTTP method/);
+			});
 
-      it("should throw error for HEAD method", () => {
-        const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+			it("should throw error for HEAD method", () => {
+				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
 
-        assert.throws(() => {
-          registry.register("/test", () => {}, "HEAD");
-        }, /Cannot set HEAD route/);
-      });
+				assert.throws(() => {
+					registry.register("/test", () => {}, "HEAD");
+				}, /Cannot set HEAD route/);
+			});
 
-      it("should convert parameterized routes to regex", () => {
-        const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
-        const handler = () => {};
+			it("should convert parameterized routes to regex", () => {
+				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				const handler = () => {};
 
-        registry.register("/users/:id", handler);
+				registry.register("/users/:id", handler);
 
-        const routes = middleware.get("GET").keys();
-        let found = false;
+				const routes = middleware.get("GET").keys();
+				let found = false;
 
-        for (const route of routes) {
-          if (route.includes(":") === false) {
-            found = true;
-            break;
-          }
-        }
+				for (const route of routes) {
+					if (route.includes(":") === false) {
+						found = true;
+						break;
+					}
+				}
 
-        assert.ok(found);
-      });
+				assert.ok(found);
+			});
 
-      it("should return registry object for chaining", () => {
-        const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
-        const result = registry.register("/test", () => {});
+			it("should return registry object for chaining", () => {
+				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				const result = registry.register("/test", () => {});
 
-        assert.strictEqual(result.ignore, registry.ignore);
-        assert.strictEqual(result.allowed, registry.allowed);
-        assert.strictEqual(result.routes, registry.routes);
-        assert.strictEqual(result.register, registry.register);
-        assert.strictEqual(result.list, registry.list);
-      });
-    });
+				assert.strictEqual(result.ignore, registry.ignore);
+				assert.strictEqual(result.allowed, registry.allowed);
+				assert.strictEqual(result.routes, registry.routes);
+				assert.strictEqual(result.register, registry.register);
+				assert.strictEqual(result.list, registry.list);
+			});
+		});
 
-    describe("ignore", () => {
-      it("should add function to ignored set", () => {
-        const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
-        const handler = () => {};
+		describe("ignore", () => {
+			it("should add function to ignored set", () => {
+				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				const handler = () => {};
 
-        registry.ignore(handler);
+				registry.ignore(handler);
 
-        assert.ok(ignored.has(handler));
-      });
+				assert.ok(ignored.has(handler));
+			});
 
-      it("should return registry object for chaining", () => {
-        const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
-        const result = registry.ignore(() => {});
+			it("should return registry object for chaining", () => {
+				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				const result = registry.ignore(() => {});
 
-        assert.strictEqual(result.ignore, registry.ignore);
-        assert.strictEqual(result.register, registry.register);
-      });
-    });
+				assert.strictEqual(result.ignore, registry.ignore);
+				assert.strictEqual(result.register, registry.register);
+			});
+		});
 
-    describe("allowed", () => {
-      it("should return true for allowed route", () => {
-        const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
-        registry.register("/test", () => {});
+		describe("allowed", () => {
+			it("should return true for allowed route", () => {
+				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				registry.register("/test", () => {});
 
-        // Check that the route was registered
-        assert.ok(middleware.has("GET"));
-        assert.ok(middleware.get("GET").has("/test"));
+				// Check that the route was registered
+				assert.ok(middleware.has("GET"));
+				assert.ok(middleware.get("GET").has("/test"));
 
-        const result = registry.allowed("GET", "/test");
+				const result = registry.allowed("GET", "/test");
 
-        assert.strictEqual(result, true);
-      });
+				assert.strictEqual(result, true);
+			});
 
-      it("should return false for non-allowed route", () => {
-        const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+			it("should return false for non-allowed route", () => {
+				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
 
-        const result = registry.allowed("/nonexistent", "GET");
+				const result = registry.allowed("/nonexistent", "GET");
 
-        assert.strictEqual(result, false);
-      });
-    });
+				assert.strictEqual(result, false);
+			});
+		});
 
-    describe("routes", () => {
-      it("should return route information", () => {
-        const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
-        registry.register("/test", () => {});
+		describe("routes", () => {
+			it("should return route information", () => {
+				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				registry.register("/test", () => {});
 
-        const result = registry.routes("/test", "GET");
+				const result = registry.routes("/test", "GET");
 
-        assert.ok(result.middleware);
-        assert.strictEqual(typeof result.visible, "number");
-        assert.strictEqual(typeof result.exit, "number");
-      });
+				assert.ok(result.middleware);
+				assert.strictEqual(typeof result.visible, "number");
+				assert.strictEqual(typeof result.exit, "number");
+			});
 
-      it("should cache route results", () => {
-        const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
-        registry.register("/test", () => {});
+			it("should cache route results", () => {
+				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				registry.register("/test", () => {});
 
-        const result1 = registry.routes("/test", "GET");
-        const result2 = registry.routes("/test", "GET");
+				const result1 = registry.routes("/test", "GET");
+				const result2 = registry.routes("/test", "GET");
 
-        assert.strictEqual(result1, result2);
-      });
+				assert.strictEqual(result1, result2);
+			});
 
-      it("should invalidate cache when override is true", () => {
-        const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
-        registry.register("/test", () => {});
+			it("should invalidate cache when override is true", () => {
+				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				registry.register("/test", () => {});
 
-        const result1 = registry.routes("/test", "GET");
-        const result2 = registry.routes("/test", "GET", true);
+				const result1 = registry.routes("/test", "GET");
+				const result2 = registry.routes("/test", "GET", true);
 
-        assert.notStrictEqual(result1, result2);
-      });
-    });
+				assert.notStrictEqual(result1, result2);
+			});
+		});
 
-    describe("list", () => {
-      it("should return array of routes", () => {
-        const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
-        registry.register("/test1", () => {});
-        registry.register("/test2", () => {});
+		describe("list", () => {
+			it("should return array of routes", () => {
+				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				registry.register("/test1", () => {});
+				registry.register("/test2", () => {});
 
-        const result = registry.list("GET", "array");
+				const result = registry.list("GET", "array");
 
-        assert.ok(Array.isArray(result));
-      });
+				assert.ok(Array.isArray(result));
+			});
 
-      it("should return object of routes", () => {
-        const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
-        registry.register("/test1", () => {});
-        registry.register("/test2", () => {});
+			it("should return object of routes", () => {
+				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				registry.register("/test1", () => {});
+				registry.register("/test2", () => {});
 
-        const result = registry.list("GET", "object");
+				const result = registry.list("GET", "object");
 
-        assert.strictEqual(typeof result, "object");
-      });
-    });
-  });
+				assert.strictEqual(typeof result, "object");
+			});
+		});
+	});
 });

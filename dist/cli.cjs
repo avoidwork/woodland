@@ -27,7 +27,7 @@ const CHAR_SET = "charset=utf-8";
 const LOCALHOST = "127.0.0.1";
 const INT_8000 = 8000;
 const IPV4_REGEX =
-  /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+	/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
 
 // =============================================================================
 // NUMERIC CONSTANTS
@@ -46,49 +46,49 @@ const EN_US = "en-US";
 const SHORT = "short";
 
 Object.freeze(
-  Array.from(Array(12).values()).map((i, idx) => {
-    const d = new Date();
-    d.setMonth(idx);
+	Array.from(Array(12).values()).map((i, idx) => {
+		const d = new Date();
+		d.setMonth(idx);
 
-    return Object.freeze(d.toLocaleString(EN_US, { month: SHORT }));
-  }),
+		return Object.freeze(d.toLocaleString(EN_US, { month: SHORT }));
+	}),
 );
 
 const argv = process.argv
-    .filter((i) => i.charAt(0) === HYPHEN && i.charAt(1) === HYPHEN)
-    .reduce((a, v) => {
-      const x = v.split(`${HYPHEN}${HYPHEN}`)[1].split(EQUAL);
+		.filter((i) => i.charAt(0) === HYPHEN && i.charAt(1) === HYPHEN)
+		.reduce((a, v) => {
+			const x = v.split(`${HYPHEN}${HYPHEN}`)[1].split(EQUAL);
 
-      a[x[0]] = tinyCoerce.coerce(x[1]);
+			a[x[0]] = tinyCoerce.coerce(x[1]);
 
-      return a;
-    }, {}),
-  ip = argv.ip ?? LOCALHOST,
-  logging = argv.logging ?? true,
-  port = argv.port ?? INT_8000,
-  app = woodland.woodland({
-    autoindex: true,
-    defaultHeaders: { [CACHE_CONTROL]: NO_CACHE, [CONTENT_TYPE]: `${TEXT_PLAIN}; ${CHAR_SET}` },
-    logging: {
-      enabled: logging,
-    },
-    time: true,
-  });
+			return a;
+		}, {}),
+	ip = argv.ip ?? LOCALHOST,
+	logging = argv.logging ?? true,
+	port = argv.port ?? INT_8000,
+	app = woodland.woodland({
+		autoindex: true,
+		defaultHeaders: { [CACHE_CONTROL]: NO_CACHE, [CONTENT_TYPE]: `${TEXT_PLAIN}; ${CHAR_SET}` },
+		logging: {
+			enabled: logging,
+		},
+		time: true,
+	});
 
 let validPort = Number(port);
 if (!Number.isInteger(validPort) || validPort < INT_0 || validPort > INT_65535) {
-  console.error("Invalid port: must be an integer between 0 and 65535.");
-  process.exit(1);
+	console.error("Invalid port: must be an integer between 0 and 65535.");
+	process.exit(1);
 }
 let validIP = typeof ip === "string" && IPV4_REGEX.test(ip);
 if (!validIP) {
-  console.error("Invalid IP: must be a valid IPv4 address.");
-  process.exit(1);
+	console.error("Invalid IP: must be a valid IPv4 address.");
+	process.exit(1);
 }
 
 app.files();
 node_http.createServer(app.route).listen(validPort, ip);
 app.log(
-  `id=woodland, hostname=${process.env.HOSTNAME ?? "localhost"}, ip=${ip}, port=${validPort}`,
-  INFO,
+	`id=woodland, hostname=${process.env.HOSTNAME ?? "localhost"}, ip=${ip}, port=${validPort}`,
+	INFO,
 );

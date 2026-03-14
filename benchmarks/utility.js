@@ -1,20 +1,20 @@
 // Note: Using source utility functions since they are not exported from dist
 import { woodland } from "../src/woodland.js";
 import {
-  autoindex,
-  getStatus,
-  isValidIP,
-  mime,
-  ms,
-  next,
-  pad,
-  params,
-  parse,
-  partialHeaders,
-  pipeable,
-  reduce,
-  timeOffset,
-  writeHead,
+	autoindex,
+	getStatus,
+	isValidIP,
+	mime,
+	ms,
+	next,
+	pad,
+	params,
+	parse,
+	partialHeaders,
+	pipeable,
+	reduce,
+	timeOffset,
+	writeHead,
 } from "../src/utility.js";
 
 /**
@@ -22,470 +22,470 @@ import {
  * @returns {Object} Woodland app instance
  */
 const createFreshApp = () => {
-  return woodland({
-    cacheSize: 1000,
-    cacheTTL: 10000,
-    etags: true,
-    logging: { enabled: false },
-  });
+	return woodland({
+		cacheSize: 1000,
+		cacheTTL: 10000,
+		etags: true,
+		logging: { enabled: false },
+	});
 };
 
 // Test data for benchmarking
 const testUrls = [
-  "http://localhost:3000/",
-  "http://localhost:3000/api/users",
-  "http://localhost:3000/api/users/123",
-  "http://localhost:3000/api/users/123/posts/456",
-  "http://localhost:3000/static/css/style.css",
-  "http://localhost:3000/static/js/app.js",
-  "http://localhost:3000/static/images/logo.png",
-  "http://localhost:3000/blog/my-awesome-post",
-  "http://localhost:3000/category/tech/posts",
-  "http://localhost:3000/search?q=test&page=1",
-  "http://localhost:3000/api/v1/resource/123/nested/456?include=related",
-  "http://localhost:3000/admin/dashboard#section",
-  "http://localhost:8080/complex/path/with/many/segments",
-  "http://localhost:8443/secure/api/endpoint",
-  "http://127.0.0.1:5000/local/service",
+	"http://localhost:3000/",
+	"http://localhost:3000/api/users",
+	"http://localhost:3000/api/users/123",
+	"http://localhost:3000/api/users/123/posts/456",
+	"http://localhost:3000/static/css/style.css",
+	"http://localhost:3000/static/js/app.js",
+	"http://localhost:3000/static/images/logo.png",
+	"http://localhost:3000/blog/my-awesome-post",
+	"http://localhost:3000/category/tech/posts",
+	"http://localhost:3000/search?q=test&page=1",
+	"http://localhost:3000/api/v1/resource/123/nested/456?include=related",
+	"http://localhost:3000/admin/dashboard#section",
+	"http://localhost:8080/complex/path/with/many/segments",
+	"http://localhost:8443/secure/api/endpoint",
+	"http://127.0.0.1:5000/local/service",
 ];
 
 const testFiles = [
-  "style.css",
-  "app.js",
-  "logo.png",
-  "favicon.ico",
-  "index.html",
-  "document.pdf",
-  "image.jpg",
-  "video.mp4",
-  "audio.mp3",
-  "data.json",
-  "config.xml",
-  "archive.zip",
-  "text.txt",
-  "presentation.pptx",
-  "spreadsheet.xlsx",
-  "executable.exe",
-  "unknown.xyz",
-  "no-extension",
+	"style.css",
+	"app.js",
+	"logo.png",
+	"favicon.ico",
+	"index.html",
+	"document.pdf",
+	"image.jpg",
+	"video.mp4",
+	"audio.mp3",
+	"data.json",
+	"config.xml",
+	"archive.zip",
+	"text.txt",
+	"presentation.pptx",
+	"spreadsheet.xlsx",
+	"executable.exe",
+	"unknown.xyz",
+	"no-extension",
 ];
 
 const testTimeValues = [
-  0, 1000000, 5000000, 10000000, 50000000, 100000000, 500000000, 1000000000, 5000000000,
-  10000000000,
+	0, 1000000, 5000000, 10000000, 50000000, 100000000, 500000000, 1000000000, 5000000000,
+	10000000000,
 ];
 
 const testNumbers = [
-  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 25, 30, 35, 40, 45, 50,
-  55, 60, 99, 100, 999, 1000, 9999, 10000,
+	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 25, 30, 35, 40, 45, 50,
+	55, 60, 99, 100, 999, 1000, 9999, 10000,
 ];
 
 const testTimezoneOffsets = [
-  0, -60, -120, -180, -240, -300, -360, -420, -480, -540, -600, -660, -720, 60, 120, 180, 240, 300,
-  360, 420, 480, 540, 600, 660, 720,
+	0, -60, -120, -180, -240, -300, -360, -420, -480, -540, -600, -660, -720, 60, 120, 180, 240, 300,
+	360, 420, 480, 540, 600, 660, 720,
 ];
 
 const testIPAddresses = [
-  "192.168.1.1",
-  "10.0.0.1",
-  "172.16.0.1",
-  "127.0.0.1",
-  "255.255.255.255",
-  "0.0.0.0",
-  "::1",
-  "2001:db8::1",
-  "fe80::1%lo0",
-  "::ffff:192.168.1.1",
-  "::",
-  "2001:0db8:85a3::8a2e:370:7334",
-  "invalid.ip",
-  "256.256.256.256",
-  "192.168.1",
-  "gggg::1",
+	"192.168.1.1",
+	"10.0.0.1",
+	"172.16.0.1",
+	"127.0.0.1",
+	"255.255.255.255",
+	"0.0.0.0",
+	"::1",
+	"2001:db8::1",
+	"fe80::1%lo0",
+	"::ffff:192.168.1.1",
+	"::",
+	"2001:0db8:85a3::8a2e:370:7334",
+	"invalid.ip",
+	"256.256.256.256",
+	"192.168.1",
+	"gggg::1",
 ];
 
 // Mock request objects for testing
 const createMockRequest = (method = "GET", url = "/", headers = {}) => ({
-  method,
-  url,
-  headers: {
-    host: "localhost:3000",
-    "user-agent": "benchmark-test",
-    ...headers,
-  },
-  connection: {
-    remoteAddress: "127.0.0.1",
-  },
-  socket: {
-    server: {
-      _connectionKey: "6::::3000",
-    },
-  },
+	method,
+	url,
+	headers: {
+		host: "localhost:3000",
+		"user-agent": "benchmark-test",
+		...headers,
+	},
+	connection: {
+		remoteAddress: "127.0.0.1",
+	},
+	socket: {
+		server: {
+			_connectionKey: "6::::3000",
+		},
+	},
 });
 
 const createMockResponse = () => {
-  const headers = new Map();
+	const headers = new Map();
 
-  return {
-    statusCode: 200,
-    headersSent: false,
-    setHeader: (name, value) => headers.set(name.toLowerCase(), value),
-    getHeader: (name) => headers.get(name.toLowerCase()),
-    removeHeader: (name) => headers.delete(name.toLowerCase()),
-    header: (name, value) => headers.set(name.toLowerCase(), value),
-    writeHead: (statusCode, statusMessage, headerObj) => {
-      if (headerObj) {
-        Object.entries(headerObj).forEach(([key, value]) => {
-          headers.set(key.toLowerCase(), value);
-        });
-      }
-    },
-    headers: headers,
-    end: () => {},
-    // Add event handling methods that Woodland expects
-    on: (_event, _callback) => {},
-    once: (_event, _callback) => {},
-    emit: (_event, ..._args) => {},
-    // Add response helper methods
-    send: (_data) => {},
-    json: (_data) => {},
-    redirect: (_url, _statusCode) => {},
-  };
+	return {
+		statusCode: 200,
+		headersSent: false,
+		setHeader: (name, value) => headers.set(name.toLowerCase(), value),
+		getHeader: (name) => headers.get(name.toLowerCase()),
+		removeHeader: (name) => headers.delete(name.toLowerCase()),
+		header: (name, value) => headers.set(name.toLowerCase(), value),
+		writeHead: (statusCode, statusMessage, headerObj) => {
+			if (headerObj) {
+				Object.entries(headerObj).forEach(([key, value]) => {
+					headers.set(key.toLowerCase(), value);
+				});
+			}
+		},
+		headers: headers,
+		end: () => {},
+		// Add event handling methods that Woodland expects
+		on: (_event, _callback) => {},
+		once: (_event, _callback) => {},
+		emit: (_event, ..._args) => {},
+		// Add response helper methods
+		send: (_data) => {},
+		json: (_data) => {},
+		redirect: (_url, _statusCode) => {},
+	};
 };
 
 // Mock file objects for autoindex testing
 const createMockFiles = () => [
-  { name: "file1.txt", isDirectory: () => false },
-  { name: "file2.js", isDirectory: () => false },
-  { name: "image.png", isDirectory: () => false },
-  { name: "subdirectory", isDirectory: () => true },
-  { name: "document.pdf", isDirectory: () => false },
-  { name: "another-folder", isDirectory: () => true },
-  { name: "index.html", isDirectory: () => false },
-  { name: "style.css", isDirectory: () => false },
-  { name: "script.js", isDirectory: () => false },
-  { name: "data.json", isDirectory: () => false },
+	{ name: "file1.txt", isDirectory: () => false },
+	{ name: "file2.js", isDirectory: () => false },
+	{ name: "image.png", isDirectory: () => false },
+	{ name: "subdirectory", isDirectory: () => true },
+	{ name: "document.pdf", isDirectory: () => false },
+	{ name: "another-folder", isDirectory: () => true },
+	{ name: "index.html", isDirectory: () => false },
+	{ name: "style.css", isDirectory: () => false },
+	{ name: "script.js", isDirectory: () => false },
+	{ name: "data.json", isDirectory: () => false },
 ];
 
 /**
  * Benchmark parse() function - URL parsing
  */
 function benchmarkParse() {
-  const url = testUrls[Math.floor(Math.random() * testUrls.length)];
+	const url = testUrls[Math.floor(Math.random() * testUrls.length)];
 
-  return parse(url);
+	return parse(url);
 }
 
 /**
  * Benchmark parse() function with request objects
  */
 function benchmarkParseRequest() {
-  const request = createMockRequest(
-    "GET",
-    testUrls[Math.floor(Math.random() * testUrls.length)].replace(/^https?:\/\/[^/]+/, ""),
-  );
+	const request = createMockRequest(
+		"GET",
+		testUrls[Math.floor(Math.random() * testUrls.length)].replace(/^https?:\/\/[^/]+/, ""),
+	);
 
-  return parse(request);
+	return parse(request);
 }
 
 /**
  * Benchmark mime() function - MIME type detection
  */
 function benchmarkMime() {
-  const filename = testFiles[Math.floor(Math.random() * testFiles.length)];
+	const filename = testFiles[Math.floor(Math.random() * testFiles.length)];
 
-  return mime(filename);
+	return mime(filename);
 }
 
 /**
  * Benchmark ms() function - time formatting
  */
 function benchmarkMs() {
-  const time = testTimeValues[Math.floor(Math.random() * testTimeValues.length)];
-  const digits = Math.floor(Math.random() * 5) + 1;
+	const time = testTimeValues[Math.floor(Math.random() * testTimeValues.length)];
+	const digits = Math.floor(Math.random() * 5) + 1;
 
-  return ms(time, digits);
+	return ms(time, digits);
 }
 
 /**
  * Benchmark pad() function - number padding
  */
 function benchmarkPad() {
-  const num = testNumbers[Math.floor(Math.random() * testNumbers.length)];
+	const num = testNumbers[Math.floor(Math.random() * testNumbers.length)];
 
-  return pad(num);
+	return pad(num);
 }
 
 /**
  * Benchmark timeOffset() function - timezone offset formatting
  */
 function benchmarkTimeOffset() {
-  const offset = testTimezoneOffsets[Math.floor(Math.random() * testTimezoneOffsets.length)];
+	const offset = testTimezoneOffsets[Math.floor(Math.random() * testTimezoneOffsets.length)];
 
-  return timeOffset(offset);
+	return timeOffset(offset);
 }
 
 /**
  * Benchmark autoindex() function - directory listing generation
  */
 function benchmarkAutoindex() {
-  const title = "/test/directory";
-  const files = createMockFiles();
-  // Pass file objects directly as expected by the autoindex function
+	const title = "/test/directory";
+	const files = createMockFiles();
+	// Pass file objects directly as expected by the autoindex function
 
-  return autoindex(title, files);
+	return autoindex(title, files);
 }
 
 /**
  * Benchmark getStatus() function - status code determination
  */
 function benchmarkGetStatus() {
-  const req = createMockRequest();
-  const res = createMockResponse();
+	const req = createMockRequest();
+	const res = createMockResponse();
 
-  // Set up various scenarios
-  const scenarios = [
-    { allow: "GET, POST, PUT, DELETE", method: "GET" },
-    { allow: "GET, POST", method: "PUT" },
-    { allow: "", method: "GET" },
-    { allow: "GET", method: "GET" },
-    { allow: "POST", method: "GET" },
-  ];
+	// Set up various scenarios
+	const scenarios = [
+		{ allow: "GET, POST, PUT, DELETE", method: "GET" },
+		{ allow: "GET, POST", method: "PUT" },
+		{ allow: "", method: "GET" },
+		{ allow: "GET", method: "GET" },
+		{ allow: "POST", method: "GET" },
+	];
 
-  const scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
-  req.allow = scenario.allow;
-  req.method = scenario.method;
+	const scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
+	req.allow = scenario.allow;
+	req.method = scenario.method;
 
-  // Randomize response status
-  res.statusCode = Math.random() > 0.5 ? 200 : 500;
+	// Randomize response status
+	res.statusCode = Math.random() > 0.5 ? 200 : 500;
 
-  return getStatus(req, res);
+	return getStatus(req, res);
 }
 
 /**
  * Benchmark params() function - parameter extraction
  */
 function benchmarkParams() {
-  const req = createMockRequest();
-  req.parsed = { pathname: "/users/123/posts/456/comments/789" };
-  req.params = {};
+	const req = createMockRequest();
+	req.parsed = { pathname: "/users/123/posts/456/comments/789" };
+	req.params = {};
 
-  // Create a regex similar to what woodland uses
-  const regex =
-    /^\/users\/(?<userId>[^/]+)\/posts\/(?<postId>[^/]+)\/comments\/(?<commentId>[^/]+)$/;
+	// Create a regex similar to what woodland uses
+	const regex =
+		/^\/users\/(?<userId>[^/]+)\/posts\/(?<postId>[^/]+)\/comments\/(?<commentId>[^/]+)$/;
 
-  return params(req, regex);
+	return params(req, regex);
 }
 
 /**
  * Benchmark partialHeaders() function - range request headers
  */
 function benchmarkPartialHeaders() {
-  const req = createMockRequest();
-  const res = createMockResponse();
+	const req = createMockRequest();
+	const res = createMockResponse();
 
-  // Set up range request
-  req.headers.range = "bytes=0-1023";
+	// Set up range request
+	req.headers.range = "bytes=0-1023";
 
-  const size = 10000;
-  const status = 200;
-  const headers = {};
-  const options = {};
+	const size = 10000;
+	const status = 200;
+	const headers = {};
+	const options = {};
 
-  return partialHeaders(req, res, size, status, headers, options);
+	return partialHeaders(req, res, size, status, headers, options);
 }
 
 /**
  * Benchmark pipeable() function - checks if content is pipeable
  */
 function benchmarkPipeable() {
-  const methods = ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"];
-  const method = methods[Math.floor(Math.random() * methods.length)];
+	const methods = ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"];
+	const method = methods[Math.floor(Math.random() * methods.length)];
 
-  // Test with different types of content
-  const contents = [
-    "string content",
-    { pipe: () => {}, on: () => {} }, // Stream-like object
-    Buffer.from("buffer content"),
-    123,
-    null,
-    { toString: () => "object with toString" },
-  ];
+	// Test with different types of content
+	const contents = [
+		"string content",
+		{ pipe: () => {}, on: () => {} }, // Stream-like object
+		Buffer.from("buffer content"),
+		123,
+		null,
+		{ toString: () => "object with toString" },
+	];
 
-  const content = contents[Math.floor(Math.random() * contents.length)];
+	const content = contents[Math.floor(Math.random() * contents.length)];
 
-  return pipeable(method, content);
+	return pipeable(method, content);
 }
 
 /**
  * Benchmark reduce() function - route reduction
  */
 function benchmarkReduce() {
-  const uri = "/api/users/123/posts";
-  const map = new Map();
+	const uri = "/api/users/123/posts";
+	const map = new Map();
 
-  // Add some sample middleware
-  map.set("/.∗", {
-    handlers: [(req, res, nextFn) => nextFn()],
-    params: false,
-    regex: /^\/\.∗$/,
-  });
+	// Add some sample middleware
+	map.set("/.∗", {
+		handlers: [(req, res, nextFn) => nextFn()],
+		params: false,
+		regex: /^\/\.∗$/,
+	});
 
-  map.set("/api/users/:id/posts", {
-    handlers: [(req, res, nextFn) => nextFn()],
-    params: true,
-    regex: /^\/api\/users\/([^/]+)\/posts$/,
-  });
+	map.set("/api/users/:id/posts", {
+		handlers: [(req, res, nextFn) => nextFn()],
+		params: true,
+		regex: /^\/api\/users\/([^/]+)\/posts$/,
+	});
 
-  map.set("/api/users", {
-    handlers: [(req, res, nextFn) => nextFn()],
-    params: false,
-    regex: /^\/api\/users$/,
-  });
+	map.set("/api/users", {
+		handlers: [(req, res, nextFn) => nextFn()],
+		params: false,
+		regex: /^\/api\/users$/,
+	});
 
-  const arg = {
-    getParams: null,
-    middleware: [],
-    params: false,
-    visible: 0,
-    exit: -1,
-  };
+	const arg = {
+		getParams: null,
+		middleware: [],
+		params: false,
+		visible: 0,
+		exit: -1,
+	};
 
-  return reduce(uri, map, arg);
+	return reduce(uri, map, arg);
 }
 
 /**
  * Benchmark writeHead() function - header writing
  */
 function benchmarkWriteHead() {
-  const res = createMockResponse();
-  const headers = {
-    "Content-Type": "application/json",
-    "Cache-Control": "no-cache",
-    "X-Custom-Header": "test-value",
-    "Access-Control-Allow-Origin": "*",
-  };
+	const res = createMockResponse();
+	const headers = {
+		"Content-Type": "application/json",
+		"Cache-Control": "no-cache",
+		"X-Custom-Header": "test-value",
+		"Access-Control-Allow-Origin": "*",
+	};
 
-  return writeHead(res, headers);
+	return writeHead(res, headers);
 }
 
 /**
  * Benchmark next() function - middleware chain progression
  */
 function benchmarkNext() {
-  // Create a realistic Woodland app to properly set up the request
-  const freshApp = createFreshApp();
+	// Create a realistic Woodland app to properly set up the request
+	const freshApp = createFreshApp();
 
-  // Add a route so the app has allowed methods
-  freshApp.get("/test", (req, res) => res.send("OK"));
+	// Add a route so the app has allowed methods
+	freshApp.get("/test", (req, res) => res.send("OK"));
 
-  const req = createMockRequest("GET", "/test");
-  const res = createMockResponse();
+	const req = createMockRequest("GET", "/test");
+	const res = createMockResponse();
 
-  // Use Woodland's actual decorate method to properly set up req.allow and other properties
-  freshApp.decorate(req, res);
+	// Use Woodland's actual decorate method to properly set up req.allow and other properties
+	freshApp.decorate(req, res);
 
-  // Create a simple middleware iterator
-  const middleware = [
-    (request, response, nextFn) => {
-      request.step1 = true;
-      nextFn();
-    },
-    (request, response, nextFn) => {
-      request.step2 = true;
-      nextFn();
-    },
-    (request, response) => {
-      request.step3 = true;
-      response.send("OK");
-    },
-  ];
+	// Create a simple middleware iterator
+	const middleware = [
+		(request, response, nextFn) => {
+			request.step1 = true;
+			nextFn();
+		},
+		(request, response, nextFn) => {
+			request.step2 = true;
+			nextFn();
+		},
+		(request, response) => {
+			request.step3 = true;
+			response.send("OK");
+		},
+	];
 
-  const iterator = middleware[Symbol.iterator]();
-  const immediate = Math.random() > 0.5;
+	const iterator = middleware[Symbol.iterator]();
+	const immediate = Math.random() > 0.5;
 
-  return next(req, res, iterator, immediate);
+	return next(req, res, iterator, immediate);
 }
 
 /**
  * Benchmark URL parsing edge cases
  */
 function benchmarkParseEdgeCases() {
-  const edgeCaseUrls = [
-    "http://localhost/",
-    "http://localhost:8080/path?query=value#fragment",
-    "http://[::1]:3000/ipv6",
-    "http://localhost/auth",
-    "http://localhost/path with spaces",
-    "http://localhost/path%20with%20encoded%20spaces",
-    "http://localhost/path?multiple=queries&and=parameters",
-    "http://localhost/path#fragment-only",
-    "http://localhost:8080/port-specified",
-  ];
+	const edgeCaseUrls = [
+		"http://localhost/",
+		"http://localhost:8080/path?query=value#fragment",
+		"http://[::1]:3000/ipv6",
+		"http://localhost/auth",
+		"http://localhost/path with spaces",
+		"http://localhost/path%20with%20encoded%20spaces",
+		"http://localhost/path?multiple=queries&and=parameters",
+		"http://localhost/path#fragment-only",
+		"http://localhost:8080/port-specified",
+	];
 
-  const url = edgeCaseUrls[Math.floor(Math.random() * edgeCaseUrls.length)];
+	const url = edgeCaseUrls[Math.floor(Math.random() * edgeCaseUrls.length)];
 
-  return parse(url);
+	return parse(url);
 }
 
 /**
  * Benchmark complex MIME type detection
  */
 function benchmarkComplexMime() {
-  const complexFiles = [
-    "file.tar.gz",
-    "document.docx",
-    "presentation.pptx",
-    "spreadsheet.xlsx",
-    "image.jpeg",
-    "audio.mp3",
-    "video.mp4",
-    "archive.zip",
-    "text.txt",
-    "script.js",
-    "style.css",
-    "data.json",
-    "config.xml",
-    "binary.exe",
-    "library.dll",
-    "package.deb",
-    "installer.msi",
-    "font.woff2",
-    "vector.svg",
-    "3d-model.obj",
-  ];
+	const complexFiles = [
+		"file.tar.gz",
+		"document.docx",
+		"presentation.pptx",
+		"spreadsheet.xlsx",
+		"image.jpeg",
+		"audio.mp3",
+		"video.mp4",
+		"archive.zip",
+		"text.txt",
+		"script.js",
+		"style.css",
+		"data.json",
+		"config.xml",
+		"binary.exe",
+		"library.dll",
+		"package.deb",
+		"installer.msi",
+		"font.woff2",
+		"vector.svg",
+		"3d-model.obj",
+	];
 
-  const filename = complexFiles[Math.floor(Math.random() * complexFiles.length)];
+	const filename = complexFiles[Math.floor(Math.random() * complexFiles.length)];
 
-  return mime(filename);
+	return mime(filename);
 }
 
 /**
  * Benchmark isValidIP() function - IP address validation
  */
 function benchmarkIsValidIP() {
-  const ip = testIPAddresses[Math.floor(Math.random() * testIPAddresses.length)];
+	const ip = testIPAddresses[Math.floor(Math.random() * testIPAddresses.length)];
 
-  return isValidIP(ip);
+	return isValidIP(ip);
 }
 
 // Export benchmark functions
 export default {
-  "parse() - URL strings": benchmarkParse,
-  "parse() - request objects": benchmarkParseRequest,
-  "mime() - basic files": benchmarkMime,
-  "mime() - complex files": benchmarkComplexMime,
-  "ms() - time formatting": benchmarkMs,
-  "pad() - number padding": benchmarkPad,
-  "timeOffset() - timezone": benchmarkTimeOffset,
-  "autoindex() - directory listing": benchmarkAutoindex,
-  "getStatus() - status determination": benchmarkGetStatus,
-  "params() - parameter extraction": benchmarkParams,
-  "partialHeaders() - range headers": benchmarkPartialHeaders,
-  "pipeable() - content check": benchmarkPipeable,
-  "reduce() - route reduction": benchmarkReduce,
-  "writeHead() - header writing": benchmarkWriteHead,
-  "next() - middleware chain": benchmarkNext,
-  "parse() - edge cases": benchmarkParseEdgeCases,
-  "isValidIP() - IP validation": benchmarkIsValidIP,
+	"parse() - URL strings": benchmarkParse,
+	"parse() - request objects": benchmarkParseRequest,
+	"mime() - basic files": benchmarkMime,
+	"mime() - complex files": benchmarkComplexMime,
+	"ms() - time formatting": benchmarkMs,
+	"pad() - number padding": benchmarkPad,
+	"timeOffset() - timezone": benchmarkTimeOffset,
+	"autoindex() - directory listing": benchmarkAutoindex,
+	"getStatus() - status determination": benchmarkGetStatus,
+	"params() - parameter extraction": benchmarkParams,
+	"partialHeaders() - range headers": benchmarkPartialHeaders,
+	"pipeable() - content check": benchmarkPipeable,
+	"reduce() - route reduction": benchmarkReduce,
+	"writeHead() - header writing": benchmarkWriteHead,
+	"next() - middleware chain": benchmarkNext,
+	"parse() - edge cases": benchmarkParseEdgeCases,
+	"isValidIP() - IP validation": benchmarkIsValidIP,
 };
