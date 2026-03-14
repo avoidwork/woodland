@@ -87,7 +87,7 @@ describe("logger", () => {
 
     describe("clfm", () => {
       it("should generate common log format entry", () => {
-        const logger = createLogger();
+        const logger = createLogger({ format: "%h %t %r %>s %b" });
         const req = {
           method: "GET",
           headers: {
@@ -114,14 +114,17 @@ describe("logger", () => {
       });
 
       it("should handle missing host header", () => {
-        const logger = createLogger();
+        const logger = createLogger({ format: "%h %t %r %>s %b" });
         const req = {
           method: "GET",
           headers: {},
           connection: { remoteAddress: "192.168.1.1" },
         };
 
-        const res = { statusCode: 200 };
+        const res = {
+          statusCode: 200,
+          getHeader: () => 1234,
+        };
 
         const result = logger.clfm(req, res);
 
@@ -129,14 +132,17 @@ describe("logger", () => {
       });
 
       it("should handle missing parsed data", () => {
-        const logger = createLogger();
+        const logger = createLogger({ format: "%h %t %r %>s %b" });
         const req = {
           method: "GET",
           url: "/test",
           connection: { remoteAddress: "192.168.1.1" },
         };
 
-        const res = { statusCode: 200 };
+        const res = {
+          statusCode: 200,
+          getHeader: () => 1234,
+        };
 
         const result = logger.clfm(req, res);
 

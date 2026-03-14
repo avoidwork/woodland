@@ -68,6 +68,10 @@ export function isValidIP(ip) {
     const beforeDoubleColon = ip.substring(0, doubleColonIndex);
     const afterDoubleColon = ip.substring(doubleColonIndex + 2);
 
+    if (afterDoubleColon === ":" || (afterDoubleColon && afterDoubleColon.endsWith(":"))) {
+      return false;
+    }
+
     const leftGroups = beforeDoubleColon ? beforeDoubleColon.split(":") : [];
     const rightGroups = afterDoubleColon ? afterDoubleColon.split(":") : [];
 

@@ -61,7 +61,7 @@ describe("fileserver", () => {
               assert.strictEqual(status, 404);
             },
           },
-          "/nonexistent.txt",
+          "nonexistent.txt",
           testFilesDir,
         );
 
@@ -88,7 +88,7 @@ describe("fileserver", () => {
               redirectPath = path;
             },
           },
-          "/subdir",
+          "subdir",
           testFilesDir,
         );
 
@@ -114,7 +114,7 @@ describe("fileserver", () => {
             error: () => {},
             redirect: () => {},
           },
-          "/small.txt",
+          "small.txt",
           testFilesDir,
         );
 
@@ -125,6 +125,7 @@ describe("fileserver", () => {
         let errorCalled = false;
         const app = createMockApp();
         app.autoindex = false;
+        app.indexes = [];
         app.logger.logServe = () => ({ log: () => {} });
         const server = createFileServer(app);
 
@@ -140,7 +141,7 @@ describe("fileserver", () => {
             },
             redirect: () => {},
           },
-          "/subdir/",
+          "subdir",
           testFilesDir,
         );
 

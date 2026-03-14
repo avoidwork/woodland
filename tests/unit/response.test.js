@@ -250,7 +250,7 @@ describe("response", () => {
         const handler = createResponseHandler(mockApp);
 
         const sendHandler = handler.createSendHandler(
-          { method: "GET" },
+          { method: "GET", headers: {} },
           {
             headersSent: false,
             statusCode: 200,
@@ -266,7 +266,7 @@ describe("response", () => {
         const handler = createResponseHandler(mockApp);
 
         const sendHandler = handler.createSendHandler(
-          { method: "GET" },
+          { method: "GET", headers: {} },
           {
             headersSent: true,
             statusCode: 200,
@@ -280,7 +280,7 @@ describe("response", () => {
         const handler = createResponseHandler(mockApp);
 
         const sendHandler = handler.createSendHandler(
-          { method: "GET" },
+          { method: "GET", headers: {} },
           {
             headersSent: false,
             statusCode: 200,

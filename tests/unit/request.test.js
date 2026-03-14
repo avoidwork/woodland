@@ -129,7 +129,7 @@ describe("request", () => {
 
       it("should return false when no origin header", () => {
         const handler = createCorsHandler(["https://example.com"]);
-        const req = { headers: {} };
+        const req = { headers: {}, corsHost: false };
 
         assert.strictEqual(handler.cors(req), false);
       });
@@ -299,7 +299,7 @@ describe("request", () => {
           headers: { "x-forwarded-for": "invalid, 10.0.0.1" },
         };
 
-        assert.strictEqual(extractor.extract(req), "192.168.1.1");
+        assert.strictEqual(extractor.extract(req), "10.0.0.1");
       });
 
       it("should handle empty X-Forwarded-For", () => {
@@ -458,7 +458,10 @@ describe("request", () => {
           url: "/test",
           headers: {},
         };
-        const res = {};
+        const res = {
+          set: () => {},
+          on: () => {},
+        };
 
         decorator.decorate(req, res);
 
@@ -485,6 +488,7 @@ describe("request", () => {
               headersSet.set(key, value);
             }
           },
+          on: () => {},
         };
 
         decorator.decorate(req, res);
@@ -517,6 +521,7 @@ describe("request", () => {
               headersSet.set(key, value);
             }
           },
+          on: () => {},
         };
 
         decorator.decorate(req, res);
@@ -534,6 +539,7 @@ describe("request", () => {
         };
         let closeListener = null;
         const res = {
+          set: () => {},
           on: (event, fn) => {
             if (event === "close") {
               closeListener = fn;

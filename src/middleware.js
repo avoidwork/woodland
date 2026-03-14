@@ -105,11 +105,11 @@ export function createMiddlewareRegistry(middleware, ignored, methods, cache) {
       result = cached;
     } else {
       result = { getParams: null, middleware: [], params: false, visible: 0, exit: -1 };
-      reduce(uri, middleware.get(WILDCARD), result);
+      reduce(uri, middleware.get(WILDCARD) ?? new Map(), result);
 
       if (method !== WILDCARD) {
         result.exit = result.middleware.length;
-        reduce(uri, middleware.get(method), result, true);
+        reduce(uri, middleware.get(method) ?? new Map(), result, true);
       }
 
       result.visible = 0;

@@ -226,7 +226,8 @@ describe("middleware", () => {
 
         registry.register(handler);
 
-        assert.ok(middleware.has(".*"));
+        assert.ok(middleware.has("GET"));
+        assert.ok(middleware.get("GET").has("/.*"));
       });
 
       it("should register middleware for specific method", () => {
@@ -308,6 +309,10 @@ describe("middleware", () => {
       it("should return true for allowed route", () => {
         const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
         registry.register("/test", () => {});
+
+        // Check that the route was registered
+        assert.ok(middleware.has("GET"));
+        assert.ok(middleware.get("GET").has("/test"));
 
         const result = registry.allowed("/test", "GET");
 
