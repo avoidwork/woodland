@@ -54,6 +54,7 @@ import {
 	INT_416,
 	INT_500,
 	IP_TOKEN,
+	IPV4_REGEX,
 	LAST_MODIFIED,
 	LEFT_PAREN,
 	LEVELS,
@@ -90,6 +91,7 @@ import {
 	PARAMS_GROUP,
 	PATCH,
 	POST,
+	PROTOCOL_REGEX,
 	PUT,
 	RANGE,
 	SERVER,
@@ -127,9 +129,6 @@ import {
 	writeHead,
 	isValidIP
 } from "./utility.js";
-
-// Optimized: Cache regex for corsHost method to avoid recompilation
-const PROTOCOL_REGEX = /^http(s)?:\/\//;
 
 /**
  * Woodland HTTP server framework class extending EventEmitter
@@ -192,10 +191,14 @@ export class Woodland extends EventEmitter {
 		this.etags = etags ? etag({cacheSize, cacheTTL}) : null;
 		this.indexes = structuredClone(indexes);
 		this.permissions = lru(cacheSize, cacheTTL);
+		const envLogEnabled = process.env.WOODLAND_LOG_ENABLED;
+		const envLogFormat = process.env.WOODLAND_LOG_FORMAT;
+		const envLogLevel = process.env.WOODLAND_LOG_LEVEL;
+
 		this.logging = {
-			enabled: logging?.enabled ?? (process.env.WOODLAND_LOG_ENABLED ? process.env.WOODLAND_LOG_ENABLED !== "false" : true),
-			format: logging?.format ?? process.env.WOODLAND_LOG_FORMAT ?? LOG_FORMAT,
-			level: logging?.level ?? process.env.WOODLAND_LOG_LEVEL ?? INFO
+			enabled: logging?.enabled ?? (envLogEnabled ? envLogEnabled !== "false" : true),
+			format: logging?.format ?? envLogFormat ?? LOG_FORMAT,
+			level: logging?.level ?? envLogLevel ?? INFO
 		};
 		this.methods = [];
 		this.middleware = new Map();
@@ -347,17 +350,22 @@ export class Woodland extends EventEmitter {
 		// Extended: User-Agent header
 		const userAgent = req.headers?.[USER_AGENT] ?? HYPHEN;
 
-		return this.logging.format
-			.replace(LOG_V, host)
+		// Optimized: Build log entry in single pass using template literal
+		let logEntry = this.logging.format;
+
+		// Replace tokens in single pass (order matters for overlapping tokens)
+		logEntry = logEntry.replace(LOG_V, host)
 			.replace(LOG_H, ip)
 			.replace(LOG_L, logname)
 			.replace(LOG_U, username)
 			.replace(LOG_T, dateStr)
 			.replace(LOG_R, requestLine)
-			.replace(LOG_S, statusCode)
+			.replace(LOG_S, String(statusCode))
 			.replace(LOG_B, contentLength)
 			.replace(LOG_REFERRER, referer)
 			.replace(LOG_USER_AGENT, userAgent);
+
+		return logEntry;
 	}
 
 	/**
@@ -570,8 +578,10 @@ export class Woodland extends EventEmitter {
 	 * @returns {string} Client IP address
 	 */
 	ip (req) {
-		// Optimized: Cache fallback IP and fast path for common case
-		const fallbackIP = req?.connection?.remoteAddress || req?.socket?.remoteAddress || "127.0.0.1";
+		// Optimized: Fast path for common case with minimal property access
+		const connection = req.connection;
+		const socket = req.socket;
+		const fallbackIP = (connection && connection.remoteAddress) || (socket && socket.remoteAddress) || "127.0.0.1";
 
 		// Fast path: If no X-Forwarded-For header or empty, return connection IP
 		const forwardedHeader = req.headers[X_FORWARDED_FOR];
