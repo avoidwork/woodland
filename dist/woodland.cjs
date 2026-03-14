@@ -5,40 +5,23 @@
  * @license BSD-3-Clause
  * @version 20.2.10
  */
-"use strict";
+'use strict';
 
-var node_http = require("node:http");
-var node_events = require("node:events");
-var node_fs = require("node:fs");
-var tinyEtag = require("tiny-etag");
-var precise = require("precise");
-var node_module = require("node:module");
-var node_path = require("node:path");
-var node_url = require("node:url");
-var tinyCoerce = require("tiny-coerce");
-var mimeDb = require("mime-db");
-var promises = require("node:fs/promises");
+var node_http = require('node:http');
+var node_events = require('node:events');
+var node_fs = require('node:fs');
+var tinyEtag = require('tiny-etag');
+var precise = require('precise');
+var node_module = require('node:module');
+var node_path = require('node:path');
+var node_url = require('node:url');
+var tinyCoerce = require('tiny-coerce');
+var mimeDb = require('mime-db');
+var promises = require('node:fs/promises');
 
-var _documentCurrentScript = typeof document !== "undefined" ? document.currentScript : null;
-const __dirname$2 = node_url.fileURLToPath(
-  new node_url.URL(
-    ".",
-    typeof document === "undefined"
-      ? require("u" + "rl").pathToFileURL(__filename).href
-      : (_documentCurrentScript &&
-          _documentCurrentScript.tagName.toUpperCase() === "SCRIPT" &&
-          _documentCurrentScript.src) ||
-          new URL("woodland.cjs", document.baseURI).href,
-  ),
-);
-const require$1 = node_module.createRequire(
-  typeof document === "undefined"
-    ? require("u" + "rl").pathToFileURL(__filename).href
-    : (_documentCurrentScript &&
-        _documentCurrentScript.tagName.toUpperCase() === "SCRIPT" &&
-        _documentCurrentScript.src) ||
-        new URL("woodland.cjs", document.baseURI).href,
-);
+var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
+const __dirname$2 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href))));
+const require$1 = node_module.createRequire((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href)));
 const { name, version } = require$1(node_path.join(__dirname$2, "..", "package.json"));
 
 // =============================================================================
@@ -174,20 +157,8 @@ const MONTHS = Object.freeze(
   }),
 );
 
-const __dirname$1 = node_url.fileURLToPath(
-    new node_url.URL(
-      ".",
-      typeof document === "undefined"
-        ? require("u" + "rl").pathToFileURL(__filename).href
-        : (_documentCurrentScript &&
-            _documentCurrentScript.tagName.toUpperCase() === "SCRIPT" &&
-            _documentCurrentScript.src) ||
-            new URL("woodland.cjs", document.baseURI).href,
-    ),
-  ),
-  html = node_fs.readFileSync(node_path.join(__dirname$1, "..", "tpl", "autoindex.html"), {
-    encoding: UTF8,
-  }),
+const __dirname$1 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href)))),
+  html = node_fs.readFileSync(node_path.join(__dirname$1, "..", "tpl", "autoindex.html"), { encoding: UTF8 }),
   valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
   mimeExtensions = valid.reduce((a, v) => {
     const result = Object.assign({ type: v[0] }, v[1]);
@@ -234,7 +205,7 @@ function autoindex(title = EMPTY, files = []) {
   }
 
   // Pre-allocate array for better performance
-  const listItems = new Array(files.length + 1);
+  const listItems = Array.from({ length: files.length + 1 });
   listItems[0] = '    <li><a href=".." rel="collection">../</a></li>';
 
   // Optimized: Cache file count and optimize loop
@@ -589,11 +560,11 @@ function createMiddlewareRegistry(middleware, ignored, methods, cache) {
       result = cached;
     } else {
       result = { getParams: null, middleware: [], params: false, visible: 0, exit: -1 };
-      reduce(uri, middleware.get(WILDCARD), result);
+      reduce(uri, middleware.get(WILDCARD) ?? new Map(), result);
 
       if (method !== WILDCARD) {
         result.exit = result.middleware.length;
-        reduce(uri, middleware.get(method), result);
+        reduce(uri, middleware.get(method) ?? new Map(), result);
       }
 
       result.visible = 0;
@@ -962,6 +933,10 @@ function isValidIP(ip) {
 
     const beforeDoubleColon = ip.substring(0, doubleColonIndex);
     const afterDoubleColon = ip.substring(doubleColonIndex + 2);
+
+    if (afterDoubleColon === ":" || (afterDoubleColon && afterDoubleColon.endsWith(":"))) {
+      return false;
+    }
 
     const leftGroups = beforeDoubleColon ? beforeDoubleColon.split(":") : [];
     const rightGroups = afterDoubleColon ? afterDoubleColon.split(":") : [];
@@ -1780,9 +1755,7 @@ class Woodland extends node_events.EventEmitter {
     res.header(CONTENT_LENGTH, file.stats.size);
     res.header(
       CONTENT_TYPE,
-      file.charset.length > INT_0
-        ? `${mime$1(file.path)}; charset=${file.charset}`
-        : mime$1(file.path),
+      file.charset.length > INT_0 ? `${mime$1(file.path)}; charset=${file.charset}` : mime$1(file.path),
     );
     res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
 
@@ -1812,10 +1785,7 @@ class Woodland extends node_events.EventEmitter {
       }
 
       res.send(
-        node_fs.createReadStream(
-          file.path,
-          Object.keys(options).length > INT_0 ? options : undefined,
-        ),
+        node_fs.createReadStream(file.path, Object.keys(options).length > INT_0 ? options : undefined),
         status,
       );
     } else if (req.method === HEAD) {

@@ -5,18 +5,7 @@
  * @license BSD-3-Clause
  * @version 20.2.10
  */
-import { STATUS_CODES, METHODS } from "node:http";
-import { EventEmitter } from "node:events";
-import { readFileSync, createReadStream } from "node:fs";
-import { etag } from "tiny-etag";
-import { precise } from "precise";
-import { createRequire } from "node:module";
-import { join, extname, resolve } from "node:path";
-import { fileURLToPath, URL } from "node:url";
-import { coerce } from "tiny-coerce";
-import mimeDb from "mime-db";
-import { stat, readdir } from "node:fs/promises";
-const __dirname$2 = fileURLToPath(new URL(".", import.meta.url));
+import {STATUS_CODES,METHODS}from'node:http';import {EventEmitter}from'node:events';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {createRequire}from'node:module';import {join,extname,resolve}from'node:path';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';import {stat,readdir}from'node:fs/promises';const __dirname$2 = fileURLToPath(new URL(".", import.meta.url));
 const require$1 = createRequire(import.meta.url);
 const { name, version } = require$1(join(__dirname$2, "..", "package.json"));
 
@@ -151,8 +140,7 @@ const MONTHS = Object.freeze(
 
     return Object.freeze(d.toLocaleString(EN_US, { month: SHORT }));
   }),
-);
-const __dirname$1 = fileURLToPath(new URL(".", import.meta.url)),
+);const __dirname$1 = fileURLToPath(new URL(".", import.meta.url)),
   html = readFileSync(join(__dirname$1, "..", "tpl", "autoindex.html"), { encoding: UTF8 }),
   valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
   mimeExtensions = valid.reduce((a, v) => {
@@ -200,7 +188,7 @@ function autoindex(title = EMPTY, files = []) {
   }
 
   // Pre-allocate array for better performance
-  const listItems = new Array(files.length + 1);
+  const listItems = Array.from({ length: files.length + 1 });
   listItems[0] = '    <li><a href=".." rel="collection">../</a></li>';
 
   // Optimized: Cache file count and optimize loop
@@ -511,8 +499,7 @@ function writeHead(res, headers = {}) {
  */
 function extractPath(arg = EMPTY) {
   return arg.replace(/\/:([^/]+)/g, "/(?<$1>[^/]+)");
-}
-function reduce(uri, map = new Map(), arg = {}) {
+}function reduce(uri, map = new Map(), arg = {}) {
   if (map.size === 0) {
     return;
   }
@@ -554,11 +541,11 @@ function createMiddlewareRegistry(middleware, ignored, methods, cache) {
       result = cached;
     } else {
       result = { getParams: null, middleware: [], params: false, visible: 0, exit: -1 };
-      reduce(uri, middleware.get(WILDCARD), result);
+      reduce(uri, middleware.get(WILDCARD) ?? new Map(), result);
 
       if (method !== WILDCARD) {
         result.exit = result.middleware.length;
-        reduce(uri, middleware.get(method), result);
+        reduce(uri, middleware.get(method) ?? new Map(), result);
       }
 
       result.visible = 0;
@@ -680,8 +667,7 @@ function createMiddlewareRegistry(middleware, ignored, methods, cache) {
     register: registerFn,
     list: listFn,
   };
-}
-function mime(arg = EMPTY) {
+}function mime(arg = EMPTY) {
   const ext = extname(arg);
 
   return ext in mimeExtensions ? mimeExtensions[ext].type : APPLICATION_OCTET_STREAM;
@@ -874,8 +860,7 @@ function createResponseHandler({ digit: _digit, etags, onReady, onDone, onSend: 
     createStatusHandler,
     stream,
   };
-}
-const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+}const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
 const IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/;
 const IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i;
 const HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
@@ -925,6 +910,10 @@ function isValidIP(ip) {
 
     const beforeDoubleColon = ip.substring(0, doubleColonIndex);
     const afterDoubleColon = ip.substring(doubleColonIndex + 2);
+
+    if (afterDoubleColon === ":" || (afterDoubleColon && afterDoubleColon.endsWith(":"))) {
+      return false;
+    }
 
     const leftGroups = beforeDoubleColon ? beforeDoubleColon.split(":") : [];
     const rightGroups = afterDoubleColon ? afterDoubleColon.split(":") : [];
@@ -1012,8 +1001,7 @@ function createIpExtractor() {
   }
 
   return { extract };
-}
-function createFileServer(app) {
+}function createFileServer(app) {
   async function serve(req, res, arg, folder = process.cwd()) {
     const fp = resolve(folder, arg);
     const resolvedFolder = resolve(folder);
@@ -1087,8 +1075,7 @@ function createFileServer(app) {
   }
 
   return { register, serve };
-}
-const CONFIG_SCHEMA = {
+}const CONFIG_SCHEMA = {
   autoindex: { type: "boolean", default: false },
   cacheSize: { type: "number", default: INT_1e3, min: 1 },
   cacheTTL: { type: "number", default: INT_1e4, min: 1 },
@@ -1170,8 +1157,7 @@ function validateLogging(logging = {}) {
   }
 
   return { enabled, format, level };
-}
-const LEVELS = {
+}const LEVELS = {
   emerg: 0,
   alert: 1,
   crit: 2,
@@ -1304,8 +1290,7 @@ function createLogger(config = {}) {
     logError: logErrorFn,
     logServe: logServeFn,
   };
-}
-class Woodland extends EventEmitter {
+}class Woodland extends EventEmitter {
   constructor(config = {}) {
     super();
 
@@ -1739,9 +1724,7 @@ class Woodland extends EventEmitter {
     res.header(CONTENT_LENGTH, file.stats.size);
     res.header(
       CONTENT_TYPE,
-      file.charset.length > INT_0
-        ? `${mime$1(file.path)}; charset=${file.charset}`
-        : mime$1(file.path),
+      file.charset.length > INT_0 ? `${mime$1(file.path)}; charset=${file.charset}` : mime$1(file.path),
     );
     res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
 
@@ -1842,5 +1825,4 @@ function woodland(arg) {
   app.route = app.route.bind(app);
 
   return app;
-}
-export { Woodland, woodland };
+}export{Woodland,woodland};
