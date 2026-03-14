@@ -902,7 +902,7 @@ export class Woodland extends EventEmitter {
 
 		// Security: Ensure resolved path stays within the allowed directory
 		if (!fp.startsWith(resolve(folder))) {
-			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path outside allowed directory", path="${arg}"`, ERROR);
+			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path outside allowed directory"`, ERROR);
 			res.error(INT_403);
 
 			return;
@@ -993,7 +993,7 @@ export class Woodland extends EventEmitter {
 		stats: {mtime: new Date(), size: INT_0}
 	}) {
 		if (file.path === EMPTY || file.stats.size === INT_0) {
-			throw new TypeError("Invalid file descriptor");
+			throw new TypeError('Invalid file descriptor');
 		}
 
 		res.header(CONTENT_LENGTH, file.stats.size);
