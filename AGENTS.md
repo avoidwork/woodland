@@ -2,9 +2,20 @@
 
 ## Setup commands
 - Install deps: `npm install`
+- Build: `npm run build`
 - Run tests: `npm test`
+- Run tests with coverage: `npm run coverage`
 - Run benchmarks: `npm run benchmarks`
+- Fix lint errors: `npm run fix`
+- Check lint only: `npm run lint`
 - Documentation is in `./docs`
+
+## Development workflow
+1. Make changes to source files
+2. Run tests: `npm test` (ensure 399 tests still pass)
+3. Fix lint errors: `npm run fix`
+4. Build: `npm run build`
+5. Commit with `--no-verify` flag (pre-commit hooks fail with yargs ES modules)
 
 ## Code style
 - Use JSDoc standard for creating docblocks of functions and classes.

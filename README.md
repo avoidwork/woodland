@@ -197,9 +197,9 @@ app.on("error", (req, res, err) => {
 
 ## 📖 Documentation
 
-- **[API Reference](https://github.com/avoidwork/woodland/blob/master/docs/API.md)** - Complete method documentation
-- **[Technical Documentation](https://github.com/avoidwork/woodland/blob/master/docs/TECHNICAL_DOCUMENTATION.md)** - Architecture, OWASP security, internals
-- **[Code Style Guide](https://github.com/avoidwork/woodland/blob/master/docs/CODE_STYLE_GUIDE.md)** - Conventions and best practices
+- **[API Reference](docs/API.md)** - Complete method documentation
+- **[Technical Documentation](docs/TECHNICAL_DOCUMENTATION.md)** - Architecture, OWASP security, internals
+- **[Code Style Guide](docs/CODE_STYLE_GUIDE.md)** - Conventions and best practices
 
 ## 🧪 Testing
 
