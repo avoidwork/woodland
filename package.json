@@ -2,88 +2,57 @@
   "name": "woodland",
   "version": "20.2.10",
   "description": "High-performance HTTP framework",
-  "type": "module",
-  "types": "types/woodland.d.ts",
-  "source": "src/woodland.js",
-  "main": "dist/woodland.cjs",
-  "exports": {
-    "types": "./types/woodland.d.ts",
-    "import": "./dist/woodland.js",
-    "require": "./dist/woodland.cjs"
+  "keywords": [
+    "api",
+    "framework",
+    "http",
+    "https",
+    "middleware",
+    "rest",
+    "router",
+    "routing"
+  ],
+  "homepage": "https://github.com/avoidwork/woodland",
+  "bugs": {
+    "url": "https://github.com/avoidwork/woodland/issues"
   },
+  "license": "BSD-3-Clause",
+  "author": "Jason Mulligan <jason.mulligan@avoidwork.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/avoidwork/woodland.git"
+  },
+  "bin": {
+    "woodland": "dist/cli.cjs"
+  },
+  "source": "src/woodland.js",
   "files": [
     "dist",
     "tpl",
     "types"
   ],
+  "type": "module",
+  "main": "dist/woodland.cjs",
+  "types": "types/woodland.d.ts",
+  "exports": {
+    "types": "./types/woodland.d.ts",
+    "import": "./dist/woodland.js",
+    "require": "./dist/woodland.cjs"
+  },
   "scripts": {
     "benchmark": "npm install express fastify --no-save && node benchmark.js",
     "build": "npm run rollup",
     "changelog": "auto-changelog -p",
     "clean": "rimraf dist coverage coverage.txt",
-    "coverage": "c8 --reporter=text npm run mocha 2>&1 | sed -n '/^---/,$p' > coverage.txt",
-    "lint": "eslint --fix *.js src/*.js tests/**/*.test.js benchmarks/*.js",
-    "lint:check": "eslint *.js src/*.js tests/**/*.test.js benchmarks/*.js",
-    "mocha": "mocha tests/**/*.test.js",
+    "coverage": "c8 --reporter=text node --test tests/**/*.test.js 2>&1 | sed -n '/^---/,$p' > coverage.txt",
+    "fix": "oxlint --fix src tests && oxfmt src tests --write",
+    "lint": "oxlint src tests && oxfmt src tests --check",
+    "prepare": "husky",
     "prebuild": "npm run clean",
     "rollup": "rollup --config",
-    "test": "npm run lint && c8 npm run mocha",
-    "test:cli": "mocha tests/unit/cli.test.js",
-    "test:watch": "npm run mocha -- --watch",
-    "precommit": "npm run test && npm run build && npm run test:cli"
-  },
-  "pre-commit": [
-    "precommit"
-  ],
-  "c8": {
-    "exclude": [
-      "dist/**",
-      "benchmarks/**",
-      "test-files/**",
-      "tpl/**",
-      "types/**",
-      "tests/**",
-      "rollup.config.js",
-      "eslint.config.js",
-      "benchmark.js"
-    ],
-    "reporter": [
-      "text",
-      "html",
-      "lcov"
-    ],
-    "check-coverage": true,
-    "lines": 100,
-    "functions": 100,
-    "branches": 100,
-    "statements": 100
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/avoidwork/woodland.git"
-  },
-  "keywords": [
-    "router",
-    "http",
-    "https",
-    "routing",
-    "middleware",
-    "framework",
-    "api",
-    "rest"
-  ],
-  "author": "Jason Mulligan <jason.mulligan@avoidwork.com>",
-  "license": "BSD-3-Clause",
-  "bugs": {
-    "url": "https://github.com/avoidwork/woodland/issues"
-  },
-  "engineStrict": true,
-  "engines": {
-    "node": ">=17.0.0"
-  },
-  "homepage": "https://github.com/avoidwork/woodland",
-  "bin": {
-    "woodland": "dist/cli.cjs"
+    "test": "npm run lint && node --test tests/**/*.test.js",
+    "test:cli": "node --test tests/unit/cli.test.js",
+    "test:watch": "node --test --watch tests/**/*.test.js"
   },
   "dependencies": {
     "mime-db": "^1.54.0",
@@ -95,10 +64,37 @@
   "devDependencies": {
     "auto-changelog": "^2.5.0",
     "c8": "^11.0.0",
-    "eslint": "^9.35.0",
-    "mocha": "^11.7.2",
+    "husky": "^9.1.0",
+    "oxfmt": "^0.40.0",
+    "oxlint": "^1.55.0",
     "pre-commit": "^1.2.2",
     "rimraf": "^6.0.1",
     "rollup": "^4.50.1"
-  }
+  },
+  "c8": {
+    "branches": 100,
+    "check-coverage": true,
+    "exclude": [
+      "dist/**",
+      "benchmarks/**",
+      "test-files/**",
+      "tpl/**",
+      "types/**",
+      "tests/**",
+      "rollup.config.js",
+      "benchmark.js"
+    ],
+    "functions": 100,
+    "lines": 100,
+    "reporter": [
+      "text",
+      "html",
+      "lcov"
+    ],
+    "statements": 100
+  },
+  "engines": {
+    "node": ">=17.0.0"
+  },
+  "engineStrict": true
 }

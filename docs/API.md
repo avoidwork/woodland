@@ -24,34 +24,34 @@ Complete API documentation for the Woodland HTTP server framework.
 Creates a new Woodland instance with the route method bound.
 
 ```javascript
-import {woodland} from "woodland";
+import { woodland } from "woodland";
 
 const app = woodland({
   origins: ["https://myapp.com"],
   etags: true,
-  logging: {enabled: true, level: "info"}
+  logging: { enabled: true, level: "info" },
 });
 ```
 
 **Parameters:**
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `autoindex` | `boolean` | `false` | Enable automatic directory indexing |
-| `cacheSize` | `number` | `1000` | Size of LRU cache for routes |
-| `cacheTTL` | `number` | `10000` | Cache TTL in milliseconds |
-| `charset` | `string` | `"utf-8"` | Default character encoding |
-| `corsExpose` | `string` | `""` | CORS headers to expose to client |
-| `defaultHeaders` | `Object` | `{}` | Default response headers |
-| `digit` | `number` | `3` | Timing precision (decimal places) |
-| `etags` | `boolean` | `true` | Enable ETag generation |
-| `indexes` | `string[]` | `["index.htm", "index.html"]` | Index file names |
-| `logging.enabled` | `boolean` | `true` | Enable request logging (env: `WOODLAND_LOG_ENABLED`) |
-| `logging.format` | `string` | `"%h %l %u %t \"%r\" %>s %b"` | Log format (Common Log Format) (env: `WOODLAND_LOG_FORMAT`) |
-| `logging.level` | `string` | `"info"` | Log level (error, warn, info, debug) (env: `WOODLAND_LOG_LEVEL`) |
-| `origins` | `string[]` | `[]` | Allowed CORS origins (empty = deny all) |
-| `silent` | `boolean` | `false` | Disable default headers (Server, X-Powered-By) |
-| `time` | `boolean` | `false` | Enable X-Response-Time header |
+| Option            | Type       | Default                       | Description                                                      |
+| ----------------- | ---------- | ----------------------------- | ---------------------------------------------------------------- |
+| `autoindex`       | `boolean`  | `false`                       | Enable automatic directory indexing                              |
+| `cacheSize`       | `number`   | `1000`                        | Size of LRU cache for routes                                     |
+| `cacheTTL`        | `number`   | `10000`                       | Cache TTL in milliseconds                                        |
+| `charset`         | `string`   | `"utf-8"`                     | Default character encoding                                       |
+| `corsExpose`      | `string`   | `""`                          | CORS headers to expose to client                                 |
+| `defaultHeaders`  | `Object`   | `{}`                          | Default response headers                                         |
+| `digit`           | `number`   | `3`                           | Timing precision (decimal places)                                |
+| `etags`           | `boolean`  | `true`                        | Enable ETag generation                                           |
+| `indexes`         | `string[]` | `["index.htm", "index.html"]` | Index file names                                                 |
+| `logging.enabled` | `boolean`  | `true`                        | Enable request logging (env: `WOODLAND_LOG_ENABLED`)             |
+| `logging.format`  | `string`   | `"%h %l %u %t \"%r\" %>s %b"` | Log format (Common Log Format) (env: `WOODLAND_LOG_FORMAT`)      |
+| `logging.level`   | `string`   | `"info"`                      | Log level (error, warn, info, debug) (env: `WOODLAND_LOG_LEVEL`) |
+| `origins`         | `string[]` | `[]`                          | Allowed CORS origins (empty = deny all)                          |
+| `silent`          | `boolean`  | `false`                       | Disable default headers (Server, X-Powered-By)                   |
+| `time`            | `boolean`  | `false`                       | Enable X-Response-Time header                                    |
 
 **Returns:** `Woodland` instance
 
@@ -64,11 +64,11 @@ Extends `EventEmitter` with HTTP routing capabilities.
 ### Constructor
 
 ```javascript
-import {Woodland} from "woodland";
+import { Woodland } from "woodland";
 
 class MyAPI extends Woodland {
   constructor() {
-    super({origins: ["https://myapp.com"]});
+    super({ origins: ["https://myapp.com"] });
   }
 }
 ```
@@ -79,13 +79,14 @@ class MyAPI extends Woodland {
 
 Logging configuration can be overridden via environment variables. Configuration priority: explicit config > environment variables > defaults.
 
-| Environment Variable | Type | Default | Description |
-|---------------------|------|---------|-------------|
-| `WOODLAND_LOG_ENABLED` | `boolean` | `true` | Enable/disable request logging |
-| `WOODLAND_LOG_FORMAT` | `string` | `"%h %l %u %t \"%r\" %>s %b"` | Log format pattern (Common Log Format) |
-| `WOODLAND_LOG_LEVEL` | `string` | `"info"` | Log level (error, warn, info, debug) |
+| Environment Variable   | Type      | Default                       | Description                            |
+| ---------------------- | --------- | ----------------------------- | -------------------------------------- |
+| `WOODLAND_LOG_ENABLED` | `boolean` | `true`                        | Enable/disable request logging         |
+| `WOODLAND_LOG_FORMAT`  | `string`  | `"%h %l %u %t \"%r\" %>s %b"` | Log format pattern (Common Log Format) |
+| `WOODLAND_LOG_LEVEL`   | `string`  | `"info"`                      | Log level (error, warn, info, debug)   |
 
 **Example:**
+
 ```bash
 # Shell
 export WOODLAND_LOG_LEVEL=debug
@@ -110,20 +111,27 @@ app.delete("/users/:id", deleteUser);
 ```
 
 #### `get(path, ...handlers)`
+
 #### `post(path, ...handlers)`
+
 #### `put(path, ...handlers)`
+
 #### `delete(path, ...handlers)`
+
 #### `patch(path, ...handlers)`
+
 #### `options(path, ...handlers)`
+
 #### `trace(path, ...handlers)`
+
 #### `connect(path, ...handlers)`
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `path` | `string` | Route pattern (supports `:param` and `(.*)` wildcards) |
-| `handlers` | `Function[]` | Middleware/handler functions |
+| Parameter  | Type         | Description                                            |
+| ---------- | ------------ | ------------------------------------------------------ |
+| `path`     | `string`     | Route pattern (supports `:param` and `(.*)` wildcards) |
+| `handlers` | `Function[]` | Middleware/handler functions                           |
 
 **Handler Signature:**
 
@@ -132,18 +140,18 @@ app.delete("/users/:id", deleteUser);
 (req, res, next) => {
   // Process request
   next(); // Pass to next handler
-}
+};
 
 // Error middleware (4 parameters)
 (error, req, res, next) => {
   // Handle error
   next(error); // Pass error along
-}
+};
 
 // Route handler
 (req, res) => {
   res.send("Response");
-}
+};
 ```
 
 **Returns:** `Woodland` instance (chainable)
@@ -165,8 +173,8 @@ app.always((req, res, next) => {
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
+| Parameter  | Type         | Description          |
+| ---------- | ------------ | -------------------- |
 | `handlers` | `Function[]` | Middleware functions |
 
 **Returns:** `Woodland` instance (chainable)
@@ -185,10 +193,10 @@ app.use(globalMiddleware);
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `path` | `string\|Function` | Route pattern or middleware function |
-| `handlers` | `Function[]` | Middleware/handler functions |
+| Parameter  | Type               | Description                          |
+| ---------- | ------------------ | ------------------------------------ |
+| `path`     | `string\|Function` | Route pattern or middleware function |
+| `handlers` | `Function[]`       | Middleware/handler functions         |
 
 **Returns:** `Woodland` instance (chainable)
 
@@ -202,9 +210,9 @@ app.ignore(etagMiddleware);
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `fn` | `Function` | Middleware function to ignore |
+| Parameter | Type       | Description                   |
+| --------- | ---------- | ----------------------------- |
+| `fn`      | `Function` | Middleware function to ignore |
 
 **Returns:** `Woodland` instance (chainable)
 
@@ -221,29 +229,29 @@ Send a response body.
 ```javascript
 res.send("Hello World");
 res.send("Created", 201);
-res.send("Data", 200, {"x-custom": "value"});
+res.send("Data", 200, { "x-custom": "value" });
 ```
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `body` | `string\|Buffer\|Stream` | `""` | Response body |
-| `status` | `number` | Current status | HTTP status code |
-| `headers` | `Object` | `{}` | Response headers |
+| Parameter | Type                     | Default        | Description      |
+| --------- | ------------------------ | -------------- | ---------------- |
+| `body`    | `string\|Buffer\|Stream` | `""`           | Response body    |
+| `status`  | `number`                 | Current status | HTTP status code |
+| `headers` | `Object`                 | `{}`           | Response headers |
 
 #### `res.json(body, status, headers)`
 
 Send a JSON response.
 
 ```javascript
-res.json({message: "Hello"});
-res.json({error: "Not found"}, 404);
+res.json({ message: "Hello" });
+res.json({ error: "Not found" }, 404);
 ```
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `body` | `Object\|Array` | Required | JSON data |
-| `status` | `number` | `200` | HTTP status code |
-| `headers` | `Object` | `{"content-type": "application/json; charset=utf-8"}` | Response headers |
+| Parameter | Type            | Default                                               | Description      |
+| --------- | --------------- | ----------------------------------------------------- | ---------------- |
+| `body`    | `Object\|Array` | Required                                              | JSON data        |
+| `status`  | `number`        | `200`                                                 | HTTP status code |
+| `headers` | `Object`        | `{"content-type": "application/json; charset=utf-8"}` | Response headers |
 
 #### `res.error(status, body)`
 
@@ -255,24 +263,24 @@ res.error(500, "Internal Server Error");
 res.error(new Error("Something went wrong"));
 ```
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `status` | `number` | `500` | HTTP status code |
-| `body` | `string\|Error` | Status text | Error message or Error object |
+| Parameter | Type            | Default     | Description                   |
+| --------- | --------------- | ----------- | ----------------------------- |
+| `status`  | `number`        | `500`       | HTTP status code              |
+| `body`    | `string\|Error` | Status text | Error message or Error object |
 
 #### `res.redirect(url, permanent)`
 
 Redirect to a different URL.
 
 ```javascript
-res.redirect("/new-location");        // Permanent (308)
-res.redirect("/temp", false);         // Temporary (307)
+res.redirect("/new-location"); // Permanent (308)
+res.redirect("/temp", false); // Temporary (307)
 ```
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `url` | `string` | Required | Redirect URL |
-| `permanent` | `boolean` | `true` | `true` = 308, `false` = 307 |
+| Parameter   | Type      | Default  | Description                 |
+| ----------- | --------- | -------- | --------------------------- |
+| `url`       | `string`  | Required | Redirect URL                |
+| `permanent` | `boolean` | `true`   | `true` = 308, `false` = 307 |
 
 #### `res.header(name, value)`
 
@@ -282,22 +290,22 @@ Set a response header.
 res.header("x-custom", "value");
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `name` | `string` | Header name |
-| `value` | `string` | Header value |
+| Parameter | Type     | Description  |
+| --------- | -------- | ------------ |
+| `name`    | `string` | Header name  |
+| `value`   | `string` | Header value |
 
 #### `res.set(headers)`
 
 Set multiple response headers.
 
 ```javascript
-res.set({"x-one": "1", "x-two": "2"});
+res.set({ "x-one": "1", "x-two": "2" });
 res.set(new Headers([["x-custom", "value"]]));
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
+| Parameter | Type                   | Description    |
+| --------- | ---------------------- | -------------- |
 | `headers` | `Object\|Map\|Headers` | Headers to set |
 
 #### `res.status(code)`
@@ -305,12 +313,12 @@ res.set(new Headers([["x-custom", "value"]]));
 Set the HTTP status code.
 
 ```javascript
-res.status(201).json({created: true});
+res.status(201).json({ created: true });
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `code` | `number` | HTTP status code |
+| Parameter | Type     | Description      |
+| --------- | -------- | ---------------- |
+| `code`    | `number` | HTTP status code |
 
 **Returns:** `res` (chainable)
 
@@ -320,20 +328,20 @@ res.status(201).json({created: true});
 
 These properties are added to the `req` object during decoration.
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `req.allow` | `string` | Comma-separated allowed methods for the path |
-| `req.body` | `string` | Request body (populated by middleware) |
-| `req.cors` | `boolean` | Is this a CORS request? |
-| `req.corsHost` | `boolean` | Does the origin differ from the host? |
-| `req.host` | `string` | Hostname from the request |
-| `req.ip` | `string` | Client IP address (respects X-Forwarded-For) |
-| `req.method` | `string` | HTTP method |
-| `req.params` | `Object` | Route parameters (e.g., `/:id` → `{id: "123"}`) |
-| `req.parsed` | `URL` | Parsed URL object |
-| `req.valid` | `boolean` | Request validation status |
-| `req.url` | `string` | Original request URL |
-| `req.exit()` | `Function` | Exit middleware chain immediately |
+| Property       | Type       | Description                                     |
+| -------------- | ---------- | ----------------------------------------------- |
+| `req.allow`    | `string`   | Comma-separated allowed methods for the path    |
+| `req.body`     | `string`   | Request body (populated by middleware)          |
+| `req.cors`     | `boolean`  | Is this a CORS request?                         |
+| `req.corsHost` | `boolean`  | Does the origin differ from the host?           |
+| `req.host`     | `string`   | Hostname from the request                       |
+| `req.ip`       | `string`   | Client IP address (respects X-Forwarded-For)    |
+| `req.method`   | `string`   | HTTP method                                     |
+| `req.params`   | `Object`   | Route parameters (e.g., `/:id` → `{id: "123"}`) |
+| `req.parsed`   | `URL`      | Parsed URL object                               |
+| `req.valid`    | `boolean`  | Request validation status                       |
+| `req.url`      | `string`   | Original request URL                            |
+| `req.exit()`   | `Function` | Exit middleware chain immediately               |
 
 ---
 
@@ -349,11 +357,11 @@ if (app.allowed("GET", "/users")) {
 }
 ```
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `method` | `string` | Required | HTTP method |
-| `uri` | `string` | Required | Request URI |
-| `override` | `boolean` | `false` | Skip cache lookup |
+| Parameter  | Type      | Default  | Description       |
+| ---------- | --------- | -------- | ----------------- |
+| `method`   | `string`  | Required | HTTP method       |
+| `uri`      | `string`  | Required | Request URI       |
+| `override` | `boolean` | `false`  | Skip cache lookup |
 
 **Returns:** `boolean`
 
@@ -365,10 +373,10 @@ Get allowed methods for a URI.
 const methods = app.allows("/users"); // "GET,HEAD,OPTIONS"
 ```
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `uri` | `string` | Required | Request URI |
-| `override` | `boolean` | `false` | Skip cache lookup |
+| Parameter  | Type      | Default  | Description       |
+| ---------- | --------- | -------- | ----------------- |
+| `uri`      | `string`  | Required | Request URI       |
+| `override` | `boolean` | `false`  | Skip cache lookup |
 
 **Returns:** `string` (comma-separated methods)
 
@@ -381,10 +389,10 @@ const routes = app.list("get", "array"); // ["/", "/users", ...]
 const routes = app.list("post", "object"); // {"/users": middleware}
 ```
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `method` | `string` | `"get"` | HTTP method |
-| `type` | `string` | `"array"` | `"array"` or `"object"` |
+| Parameter | Type     | Default   | Description             |
+| --------- | -------- | --------- | ----------------------- |
+| `method`  | `string` | `"get"`   | HTTP method             |
+| `type`    | `string` | `"array"` | `"array"` or `"object"` |
 
 **Returns:** `Array` or `Object`
 
@@ -396,9 +404,9 @@ Convert a route path with parameters to a regex pattern.
 const pattern = app.path("/users/:id"); // "/users/([^/]+)"
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `arg` | `string` | Route path with `:param` placeholders |
+| Parameter | Type     | Description                           |
+| --------- | -------- | ------------------------------------- |
+| `arg`     | `string` | Route path with `:param` placeholders |
 
 **Returns:** `string` (regex pattern)
 
@@ -411,10 +419,10 @@ app.log("Custom message", "info");
 app.log("Debug data", "debug");
 ```
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `msg` | `string` | Required | Message to log |
-| `level` | `string` | `"debug"` | Log level |
+| Parameter | Type     | Default   | Description    |
+| --------- | -------- | --------- | -------------- |
+| `msg`     | `string` | Required  | Message to log |
+| `level`   | `string` | `"debug"` | Log level      |
 
 **Log Levels:** `error`, `warn`, `info`, `debug`
 
@@ -428,13 +436,14 @@ Extract the client IP address from a request.
 const ip = app.ip(req);
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `req` | `Object` | HTTP request object |
+| Parameter | Type     | Description         |
+| --------- | -------- | ------------------- |
+| `req`     | `Object` | HTTP request object |
 
 **Returns:** `string` (IP address)
 
 **Notes:**
+
 - Respects `X-Forwarded-For` header
 - Validates IP addresses for security
 - Falls back to connection IP
@@ -443,10 +452,10 @@ const ip = app.ip(req);
 
 Decorate request and response objects with additional properties and methods. Called automatically by `route()`.
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `req` | `Object` | HTTP request object |
-| `res` | `Object` | HTTP response object |
+| Parameter | Type     | Description          |
+| --------- | -------- | -------------------- |
+| `req`     | `Object` | HTTP request object  |
+| `res`     | `Object` | HTTP response object |
 
 ---
 
@@ -456,12 +465,12 @@ Woodland extends `EventEmitter` and emits events during request processing.
 
 #### Events
 
-| Event | Parameters | Description |
-|-------|------------|-------------|
-| `"connect"` | `(req, res)` | New connection received |
-| `"finish"` | `(req, res)` | Request completed |
-| `"error"` | `(req, res, err)` | Error occurred |
-| `"stream"` | `(req, res)` | File streaming started |
+| Event       | Parameters        | Description             |
+| ----------- | ----------------- | ----------------------- |
+| `"connect"` | `(req, res)`      | New connection received |
+| `"finish"`  | `(req, res)`      | Request completed       |
+| `"error"`   | `(req, res, err)` | Error occurred          |
+| `"stream"`  | `(req, res)`      | File streaming started  |
 
 ```javascript
 app.on("connect", (req, res) => {
@@ -469,7 +478,7 @@ app.on("connect", (req, res) => {
 });
 
 app.on("finish", (req, res) => {
-  analytics.track({method: req.method, status: res.statusCode});
+  analytics.track({ method: req.method, status: res.statusCode });
 });
 
 app.on("error", (req, res, err) => {
@@ -482,16 +491,16 @@ app.on("error", (req, res, err) => {
 Override these methods to customize response handling:
 
 ```javascript
-app.onReady(req, res, body, status, headers)
-  // Called before sending response
-  // Return [body, status, headers]
-  
-app.onSend(req, res, body, status, headers)
-  // Called to modify response data
-  // Return [body, status, headers]
-  
-app.onDone(req, res, body, headers)
-  // Called to finalize response
+app.onReady(req, res, body, status, headers);
+// Called before sending response
+// Return [body, status, headers]
+
+app.onSend(req, res, body, status, headers);
+// Called to modify response data
+// Return [body, status, headers]
+
+app.onDone(req, res, body, headers);
+// Called to finalize response
 ```
 
 ---
@@ -507,12 +516,13 @@ app.files("/static", "./public");
 app.files("/", "./www");
 ```
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `root` | `string` | `"/"` | URL root path |
-| `folder` | `string` | `process.cwd()` | File system folder to serve |
+| Parameter | Type     | Default         | Description                 |
+| --------- | -------- | --------------- | --------------------------- |
+| `root`    | `string` | `"/"`           | URL root path               |
+| `folder`  | `string` | `process.cwd()` | File system folder to serve |
 
 **Features:**
+
 - Directory listing (when `autoindex: true`)
 - ETag support (when `etags: true`)
 - Range requests for partial content
@@ -527,12 +537,12 @@ Serve a file or directory. Called internally by `files()`.
 await app.serve(req, res, "path/to/file", "./public");
 ```
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `req` | `Object` | Required | HTTP request object |
-| `res` | `Object` | Required | HTTP response object |
-| `arg` | `string` | Required | File path relative to folder |
-| `folder` | `string` | `process.cwd()` | Base directory |
+| Parameter | Type     | Default         | Description                  |
+| --------- | -------- | --------------- | ---------------------------- |
+| `req`     | `Object` | Required        | HTTP request object          |
+| `res`     | `Object` | Required        | HTTP response object         |
+| `arg`     | `string` | Required        | File path relative to folder |
+| `folder`  | `string` | `process.cwd()` | Base directory               |
 
 **Returns:** `Promise<void>`
 
@@ -545,24 +555,24 @@ app.stream(req, res, {
   charset: "utf-8",
   etag: '"abc123"',
   path: "/path/to/file",
-  stats: {mtime: new Date(), size: 1234}
+  stats: { mtime: new Date(), size: 1234 },
 });
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `req` | `Object` | HTTP request object |
-| `res` | `Object` | HTTP response object |
-| `file` | `Object` | File information object |
+| Parameter | Type     | Description             |
+| --------- | -------- | ----------------------- |
+| `req`     | `Object` | HTTP request object     |
+| `res`     | `Object` | HTTP response object    |
+| `file`    | `Object` | File information object |
 
 **File Object Properties:**
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `charset` | `string` | Character encoding |
-| `etag` | `string` | ETag value |
-| `path` | `string` | File system path |
-| `stats` | `Object` | File statistics (from `fs.stat`) |
+| Property  | Type     | Description                      |
+| --------- | -------- | -------------------------------- |
+| `charset` | `string` | Character encoding               |
+| `etag`    | `string` | ETag value                       |
+| `path`    | `string` | File system path                 |
+| `stats`   | `Object` | File statistics (from `fs.stat`) |
 
 #### `etag(method, ...args)`
 
@@ -572,10 +582,10 @@ Generate an ETag for the given arguments.
 const etag = app.etag("GET", inode, size, mtime);
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `method` | `string` | HTTP method |
-| `args` | `any[]` | Arguments for ETag generation |
+| Parameter | Type     | Description                   |
+| --------- | -------- | ----------------------------- |
+| `method`  | `string` | HTTP method                   |
+| `args`    | `any[]`  | Arguments for ETag generation |
 
 **Returns:** `string` (ETag value or empty string)
 
@@ -586,15 +596,15 @@ const etag = app.etag("GET", inode, size, mtime);
 ### Parameters
 
 ```javascript
-app.get("/users/:id", handler);           // Single parameter
+app.get("/users/:id", handler); // Single parameter
 app.get("/users/:userId/posts/:postId", handler); // Multiple parameters
 ```
 
 ### Wildcards
 
 ```javascript
-app.get("/api/*", handler);               // Match all paths under /api/
-app.get("/files/:path(.*)", handler);     // RegExp capture group
+app.get("/api/*", handler); // Match all paths under /api/
+app.get("/files/:path(.*)", handler); // RegExp capture group
 ```
 
 ### Route Order
@@ -603,8 +613,8 @@ Routes are matched in registration order. More specific routes should be registe
 
 ```javascript
 // ✅ Correct order
-app.get("/users/new", showNewForm);       // Specific route first
-app.get("/users/:id", getUserById);       // Parameter route second
+app.get("/users/new", showNewForm); // Specific route first
+app.get("/users/:id", getUserById); // Parameter route second
 
 // ❌ Wrong order - /users/new never matches
 app.get("/users/:id", getUserById);
@@ -620,13 +630,15 @@ app.get("/users/new", showNewForm);
 Error middleware has 4 parameters and must be registered **last** for each route:
 
 ```javascript
-app.get("/users",
-  authenticate,           // Normal middleware
-  getUsers,              // Route handler
-  (error, req, res, next) => {  // Error middleware - LAST
+app.get(
+  "/users",
+  authenticate, // Normal middleware
+  getUsers, // Route handler
+  (error, req, res, next) => {
+    // Error middleware - LAST
     console.error(error);
     res.error(500);
-  }
+  },
 );
 ```
 
@@ -648,7 +660,7 @@ app.use("/(.*)", (error, req, res, next) => {
 ```javascript
 const app = woodland({
   origins: ["https://myapp.com", "http://localhost:3000"],
-  corsExpose: "x-total-count,x-page-count"
+  corsExpose: "x-total-count,x-page-count",
 });
 ```
 
@@ -663,7 +675,7 @@ const app = woodland({
 ### Disable CORS
 
 ```javascript
-const app = woodland({origins: []}); // Empty array = deny all
+const app = woodland({ origins: [] }); // Empty array = deny all
 ```
 
 ---
@@ -677,25 +689,25 @@ const app = woodland({
   logging: {
     enabled: true,
     level: "info",
-    format: "%h %t \"%r\" %>s %b"
-  }
+    format: '%h %t "%r" %>s %b',
+  },
 });
 ```
 
 ### Format Tokens
 
-| Token | Description |
-|-------|-------------|
-| `%h` | Remote IP address |
-| `%l` | Remote logname (always `-`) |
-| `%u` | Remote user (if authenticated) |
-| `%t` | Timestamp |
-| `%r` | Request line |
-| `%>s` | Status code |
-| `%b` | Response size in bytes |
-| `%{Header}i` | Request header value |
-| `%{Header}o` | Response header value |
-| `%v` | Server hostname |
+| Token        | Description                    |
+| ------------ | ------------------------------ |
+| `%h`         | Remote IP address              |
+| `%l`         | Remote logname (always `-`)    |
+| `%u`         | Remote user (if authenticated) |
+| `%t`         | Timestamp                      |
+| `%r`         | Request line                   |
+| `%>s`        | Status code                    |
+| `%b`         | Response size in bytes         |
+| `%{Header}i` | Request header value           |
+| `%{Header}o` | Response header value          |
+| `%v`         | Server hostname                |
 
 ---
 
@@ -704,26 +716,26 @@ const app = woodland({
 Full TypeScript definitions are included:
 
 ```typescript
-import {woodland, Woodland} from "woodland";
-import {IncomingMessage, ServerResponse} from "node:http";
+import { woodland, Woodland } from "woodland";
+import { IncomingMessage, ServerResponse } from "node:http";
 
 const app = woodland({
-  origins: ["https://myapp.com"]
+  origins: ["https://myapp.com"],
 });
 
 app.get("/users/:id", (req, res) => {
   const id: string = req.params.id;
-  res.json({id});
+  res.json({ id });
 });
 
 class MyAPI extends Woodland {
   constructor() {
-    super({origins: ["https://myapp.com"]});
+    super({ origins: ["https://myapp.com"] });
   }
-  
+
   setupRoutes() {
     this.get("/health", (req: IncomingMessage, res: ServerResponse) => {
-      res.json({status: "ok"});
+      res.json({ status: "ok" });
     });
   }
 }
@@ -759,11 +771,11 @@ woodland --logging=false
 
 ### CLI Options
 
-| Option | Default | Type | Description |
-|--------|---------|------|-------------|
-| `--ip` | `127.0.0.1` | `string` | Server IP address (must be valid IPv4) |
-| `--port` | `8000` | `number` | Server port (0-65535) |
-| `--logging` | `true` | `boolean` | Enable/disable request logging |
+| Option      | Default     | Type      | Description                            |
+| ----------- | ----------- | --------- | -------------------------------------- |
+| `--ip`      | `127.0.0.1` | `string`  | Server IP address (must be valid IPv4) |
+| `--port`    | `8000`      | `number`  | Server port (0-65535)                  |
+| `--logging` | `true`      | `boolean` | Enable/disable request logging         |
 
 ### Validation
 
@@ -776,16 +788,16 @@ The CLI creates a Woodland instance with these defaults:
 
 ```javascript
 woodland({
-  autoindex: true,                          // Directory listing enabled
+  autoindex: true, // Directory listing enabled
   defaultHeaders: {
     "cache-control": "no-cache",
-    "content-type": "text/plain; charset=utf-8"
+    "content-type": "text/plain; charset=utf-8",
   },
   logging: {
-    enabled: true
+    enabled: true,
   },
-  time: true                                // X-Response-Time header enabled
-})
+  time: true, // X-Response-Time header enabled
+});
 ```
 
 ### Example Output
@@ -800,12 +812,12 @@ id=woodland, ip=127.0.0.1, port=3000
 ### Programmatic Usage
 
 ```javascript
-import {createServer} from "node:http";
-import {woodland} from "woodland";
+import { createServer } from "node:http";
+import { woodland } from "woodland";
 
 const app = woodland({
   autoindex: true,
-  logging: {enabled: true}
+  logging: { enabled: true },
 });
 
 app.files(); // Serve current directory
