@@ -76,12 +76,14 @@ types/                    # TypeScript definitions
 benchmarks/               # Performance benchmarks
 tpl/                      # HTML templates
 test-files/               # Test file assets
+dist/                     # Distribution builds
 ```
 
 ### File Naming
 - Use **kebab-case** for file names: `user-service.js`
 - Use **camelCase** for directories when needed: `userService/`
 - Test files should match the module name: `utility.test.js`
+- Use **lowercase** for directory names: `tpl/`, `types/`, `docs/`
 
 ### Module Organization
 - One primary export per file
@@ -286,48 +288,52 @@ const ignored = new Set();
 
 ```javascript
 // Good - Input validation and sanitization
-export function escapeHtml(str = '') {
-	// Use lookup table for single-pass replacement
-	const htmlEscapes = {
-		'&': '&amp;',
-		'<': '&lt;',
-		'>': '&gt;',
-		'"': '&quot;',
-		"'": '&#39;'
-	};
-	
-	return str.replace(/[&<>"']/g, match => htmlEscapes[match]);
+function escapeHtml (str = EMPTY) {
+  // Use lookup table for single-pass replacement
+  const htmlEscapes = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  };
+  
+  return str.replace(/[&<>"']/g, match => htmlEscapes[match]);
 }
 
-// Good - IP address validation
-export function isValidIP(ip) {
-	if (!ip || typeof ip !== 'string') {
-		return false;
-	}
-	
-	// IPv4 validation
-	if (!ip.includes(':')) {
-		const ipv4Pattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-		const match = ip.match(ipv4Pattern);
-		
-		if (!match) {
-			return false;
-		}
-		
-		// Check octets are in valid range (0-255)
-		return match.slice(1).every(octet => {
-			const num = parseInt(octet, 10);
-			return num >= 0 && num <= 255;
-		});
-	}
-	
-	// IPv6 validation continues...
+// Good - IP address validation (double quotes for string comparisons)
+export function isValidIP (ip) {
+  if (!ip || typeof ip !== "string") {
+    return false;
+  }
+  
+  // IPv4 validation - optimize with early character check
+  if (ip.indexOf(":") === -1) {
+    const match = IPV4_PATTERN.exec(ip);
+    
+    if (!match) {
+      return false;
+    }
+    
+    // Optimized octet validation - avoid array methods
+    for (let i = 1; i < 5; i++) {
+      const num = parseInt(match[i], 10);
+      if (num > 255) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+  
+  // IPv6 validation continues...
 }
 ```
 
 ### HTML Escaping
 - **Always escape** HTML output
 - Use established libraries or proven functions
+- Use lookup tables for performance
 
 ```javascript
 /**
@@ -335,13 +341,17 @@ export function isValidIP(ip) {
  * @param {string} [str=""] - The string to escape
  * @returns {string} The escaped string with HTML entities
  */
-function escapeHtml(str = '') {
-	return str
-		.replace(/&/g, '&amp;')
-		.replace(/</g, '&lt;')
-		.replace(/>/g, '&gt;')
-		.replace(/"/g, '&quot;')
-		.replace(/'/g, '&#39;');
+function escapeHtml (str = EMPTY) {
+  // Use lookup table for single-pass replacement
+  const htmlEscapes = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  };
+  
+  return str.replace(/[&<>"']/g, match => htmlEscapes[match]);
 }
 ```
 
@@ -353,16 +363,16 @@ function escapeHtml(str = '') {
 ```javascript
 // Good - Safe file path handling using actual Woodland implementation
 async serve(req, res, arg, folder = process.cwd()) {
-	const fp = resolve(folder, arg);
-	
-	// Security: Ensure resolved path stays within the allowed directory
-	if (!fp.startsWith(resolve(folder))) {
-		this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path outside allowed directory", path="${arg}"`, ERROR);
-		res.error(INT_403);
-		return;
-	}
-	
-	// Continue with file serving...
+  const fp = resolve(folder, arg);
+  
+  // Security: Ensure resolved path stays within the allowed directory
+  if (!fp.startsWith(resolve(folder))) {
+    this.log(`type=serve, uri=${req.parsed.pathname}, message="Path outside allowed directory"`, ERROR);
+    res.error(INT_403);
+    return;
+  }
+  
+  // Continue with file serving...
 }
 ```
 
@@ -516,20 +526,25 @@ export async function safeFileOperation(filePath) {
 
 ### ES Modules
 - Use **ES6 imports/exports** exclusively
-- Use **named exports** for utilities
-- Use **default exports** for main classes/functions
+- Use **named exports** for all functions and classes
+- No default exports in the codebase
 
 ```javascript
-// Good - ES6 modules
+// Good - Named exports only
 import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 
 export function utilityFunction() {
-	// Implementation
+  // Implementation
 }
 
+export class MainClass {
+  // Implementation
+}
+
+// Bad - Default exports
 export default class MainClass {
-	// Implementation
+  // Implementation
 }
 ```
 
