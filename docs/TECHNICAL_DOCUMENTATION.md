@@ -1149,18 +1149,24 @@ While lightweight by design, Woodland provides the security foundation needed fo
 
 ## Test Coverage
 
-Woodland maintains exceptional test coverage with **100% coverage across all metrics** - statements, branches, functions, and lines. The framework includes 386 comprehensive test cases covering every aspect of functionality, achieving perfect coverage across all modules.
+Woodland maintains exceptional test coverage with **100% coverage across all metrics** - statements, branches, functions, and lines. The framework includes 376 comprehensive test cases covering every aspect of functionality, achieving perfect coverage across all modules.
 
 ### Coverage Metrics
 
 ```
-File          | % Stmts | % Branch | % Funcs | % Lines | Status
---------------|---------|----------|---------|---------|--------
-All files     |     100 |      100 |     100 |     100 | 🎯 Perfect
-cli.js        |     100 |      100 |     100 |     100 | 🎯 Perfect
-constants.js  |     100 |      100 |     100 |     100 | 🎯 Perfect
-utility.js    |     100 |      100 |     100 |     100 | 🎯 Perfect
-woodland.js   |     100 |      100 |     100 |     100 | 🎯 Perfect
+File            | % Stmts | % Branch | % Funcs | % Lines | Status
+----------------|---------|----------|---------|---------|--------
+All files       |     100 |      100 |     100 |     100 | 🎯 Perfect
+cli.js          |     100 |      100 |     100 |     100 | 🎯 Perfect
+config.js       |     100 |      100 |     100 |     100 | 🎯 Perfect
+constants.js    |     100 |      100 |     100 |     100 | 🎯 Perfect
+fileserver.js   |     100 |      100 |     100 |     100 | 🎯 Perfect
+logger.js       |     100 |      100 |     100 |     100 | 🎯 Perfect
+middleware.js   |     100 |      100 |     100 |     100 | 🎯 Perfect
+request.js      |     100 |      100 |     100 |     100 | 🎯 Perfect
+response.js     |     100 |      100 |     100 |     100 | 🎯 Perfect
+utility.js      |     100 |      100 |     100 |     100 | 🎯 Perfect
+woodland.js     |     100 |      100 |     100 |     100 | 🎯 Perfect
 ```
 
 ### Test Architecture

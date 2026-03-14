@@ -67,19 +67,25 @@ const config = {
 
 ```
 src/
-├── constants.js          # All constants and configuration values
-├── utility.js            # Utility functions and helpers
-├── woodland.js           # Main application logic
-└── cli.js                # Command-line interface
+├── woodland.js           # Main framework (600 lines) - Woodland class & factory
+├── utility.js            # Utility functions (561 lines)
+├── constants.js          # All constants & regex patterns (219 lines)
+├── middleware.js         # Middleware registry (234 lines)
+├── response.js           # Response handlers (216 lines)
+├── request.js            # Request utilities (235 lines)
+├── fileserver.js         # Static file serving (80 lines)
+├── logger.js             # Logging system (137 lines)
+├── config.js             # Config validation (130 lines)
+└── cli.js                # CLI entry point (59 lines)
 
 tests/
-├── unit/                 # Unit tests
+├── unit/                 # Unit tests (376 tests)
 └── integration/          # Integration tests
 
 docs/                     # Documentation
 types/                    # TypeScript definitions
 benchmarks/               # Performance benchmarks
-tpl/                      # HTML templates
+tpl/                      # HTML templates (autoindex.html)
 test-files/               # Test file assets
 dist/                     # Distribution builds
 ```
@@ -93,9 +99,10 @@ dist/                     # Distribution builds
 
 ### Module Organization
 
-- One primary export per file
-- Group related imports together
-- Separate Node.js built-ins, third-party, and local imports
+- One primary export per file (factory functions or classes)
+- Group related imports together (Node.js built-ins, external packages, local modules)
+- Use named exports exclusively (no default exports)
+- Keep modules focused and single-responsibility
 
 ```javascript
 // Node.js built-ins

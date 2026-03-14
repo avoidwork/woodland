@@ -44,7 +44,7 @@
     "build": "npm run rollup",
     "changelog": "auto-changelog -p",
     "clean": "rimraf dist coverage coverage.txt",
-    "coverage": "c8 --reporter=text node --test tests/**/*.test.js 2>&1 | sed -n '/^---/,$p' > coverage.txt",
+    "coverage": "node --test --experimental-test-coverage --test-coverage-exclude=dist/** --test-coverage-exclude=tests/** tests/**/*.test.js 2>&1 | sed -n '/^ℹ start of coverage report/,$p' | tee coverage.txt",
     "fix": "oxlint --fix *.js benchmarks src tests && oxfmt *.js benchmarks src tests --write",
     "lint": "oxlint *.js benchmarks src tests && oxfmt *.js benchmarks src tests --check",
     "prepare": "husky",
@@ -63,35 +63,11 @@
   },
   "devDependencies": {
     "auto-changelog": "^2.5.0",
-    "c8": "^11.0.0",
     "husky": "^9.1.0",
     "oxfmt": "^0.40.0",
     "oxlint": "^1.55.0",
-    "pre-commit": "^1.2.2",
     "rimraf": "^6.0.1",
     "rollup": "^4.50.1"
-  },
-  "c8": {
-    "branches": 100,
-    "check-coverage": true,
-    "exclude": [
-      "dist/**",
-      "benchmarks/**",
-      "test-files/**",
-      "tpl/**",
-      "types/**",
-      "tests/**",
-      "rollup.config.js",
-      "benchmark.js"
-    ],
-    "functions": 100,
-    "lines": 100,
-    "reporter": [
-      "text",
-      "html",
-      "lcov"
-    ],
-    "statements": 100
   },
   "engines": {
     "node": ">=17.0.0"

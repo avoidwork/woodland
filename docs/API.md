@@ -12,8 +12,9 @@ Complete API documentation for the Woodland HTTP server framework.
   - [Response Helpers](#response-helpers)
   - [Request Properties](#request-properties)
   - [Utility Methods](#utility-methods)
-  - [Event Handlers](#event-hooks)
+  - [Event Hooks](#event-hooks)
   - [File Serving](#file-serving)
+  - [Internal Modules](#internal-modules)
 
 ---
 
@@ -708,6 +709,93 @@ const app = woodland({
 | `%{Header}i` | Request header value           |
 | `%{Header}o` | Response header value          |
 | `%v`         | Server hostname                |
+
+---
+
+## Internal Modules
+
+The framework is organized into the following internal modules:
+
+### `src/woodland.js` (600 lines)
+
+Main framework file exporting the `Woodland` class and `woodland` factory function.
+
+### `src/utility.js` (561 lines)
+
+Utility functions including:
+- `autoindex()` - Generate HTML directory listings
+- `escapeHtml()` - HTML escaping for XSS prevention
+- `getStatus()` - Determine appropriate HTTP status codes
+- `mime()` - MIME type detection
+- `ms()` - Time formatting
+- `next()` - Middleware chain iterator
+- `params()` - URL parameter extraction
+- `parse()` - URL parsing
+- `partialHeaders()` - Range request handling
+- `pipeable()` - Stream detection
+- `reduce()` - Middleware matching
+- `timeOffset()` - Timezone offset formatting
+- `writeHead()` - Response header writing
+- `isValidIP()` - IP address validation
+- `extractPath()` - Route pattern conversion
+
+### `src/constants.js` (219 lines)
+
+All HTTP constants, status codes, headers, and configuration values.
+
+### `src/middleware.js` (234 lines)
+
+Middleware registry and chain management:
+- `createMiddlewareRegistry()` - Create middleware registry
+- `reduce()` - Middleware matching utility
+- `getStatus()` - Status code determination
+- `next()` - Middleware iterator
+
+### `src/response.js` (216 lines)
+
+Response handler creation:
+- `createResponseHandler()` - Create all response handlers
+- `createErrorHandler()` - Error response handler
+- `createJsonHandler()` - JSON response handler
+- `createRedirectHandler()` - Redirect handler
+- `createSendHandler()` - Send response handler
+- `createSetHandler()` - Set headers handler
+- `createStatusHandler()` - Status code handler
+- `stream()` - File streaming handler
+
+### `src/request.js` (235 lines)
+
+Request handling utilities:
+- `isValidIP()` - IP address validation
+- `createCorsHandler()` - CORS handler creation
+- `createIpExtractor()` - IP extraction logic
+- `createRequestDecorator()` - Request/response decoration
+
+### `src/fileserver.js` (80 lines)
+
+Static file serving:
+- `createFileServer()` - Create file server instance
+- `serve()` - Serve files and directories
+- `register()` - Mount file routes
+
+### `src/logger.js` (137 lines)
+
+Logging system:
+- `createLogger()` - Create logger instance
+- Common Log Format (CLF) formatting
+- Structured logging for routing, middleware, errors
+
+### `src/config.js` (130 lines)
+
+Configuration validation:
+- `validateConfig()` - Validate constructor config
+- `validateLogging()` - Validate logging config
+- `validateOrigins()` - Validate CORS origins
+- `mergeEnvLogging()` - Merge environment variables
+
+### `src/cli.js` (59 lines)
+
+CLI entry point for serving static files.
 
 ---
 
