@@ -198,11 +198,7 @@ describe("Security Integration Tests", () => {
 				headers: { Origin: "https://evil.com" },
 			});
 
-			assert.strictEqual(
-				response.statusCode,
-				403,
-				"Should return 403 for cross-origin request",
-			);
+			assert.strictEqual(response.statusCode, 403, "Should return 403 for cross-origin request");
 			assert.strictEqual(
 				response.headers["access-control-allow-origin"],
 				undefined,
@@ -269,11 +265,7 @@ describe("Security Integration Tests", () => {
 					corsServer,
 				);
 
-				assert.strictEqual(
-					response.statusCode,
-					403,
-					"Should return 403 for non-configured origin",
-				);
+				assert.strictEqual(response.statusCode, 403, "Should return 403 for non-configured origin");
 			} finally {
 				await new Promise((resolve) => corsServer.close(resolve));
 			}
@@ -302,10 +294,7 @@ describe("Security Integration Tests", () => {
 				const response = await makeRequest("/static/", {}, autoindexServer);
 
 				assert.strictEqual(response.statusCode, 200, "Should return 200");
-				assert.ok(
-					response.body.includes("script-alert-xss.txt"),
-					"Should show safe filename",
-				);
+				assert.ok(response.body.includes("script-alert-xss.txt"), "Should show safe filename");
 				assert.ok(
 					response.body.includes("file&amp;name.txt"),
 					"Should escape ampersands in filename",
@@ -363,11 +352,7 @@ describe("Security Integration Tests", () => {
 
 			const response = await makeRequest("/static/");
 
-			assert.strictEqual(
-				response.statusCode,
-				404,
-				"Should return 404 when autoindex is disabled",
-			);
+			assert.strictEqual(response.statusCode, 404, "Should return 404 when autoindex is disabled");
 		});
 	});
 
@@ -451,10 +436,7 @@ describe("Security Integration Tests", () => {
 			const response = await makeRequest("/nonexistent");
 
 			assert.strictEqual(response.statusCode, 404, "Should return 404");
-			assert.ok(
-				!response.body.includes("woodland"),
-				"Should not expose framework details in 404",
-			);
+			assert.ok(!response.body.includes("woodland"), "Should not expose framework details in 404");
 		});
 	});
 });

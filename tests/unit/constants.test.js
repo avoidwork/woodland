@@ -55,22 +55,10 @@ describe("Constants", () => {
 				constants.ACCESS_CONTROL_ALLOW_CREDENTIALS,
 				"access-control-allow-credentials",
 			);
-			assert.strictEqual(
-				constants.ACCESS_CONTROL_ALLOW_HEADERS,
-				"access-control-allow-headers",
-			);
-			assert.strictEqual(
-				constants.ACCESS_CONTROL_ALLOW_METHODS,
-				"access-control-allow-methods",
-			);
-			assert.strictEqual(
-				constants.ACCESS_CONTROL_ALLOW_ORIGIN,
-				"access-control-allow-origin",
-			);
-			assert.strictEqual(
-				constants.ACCESS_CONTROL_EXPOSE_HEADERS,
-				"access-control-expose-headers",
-			);
+			assert.strictEqual(constants.ACCESS_CONTROL_ALLOW_HEADERS, "access-control-allow-headers");
+			assert.strictEqual(constants.ACCESS_CONTROL_ALLOW_METHODS, "access-control-allow-methods");
+			assert.strictEqual(constants.ACCESS_CONTROL_ALLOW_ORIGIN, "access-control-allow-origin");
+			assert.strictEqual(constants.ACCESS_CONTROL_EXPOSE_HEADERS, "access-control-expose-headers");
 			assert.strictEqual(
 				constants.ACCESS_CONTROL_REQUEST_HEADERS,
 				"access-control-request-headers",

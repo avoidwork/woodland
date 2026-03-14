@@ -77,9 +77,7 @@ export function autoindex(title = EMPTY, files = []) {
 	// Optimized: Fast path for empty files array
 	if (files.length === 0) {
 		return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) => {
-			return key === "TITLE"
-				? safeTitle
-				: '    <li><a href=".." rel="collection">../</a></li>';
+			return key === "TITLE" ? safeTitle : '    <li><a href=".." rel="collection">../</a></li>';
 		});
 	}
 

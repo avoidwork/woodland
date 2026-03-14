@@ -24,9 +24,7 @@ export function createLogger(config = {}) {
 		const socket = req.socket;
 
 		return (
-			(connection && connection.remoteAddress) ||
-			(socket && socket.remoteAddress) ||
-			"127.0.0.1"
+			(connection && connection.remoteAddress) || (socket && socket.remoteAddress) || "127.0.0.1"
 		);
 	}
 
@@ -99,15 +97,11 @@ export function createLogger(config = {}) {
 	};
 
 	logRouteFn = function (uri, method, ip) {
-		return logFn(
-			`type=route, uri=${uri}, method=${method}, ip=${ip}, message="Routing request"`,
-		);
+		return logFn(`type=route, uri=${uri}, method=${method}, ip=${ip}, message="Routing request"`);
 	};
 
 	logMiddlewareFn = function (route, method) {
-		return logFn(
-			`type=use, route=${route}, method=${method}, message="Registering middleware"`,
-		);
+		return logFn(`type=use, route=${route}, method=${method}, message="Registering middleware"`);
 	};
 
 	logDecorationFn = function (uri, method, ip) {

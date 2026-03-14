@@ -215,8 +215,7 @@ export class Woodland extends EventEmitter {
 		let result = override === false ? this.permissions.get(uri) : void 0;
 
 		if (override || result === void 0) {
-			const allMethods =
-				this.middlewareRegistry.routes(uri, WILDCARD, override).visible > INT_0;
+			const allMethods = this.middlewareRegistry.routes(uri, WILDCARD, override).visible > INT_0;
 			let list;
 
 			if (allMethods) {
@@ -322,9 +321,7 @@ export class Woodland extends EventEmitter {
 
 			if (corsHeaders !== void 0) {
 				headersBatch[
-					req.method === OPTIONS
-						? ACCESS_CONTROL_ALLOW_HEADERS
-						: ACCESS_CONTROL_EXPOSE_HEADERS
+					req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS
 				] = corsHeaders;
 			}
 		}
@@ -345,9 +342,7 @@ export class Woodland extends EventEmitter {
 		return (method === GET || method === HEAD || method === OPTIONS) && this.etags !== null
 			? this.etags.create(
 					args
-						.map((i) =>
-							typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i,
-						)
+						.map((i) => (typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i))
 						.join("-"),
 				)
 			: EMPTY;
@@ -501,9 +496,7 @@ export class Woodland extends EventEmitter {
 		res.header(CONTENT_LENGTH, file.stats.size);
 		res.header(
 			CONTENT_TYPE,
-			file.charset.length > INT_0
-				? `${mime(file.path)}; charset=${file.charset}`
-				: mime(file.path),
+			file.charset.length > INT_0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path),
 		);
 		res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
 
@@ -533,10 +526,7 @@ export class Woodland extends EventEmitter {
 			}
 
 			res.send(
-				createReadStream(
-					file.path,
-					Object.keys(options).length > INT_0 ? options : undefined,
-				),
+				createReadStream(file.path, Object.keys(options).length > INT_0 ? options : undefined),
 				status,
 			);
 		} else if (req.method === HEAD) {

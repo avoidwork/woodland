@@ -137,16 +137,7 @@ describe("config", () => {
 		});
 
 		it("should accept valid log levels", () => {
-			const levels = [
-				"debug",
-				"info",
-				"warn",
-				"error",
-				"critical",
-				"alert",
-				"emerg",
-				"notice",
-			];
+			const levels = ["debug", "info", "warn", "error", "critical", "alert", "emerg", "notice"];
 
 			for (const level of levels) {
 				const result = validateLogging({ level });

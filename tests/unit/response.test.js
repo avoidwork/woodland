@@ -371,12 +371,7 @@ describe("response", () => {
 				const handler = createResponseHandler(mockApp);
 
 				assert.throws(() => {
-					handler.stream(
-						{ method: "GET" },
-						{},
-						{ path: "", stats: { size: 100 } },
-						() => {},
-					);
+					handler.stream({ method: "GET" }, {}, { path: "", stats: { size: 100 } }, () => {});
 				}, /Invalid file descriptor/);
 			});
 

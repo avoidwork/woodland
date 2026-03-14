@@ -432,10 +432,7 @@ describe("CLI", () => {
 
 			return new Promise((resolve) => {
 				child.on("close", (code, signal) => {
-					assert.ok(
-						signal === "SIGTERM" || code === 0,
-						"Should handle termination gracefully",
-					);
+					assert.ok(signal === "SIGTERM" || code === 0, "Should handle termination gracefully");
 					resolve();
 				});
 			});

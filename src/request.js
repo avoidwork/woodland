@@ -122,8 +122,7 @@ export function createCorsHandler(origins) {
 
 	function corsHost(req) {
 		return (
-			ORIGIN in req.headers &&
-			req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host
+			ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host
 		);
 	}
 
@@ -139,9 +138,7 @@ export function createIpExtractor() {
 		const connection = req.connection;
 		const socket = req.socket;
 		const fallbackIP =
-			(connection && connection.remoteAddress) ||
-			(socket && socket.remoteAddress) ||
-			"127.0.0.1";
+			(connection && connection.remoteAddress) || (socket && socket.remoteAddress) || "127.0.0.1";
 
 		const forwardedHeader = req.headers["x-forwarded-for"];
 		if (!forwardedHeader || !forwardedHeader.trim()) {
@@ -223,9 +220,7 @@ export function createRequestDecorator({
 
 			if (corsHeaders !== void 0) {
 				headersBatch[
-					req.method === OPTIONS
-						? ACCESS_CONTROL_ALLOW_HEADERS
-						: ACCESS_CONTROL_EXPOSE_HEADERS
+					req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS
 				] = corsHeaders;
 			}
 		}

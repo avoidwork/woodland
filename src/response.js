@@ -48,8 +48,7 @@ export function createResponseHandler({ digit: _digit, etags, onReady, onDone, o
 		return (req, res) => {
 			return (status = 500, body) => {
 				if (res.headersSent === false) {
-					const err =
-						body instanceof Error ? body : new Error(body ?? getStatusText(status));
+					const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
 					let output = err.message,
 						headers = {};
 
@@ -162,9 +161,7 @@ export function createResponseHandler({ digit: _digit, etags, onReady, onDone, o
 		res.header(CONTENT_LENGTH, file.stats.size);
 		res.header(
 			CONTENT_TYPE,
-			file.charset.length > 0
-				? `${mime(file.path)}; charset=${file.charset}`
-				: mime(file.path),
+			file.charset.length > 0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path),
 		);
 		res.header("last-modified", file.stats.mtime.toUTCString());
 
