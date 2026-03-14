@@ -14,18 +14,25 @@
 ## Development workflow
 
 1. Make changes to source files
-2. Run tests: `npm test` (ensure 399 tests still pass)
+2. Run tests: `npm test` (ensure 231 tests still pass)
 3. Fix lint errors: `npm run fix`
 4. Build: `npm run build`
-5. Commit with `--no-verify` flag on Windows (pre-commit hooks fail with yargs ES modules)
+
+## Tooling
+
+- **Linting**: oxlint (with `no-console: error` and `no-unused-vars: error` rules)
+- **Formatting**: oxfmt
+- **Testing**: Node.js built-in test runner (`node --test`)
+- **Git hooks**: husky (runs `npm test` on pre-commit)
+- **Build**: rollup
 
 ## Code style
 
 - Use JSDoc standard for creating docblocks of functions and classes.
 - Always use camelCase for function names.
 - Always use upper-case snake_case for constants.
-- Create integration tests in `tests/integration` that use node-assert, which run with mocha.
-- Create unit tests in `tests/unit` that use node-assert, which run with mocha.
+- Create integration tests in `tests/integration` that use node-assert.
+- Create unit tests in `tests/unit` that use node-assert.
 - Use node.js community "Best Practices".
 - Fix lint errors by running `npm run fix`
 - Adhere to DRY, KISS, YAGNI, & SOLID principles
@@ -38,8 +45,8 @@
 - `src/constants.js` - All constants and regex patterns used throughout framework
 - `src/cli.js` - CLI entry point for running the server
 - `src/tpl/autoindex.html` - Template for autoindex directory listings
-- `tests/integration/` - Integration tests with mocha
-- `tests/unit/` - Unit tests with mocha
+- `tests/integration/` - Integration tests with Node.js test runner
+- `tests/unit/` - Unit tests with Node.js test runner
 
 ## Performance patterns
 
@@ -61,8 +68,7 @@
 
 ## Git workflow
 
-- Use `--no-verify` flag for git commits on Windows (pre-commit hooks fail due to yargs ES module issue)
-- Pre-commit hooks have issues with ES modules on Windows
+- Git hooks managed by husky (runs `npm test` on pre-commit)
 
 ## Security considerations
 
@@ -75,4 +81,4 @@
 
 ## Test count
 
-- 399 tests passing
+- 231 tests passing

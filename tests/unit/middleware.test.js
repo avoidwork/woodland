@@ -314,7 +314,7 @@ describe("middleware", () => {
         assert.ok(middleware.has("GET"));
         assert.ok(middleware.get("GET").has("/test"));
 
-        const result = registry.allowed("/test", "GET");
+        const result = registry.allowed("GET", "/test");
 
         assert.strictEqual(result, true);
       });

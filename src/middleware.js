@@ -146,6 +146,7 @@ export function createMiddlewareRegistry(middleware, ignored, methods, cache) {
     return routesFn(uri, method, override).visible > 0;
   }
   allowedFn = allowed;
+  allowedFn = allowed;
 
   function register(rpath, ...fn) {
     if (typeof rpath === FUNCTION) {
