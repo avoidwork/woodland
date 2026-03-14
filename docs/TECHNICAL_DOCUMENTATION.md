@@ -209,31 +209,33 @@ class Woodland extends EventEmitter {
 ```mermaid
 graph TB
     subgraph "Security Layers"
-        A[Input Validation] --> B[Path Sanitization]
+        A[Input Validation] --> B[Path Resolution]
         B --> C[Directory Traversal Protection]
         C --> D[CORS Enforcement]
         D --> E[File Access Control]
     end
     
     subgraph "Validation Functions"
-        F[isSafeFilePath] --> G[sanitizeFilePath]
-        G --> H[isValidIP]
-        H --> I[escapeHtml]
+        F[isValidIP]
+        G[escapeHtml]
+        H[path traversal check]
     end
     
     subgraph "Protection Mechanisms"
-        J[Allowlist Origins] --> K[Path Normalization]
-        K --> L[File Extension Validation]
-        L --> M[Access Control Headers]
+        I[Allowlist Origins] --> J[fp.startsWith check]
+        J --> K[MIME Type Validation]
+        K --> L[Access Control Headers]
     end
     
     A -.-> F
-    D -.-> J
-    E -.-> L
+    A -.-> G
+    B -.-> H
+    D -.-> I
+    E -.-> K
     
     style A fill:#dc2626,stroke:#b91c1c,stroke-width:2px,color:#ffffff
     style D fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#ffffff
-    style J fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
+    style I fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
 ```
 
 ### Caching Strategy
@@ -485,32 +487,18 @@ $$I(headers, fallback) = \begin{cases}
 \text{fallback} & \text{otherwise}
 \end{cases}$$
 
-IP validation function:
+IP validation function (implemented in `src/utility.js`):
 
 $$I_{\text{valid}}(ip) = \begin{cases}
-\text{true} & \text{if IPv4: } /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/ \text{ and octets} \in [0,255] \\
-\text{true} & \text{if IPv6: valid IPv6 format} \\
+\text{true} & \text{if IPv4: octets} \in [0,255] \\
+\text{true} & \text{if IPv6: valid format with compression support} \\
 \text{false} & \text{otherwise}
 \end{cases}$$
 
-IP extraction with validation:
-
-$$I_{\text{extract}}(req) = \begin{cases}
-\text{first valid IP in X-Forwarded-For} & \text{if header exists and valid} \\
-\text{connection.remoteAddress} & \text{if available} \\
-\text{socket.remoteAddress} & \text{if available} \\
-\text{"127.0.0.1"} & \text{fallback}
-\end{cases}$$
-
-IPv6 validation details:
-
-$$I_{\text{ipv6}}(ip) = \begin{cases}
-\text{true} & \text{if valid characters: } /^[0-9a-fA-F:.]+$/ \\
-\text{true} & \text{if IPv4-mapped: } /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/ \\
-\text{true} & \text{if compressed notation: } \text{groups} < 8 \\
-\text{true} & \text{if full notation: } \text{groups} = 8 \\
-\text{false} & \text{otherwise}
-\end{cases}$$
+IPv6 validation supports:
+- Full notation (8 groups)
+- Compressed notation (::)
+- IPv4-mapped addresses (::ffff:192.168.1.1)
 
 #### Performance Complexity Analysis
 
@@ -740,20 +728,21 @@ $$E_{\text{range}}(error, req, res, size) = \begin{cases}
 Woodland implements multiple layers of protection against directory traversal attacks:
 
 ```javascript
-// Security validation in serve method
+// Security: Ensure resolved path stays within allowed directory
 async serve(req, res, arg, folder = process.cwd()) {
   const fp = resolve(folder, arg);
   
-  // Security: Ensure resolved path stays within the allowed directory
+  // Path traversal protection: resolved path must stay within folder
   if (!fp.startsWith(resolve(folder))) {
-    this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path outside allowed directory", path="${arg}"`, ERROR);
+    this.log(`type=serve, uri=${req.parsed.pathname}, message="Path outside allowed directory"`, ERROR);
     res.error(INT_403);
     return;
   }
-  // ... rest of serve method
+  
+  // ... rest of file serving logic
 }
 
-// HTML escaping for output safety
+// HTML escaping for output safety in autoindex
 export function escapeHtml(str = '') {
   const htmlEscapes = {
     "&": "&amp;",
@@ -764,31 +753,6 @@ export function escapeHtml(str = '') {
   };
   
   return str.replace(/[&<>"']/g, match => htmlEscapes[match]);
-}
-
-// IP address validation
-export function isValidIP(ip) {
-  if (!ip || typeof ip !== "string") {
-    return false;
-  }
-  
-  // IPv4 validation with octet range checking
-  if (!ip.includes(":")) {
-    const ipv4Pattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-    const match = ip.match(ipv4Pattern);
-    
-    if (!match) {
-      return false;
-    }
-    
-    return match.slice(1).every(octet => {
-      const num = parseInt(octet, 10);
-      return num >= 0 && num <= 255;
-    });
-  }
-  
-  // IPv6 validation including IPv4-mapped addresses
-  // ... (implementation continues)
 }
 ```
 
@@ -892,11 +856,6 @@ Woodland demonstrates **excellent adherence to OWASP security guidelines** with 
 - **Security Headers**: `X-Content-Type-Options: nosniff` set automatically
 - **Configurable Security**: Support for custom security headers and policies
 
-##### A07:2021 - Identification and Authentication Failures
-- **IP Validation**: Robust IP address extraction with validation from `X-Forwarded-For` headers
-- **CORS Origin Validation**: Strict allowlist-based origin checking
-- **Header Validation**: Comprehensive validation of security-critical headers
-
 ##### A01:2021 - Broken Access Control
 - **Default Deny CORS**: No cross-origin requests allowed unless explicitly configured
 - **File Access Control**: Path validation ensures files can only be served from allowed directories
@@ -907,7 +866,7 @@ Woodland demonstrates **excellent adherence to OWASP security guidelines** with 
 
 ##### Comprehensive Input Validation
 ```javascript
-// HTML escaping function
+// HTML escaping function for XSS prevention
 function escapeHtml(str = '') {
   const htmlEscapes = {
     "&": "&amp;", "<": "&lt;", ">": "&gt;",
@@ -916,17 +875,19 @@ function escapeHtml(str = '') {
   return str.replace(/[&<>"']/g, match => htmlEscapes[match]);
 }
 
-// IP validation with IPv4 and IPv6 support
+// IP validation (see src/utility.js for full implementation)
+// Supports IPv4, IPv6, IPv4-mapped IPv6, and :: compression
 export function isValidIP(ip) {
-  // Comprehensive IPv4/IPv6 validation logic
-  // Validates octet ranges, compression notation, etc.
+  // Full implementation: 96 lines with optimized regex patterns
 }
 ```
 
 ##### Security Headers Implementation
 - **X-Content-Type-Options**: `nosniff` (prevents MIME type sniffing)
-- **Configurable Security Headers**: Framework supports adding additional security headers
+- **Configurable Security Headers**: Framework supports adding additional security headers via `defaultHeaders` option
 - **Server Identification**: Can be disabled with `silent: true` option
+
+Note: The deprecated `X-XSS-Protection` header is not included as modern browsers have deprecated it in favor of Content Security Policy.
 
 ##### Error Handling Security
 - **Information Disclosure Prevention**: Error messages don't expose internal paths or sensitive data
@@ -975,8 +936,7 @@ If you prefer manual configuration, Woodland supports custom headers:
 const app = woodland({
   defaultHeaders: {
     "x-content-type-options": "nosniff",
-    "x-frame-options": "DENY", 
-    "x-xss-protection": "1; mode=block",
+    "x-frame-options": "DENY",
     "strict-transport-security": "max-age=31536000; includeSubDomains",
     "content-security-policy": "default-src 'self'",
     "referrer-policy": "strict-origin-when-cross-origin"
@@ -1066,7 +1026,7 @@ Woodland includes comprehensive security tests covering:
 | **A04: Insecure Design** | ✅ Excellent | Security-first architecture |
 | **A05: Security Misconfiguration** | ✅ Good | Secure defaults, configurable security |
 | **A06: Vulnerable Components** | ✅ Good | Minimal dependencies, regular updates |
-| **A07: Authentication Failures** | ⚠️ Partial | No built-in auth, rate limiting via middleware |
+| **A07: Authentication Failures** | ✅ N/A | Framework provides hooks, not built-in auth |
 | **A08: Software Integrity Failures** | ✅ N/A | Minimal serialization/deserialization |
 | **A09: Security Logging Failures** | ✅ Good | Comprehensive logging with CLF support |
 | **A10: Server-Side Request Forgery** | ✅ N/A | No outbound request functionality |

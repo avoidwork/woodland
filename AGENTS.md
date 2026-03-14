@@ -1,0 +1,18 @@
+# AGENTS.md
+
+## Setup commands
+- Install deps: `npm install`
+- Run tests: `npm test`
+- Run benchmarks: `npm run benchmarks`
+- Documentation is in `./docs`
+
+## Code style
+- Use JSDoc standard for creating docblocks of functions and classes.
+- Always use camelCase for function names.
+- Always use upper-case snake_case for constants.
+- Create integration tests in `tests/integration` that use node-assert, which run with mocha.
+- Create unit tests in `tests/unit` that use node-assert, which run with mocha.
+- Use node.js community "Best Practices".
+- Fix lint errors by running `npm run fix`
+- Adhere to DRY, KISS, YAGNI, & SOLID principles
+- Adhere to OWASP security guidance

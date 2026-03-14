@@ -633,14 +633,14 @@ const app = woodland({
 
 ### Log Format
 | Placeholder | Description |
-|--------|--|
-| `%h` | Remote IP |
-| `%t` | Timestamp |
-| `%r` | Request line |
-| `%s` | Status code |
-| `%b` | Response size |
-| `%{Header}i` | Request header |
-| `%{Header}o` | Response header |
+|-------------|-------------|
+| `%h`        | Remote IP   |
+| `%t`        | Timestamp   |
+| `%r`        | Request line|
+| `%s`        | Status code |
+| `%b`        | Response size|
+| `%{Header}i`| Request header|
+| `%{Header}o`| Response header|
 
 ### Manual Logging
 ```javascript
@@ -834,10 +834,10 @@ npm test
 File          | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
 --------------|---------|----------|---------|---------|-------------------
 All files     |     100 |      100 |     100 |     100 |                   
- cli.js       |     100 |      100 |     100 |     100 |                   
- constants.js |     100 |      100 |     100 |     100 |                   
- utility.js   |     100 |      100 |     100 |     100 |                   
- woodland.js  |     100 |      100 |     100 |     100 |                   
+ src/cli.js   |     100 |      100 |     100 |     100 |                   
+ src/constants.js |     100 |      100 |     100 |     100 |                   
+ src/utility.js |     100 |      100 |     100 |     100 |                   
+ src/woodland.js |     100 |      100 |     100 |     100 |                   
 --------------|---------|----------|---------|---------|-------------------
 ```
 
