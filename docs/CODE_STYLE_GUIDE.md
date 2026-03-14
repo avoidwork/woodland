@@ -165,13 +165,13 @@ const charset = "utf-8";
 ```javascript
 // Good
 class HttpServer {
-  constructor(options) {
-    this.defaultHeaders = options.headers;
-  }
+	constructor(options) {
+		this.defaultHeaders = options.headers;
+	}
 
-  handleRequest(req, res) {
-    // Implementation
-  }
+	handleRequest(req, res) {
+		// Implementation
+	}
 }
 
 // Bad
@@ -199,7 +199,7 @@ class httpServer {
 ```javascript
 // Good - Function declaration
 export function calculateHash(data) {
-  return crypto.createHash("sha256").update(data).digest("hex");
+	return crypto.createHash("sha256").update(data).digest("hex");
 }
 
 // Good - Arrow function for callbacks
@@ -207,7 +207,7 @@ const processItems = (items) => items.map((item) => transformItem(item));
 
 // Bad - Mixed styles without clear purpose
 const calculateHash = function (data) {
-  return crypto.createHash("sha256").update(data).digest("hex");
+	return crypto.createHash("sha256").update(data).digest("hex");
 };
 ```
 
@@ -249,10 +249,10 @@ Use JSDoc standard for all functions and classes:
  * console.log(hash); // "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
  */
 export function calculateHash(data, algorithm = "sha256") {
-  if (!data) {
-    throw new Error("Data is required");
-  }
-  return crypto.createHash(algorithm).update(data).digest("hex");
+	if (!data) {
+		throw new Error("Data is required");
+	}
+	return crypto.createHash(algorithm).update(data).digest("hex");
 }
 ```
 
@@ -312,44 +312,44 @@ const ignored = new Set();
 ```javascript
 // Good - Input validation and sanitization
 function escapeHtml(str = EMPTY) {
-  // Use lookup table for single-pass replacement
-  const htmlEscapes = {
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-  };
+	// Use lookup table for single-pass replacement
+	const htmlEscapes = {
+		"&": "&amp;",
+		"<": "&lt;",
+		">": "&gt;",
+		'"': "&quot;",
+		"'": "&#39;",
+	};
 
-  return str.replace(/[&<>"']/g, (match) => htmlEscapes[match]);
+	return str.replace(/[&<>"']/g, (match) => htmlEscapes[match]);
 }
 
 // Good - IP address validation (double quotes for string comparisons)
 export function isValidIP(ip) {
-  if (!ip || typeof ip !== "string") {
-    return false;
-  }
+	if (!ip || typeof ip !== "string") {
+		return false;
+	}
 
-  // IPv4 validation - optimize with early character check
-  if (ip.indexOf(":") === -1) {
-    const match = IPV4_PATTERN.exec(ip);
+	// IPv4 validation - optimize with early character check
+	if (ip.indexOf(":") === -1) {
+		const match = IPV4_PATTERN.exec(ip);
 
-    if (!match) {
-      return false;
-    }
+		if (!match) {
+			return false;
+		}
 
-    // Optimized octet validation - avoid array methods
-    for (let i = 1; i < 5; i++) {
-      const num = parseInt(match[i], 10);
-      if (num > 255) {
-        return false;
-      }
-    }
+		// Optimized octet validation - avoid array methods
+		for (let i = 1; i < 5; i++) {
+			const num = parseInt(match[i], 10);
+			if (num > 255) {
+				return false;
+			}
+		}
 
-    return true;
-  }
+		return true;
+	}
 
-  // IPv6 validation continues...
+	// IPv6 validation continues...
 }
 ```
 
@@ -366,16 +366,16 @@ export function isValidIP(ip) {
  * @returns {string} The escaped string with HTML entities
  */
 function escapeHtml(str = EMPTY) {
-  // Use lookup table for single-pass replacement
-  const htmlEscapes = {
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-  };
+	// Use lookup table for single-pass replacement
+	const htmlEscapes = {
+		"&": "&amp;",
+		"<": "&lt;",
+		">": "&gt;",
+		'"': "&quot;",
+		"'": "&#39;",
+	};
 
-  return str.replace(/[&<>"']/g, (match) => htmlEscapes[match]);
+	return str.replace(/[&<>"']/g, (match) => htmlEscapes[match]);
 }
 ```
 
@@ -387,17 +387,17 @@ function escapeHtml(str = EMPTY) {
 
 ```javascript
 // Good - Safe file path handling using actual Woodland implementation
-async serve(req, res, arg, folder = process.cwd()) {
-  const fp = resolve(folder, arg);
+async function serve(req, res, arg, folder = process.cwd()) {
+	const fp = resolve(folder, arg);
 
-  // Security: Ensure resolved path stays within the allowed directory
-  if (!fp.startsWith(resolve(folder))) {
-    this.log(`type=serve, uri=${req.parsed.pathname}, message="Path outside allowed directory"`, ERROR);
-    res.error(INT_403);
-    return;
-  }
+	// Security: Ensure resolved path stays within the allowed directory
+	if (!fp.startsWith(resolve(folder))) {
+		this.log(`type=serve, uri=${req.parsed.pathname}, message="Path outside allowed directory"`, ERROR);
+		res.error(INT_403);
+		return;
+	}
 
-  // Continue with file serving...
+	// Continue with file serving...
 }
 ```
 
@@ -418,15 +418,15 @@ import { describe, it } from "mocha";
 import { calculateHash } from "../src/utility.js";
 
 describe("calculateHash", () => {
-  it("should generate correct hash for string input", () => {
-    const result = calculateHash("hello world");
-    const expected = "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9";
-    assert.strictEqual(result, expected);
-  });
+	it("should generate correct hash for string input", () => {
+		const result = calculateHash("hello world");
+		const expected = "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9";
+		assert.strictEqual(result, expected);
+	});
 
-  it("should throw error for invalid input", () => {
-    assert.throws(() => calculateHash(null), /Data is required/);
-  });
+	it("should throw error for invalid input", () => {
+		assert.throws(() => calculateHash(null), /Data is required/);
+	});
 });
 ```
 
@@ -442,10 +442,10 @@ import { describe, it } from "mocha";
 import { Woodland } from "../src/woodland.js";
 
 describe("Woodland Integration", () => {
-  it("should handle complete request lifecycle", async () => {
-    const server = new Woodland();
-    // Test implementation
-  });
+	it("should handle complete request lifecycle", async () => {
+		const server = new Woodland();
+		// Test implementation
+	});
 });
 ```
 
@@ -466,7 +466,7 @@ import { lru } from "tiny-lru";
 const cache = lru(1000, 10000); // size: 1000, TTL: 10s
 
 export function getCachedResult(key) {
-  return cache.get(key) || computeExpensiveResult(key);
+	return cache.get(key) || computeExpensiveResult(key);
 }
 ```
 
@@ -479,13 +479,13 @@ export function getCachedResult(key) {
 ```javascript
 // Good - Clean async code
 export async function processFile(filePath) {
-  try {
-    const stats = await stat(filePath);
-    const content = await readFile(filePath, "utf8");
-    return processContent(content, stats);
-  } catch (error) {
-    throw new Error(`Failed to process file: ${error.message}`);
-  }
+	try {
+		const stats = await stat(filePath);
+		const content = await readFile(filePath, "utf8");
+		return processContent(content, stats);
+	} catch (error) {
+		throw new Error(`Failed to process file: ${error.message}`);
+	}
 }
 ```
 
@@ -498,13 +498,13 @@ export async function processFile(filePath) {
 ```javascript
 // Good - Proper cleanup
 export function createProcessor() {
-  const processor = new EventEmitter();
+	const processor = new EventEmitter();
 
-  const cleanup = () => {
-    processor.removeAllListeners();
-  };
+	const cleanup = () => {
+		processor.removeAllListeners();
+	};
 
-  return { processor, cleanup };
+	return { processor, cleanup };
 }
 ```
 
@@ -521,15 +521,15 @@ export function createProcessor() {
 ```javascript
 // Good - Specific error handling
 export function validateConfig(config) {
-  if (!config) {
-    throw new Error("Configuration is required");
-  }
+	if (!config) {
+		throw new Error("Configuration is required");
+	}
 
-  if (typeof config.port !== "number" || config.port < 1 || config.port > 65535) {
-    throw new RangeError("Port must be a number between 1 and 65535");
-  }
+	if (typeof config.port !== "number" || config.port < 1 || config.port > 65535) {
+		throw new RangeError("Port must be a number between 1 and 65535");
+	}
 
-  return true;
+	return true;
 }
 ```
 
@@ -542,13 +542,13 @@ export function validateConfig(config) {
 ```javascript
 // Good - Comprehensive async error handling
 export async function safeFileOperation(filePath) {
-  try {
-    const result = await riskyFileOperation(filePath);
-    return result;
-  } catch (error) {
-    console.error(`File operation failed for ${filePath}:`, error.message);
-    return null; // Fallback value
-  }
+	try {
+		const result = await riskyFileOperation(filePath);
+		return result;
+	} catch (error) {
+		console.error(`File operation failed for ${filePath}:`, error.message);
+		return null; // Fallback value
+	}
 }
 ```
 
@@ -568,16 +568,16 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 export function utilityFunction() {
-  // Implementation
+	// Implementation
 }
 
 export class MainClass {
-  // Implementation
+	// Implementation
 }
 
 // Bad - Default exports
 export default class MainClass {
-  // Implementation
+	// Implementation
 }
 ```
 
@@ -652,11 +652,11 @@ export const CONTENT_TYPE_HTML = "text/html";
 ```javascript
 // Good - Utility function pattern
 export function formatTime(timestamp, precision = 3) {
-  if (!timestamp || typeof timestamp !== "number") {
-    return "0.000ms";
-  }
+	if (!timestamp || typeof timestamp !== "number") {
+		return "0.000ms";
+	}
 
-  return `${(timestamp / 1e6).toFixed(precision)}ms`;
+	return `${(timestamp / 1e6).toFixed(precision)}ms`;
 }
 ```
 
