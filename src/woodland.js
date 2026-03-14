@@ -993,7 +993,7 @@ export class Woodland extends EventEmitter {
 		stats: {mtime: new Date(), size: INT_0}
 	}) {
 		if (file.path === EMPTY || file.stats.size === INT_0) {
-			throw new TypeError('Invalid file descriptor');
+			throw new TypeError("Invalid file descriptor");
 		}
 
 		res.header(CONTENT_LENGTH, file.stats.size);
