@@ -193,9 +193,9 @@ export class Woodland extends EventEmitter {
 		this.indexes = structuredClone(indexes);
 		this.permissions = lru(cacheSize, cacheTTL);
 		this.logging = {
-			enabled: (logging?.enabled ?? true) !== false,
-			format: logging?.format ?? LOG_FORMAT,
-			level: logging?.level ?? INFO
+			enabled: logging?.enabled ?? (process.env.WOODLAND_LOG_ENABLED ? process.env.WOODLAND_LOG_ENABLED !== "false" : true),
+			format: logging?.format ?? process.env.WOODLAND_LOG_FORMAT ?? LOG_FORMAT,
+			level: logging?.level ?? process.env.WOODLAND_LOG_LEVEL ?? INFO
 		};
 		this.methods = [];
 		this.middleware = new Map();
@@ -292,7 +292,15 @@ export class Woodland extends EventEmitter {
 	}
 
 	/**
-	 * Generates a Common Log Format entry for a request/response
+	 * Generates a Common Log Format (CLF) entry for a request/response
+	 * CLF Format: %h %l %u %t "%r" %>s %b
+	 * - %h: Remote hostname/IP address
+	 * - %l: Remote logname (always "-")
+	 * - %u: Remote user (authenticated username)
+	 * - %t: Time of request [dd/Mon/yyyy:hh:mm:ss +zone]
+	 * - %r: First line of request "METHOD /path HTTP/version"
+	 * - %>s: Final status code
+	 * - %b: Size of response in bytes
 	 * @param {Object} req - HTTP request object
 	 * @param {Object} res - HTTP response object
 	 * @returns {string} Formatted log entry
@@ -310,22 +318,43 @@ export class Woodland extends EventEmitter {
 		const timezone = timeOffset(date.getTimezoneOffset());
 		const dateStr = `[${day}/${month}/${year}:${hours}:${minutes}:${seconds} ${timezone}]`;
 
+		// %h: Remote host (IP address) - validated for security
 		const host = req.headers?.host ?? HYPHEN;
-		const ip = req?.ip ?? HYPHEN;
+		const clientIP = req.ip || this.ip(req);
+		const ip = clientIP || HYPHEN;
+
+		// %l: Remote logname (always "-" as identd is not used)
+		const logname = HYPHEN;
+
+		// %u: Remote user (authenticated username from URL)
 		const username = req?.parsed?.username ?? HYPHEN;
-		const requestLine = `${req.method} ${req.parsed.pathname}${req.parsed.search} HTTP/1.1`;
+
+		// %r: Request line - sanitized to avoid exposing internal paths
+		const parsed = req?.parsed;
+		const pathname = parsed?.pathname ?? req.url ?? HYPHEN;
+		const search = parsed?.search ?? HYPHEN;
+		const requestLine = `${req.method ?? HYPHEN} ${pathname}${search} HTTP/1.1`;
+
+		// %>s: Final status code
+		const statusCode = res?.statusCode ?? INT_500;
+
+		// %b: Response size in bytes
 		const contentLength = res?.getHeader(CONTENT_LENGTH) ?? HYPHEN;
+
+		// Extended: Referer header
 		const referer = req.headers?.referer ?? HYPHEN;
+
+		// Extended: User-Agent header
 		const userAgent = req.headers?.[USER_AGENT] ?? HYPHEN;
 
 		return this.logging.format
 			.replace(LOG_V, host)
 			.replace(LOG_H, ip)
-			.replace(LOG_L, HYPHEN)
+			.replace(LOG_L, logname)
 			.replace(LOG_U, username)
 			.replace(LOG_T, dateStr)
 			.replace(LOG_R, requestLine)
-			.replace(LOG_S, res.statusCode)
+			.replace(LOG_S, statusCode)
 			.replace(LOG_B, contentLength)
 			.replace(LOG_REFERRER, referer)
 			.replace(LOG_USER_AGENT, userAgent);
@@ -542,7 +571,7 @@ export class Woodland extends EventEmitter {
 	 */
 	ip (req) {
 		// Optimized: Cache fallback IP and fast path for common case
-		const fallbackIP = req.connection.remoteAddress || req.socket.remoteAddress || "127.0.0.1";
+		const fallbackIP = req?.connection?.remoteAddress || req?.socket?.remoteAddress || "127.0.0.1";
 
 		// Fast path: If no X-Forwarded-For header or empty, return connection IP
 		const forwardedHeader = req.headers[X_FORWARDED_FOR];

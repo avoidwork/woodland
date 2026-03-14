@@ -70,6 +70,79 @@ describe("Woodland", () => {
 				logging: { enabled: false }});
 			assert.strictEqual(noEtagApp.etags, null);
 		});
+
+		it("should use environment variables for logging configuration", () => {
+			const originalEnabled = process.env.WOODLAND_LOG_ENABLED;
+			const originalFormat = process.env.WOODLAND_LOG_FORMAT;
+			const originalLevel = process.env.WOODLAND_LOG_LEVEL;
+
+			process.env.WOODLAND_LOG_ENABLED = "false";
+			process.env.WOODLAND_LOG_FORMAT = "%h %>s";
+			process.env.WOODLAND_LOG_LEVEL = "debug";
+
+			const envApp = new Woodland();
+			assert.strictEqual(envApp.logging.enabled, false);
+			assert.strictEqual(envApp.logging.format, "%h %>s");
+			assert.strictEqual(envApp.logging.level, "debug");
+
+			if (originalEnabled === undefined) {
+				delete process.env.WOODLAND_LOG_ENABLED;
+			} else {
+				process.env.WOODLAND_LOG_ENABLED = originalEnabled;
+			}
+			if (originalFormat === undefined) {
+				delete process.env.WOODLAND_LOG_FORMAT;
+			} else {
+				process.env.WOODLAND_LOG_FORMAT = originalFormat;
+			}
+			if (originalLevel === undefined) {
+				delete process.env.WOODLAND_LOG_LEVEL;
+			} else {
+				process.env.WOODLAND_LOG_LEVEL = originalLevel;
+			}
+		});
+
+		it("should prioritize config over environment variables", () => {
+			const originalLevel = process.env.WOODLAND_LOG_LEVEL;
+			process.env.WOODLAND_LOG_LEVEL = "debug";
+
+			const configApp = new Woodland({logging: {level: "error"}});
+			assert.strictEqual(configApp.logging.level, "error");
+
+			if (originalLevel === undefined) {
+				delete process.env.WOODLAND_LOG_LEVEL;
+			} else {
+				process.env.WOODLAND_LOG_LEVEL = originalLevel;
+			}
+		});
+
+		it("should handle WOODLAND_LOG_ENABLED false string", () => {
+			const original = process.env.WOODLAND_LOG_ENABLED;
+			process.env.WOODLAND_LOG_ENABLED = "false";
+
+			const disabledApp = new Woodland();
+			assert.strictEqual(disabledApp.logging.enabled, false);
+
+			if (original === undefined) {
+				delete process.env.WOODLAND_LOG_ENABLED;
+			} else {
+				process.env.WOODLAND_LOG_ENABLED = original;
+			}
+		});
+
+		it("should handle WOODLAND_LOG_ENABLED true string", () => {
+			const original = process.env.WOODLAND_LOG_ENABLED;
+			process.env.WOODLAND_LOG_ENABLED = "true";
+
+			const enabledApp = new Woodland({logging: {}});
+			assert.strictEqual(enabledApp.logging.enabled, true);
+
+			if (original === undefined) {
+				delete process.env.WOODLAND_LOG_ENABLED;
+			} else {
+				process.env.WOODLAND_LOG_ENABLED = original;
+			}
+		});
 	});
 
 	describe("HTTP method handlers", () => {
