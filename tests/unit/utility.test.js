@@ -5,7 +5,6 @@ import {
 	mime,
 	ms,
 	next,
-	pad,
 	params,
 	parse,
 	partialHeaders,
@@ -380,48 +379,6 @@ describe("utility", () => {
 			const fn = next(req, res, middleware, true);
 			fn("test error");
 			assert.strictEqual(errorCalled, true);
-		});
-	});
-
-	describe("pad", () => {
-		it("should pad single digit numbers", () => {
-			const result = pad(5);
-			assert.strictEqual(result, "05");
-		});
-
-		it("should not pad double digit numbers", () => {
-			const result = pad(15);
-			assert.strictEqual(result, "15");
-		});
-
-		it("should handle zero", () => {
-			const result = pad(0);
-			assert.strictEqual(result, "00");
-		});
-
-		it("should handle default parameter", () => {
-			const result = pad();
-			assert.strictEqual(result, "00");
-		});
-
-		it("should handle negative numbers", () => {
-			const result = pad(-5);
-			assert.strictEqual(result, "-5");
-		});
-
-		it("should handle numbers larger than 99", () => {
-			const result = pad(123);
-			assert.strictEqual(result, "123");
-		});
-
-		it("should handle string numbers", () => {
-			const result = pad("7");
-			assert.strictEqual(result, "07");
-		});
-
-		it("should handle null and undefined", () => {
-			assert.strictEqual(pad(null), "null");
-			assert.strictEqual(pad(undefined), "00");
 		});
 	});
 

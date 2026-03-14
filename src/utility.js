@@ -37,7 +37,7 @@ import {
 const __dirname = fileURLToPath(new URL(".", import.meta.url)),
 	html = readFileSync(join(__dirname, "..", "tpl", "autoindex.html"), {encoding: UTF8}),
 	valid = Object.entries(mimeDb).filter(i => EXTENSIONS in i[1]),
-	extensions = valid.reduce((a, v) => {
+	mimeExtensions = valid.reduce((a, v) => {
 		const result = Object.assign({type: v[0]}, v[1]);
 
 		for (const key of result.extensions) {
@@ -142,7 +142,7 @@ export function getStatus (req, res) {
 export function mime (arg = EMPTY) {
 	const ext = extname(arg);
 
-	return ext in extensions ? extensions[ext].type : APPLICATION_OCTET_STREAM;
+	return ext in mimeExtensions ? mimeExtensions[ext].type : APPLICATION_OCTET_STREAM;
 }
 
 /**
@@ -202,15 +202,6 @@ export function next (req, res, middleware, immediate = false) {
 		err => process.nextTick(() => internalFn(err, fn));
 
 	return fn;
-}
-
-/**
- * Pads a number with leading zeros to make it 2 digits
- * @param {number} [arg=0] - The number to pad
- * @returns {string} The padded string representation
- */
-export function pad (arg = INT_0) {
-	return String(arg).padStart(INT_2, STRING_0);
 }
 
 /**
@@ -427,14 +418,12 @@ export function timeOffset (arg = INT_0) {
 	const absValue = isNegative ? -arg : arg;
 	const offsetMinutes = absValue / INT_60;
 
-	// Convert to hours and minutes
 	const hours = Math.floor(offsetMinutes);
 	const minutes = Math.floor((offsetMinutes - hours) * INT_60);
 
-	// Format with zero padding
 	const sign = isNegative ? EMPTY : HYPHEN;
-	const hoursStr = pad(hours);
-	const minutesStr = pad(minutes);
+	const hoursStr = String(hours).padStart(INT_2, STRING_0);
+	const minutesStr = String(minutes).padStart(INT_2, STRING_0);
 
 	return `${sign}${hoursStr}${minutesStr}`;
 }
@@ -447,6 +436,8 @@ export function timeOffset (arg = INT_0) {
 export function writeHead (res, headers = {}) {
 	res.writeHead(res.statusCode, STATUS_CODES[res.statusCode], headers);
 }
+
+export {mimeExtensions};
 
 // Pre-compiled regex patterns for better performance
 const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
@@ -555,5 +546,14 @@ export function isValidIP (ip) {
 
 		return true;
 	}
+}
+
+/**
+ * Converts a route path with parameters to a regex pattern
+ * @param {string} [arg=''] - Route path with parameter placeholders
+ * @returns {string} Regex pattern string
+ */
+export function extractPath (arg = EMPTY) {
+	return arg.replace(/\/:([^/]+)/g, "/(?<$1>[^/]+)");
 }
 

@@ -1,5 +1,5 @@
 import assert from "node:assert";
-import {Woodland} from "../../src/woodland.js";
+import {Woodland, woodland} from "../../src/woodland.js";
 
 describe("Woodland Security Tests", () => {
 	let app;
@@ -237,20 +237,26 @@ describe("Woodland Security Tests", () => {
 		});
 
 		it("should allow CORS when origin is explicitly configured", () => {
-			app.origins = ["https://trusted.com"];
-			mockReq.headers.origin = "https://trusted.com";
-			mockReq.corsHost = true;
+			const trustedApp = woodland({origins: ["https://trusted.com"], logging: {enabled: false}});
+			const trustedReq = {
+				...mockReq,
+				headers: {origin: "https://trusted.com"},
+				corsHost: true
+			};
 
-			const corsAllowed = app.cors(mockReq);
+			const corsAllowed = trustedApp.cors(trustedReq);
 			assert.strictEqual(corsAllowed, true, "Should allow CORS for trusted origin");
 		});
 
 		it("should allow CORS with wildcard if explicitly configured", () => {
-			app.origins = ["*"];
-			mockReq.headers.origin = "https://any.com";
-			mockReq.corsHost = true;
+			const wildcardApp = woodland({origins: ["*"], logging: {enabled: false}});
+			const wildcardReq = {
+				...mockReq,
+				headers: {origin: "https://any.com"},
+				corsHost: true
+			};
 
-			const corsAllowed = app.cors(mockReq);
+			const corsAllowed = wildcardApp.cors(wildcardReq);
 			assert.strictEqual(corsAllowed, true, "Should allow CORS with wildcard");
 		});
 
@@ -307,25 +313,24 @@ describe("Woodland Security Tests", () => {
 
 	describe("Error Handling Security", () => {
 		it("should not expose sensitive information in error messages", () => {
-			const error = app.error(mockReq, mockRes);
+			const errorHandler = app.error(mockReq, mockRes);
 
-			// Test that error handler doesn't expose internal paths
-			error(500);
+			errorHandler(500);
 			assert.strictEqual(mockRes.statusCode, 500, "Should set correct status code");
 			assert.strictEqual(mockRes.ended, true, "Should end response");
 		});
 
 		it("should handle multiple error calls gracefully", () => {
-			const error = app.error(mockReq, mockRes);
+			const errorHandler = app.error(mockReq, mockRes);
 
-			error(404);
+			errorHandler(404);
 			assert.strictEqual(mockRes.statusCode, 404, "Should set first error status");
 
 			// Simulate that headers have been sent after first error
 			mockRes.headersSent = true;
 
 			// Second error call should be ignored
-			error(500);
+			errorHandler(500);
 			assert.strictEqual(mockRes.statusCode, 404, "Should keep first error status");
 		});
 	});
@@ -363,8 +368,8 @@ describe("Woodland Security Integration", () => {
 	});
 
 	it("should allow explicit security configuration", () => {
-		const secureApp = new Woodland({
-			logging: { enabled: false },
+		const secureApp = woodland({
+			logging: {enabled: false},
 			origins: ["https://trusted.com"],
 			autoindex: false
 		});

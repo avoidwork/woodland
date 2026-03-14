@@ -18,7 +18,7 @@
   ],
   "scripts": {
     "benchmark": "npm install express fastify --no-save && node benchmark.js",
-    "build": "npm run test:src && npm run rollup && npm run test:cli",
+    "build": "npm run rollup",
     "changelog": "auto-changelog -p",
     "clean": "rimraf dist coverage coverage.txt",
     "coverage": "c8 --reporter=text npm run mocha 2>&1 | sed -n '/^---/,$p' > coverage.txt",
@@ -29,9 +29,8 @@
     "rollup": "rollup --config",
     "test": "npm run lint && c8 npm run mocha",
     "test:cli": "mocha tests/unit/cli.test.js",
-    "test:src": "npm run lint && c8 mocha tests/unit/constants.test.js tests/unit/utility.test.js tests/unit/woodland*.test.js tests/integration/*.test.js",
     "test:watch": "npm run mocha -- --watch",
-    "precommit": "npm run test"
+    "precommit": "npm run test && npm run build && npm run test:cli"
   },
   "pre-commit": [
     "precommit"

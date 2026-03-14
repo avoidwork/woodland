@@ -7,6 +7,7 @@ describe("Woodland", () => {
 
 	beforeEach(() => {
 		app = new Woodland({ logging: { enabled: false }});
+		app.on("error", () => {});
 	});
 
 	describe("constructor", () => {
@@ -554,24 +555,24 @@ describe("Woodland", () => {
 		});
 	});
 
-	describe("path", () => {
+	describe("extractPath", () => {
 		it("should convert route parameters to regex groups", () => {
-			const result = app.path("/users/:id");
+			const result = app.extractPath("/users/:id");
 			assert.strictEqual(result, "/users/(?<id>[^/]+)");
 		});
 
 		it("should handle multiple parameters", () => {
-			const result = app.path("/users/:id/posts/:postId");
+			const result = app.extractPath("/users/:id/posts/:postId");
 			assert.strictEqual(result, "/users/(?<id>[^/]+)/posts/(?<postId>[^/]+)");
 		});
 
 		it("should return unchanged string for no parameters", () => {
-			const result = app.path("/users");
+			const result = app.extractPath("/users");
 			assert.strictEqual(result, "/users");
 		});
 
 		it("should handle empty string", () => {
-			const result = app.path();
+			const result = app.extractPath();
 			assert.strictEqual(result, "");
 		});
 	});
@@ -765,6 +766,9 @@ describe("Woodland", () => {
 		});
 
 		it("should fallback OPTIONS to GET when no OPTIONS route exists", () => {
+			// Register error listener to prevent unhandled error
+			app.on("error", () => {});
+
 			// Register only a GET route
 			app.get("/test", (req, res) => {
 				res.send("test");
@@ -2756,6 +2760,7 @@ describe("Woodland Helper Method Edge Cases", () => {
 
 	beforeEach(() => {
 		app = new Woodland({ logging: { enabled: false }});
+		app.on("error", () => {});
 
 		mockReq = {
 			method: "GET",
