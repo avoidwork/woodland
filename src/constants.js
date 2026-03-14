@@ -81,7 +81,7 @@ export const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform
 export const LOCALHOST = "127.0.0.1";
 export const INT_8000 = 8000;
 export const IPV4_REGEX =
-	/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+  /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
 export const PROTOCOL_REGEX = /^http(s)?:\/\//;
 
 // =============================================================================
@@ -142,14 +142,14 @@ export const INFO = "info";
 export const LOG = "log";
 
 export const LEVELS = Object.freeze({
-	emerg: 0,
-	alert: 1,
-	crit: 2,
-	error: 3,
-	warn: 4,
-	notice: 5,
-	info: 6,
-	debug: 7,
+  emerg: 0,
+  alert: 1,
+  crit: 2,
+  error: 3,
+  warn: 4,
+  notice: 5,
+  info: 6,
+  debug: 7,
 });
 
 // Log format tokens
@@ -210,10 +210,10 @@ export const TO_STRING = "toString";
 export const TRUE = "true";
 
 export const MONTHS = Object.freeze(
-	Array.from(Array(12).values()).map((i, idx) => {
-		const d = new Date();
-		d.setMonth(idx);
+  Array.from(Array(12).values()).map((i, idx) => {
+    const d = new Date();
+    d.setMonth(idx);
 
-		return Object.freeze(d.toLocaleString(EN_US, { month: SHORT }));
-	}),
+    return Object.freeze(d.toLocaleString(EN_US, { month: SHORT }));
+  }),
 );
