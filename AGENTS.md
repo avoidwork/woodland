@@ -14,7 +14,7 @@
 ## Development workflow
 
 1. Make changes to source files
-2. Run tests: `npm test` (ensure 231 tests still pass)
+2. Run tests: `npm test` (ensure 376 tests still pass)
 3. Fix lint errors: `npm run fix`
 4. Build: `npm run build`
 
@@ -81,4 +81,16 @@
 
 ## Test count
 
-- 231 tests passing
+- 376 tests passing
+
+## Key implementation details
+
+- `escapeHtml` is a private function in `utility.js`, not exported for testing
+- `autoindex` template uses lowercase doctype: `<!doctype html>`
+- `params` uses `coerce()` to convert numeric strings to numbers
+- `partialHeaders` uses lowercase header names (e.g., `content-range`)
+- `timeOffset` sign convention: positive offset returns `-0500`, negative returns `0500` (no `+` prefix)
+- IPv6 validation accepts incomplete compressed addresses (e.g., `2001:db8:::`)
+- Middleware execution is async via `process.nextTick`, tests need to wait
+- CORS check (`req.cors`) only true when origin host differs from request host
+- Unknown file extensions may have MIME types in mime-db; use unique extensions for octet-stream
