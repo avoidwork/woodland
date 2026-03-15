@@ -27,6 +27,12 @@ export function createLogger(config = {}) {
 
 	let logFn, clfmFn, logRouteFn, logMiddlewareFn, logDecorationFn, logErrorFn, logServeFn;
 
+	/**
+	 * Extracts IP address from request object
+	 * @private
+	 * @param {Object} req - Request object
+	 * @returns {string} IP address
+	 */
 	function extractIP(req) {
 		const connection = req.connection;
 		const socket = req.socket;
@@ -36,6 +42,13 @@ export function createLogger(config = {}) {
 		);
 	}
 
+	/**
+	 * Main logging function
+	 * @private
+	 * @param {string} msg - Log message
+	 * @param {string} [logLevel=debug] - Log level
+	 * @returns {Object} Logger object for chaining
+	 */
 	logFn = function (msg, logLevel = DEBUG) {
 		if (enabled) {
 			const idx = LEVELS[logLevel];
@@ -59,6 +72,13 @@ export function createLogger(config = {}) {
 		};
 	};
 
+	/**
+	 * Generates common log format entry
+	 * @private
+	 * @param {Object} req - Request object
+	 * @param {Object} res - Response object
+	 * @returns {string} Common log format string
+	 */
 	clfmFn = function (req, res) {
 		const date = new Date();
 		const month = MONTHS[date.getMonth()];
@@ -104,20 +124,51 @@ export function createLogger(config = {}) {
 		return logEntry;
 	};
 
+	/**
+	 * Creates route log message
+	 * @private
+	 * @param {string} uri - Request URI
+	 * @param {string} method - HTTP method
+	 * @param {string} ip - Client IP
+	 * @returns {Object} Logger object for chaining
+	 */
 	logRouteFn = function (uri, method, ip) {
 		return logFn(`type=route, uri=${uri}, method=${method}, ip=${ip}, message="Routing request"`);
 	};
 
+	/**
+	 * Creates middleware log message
+	 * @private
+	 * @param {string} route - Route path
+	 * @param {string} method - HTTP method
+	 * @returns {Object} Logger object for chaining
+	 */
 	logMiddlewareFn = function (route, method) {
 		return logFn(`type=use, route=${route}, method=${method}, message="Registering middleware"`);
 	};
 
+	/**
+	 * Creates decoration log message
+	 * @private
+	 * @param {string} uri - Request URI
+	 * @param {string} method - HTTP method
+	 * @param {string} ip - Client IP
+	 * @returns {Object} Logger object for chaining
+	 */
 	logDecorationFn = function (uri, method, ip) {
 		return logFn(
 			`type=decorate, uri=${uri}, method=${method}, ip=${ip}, message="Decorated request from ${ip}"`,
 		);
 	};
 
+	/**
+	 * Creates error log message
+	 * @private
+	 * @param {string} uri - Request URI
+	 * @param {string} method - HTTP method
+	 * @param {string} ip - Client IP
+	 * @returns {Object} Logger object for chaining
+	 */
 	logErrorFn = function (uri, method, ip) {
 		return logFn(
 			`type=error, uri=${uri}, method=${method}, ip=${ip}, message="Handled error response for ${ip}"`,
@@ -125,6 +176,13 @@ export function createLogger(config = {}) {
 		);
 	};
 
+	/**
+	 * Creates serve log message
+	 * @private
+	 * @param {Object} req - Request object
+	 * @param {string} message - Log message
+	 * @returns {Object} Logger object for chaining
+	 */
 	logServeFn = function (req, message) {
 		return logFn(
 			`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${message}"`,
