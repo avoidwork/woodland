@@ -65,7 +65,6 @@ const CONTENT_LENGTH = "content-length";
 const CONTENT_RANGE = "content-range";
 const CONTENT_TYPE = "content-type";
 const ETAG = "etag";
-const LAST_MODIFIED = "last-modified";
 const LOCATION = "location";
 const NO_SNIFF = "nosniff";
 const ORIGIN = "origin";
@@ -255,17 +254,6 @@ function getStatus(req, res) {
 
 	// Return existing error status or default 500
 	return res.statusCode > INT_500 ? res.statusCode : INT_500;
-}
-
-/**
- * Gets the MIME type for a file based on its extension
- * @param {string} [arg=""] - The filename or path to get the MIME type for
- * @returns {string} The MIME type or application/octet-stream as default
- */
-function mime$1(arg = EMPTY) {
-	const ext = node_path.extname(arg);
-
-	return ext in mimeExtensions ? mimeExtensions[ext].type : APPLICATION_OCTET_STREAM;
 }
 
 /**
@@ -742,7 +730,6 @@ function createMiddlewareRegistry(middleware, ignored, methods, cache) {
  * Gets MIME type for file extension
  * @param {string} [arg=""] - File path or extension
  * @returns {string} MIME type string
- * @private
  */
 function mime(arg = EMPTY) {
 	const ext = node_path.extname(arg);
@@ -754,7 +741,6 @@ function mime(arg = EMPTY) {
  * Gets HTTP status text for status code
  * @param {number} status - HTTP status code
  * @returns {string} Status text string
- * @private
  */
 function getStatusText(status) {
 	const statusTexts = {
@@ -774,507 +760,212 @@ function getStatusText(status) {
 }
 
 /**
- * Creates response handler with all response methods
- * @param {Object} config - Configuration object
- * @param {number} config.digit - Digit precision for timing
- * @param {Object} config.etags - ETag generator or null
- * @param {Function} config.onReady - Callback for response ready
- * @param {Function} config.onDone - Callback for response done
- * @param {Function} config.onSend - Callback for response send
- * @returns {Object} Response handler with createErrorHandler, createJsonHandler, createRedirectHandler, createSendHandler, createSetHandler, createStatusHandler, stream
+ * No-op function for default parameters
+ * @returns {void}
  */
-function createResponseHandler({ digit: _digit, etags, onReady, onDone, onSend: _onSend }) {
-	/**
-	 * Creates error handler function
-	 * @param {Function} emitError - Error emit function
-	 * @param {Function} logError - Error log function
-	 * @returns {Function} Error handler
-	 * @private
-	 */
-	function createErrorHandler(emitError, logError) {
-		return (req, res) => {
-			return (status = 500, body) => {
-				if (res.headersSent === false) {
-					const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
-					let output = err.message,
-						headers = {};
-
-					[output, status, headers] = onReady(req, res, output, status, headers);
-
-					if (status === 404) {
-						res.removeHeader("allow");
-						res.header("allow", EMPTY);
-
-						if (req.cors) {
-							res.removeHeader("access-control-allow-methods");
-							res.header("access-control-allow-methods", EMPTY);
-						}
-					}
-
-					res.removeHeader(CONTENT_LENGTH);
-					res.statusCode = status;
-
-					emitError(req, res, err);
-					logError(req, status);
-					onDone(req, res, output, headers);
-				}
-			};
-		};
-	}
-
-	/**
-	 * Creates JSON handler function
-	 * @param {Object} res - Response object
-	 * @returns {Function} JSON handler
-	 * @private
-	 */
-	function createJsonHandler(res) {
-		return (
-			arg,
-			status = 200,
-			headers = { [CONTENT_TYPE]: `${APPLICATION_JSON}; charset=utf-8` },
-		) => {
-			res.send(JSON.stringify(arg), status, headers);
-		};
-	}
-
-	/**
-	 * Creates redirect handler function
-	 * @param {Object} res - Response object
-	 * @returns {Function} Redirect handler
-	 * @private
-	 */
-	function createRedirectHandler(res) {
-		return (uri, perm = true) => {
-			res.send(EMPTY, perm ? 308 : 307, { [LOCATION]: uri });
-		};
-	}
-
-	/**
-	 * Creates send handler function
-	 * @param {Object} req - Request object
-	 * @param {Object} res - Response object
-	 * @returns {Function} Send handler
-	 * @private
-	 */
-	function createSendHandler(req, res) {
-		return (body = EMPTY, status = res.statusCode, headers = {}) => {
-			if (res.headersSent === false) {
-				[body, status, headers] = onReady(req, res, body, status, headers);
-
-				const method = req.method;
-				const rangeHeader = req.headers.range;
-				const isPipeable = pipeable(method, body);
-
-				if (isPipeable) {
-					if (rangeHeader === void 0 || req.range !== void 0) {
-						writeHead(res, headers);
-						body.on("error", (err) => res.error(500, err)).pipe(res);
-					} else {
-						res.error(INT_416);
-					}
-				} else {
-					if (typeof body !== STRING && body && typeof body[TO_STRING] === "function") {
-						body = body.toString();
-					}
-
-					if (rangeHeader !== void 0) {
-						const buffered = Buffer.from(body);
-						const byteLength = buffered.length;
-
-						[headers] = partialHeaders(req, res, byteLength, status, headers);
-
-						if (req.range !== void 0) {
-							const rangeBuffer = buffered.slice(req.range.start, req.range.end + 1);
-							onDone(req, res, rangeBuffer.toString(), headers);
-						} else {
-							res.error(INT_416);
-						}
-					} else {
-						res.statusCode = status;
-						onDone(req, res, body, headers);
-					}
-				}
-			}
-		};
-	}
-
-	/**
-	 * Creates set handler function
-	 * @param {Object} res - Response object
-	 * @returns {Function} Set handler
-	 * @private
-	 */
-	function createSetHandler(res) {
-		return (arg = {}) => {
-			const headers = arg instanceof Map || arg instanceof Headers ? arg : new Headers(arg);
-
-			for (const [key, value] of headers) {
-				res.setHeader(key, value);
-			}
-
-			return res;
-		};
-	}
-
-	/**
-	 * Creates status handler function
-	 * @param {Object} res - Response object
-	 * @returns {Function} Status handler
-	 * @private
-	 */
-	function createStatusHandler(res) {
-		return (arg = INT_200) => {
-			res.statusCode = arg;
-
-			return res;
-		};
-	}
-
-	/**
-	 * Streams file to response
-	 * @param {Object} req - Request object
-	 * @param {Object} res - Response object
-	 * @param {Object} file - File descriptor
-	 * @param {Function} emitStream - Stream emit function
-	 * @private
-	 */
-	function stream(req, res, file, emitStream) {
-		if (file.path === EMPTY || file.stats.size === 0) {
-			throw new TypeError("Invalid file descriptor");
-		}
-
-		res.header(CONTENT_LENGTH, file.stats.size);
-		res.header(
-			CONTENT_TYPE,
-			file.charset.length > 0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path),
-		);
-		res.header("last-modified", file.stats.mtime.toUTCString());
-
-		if (etags && file.etag.length > 0) {
-			res.header(ETAG, file.etag);
-			res.removeHeader(CACHE_CONTROL);
-		}
-
-		if (req.method === "GET") {
-			let status = INT_200;
-			let options = {};
-			let headers = {};
-
-			if (RANGE in req.headers) {
-				[headers, options] = partialHeaders(req, res, file.stats.size);
-
-				if (Object.keys(options).length > 0) {
-					res.removeHeader(CONTENT_LENGTH);
-					res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
-
-					if (CONTENT_LENGTH in headers) {
-						res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
-					}
-				} else {
-					options = {};
-				}
-			}
-
-			res.send(
-				node_fs.createReadStream(file.path, Object.keys(options).length > 0 ? options : undefined),
-				status,
-			);
-		} else if (req.method === "HEAD") {
-			res.send(EMPTY);
-		} else if (req.method === OPTIONS) {
-			res.removeHeader(CONTENT_LENGTH);
-			res.send(OPTIONS_BODY);
-		}
-
-		emitStream(req, res);
-	}
-
-	return {
-		createErrorHandler,
-		createJsonHandler,
-		createRedirectHandler,
-		createSendHandler,
-		createSetHandler,
-		createStatusHandler,
-		stream,
-	};
-}
-
-const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-const IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/;
-const IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i;
-const HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
+function noop() {}
 
 /**
- * Validates if an IP address is properly formatted
- * @param {string} ip - IP address to validate
- * @returns {boolean} True if IP is valid format
+ * Error response handler
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @param {Function} emitError - Error emit function
+ * @param {Function} logError - Error log function
+ * @param {number} [status=500] - HTTP status code
+ * @param {*} [body] - Error body
  */
-function isValidIP(ip) {
-	if (!ip || typeof ip !== "string") {
-		return false;
-	}
+function error(req, res, emitError, logError, status = 500, body) {
+	if (res.headersSent === false) {
+		const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
 
-	if (ip.indexOf(":") === -1) {
-		const match = IPV4_PATTERN.exec(ip);
+		if (status === 404) {
+			res.removeHeader("allow");
+			res.header("allow", EMPTY);
 
-		if (!match) {
-			return false;
-		}
-
-		for (let i = 1; i < 5; i++) {
-			const num = parseInt(match[i], 10);
-			if (num > 255) {
-				return false;
+			if (req.cors) {
+				res.removeHeader("access-control-allow-methods");
+				res.header("access-control-allow-methods", EMPTY);
 			}
 		}
 
-		return true;
-	}
+		res.removeHeader(CONTENT_LENGTH);
+		res.statusCode = status;
 
-	if (!IPV6_CHAR_PATTERN.test(ip)) {
-		return false;
-	}
-
-	const ipv4MappedMatch = IPV4_MAPPED_PATTERN.exec(ip);
-	if (ipv4MappedMatch) {
-		return isValidIP(ipv4MappedMatch[1]);
-	}
-
-	if (ip === "::") {
-		return true;
-	}
-
-	const doubleColonIndex = ip.indexOf("::");
-	const isCompressed = doubleColonIndex !== -1;
-
-	if (isCompressed) {
-		if (ip.indexOf("::", doubleColonIndex + 2) !== -1) {
-			return false;
-		}
-
-		const beforeDoubleColon = ip.substring(0, doubleColonIndex);
-		const afterDoubleColon = ip.substring(doubleColonIndex + 2);
-
-		if (afterDoubleColon === ":" || (afterDoubleColon && afterDoubleColon.endsWith(":"))) {
-			return false;
-		}
-
-		const leftGroups = beforeDoubleColon ? beforeDoubleColon.split(":") : [];
-		const rightGroups = afterDoubleColon ? afterDoubleColon.split(":") : [];
-
-		const nonEmptyLeft = leftGroups.filter((g) => g !== "");
-		const nonEmptyRight = rightGroups.filter((g) => g !== "");
-		const totalGroups = nonEmptyLeft.length + nonEmptyRight.length;
-
-		if (totalGroups >= 8) {
-			return false;
-		}
-
-		for (let i = 0; i < nonEmptyLeft.length; i++) {
-			if (!HEX_GROUP_PATTERN.test(nonEmptyLeft[i])) {
-				return false;
-			}
-		}
-		for (let i = 0; i < nonEmptyRight.length; i++) {
-			if (!HEX_GROUP_PATTERN.test(nonEmptyRight[i])) {
-				return false;
-			}
-		}
-
-		return true;
-	} else {
-		const groups = ip.split(":");
-		if (groups.length !== 8) {
-			return false;
-		}
-
-		for (let i = 0; i < 8; i++) {
-			if (!groups[i] || !HEX_GROUP_PATTERN.test(groups[i])) {
-				return false;
-			}
-		}
-
-		return true;
+		emitError(req, res, err);
+		logError(req, status);
 	}
 }
 
 /**
- * Creates CORS handler for checking and handling CORS requests
- * @param {Array} origins - Array of allowed origins
- * @returns {Object} CORS handler with cors, corsHost, corsRequest methods
+ * JSON response handler
+ * @param {Object} res - Response object
+ * @param {*} arg - Response data
+ * @param {number} [status=200] - HTTP status code
+ * @param {Object} [headers={}] - Response headers
  */
-function createCorsHandler(origins) {
-	/**
-	 * Checks if request origin is allowed for CORS
-	 * @private
-	 * @param {Object} req - Request object
-	 * @returns {boolean} True if CORS is allowed
-	 */
-	function cors(req) {
-		if (origins.length === 0) {
-			return false;
-		}
-
-		return req.corsHost && (origins.includes(WILDCARD) || origins.includes(req.headers.origin));
-	}
-
-	/**
-	 * Checks if request origin host differs from request host
-	 * @private
-	 * @param {Object} req - Request object
-	 * @returns {boolean} True if hosts differ
-	 */
-	function corsHost(req) {
-		return (
-			ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host
-		);
-	}
-
-	/**
-	 * Creates CORS request handler that sends 204 No Content
-	 * @private
-	 * @returns {Function} Request handler function
-	 */
-	function corsRequest() {
-		return (req, res) => res.status(204).send(EMPTY);
-	}
-
-	return { cors, corsHost, corsRequest };
+function json(
+	res,
+	arg,
+	status = 200,
+	headers = { [CONTENT_TYPE]: `${APPLICATION_JSON}; charset=utf-8` },
+) {
+	res.send(JSON.stringify(arg), status, headers);
 }
 
 /**
- * Creates IP extractor for extracting client IP from request
- * @returns {Object} IP extractor with extract method
+ * Redirect response handler
+ * @param {Object} res - Response object
+ * @param {string} uri - Redirect URI
+ * @param {boolean} [perm=true] - Permanent redirect
  */
-function createIpExtractor() {
-	/**
-	 * Extracts client IP address from request
-	 * @private
-	 * @param {Object} req - Request object
-	 * @returns {string} Client IP address
-	 */
-	function extract(req) {
-		const connection = req.connection;
-		const socket = req.socket;
-		const fallbackIP =
-			(connection && connection.remoteAddress) || (socket && socket.remoteAddress) || "127.0.0.1";
+function redirect(res, uri, perm = true) {
+	res.send(EMPTY, perm ? 308 : 307, { [LOCATION]: uri });
+}
 
-		const forwardedHeader = req.headers["x-forwarded-for"];
-		if (!forwardedHeader || !forwardedHeader.trim()) {
-			return fallbackIP;
-		}
+/**
+ * Send response handler
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @param {*} [body=""] - Response body
+ * @param {number} [status=res.statusCode] - HTTP status code
+ * @param {Object} [headers={}] - Response headers
+ * @param {Function} onReady - Ready handler
+ * @param {Function} onDone - Done handler
+ */
+function send(
+	req,
+	res,
+	body = EMPTY,
+	status = res.statusCode,
+	headers = {},
+	onReady,
+	onDone,
+) {
+	if (res.headersSent === false) {
+		[body, status, headers] = onReady(req, res, body, status, headers);
 
-		const forwardedIPs = forwardedHeader.split(",");
+		const method = req.method;
+		const rangeHeader = req.headers.range;
+		const isPipeable = pipeable(method, body);
 
-		for (let i = 0; i < forwardedIPs.length; i++) {
-			const ip = forwardedIPs[i].trim();
-			if (isValidIP(ip)) {
-				return ip;
+		if (isPipeable) {
+			if (rangeHeader === void 0 || req.range !== void 0) {
+				writeHead(res, headers);
+				body.on("error", (err) => error(req, res, noop, noop, 500, err)).pipe(res);
+			} else {
+				error(req, res, noop, noop, INT_416);
 			}
-		}
-
-		return fallbackIP;
-	}
-
-	return { extract };
-}
-
-/**
- * Creates file server middleware for serving static files
- * @param {Object} app - Woodland application instance
- * @returns {Object} File server with register, serve methods
- */
-function createFileServer(app) {
-	/**
-	 * Serves files from filesystem
-	 * @private
-	 * @param {Object} req - Request object
-	 * @param {Object} res - Response object
-	 * @param {string} arg - File path argument
-	 * @param {string} [folder] - Root folder to serve from
-	 */
-	async function serve(req, res, arg, folder = process.cwd()) {
-		const fp = node_path.resolve(folder, arg);
-		const resolvedFolder = node_path.resolve(folder);
-
-		if (!fp.startsWith(resolvedFolder)) {
-			app.logger.logServe(req, "Path outside allowed directory");
-			res.error(INT_403);
-
-			return;
-		}
-
-		let valid = true;
-		let stats;
-
-		app.logger.logServe(req, "Routing request to file system");
-
-		try {
-			stats = await promises.stat(fp, { bigint: false });
-		} catch {
-			valid = false;
-		}
-
-		if (valid === false) {
-			res.error(INT_404);
-		} else if (stats.isDirectory() === false) {
-			app.stream(req, res, {
-				charset: app.charset,
-				etag: app.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
-				path: fp,
-				stats: stats,
-			});
-		} else if (req.parsed.pathname.endsWith(SLASH) === false) {
-			res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
 		} else {
-			const files = await promises.readdir(fp, { encoding: UTF8, withFileTypes: true });
-			let result = EMPTY;
-
-			for (let i = 0; i < files.length; i++) {
-				const file = files[i];
-				if (app.indexes.includes(file.name)) {
-					result = node_path.join(fp, file.name);
-					break;
-				}
+			if (typeof body !== STRING && body && typeof body[TO_STRING] === "function") {
+				body = body.toString();
 			}
 
-			if (result.length === INT_0) {
-				if (app.autoindex === false) {
-					res.error(INT_404);
+			if (rangeHeader !== void 0) {
+				const buffered = Buffer.from(body);
+				const byteLength = buffered.length;
+
+				[headers] = partialHeaders(req, res, byteLength, status, headers);
+
+				if (req.range !== void 0) {
+					const rangeBuffer = buffered.slice(req.range.start, req.range.end + 1);
+					onDone(req, res, rangeBuffer.toString(), headers);
 				} else {
-					const body = autoindex(decodeURIComponent(req.parsed.pathname), files);
-					res.header("content-type", `text/html; charset=${app.charset}`);
-					res.send(body);
+					error(req, res, noop, noop, INT_416);
 				}
 			} else {
-				const rstats = await promises.stat(result, { bigint: false });
-
-				app.stream(req, res, {
-					charset: app.charset,
-					etag: app.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
-					path: result,
-					stats: rstats,
-				});
+				res.statusCode = status;
+				onDone(req, res, body, headers);
 			}
 		}
 	}
+}
 
-	/**
-	 * Registers file serving middleware for a root path
-	 * @private
-	 * @param {string} root - Root path to register
-	 * @param {string} folder - Folder to serve files from
-	 * @param {Function} useMiddleware - Middleware registration function
-	 */
-	function register(root, folder, useMiddleware) {
-		useMiddleware(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) =>
-			serve(req, res, req.parsed.pathname.substring(1), folder),
-		);
+/**
+ * Set headers handler
+ * @param {Object} res - Response object
+ * @param {Object|Map|Headers} [arg={}] - Headers to set
+ * @returns {Object} Response object
+ */
+function set(res, arg = {}) {
+	const headers = arg instanceof Map || arg instanceof Headers ? arg : new Headers(arg);
+
+	for (const [key, value] of headers) {
+		res.setHeader(key, value);
 	}
 
-	return { register, serve };
+	return res;
+}
+
+/**
+ * Status handler
+ * @param {Object} res - Response object
+ * @param {number} [arg=200] - Status code
+ * @returns {Object} Response object
+ */
+function status(res, arg = INT_200) {
+	res.statusCode = arg;
+
+	return res;
+}
+
+/**
+ * Streams file to response
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @param {Object} file - File descriptor
+ * @param {Function} emitStream - Stream emit function
+ * @param {Function} createReadStream - Stream factory function
+ * @param {boolean} etags - ETag support enabled
+ */
+function stream(req, res, file, emitStream, createReadStream, etags) {
+	if (file.path === EMPTY || file.stats.size === 0) {
+		throw new TypeError("Invalid file descriptor");
+	}
+
+	res.header(CONTENT_LENGTH, file.stats.size);
+	res.header(
+		CONTENT_TYPE,
+		file.charset.length > 0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path),
+	);
+	res.header("last-modified", file.stats.mtime.toUTCString());
+
+	if (etags && file.etag.length > 0) {
+		res.header(ETAG, file.etag);
+		res.removeHeader(CACHE_CONTROL);
+	}
+
+	if (req.method === "GET") {
+		let status = INT_200;
+		let options = {};
+		let headers = {};
+
+		if (RANGE in req.headers) {
+			[headers, options] = partialHeaders(req, res, file.stats.size);
+
+			if (Object.keys(options).length > 0) {
+				res.removeHeader(CONTENT_LENGTH);
+				res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
+
+				if (CONTENT_LENGTH in headers) {
+					res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
+				}
+			} else {
+				options = {};
+			}
+		}
+
+		res.send(
+			createReadStream(file.path, Object.keys(options).length > 0 ? options : undefined),
+			status,
+		);
+	} else if (req.method === "HEAD") {
+		res.send(EMPTY);
+	} else if (req.method === OPTIONS) {
+		res.removeHeader(CONTENT_LENGTH);
+		res.send(OPTIONS_BODY);
+	}
+
+	emitStream(req, res);
 }
 
 const CONFIG_SCHEMA = {
@@ -1392,6 +1083,169 @@ const LEVELS = {
 };
 
 /**
+ * Extracts IP address from request object
+ * @param {Object} req - Request object
+ * @returns {string} IP address
+ */
+function extractIP(req) {
+	const connection = req.connection;
+	const socket = req.socket;
+
+	return (
+		(connection && connection.remoteAddress) || (socket && socket.remoteAddress) || "127.0.0.1"
+	);
+}
+
+/**
+ * Generates common log format entry
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @param {string} format - Log format string
+ * @returns {string} Common log format string
+ */
+function clfm(req, res, format) {
+	const date = new Date();
+	const month = MONTHS[date.getMonth()];
+	const day = date.getDate();
+	const year = date.getFullYear();
+	const hours = String(date.getHours()).padStart(2, "0");
+	const minutes = String(date.getMinutes()).padStart(2, "0");
+	const seconds = String(date.getSeconds()).padStart(2, "0");
+	const timezone = timeOffset(date.getTimezoneOffset());
+	const dateStr = `[${day}/${month}/${year}:${hours}:${minutes}:${seconds} ${timezone}]`;
+
+	const host = req.headers?.host ?? HYPHEN;
+	const clientIP = req.ip || extractIP(req);
+	const ip = clientIP;
+	const logname = HYPHEN;
+	const username = req?.parsed?.username ?? HYPHEN;
+
+	const parsed = req?.parsed;
+	const pathname = parsed?.pathname ?? req.url ?? HYPHEN;
+	const search = parsed?.search ?? HYPHEN;
+	const requestLine = `${req.method ?? HYPHEN} ${pathname}${search} HTTP/1.1`;
+
+	const statusCode = res?.statusCode ?? 500;
+	const contentLength = res?.getHeader("content-length") ?? HYPHEN;
+
+	const referer = req.headers?.referer ?? HYPHEN;
+	const userAgent = req.headers?.["user-agent"] ?? HYPHEN;
+
+	let logEntry = format;
+
+	logEntry = logEntry
+		.replace("%v", host)
+		.replace("%h", ip)
+		.replace("%l", logname)
+		.replace("%u", username)
+		.replace("%t", dateStr)
+		.replace("%r", requestLine)
+		.replace("%>s", String(statusCode))
+		.replace("%b", contentLength)
+		.replace("%{Referer}i", referer)
+		.replace("%{User-agent}i", userAgent);
+
+	return logEntry;
+}
+
+/**
+ * Creates route log message
+ * @param {string} uri - Request URI
+ * @param {string} method - HTTP method
+ * @param {string} ip - Client IP
+ * @param {Function} logFn - Log function
+ * @returns {Object} Logger object for chaining
+ */
+function logRoute(uri, method, ip, logFn) {
+	return logFn(`type=route, uri=${uri}, method=${method}, ip=${ip}, message="Routing request"`);
+}
+
+/**
+ * Creates middleware log message
+ * @param {string} route - Route path
+ * @param {string} method - HTTP method
+ * @param {Function} logFn - Log function
+ * @returns {Object} Logger object for chaining
+ */
+function logMiddleware(route, method, logFn) {
+	return logFn(`type=use, route=${route}, method=${method}, message="Registering middleware"`);
+}
+
+/**
+ * Creates decoration log message
+ * @param {string} uri - Request URI
+ * @param {string} method - HTTP method
+ * @param {string} ip - Client IP
+ * @param {Function} logFn - Log function
+ * @returns {Object} Logger object for chaining
+ */
+function logDecoration(uri, method, ip, logFn) {
+	return logFn(
+		`type=decorate, uri=${uri}, method=${method}, ip=${ip}, message="Decorated request from ${ip}"`,
+	);
+}
+
+/**
+ * Creates error log message
+ * @param {string} uri - Request URI
+ * @param {string} method - HTTP method
+ * @param {string} ip - Client IP
+ * @param {Function} logFn - Log function
+ * @returns {Object} Logger object for chaining
+ */
+function logError(uri, method, ip, logFn) {
+	return logFn(
+		`type=error, uri=${uri}, method=${method}, ip=${ip}, message="Handled error response for ${ip}"`,
+		ERROR,
+	);
+}
+
+/**
+ * Creates serve log message
+ * @param {Object} req - Request object
+ * @param {string} message - Log message
+ * @param {Function} logFn - Log function
+ * @returns {Object} Logger object for chaining
+ */
+function logServe(req, message, logFn) {
+	return logFn(
+		`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${message}"`,
+		ERROR,
+	);
+}
+
+/**
+ * Main logging function
+ * @param {string} msg - Log message
+ * @param {string} [logLevel='debug'] - Log level
+ * @param {boolean} enabled - Enable/disable logging
+ * @param {string} actualLevel - Actual log level
+ * @returns {Object} Logger object for chaining
+ */
+function log(msg, logLevel = DEBUG, enabled = true, actualLevel = INFO) {
+	if (enabled) {
+		const idx = LEVELS[logLevel];
+		if (idx <= LEVELS[actualLevel]) {
+			process.nextTick(() => {
+				const consoleMethod = idx > 4 ? "log" : "error";
+				console[consoleMethod](msg);
+			});
+		}
+	}
+
+	return {
+		log,
+		clfm,
+		extractIP,
+		logRoute,
+		logMiddleware,
+		logDecoration,
+		logError,
+		logServe,
+	};
+}
+
+/**
  * Creates logger with configurable format and level
  * @param {Object} [config={}] - Configuration object
  * @param {boolean} [config.enabled=true] - Enable/disable logging
@@ -1404,181 +1258,150 @@ function createLogger(config = {}) {
 	const validLevels = [DEBUG, INFO, "warn", "error", "critical", "alert", "emerg", "notice"];
 	const actualLevel = validLevels.includes(level) ? level : INFO;
 
-	let logFn, clfmFn, logRouteFn, logMiddlewareFn, logDecorationFn, logErrorFn, logServeFn;
+	return {
+		log: (msg, logLevel = DEBUG) => log(msg, logLevel, enabled, actualLevel),
+		clfm: (req, res) => clfm(req, res, format),
+		extractIP,
+		logRoute: (uri, method, ip) =>
+			logRoute(uri, method, ip, (msg, lvl) => log(msg, lvl, enabled, actualLevel)),
+		logMiddleware: (route, method) =>
+			logMiddleware(route, method, (msg, lvl) => log(msg, lvl, enabled, actualLevel)),
+		logDecoration: (uri, method, ip) =>
+			logDecoration(uri, method, ip, (msg, lvl) => log(msg, lvl, enabled, actualLevel)),
+		logError: (uri, method, ip) =>
+			logError(uri, method, ip, (msg, lvl) => log(msg, lvl, enabled, actualLevel)),
+		logServe: (req, message) =>
+			logServe(req, message, (msg, lvl) => log(msg, lvl, enabled, actualLevel)),
+	};
+}
 
-	/**
-	 * Extracts IP address from request object
-	 * @private
-	 * @param {Object} req - Request object
-	 * @returns {string} IP address
-	 */
-	function extractIP(req) {
-		const connection = req.connection;
-		const socket = req.socket;
-
-		return (
-			(connection && connection.remoteAddress) || (socket && socket.remoteAddress) || "127.0.0.1"
-		);
+/**
+ * Checks if request origin is allowed for CORS
+ * @param {Object} req - Request object
+ * @param {Array} origins - Array of allowed origins
+ * @returns {boolean} True if CORS is allowed
+ */
+function cors(req, origins) {
+	if (origins.length === 0) {
+		return false;
 	}
 
-	/**
-	 * Main logging function
-	 * @private
-	 * @param {string} msg - Log message
-	 * @param {string} [logLevel=debug] - Log level
-	 * @returns {Object} Logger object for chaining
-	 */
-	logFn = function (msg, logLevel = DEBUG) {
-		if (enabled) {
-			const idx = LEVELS[logLevel];
-			if (idx <= LEVELS[actualLevel]) {
-				process.nextTick(() => {
-					const consoleMethod = idx > 4 ? "log" : "error";
-					console[consoleMethod](msg);
-				});
-			}
-		}
+	return req.corsHost && (origins.includes(WILDCARD) || origins.includes(req.headers.origin));
+}
 
-		return {
-			log: logFn,
-			clfm: clfmFn,
-			extractIP,
-			logRoute: logRouteFn,
-			logMiddleware: logMiddlewareFn,
-			logDecoration: logDecorationFn,
-			logError: logErrorFn,
-			logServe: logServeFn,
-		};
-	};
+/**
+ * Checks if request origin host differs from request host
+ * @param {Object} req - Request object
+ * @returns {boolean} True if hosts differ
+ */
+function corsHost(req) {
+	return (
+		ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host
+	);
+}
 
+/**
+ * Creates CORS request handler that sends 204 No Content
+ * @returns {Function} Request handler function
+ */
+function corsRequest() {
+	return (req, res) => res.status(204).send(EMPTY);
+}
+
+/**
+ * Creates file server middleware for serving static files
+ * @param {Object} app - Woodland application instance
+ * @returns {Object} File server with register, serve methods
+ */
+function createFileServer(app) {
 	/**
-	 * Generates common log format entry
+	 * Serves files from filesystem
 	 * @private
 	 * @param {Object} req - Request object
 	 * @param {Object} res - Response object
-	 * @returns {string} Common log format string
+	 * @param {string} arg - File path argument
+	 * @param {string} [folder] - Root folder to serve from
 	 */
-	clfmFn = function (req, res) {
-		const date = new Date();
-		const month = MONTHS[date.getMonth()];
-		const day = date.getDate();
-		const year = date.getFullYear();
-		const hours = String(date.getHours()).padStart(2, "0");
-		const minutes = String(date.getMinutes()).padStart(2, "0");
-		const seconds = String(date.getSeconds()).padStart(2, "0");
-		const timezone = timeOffset(date.getTimezoneOffset());
-		const dateStr = `[${day}/${month}/${year}:${hours}:${minutes}:${seconds} ${timezone}]`;
+	async function serve(req, res, arg, folder = process.cwd()) {
+		const fp = node_path.resolve(folder, arg);
+		const resolvedFolder = node_path.resolve(folder);
 
-		const host = req.headers?.host ?? HYPHEN;
-		const clientIP = req.ip || extractIP(req);
-		const ip = clientIP;
-		const logname = HYPHEN;
-		const username = req?.parsed?.username ?? HYPHEN;
+		if (!fp.startsWith(resolvedFolder)) {
+			app.logger.logServe(req, "Path outside allowed directory");
+			res.error(INT_403);
 
-		const parsed = req?.parsed;
-		const pathname = parsed?.pathname ?? req.url ?? HYPHEN;
-		const search = parsed?.search ?? HYPHEN;
-		const requestLine = `${req.method ?? HYPHEN} ${pathname}${search} HTTP/1.1`;
+			return;
+		}
 
-		const statusCode = res?.statusCode ?? 500;
-		const contentLength = res?.getHeader("content-length") ?? HYPHEN;
+		let valid = true;
+		let stats;
 
-		const referer = req.headers?.referer ?? HYPHEN;
-		const userAgent = req.headers?.["user-agent"] ?? HYPHEN;
+		app.logger.logServe(req, "Routing request to file system");
 
-		let logEntry = format;
+		try {
+			stats = await promises.stat(fp, { bigint: false });
+		} catch {
+			valid = false;
+		}
 
-		logEntry = logEntry
-			.replace("%v", host)
-			.replace("%h", ip)
-			.replace("%l", logname)
-			.replace("%u", username)
-			.replace("%t", dateStr)
-			.replace("%r", requestLine)
-			.replace("%>s", String(statusCode))
-			.replace("%b", contentLength)
-			.replace("%{Referer}i", referer)
-			.replace("%{User-agent}i", userAgent);
+		if (valid === false) {
+			res.error(INT_404);
+		} else if (stats.isDirectory() === false) {
+			app.stream(req, res, {
+				charset: app.charset,
+				etag: app.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
+				path: fp,
+				stats: stats,
+			});
+		} else if (req.parsed.pathname.endsWith(SLASH) === false) {
+			res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
+		} else {
+			const files = await promises.readdir(fp, { encoding: UTF8, withFileTypes: true });
+			let result = EMPTY;
 
-		return logEntry;
-	};
+			for (let i = 0; i < files.length; i++) {
+				const file = files[i];
+				if (app.indexes.includes(file.name)) {
+					result = node_path.join(fp, file.name);
+					break;
+				}
+			}
+
+			if (result.length === INT_0) {
+				if (app.autoindex === false) {
+					res.error(INT_404);
+				} else {
+					const body = autoindex(decodeURIComponent(req.parsed.pathname), files);
+					res.header("content-type", `text/html; charset=${app.charset}`);
+					res.send(body);
+				}
+			} else {
+				const rstats = await promises.stat(result, { bigint: false });
+
+				app.stream(req, res, {
+					charset: app.charset,
+					etag: app.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
+					path: result,
+					stats: rstats,
+				});
+			}
+		}
+	}
 
 	/**
-	 * Creates route log message
+	 * Registers file serving middleware for a root path
 	 * @private
-	 * @param {string} uri - Request URI
-	 * @param {string} method - HTTP method
-	 * @param {string} ip - Client IP
-	 * @returns {Object} Logger object for chaining
+	 * @param {string} root - Root path to register
+	 * @param {string} folder - Folder to serve files from
+	 * @param {Function} useMiddleware - Middleware registration function
 	 */
-	logRouteFn = function (uri, method, ip) {
-		return logFn(`type=route, uri=${uri}, method=${method}, ip=${ip}, message="Routing request"`);
-	};
-
-	/**
-	 * Creates middleware log message
-	 * @private
-	 * @param {string} route - Route path
-	 * @param {string} method - HTTP method
-	 * @returns {Object} Logger object for chaining
-	 */
-	logMiddlewareFn = function (route, method) {
-		return logFn(`type=use, route=${route}, method=${method}, message="Registering middleware"`);
-	};
-
-	/**
-	 * Creates decoration log message
-	 * @private
-	 * @param {string} uri - Request URI
-	 * @param {string} method - HTTP method
-	 * @param {string} ip - Client IP
-	 * @returns {Object} Logger object for chaining
-	 */
-	logDecorationFn = function (uri, method, ip) {
-		return logFn(
-			`type=decorate, uri=${uri}, method=${method}, ip=${ip}, message="Decorated request from ${ip}"`,
+	function register(root, folder, useMiddleware) {
+		useMiddleware(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) =>
+			serve(req, res, req.parsed.pathname.substring(1), folder),
 		);
-	};
+	}
 
-	/**
-	 * Creates error log message
-	 * @private
-	 * @param {string} uri - Request URI
-	 * @param {string} method - HTTP method
-	 * @param {string} ip - Client IP
-	 * @returns {Object} Logger object for chaining
-	 */
-	logErrorFn = function (uri, method, ip) {
-		return logFn(
-			`type=error, uri=${uri}, method=${method}, ip=${ip}, message="Handled error response for ${ip}"`,
-			ERROR,
-		);
-	};
-
-	/**
-	 * Creates serve log message
-	 * @private
-	 * @param {Object} req - Request object
-	 * @param {string} message - Log message
-	 * @returns {Object} Logger object for chaining
-	 */
-	logServeFn = function (req, message) {
-		return logFn(
-			`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${message}"`,
-			ERROR,
-		);
-	};
-
-	return {
-		log: logFn,
-		clfm: clfmFn,
-		extractIP,
-		logRoute: logRouteFn,
-		logMiddleware: logMiddlewareFn,
-		logDecoration: logDecorationFn,
-		logError: logErrorFn,
-		logServe: logServeFn,
-	};
+	return { register, serve };
 }
 
 /**
@@ -1669,15 +1492,18 @@ class Woodland extends node_events.EventEmitter {
 			logServe,
 		};
 
-		const { cors, corsHost, corsRequest } = createCorsHandler(this.origins);
-		this.cors = cors;
+		this.cors = (req) => cors(req, this.origins);
 		this.corsHost = corsHost;
 		this.corsRequest = corsRequest;
+		this.ip = extractIP;
 
-		const { extract } = createIpExtractor();
-		this.ip = extract;
+		this.error = this.error.bind(this);
+		this.json = this.json.bind(this);
+		this.redirect = this.redirect.bind(this);
+		this.send = this.send.bind(this);
+		this.set = this.set.bind(this);
+		this.status = this.status.bind(this);
 
-		this.initResponseHandlers();
 		this.initFileServer();
 		this.initMiddleware();
 
@@ -1691,52 +1517,6 @@ class Woodland extends node_events.EventEmitter {
 		}
 
 		this.on(ERROR, () => {});
-	}
-
-	/**
-	 * Initializes response handlers
-	 * @private
-	 */
-	initResponseHandlers() {
-		const onReady = this.onReady.bind(this);
-		const onDone = this.onDone.bind(this);
-		const onSend = this.onSend.bind(this);
-
-		const {
-			createErrorHandler,
-			createJsonHandler,
-			createRedirectHandler,
-			createSendHandler,
-			createSetHandler,
-			createStatusHandler,
-			stream,
-		} = createResponseHandler({
-			digit: this.digit,
-			etags: this.etags,
-			onReady,
-			onDone,
-			onSend,
-		});
-
-		this.responseHandler = {
-			createErrorHandler,
-			createJsonHandler,
-			createRedirectHandler,
-			createSendHandler,
-			createSetHandler,
-			createStatusHandler,
-			stream,
-		};
-
-		this.error = createErrorHandler(
-			(req, res, err) => this.emit(ERROR, req, res, err),
-			(req, _status) => this.logger.logError(req.parsed.pathname, req.method, req.ip),
-		);
-		this.json = createJsonHandler;
-		this.redirect = createRedirectHandler;
-		this.send = createSendHandler;
-		this.set = createSetHandler;
-		this.status = createStatusHandler;
 	}
 
 	/**
@@ -1758,6 +1538,101 @@ class Woodland extends node_events.EventEmitter {
 			this.methods,
 			this.cache,
 		);
+	}
+
+	/**
+	 * Error response handler
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {number} status - HTTP status code
+	 * @param {*} body - Response body
+	 */
+	error(req, res, status = 500, body) {
+		if (arguments.length === 2) {
+			return (s, b) =>
+				error(
+					req,
+					res,
+					(req, res, err) => this.emit(ERROR, req, res, err),
+					(req, _status) => this.logger.logError(req.parsed.pathname, req.method, req.ip),
+					s,
+					b,
+				);
+		}
+		error(
+			req,
+			res,
+			(req, res, err) => this.emit(ERROR, req, res, err),
+			(req, _status) => this.logger.logError(req.parsed.pathname, req.method, req.ip),
+			status,
+			body,
+		);
+	}
+
+	/**
+	 * JSON response handler
+	 * @param {Object} res - HTTP response object
+	 * @param {*} arg - Response data
+	 * @param {number} status - HTTP status code
+	 * @param {Object} headers - Response headers
+	 */
+	json(res, arg, status = 200, headers = { [CONTENT_TYPE]: `${APPLICATION_JSON}; charset=utf-8` }) {
+		if (arguments.length === 1) {
+			return (a, s, h) => json(res, a, s, h);
+		}
+		json(res, arg, status, headers);
+	}
+
+	/**
+	 * Redirect response handler
+	 * @param {Object} res - HTTP response object
+	 * @param {string} uri - Redirect URI
+	 * @param {boolean} perm - Permanent redirect
+	 */
+	redirect(res, uri, perm = true) {
+		if (arguments.length === 1) {
+			return (u, p) => redirect(res, u, p);
+		}
+		redirect(res, uri, perm);
+	}
+
+	/**
+	 * Send response handler
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {*} body - Response body
+	 * @param {number} status - HTTP status code
+	 * @param {Object} headers - Response headers
+	 */
+	send(req, res, body = EMPTY, status = res.statusCode, headers = {}) {
+		if (arguments.length === 2) {
+			return (b, s, h) => send(req, res, b, s, h, this.onReady.bind(this), this.onDone.bind(this));
+		}
+		send(req, res, body, status, headers, this.onReady.bind(this), this.onDone.bind(this));
+	}
+
+	/**
+	 * Set headers handler
+	 * @param {Object} res - HTTP response object
+	 * @param {Object} arg - Headers object
+	 */
+	set(res, arg = {}) {
+		if (arguments.length === 1) {
+			return (a) => set(res, a);
+		}
+		set(res, arg);
+	}
+
+	/**
+	 * Status handler
+	 * @param {Object} res - HTTP response object
+	 * @param {number} arg - Status code
+	 */
+	status(res, arg = INT_200) {
+		if (arguments.length === 1) {
+			return (a) => status(res, a);
+		}
+		status(res, arg);
 	}
 
 	/**
@@ -1859,34 +1734,9 @@ class Woodland extends node_events.EventEmitter {
 		}
 
 		const parsed = parse(req);
-		const pathname = parsed.pathname;
-		const allowString = this.allows(pathname);
-
-		req.parsed = parsed;
-		req.allow = allowString;
-		req.body = EMPTY;
-		req.host = parsed.hostname;
-		req.params = {};
-		req.valid = true;
-
-		if (timing) {
-			req.precise = timing;
-		}
-
-		req.corsHost = this.corsHost(req);
-		req.cors = this.cors(req);
+		const allowString = this.allows(parsed.pathname);
 
 		const clientIP = this.ip(req);
-		req.ip = clientIP;
-
-		res.locals = {};
-		res.error = this.error(req, res);
-		res.header = res.setHeader;
-		res.json = this.json(res);
-		res.redirect = this.redirect(res);
-		res.send = this.send(req, res);
-		res.set = this.set(res);
-		res.status = this.status(res);
 
 		const headersBatch = Object.create(null);
 		headersBatch[ALLOW] = allowString;
@@ -1897,7 +1747,7 @@ class Woodland extends node_events.EventEmitter {
 			headersBatch[key] = value;
 		}
 
-		if (req.cors) {
+		if (this.cors(req)) {
 			const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
 			const origin = req.headers.origin;
 
@@ -1913,10 +1763,34 @@ class Woodland extends node_events.EventEmitter {
 			}
 		}
 
+		req.parsed = parsed;
+		req.allow = allowString;
+		req.body = EMPTY;
+		req.host = parsed.hostname;
+		req.params = {};
+		req.valid = true;
+
+		if (timing) {
+			req.precise = timing;
+		}
+
+		req.corsHost = this.corsHost(req);
+		req.cors = this.cors(req);
+		req.ip = clientIP;
+
+		res.locals = {};
+		res.error = this.error(req, res);
+		res.header = res.setHeader;
+		res.json = this.json(res);
+		res.redirect = this.redirect(res);
+		res.send = this.send(req, res);
+		res.set = this.set(res);
+		res.status = this.status(res);
+
 		res.set(headersBatch);
 
 		this.log(
-			`type=decorate, uri=${pathname}, method=${req.method}, ip=${clientIP}, message="Decorated request from ${clientIP}"`,
+			`type=decorate, uri=${parsed.pathname}, method=${req.method}, ip=${clientIP}, message="Decorated request from ${clientIP}"`,
 		);
 		res.on(CLOSE, () => this.log(this.clf(req, res), INFO));
 	}
@@ -2197,54 +2071,14 @@ class Woodland extends node_events.EventEmitter {
 			stats: { mtime: new Date(), size: INT_0 },
 		},
 	) {
-		if (file.path === EMPTY || file.stats.size === INT_0) {
-			throw new TypeError("Invalid file descriptor");
-		}
-
-		res.header(CONTENT_LENGTH, file.stats.size);
-		res.header(
-			CONTENT_TYPE,
-			file.charset.length > INT_0 ? `${mime$1(file.path)}; charset=${file.charset}` : mime$1(file.path),
+		stream(
+			req,
+			res,
+			file,
+			(req, res) => this.emit(STREAM, req, res),
+			node_fs.createReadStream,
+			this.etags,
 		);
-		res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
-
-		if (this.etags && file.etag.length > INT_0) {
-			res.header(ETAG, file.etag);
-			res.removeHeader(CACHE_CONTROL);
-		}
-
-		if (req.method === "GET") {
-			let status = INT_200;
-			let options = {};
-			let headers = {};
-
-			if (RANGE in req.headers) {
-				[headers, options] = partialHeaders(req, res, file.stats.size);
-
-				if (Object.keys(options).length > INT_0) {
-					res.removeHeader(CONTENT_LENGTH);
-					res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
-
-					if (CONTENT_LENGTH in headers) {
-						res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
-					}
-				} else {
-					options = {};
-				}
-			}
-
-			res.send(
-				node_fs.createReadStream(file.path, Object.keys(options).length > INT_0 ? options : undefined),
-				status,
-			);
-		} else if (req.method === HEAD) {
-			res.send(EMPTY);
-		} else if (req.method === OPTIONS) {
-			res.removeHeader(CONTENT_LENGTH);
-			res.send(OPTIONS_BODY);
-		}
-
-		this.emit(STREAM, req, res);
 	}
 
 	/**
