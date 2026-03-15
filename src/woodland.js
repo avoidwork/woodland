@@ -174,6 +174,10 @@ export class Woodland extends EventEmitter {
 		this.on(ERROR, () => {});
 	}
 
+	/**
+	 * Initializes response handlers
+	 * @private
+	 */
 	initResponseHandlers() {
 		const onReady = this.onReady.bind(this);
 		const onDone = this.onDone.bind(this);
@@ -216,10 +220,18 @@ export class Woodland extends EventEmitter {
 		this.status = createStatusHandler;
 	}
 
+	/**
+	 * Initializes file server
+	 * @private
+	 */
 	initFileServer() {
 		this.fileServer = createFileServer(this);
 	}
 
+	/**
+	 * Initializes middleware registry
+	 * @private
+	 */
 	initMiddleware() {
 		this.middlewareRegistry = createMiddlewareRegistry(
 			this.middleware,

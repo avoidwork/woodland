@@ -20,12 +20,24 @@ import {
 import { partialHeaders, writeHead, pipeable, mimeExtensions } from "./utility.js";
 import { createReadStream } from "node:fs";
 
+/**
+ * Gets MIME type for file extension
+ * @param {string} [arg=""] - File path or extension
+ * @returns {string} MIME type string
+ * @private
+ */
 function mime(arg = EMPTY) {
 	const ext = extname(arg);
 
 	return ext in mimeExtensions ? mimeExtensions[ext].type : APPLICATION_OCTET_STREAM;
 }
 
+/**
+ * Gets HTTP status text for status code
+ * @param {number} status - HTTP status code
+ * @returns {string} Status text string
+ * @private
+ */
 function getStatusText(status) {
 	const statusTexts = {
 		200: "OK",
@@ -54,6 +66,13 @@ function getStatusText(status) {
  * @returns {Object} Response handler with createErrorHandler, createJsonHandler, createRedirectHandler, createSendHandler, createSetHandler, createStatusHandler, stream
  */
 export function createResponseHandler({ digit: _digit, etags, onReady, onDone, onSend: _onSend }) {
+	/**
+	 * Creates error handler function
+	 * @param {Function} emitError - Error emit function
+	 * @param {Function} logError - Error log function
+	 * @returns {Function} Error handler
+	 * @private
+	 */
 	function createErrorHandler(emitError, logError) {
 		return (req, res) => {
 			return (status = 500, body) => {
@@ -85,6 +104,12 @@ export function createResponseHandler({ digit: _digit, etags, onReady, onDone, o
 		};
 	}
 
+	/**
+	 * Creates JSON handler function
+	 * @param {Object} res - Response object
+	 * @returns {Function} JSON handler
+	 * @private
+	 */
 	function createJsonHandler(res) {
 		return (
 			arg,
@@ -95,12 +120,25 @@ export function createResponseHandler({ digit: _digit, etags, onReady, onDone, o
 		};
 	}
 
+	/**
+	 * Creates redirect handler function
+	 * @param {Object} res - Response object
+	 * @returns {Function} Redirect handler
+	 * @private
+	 */
 	function createRedirectHandler(res) {
 		return (uri, perm = true) => {
 			res.send(EMPTY, perm ? 308 : 307, { [LOCATION]: uri });
 		};
 	}
 
+	/**
+	 * Creates send handler function
+	 * @param {Object} req - Request object
+	 * @param {Object} res - Response object
+	 * @returns {Function} Send handler
+	 * @private
+	 */
 	function createSendHandler(req, res) {
 		return (body = EMPTY, status = res.statusCode, headers = {}) => {
 			if (res.headersSent === false) {
@@ -143,6 +181,12 @@ export function createResponseHandler({ digit: _digit, etags, onReady, onDone, o
 		};
 	}
 
+	/**
+	 * Creates set handler function
+	 * @param {Object} res - Response object
+	 * @returns {Function} Set handler
+	 * @private
+	 */
 	function createSetHandler(res) {
 		return (arg = {}) => {
 			const headers = arg instanceof Map || arg instanceof Headers ? arg : new Headers(arg);
@@ -155,6 +199,12 @@ export function createResponseHandler({ digit: _digit, etags, onReady, onDone, o
 		};
 	}
 
+	/**
+	 * Creates status handler function
+	 * @param {Object} res - Response object
+	 * @returns {Function} Status handler
+	 * @private
+	 */
 	function createStatusHandler(res) {
 		return (arg = INT_200) => {
 			res.statusCode = arg;
@@ -163,6 +213,14 @@ export function createResponseHandler({ digit: _digit, etags, onReady, onDone, o
 		};
 	}
 
+	/**
+	 * Streams file to response
+	 * @param {Object} req - Request object
+	 * @param {Object} res - Response object
+	 * @param {Object} file - File descriptor
+	 * @param {Function} emitStream - Stream emit function
+	 * @private
+	 */
 	function stream(req, res, file, emitStream) {
 		if (file.path === EMPTY || file.stats.size === 0) {
 			throw new TypeError("Invalid file descriptor");
