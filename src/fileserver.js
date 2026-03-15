@@ -9,6 +9,14 @@ import { autoindex as aindex } from "./utility.js";
  * @returns {Object} File server with register, serve methods
  */
 export function createFileServer(app) {
+	/**
+	 * Serves files from filesystem
+	 * @private
+	 * @param {Object} req - Request object
+	 * @param {Object} res - Response object
+	 * @param {string} arg - File path argument
+	 * @param {string} [folder] - Root folder to serve from
+	 */
 	async function serve(req, res, arg, folder = process.cwd()) {
 		const fp = resolve(folder, arg);
 		const resolvedFolder = resolve(folder);
@@ -75,6 +83,13 @@ export function createFileServer(app) {
 		}
 	}
 
+	/**
+	 * Registers file serving middleware for a root path
+	 * @private
+	 * @param {string} root - Root path to register
+	 * @param {string} folder - Folder to serve files from
+	 * @param {Function} useMiddleware - Middleware registration function
+	 */
 	function register(root, folder, useMiddleware) {
 		useMiddleware(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) =>
 			serve(req, res, req.parsed.pathname.substring(1), folder),

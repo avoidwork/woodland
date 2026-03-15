@@ -27,6 +27,14 @@ const CONFIG_SCHEMA = {
 	time: { type: "boolean", default: false },
 };
 
+/**
+ * Validates a single configuration value against schema
+ * @private
+ * @param {string} key - Configuration key
+ * @param {*} value - Value to validate
+ * @param {Object} schema - Schema definition
+ * @returns {string|null} Error message or null if valid
+ */
 function validateValue(key, value, schema) {
 	if (schema.type === "array") {
 		if (!Array.isArray(value)) {
