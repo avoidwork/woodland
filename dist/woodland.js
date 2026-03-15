@@ -5,18 +5,7 @@
  * @license BSD-3-Clause
  * @version 20.2.10
  */
-import { STATUS_CODES, METHODS } from "node:http";
-import { EventEmitter } from "node:events";
-import { readFileSync, createReadStream } from "node:fs";
-import { etag } from "tiny-etag";
-import { precise } from "precise";
-import { createRequire } from "node:module";
-import { join, extname, resolve } from "node:path";
-import { fileURLToPath, URL } from "node:url";
-import { coerce } from "tiny-coerce";
-import mimeDb from "mime-db";
-import { stat, readdir } from "node:fs/promises";
-const __dirname$2 = fileURLToPath(new URL(".", import.meta.url));
+import {STATUS_CODES,METHODS}from'node:http';import {EventEmitter}from'node:events';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {createRequire}from'node:module';import {join,extname,resolve}from'node:path';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';import {stat,readdir}from'node:fs/promises';const __dirname$2 = fileURLToPath(new URL(".", import.meta.url));
 const require$1 = createRequire(import.meta.url);
 const { name, version } = require$1(join(__dirname$2, "..", "package.json"));
 
@@ -151,8 +140,7 @@ const MONTHS = Object.freeze(
 
 		return Object.freeze(d.toLocaleString(EN_US, { month: SHORT }));
 	}),
-);
-const __dirname$1 = fileURLToPath(new URL(".", import.meta.url)),
+);const __dirname$1 = fileURLToPath(new URL(".", import.meta.url)),
 	html = readFileSync(join(__dirname$1, "..", "tpl", "autoindex.html"), { encoding: UTF8 }),
 	valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
 	mimeExtensions = valid.reduce((a, v) => {
@@ -511,7 +499,7 @@ function writeHead(res, headers = {}) {
  */
 function extractPath(arg = EMPTY) {
 	return arg.replace(/\/:([^/]+)/g, "/(?<$1>[^/]+)");
-} /**
+}/**
  * Processes middleware map for a given URI and populates middleware array
  * @param {string} uri - The URI to match against
  * @param {Map} [map=new Map()] - Map of middleware handlers
@@ -729,7 +717,7 @@ function createMiddlewareRegistry(middleware, ignored, methods, cache) {
 		register: registerFn,
 		list: listFn,
 	};
-} /**
+}/**
  * Gets MIME type for file extension
  * @param {string} [arg=""] - File path or extension
  * @returns {string} MIME type string
@@ -990,8 +978,7 @@ function createResponseHandler({ digit: _digit, etags, onReady, onDone, onSend: 
 		createStatusHandler,
 		stream,
 	};
-}
-const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+}const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
 const IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/;
 const IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i;
 const HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
@@ -1169,7 +1156,7 @@ function createIpExtractor() {
 	}
 
 	return { extract };
-} /**
+}/**
  * Creates file server middleware for serving static files
  * @param {Object} app - Woodland application instance
  * @returns {Object} File server with register, serve methods
@@ -1263,8 +1250,7 @@ function createFileServer(app) {
 	}
 
 	return { register, serve };
-}
-const CONFIG_SCHEMA = {
+}const CONFIG_SCHEMA = {
 	autoindex: { type: "boolean", default: false },
 	cacheSize: { type: "number", default: INT_1e3, min: 1 },
 	cacheTTL: { type: "number", default: INT_1e4, min: 1 },
@@ -1365,8 +1351,7 @@ function validateLogging(logging = {}) {
 	}
 
 	return { enabled, format, level };
-}
-const LEVELS = {
+}const LEVELS = {
 	emerg: 0,
 	alert: 1,
 	crit: 2,
@@ -1565,7 +1550,7 @@ function createLogger(config = {}) {
 		logError: logErrorFn,
 		logServe: logServeFn,
 	};
-} /**
+}/**
  * Woodland HTTP server framework class extending EventEmitter
  * @class
  * @extends {EventEmitter}
@@ -2188,9 +2173,7 @@ class Woodland extends EventEmitter {
 		res.header(CONTENT_LENGTH, file.stats.size);
 		res.header(
 			CONTENT_TYPE,
-			file.charset.length > INT_0
-				? `${mime$1(file.path)}; charset=${file.charset}`
-				: mime$1(file.path),
+			file.charset.length > INT_0 ? `${mime$1(file.path)}; charset=${file.charset}` : mime$1(file.path),
 		);
 		res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
 
@@ -2309,5 +2292,4 @@ function woodland(arg) {
 	app.route = app.route.bind(app);
 
 	return app;
-}
-export { Woodland, woodland };
+}export{Woodland,woodland};
