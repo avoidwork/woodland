@@ -188,6 +188,135 @@ describe("middleware", () => {
 
 			assert.strictEqual(typeof fn, "function");
 		});
+
+		it("should call error handler with error when middleware has error", async () => {
+			let errorHandlerCalled = false;
+			let errorArg = null;
+
+			const req = { allow: ["GET"], method: "GET" };
+			const res = {
+				statusCode: 500,
+				error: () => {},
+				send: (val) => {
+					errorHandlerCalled = true;
+					errorArg = val;
+				},
+			};
+
+			let callCount = 0;
+			const middleware = {
+				next: () => {
+					callCount++;
+					if (callCount === 1) {
+						return {
+							done: false,
+							value: (err, r, s, fn) => {
+								errorHandlerCalled = true;
+								errorArg = err;
+								fn();
+							},
+						};
+					}
+					return { done: true };
+				},
+			};
+
+			const fn = next(req, res, middleware, true);
+			const testError = new Error("Test error");
+			fn(testError);
+
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			assert.strictEqual(errorHandlerCalled, true);
+			assert.strictEqual(errorArg, testError);
+		});
+
+		it("should skip to error handler when error passed and middleware length < 4", async () => {
+			let errorStatusCalled = false;
+
+			const req = { allow: ["GET"], method: "GET" };
+			const res = {
+				statusCode: 500,
+				error: () => {
+					errorStatusCalled = true;
+				},
+			};
+
+			let callCount = 0;
+			const middleware = {
+				next: () => {
+					callCount++;
+					if (callCount === 1) {
+						return { done: false, value: () => {} };
+					}
+					return { done: true };
+				},
+			};
+
+			const fn = next(req, res, middleware, true);
+			const testError = new Error("Test error");
+			fn(testError);
+
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			assert.strictEqual(errorStatusCalled, true);
+		});
+
+		it("should execute middleware when no error passed", async () => {
+			let middlewareCalled = false;
+			let fnCalled = false;
+
+			const req = { allow: ["GET"], method: "GET" };
+			const res = {
+				statusCode: 500,
+				error: () => {},
+			};
+
+			const middleware = {
+				next: () => {
+					if (fnCalled) {
+						return { done: true };
+					}
+					fnCalled = true;
+					return {
+						done: false,
+						value: (r, s, fn) => {
+							middlewareCalled = true;
+							fn();
+						},
+					};
+				},
+			};
+
+			const fn = next(req, res, middleware, true);
+			fn();
+
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			assert.strictEqual(middlewareCalled, true);
+		});
+
+		it("should send value when middleware returns non-function", async () => {
+			let sentValue = null;
+
+			const req = { allow: ["GET"], method: "GET" };
+			const res = {
+				statusCode: 500,
+				error: () => {},
+				send: (val) => {
+					sentValue = val;
+				},
+			};
+
+			const middleware = {
+				next: () => {
+					return { done: false, value: "test value" };
+				},
+			};
+
+			const fn = next(req, res, middleware, true);
+			fn();
+
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			assert.strictEqual(sentValue, "test value");
+		});
 	});
 
 	describe("createMiddlewareRegistry", () => {
