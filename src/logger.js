@@ -12,6 +12,14 @@ const LEVELS = {
 	debug: 7,
 };
 
+/**
+ * Creates logger with configurable format and level
+ * @param {Object} [config={}] - Configuration object
+ * @param {boolean} [config.enabled=true] - Enable/disable logging
+ * @param {string} [config.format] - Custom log format string
+ * @param {string} [config.level='info'] - Log level
+ * @returns {Object} Logger with log, clfm, extractIP, logRoute, logMiddleware, logDecoration, logError, logServe methods
+ */
 export function createLogger(config = {}) {
 	const { enabled = true, format, level = INFO } = config;
 	const validLevels = [DEBUG, INFO, "warn", "error", "critical", "alert", "emerg", "notice"];

@@ -3,6 +3,11 @@ import { join, resolve } from "node:path";
 import { EMPTY, INT_0, INT_403, INT_404, SLASH, UTF8 } from "./constants.js";
 import { autoindex as aindex } from "./utility.js";
 
+/**
+ * Creates file server middleware for serving static files
+ * @param {Object} app - Woodland application instance
+ * @returns {Object} File server with register, serve methods
+ */
 export function createFileServer(app) {
 	async function serve(req, res, arg, folder = process.cwd()) {
 		const fp = resolve(folder, arg);

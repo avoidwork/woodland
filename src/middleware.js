@@ -10,6 +10,12 @@ import {
 } from "./constants.js";
 import { extractPath as pathFn } from "./utility.js";
 
+/**
+ * Processes middleware map for a given URI and populates middleware array
+ * @param {string} uri - The URI to match against
+ * @param {Map} [map=new Map()] - Map of middleware handlers
+ * @param {Object} [arg={}] - Object containing middleware array and parameters
+ */
 export function reduce(uri, map = new Map(), arg = {}) {
 	if (map.size === 0) {
 		return;
@@ -40,6 +46,12 @@ export function reduce(uri, map = new Map(), arg = {}) {
 	}
 }
 
+/**
+ * Determines the appropriate HTTP status code based on request and response state
+ * @param {Object} req - The HTTP request object
+ * @param {Object} res - The HTTP response object
+ * @returns {number} The appropriate HTTP status code
+ */
 export function getStatus(req, res) {
 	if (req.allow.length === 0) {
 		return 404;
@@ -56,6 +68,14 @@ export function getStatus(req, res) {
 	return res.statusCode > 500 ? res.statusCode : 500;
 }
 
+/**
+ * Creates a next function for middleware processing with error handling
+ * @param {Object} req - The HTTP request object
+ * @param {Object} res - The HTTP response object
+ * @param {Iterator} middleware - The middleware iterator
+ * @param {boolean} [immediate=false] - Whether to execute immediately or on next tick
+ * @returns {Function} The next function for middleware chain
+ */
 export function next(req, res, middleware, immediate = false) {
 	const errorStatus = getStatus(req, res);
 
@@ -93,6 +113,14 @@ export function next(req, res, middleware, immediate = false) {
 	return fn;
 }
 
+/**
+ * Creates a middleware registry for managing routes and handlers
+ * @param {Map} middleware - Map of middleware by method
+ * @param {Set} ignored - Set of ignored middleware functions
+ * @param {Array} methods - Array of registered HTTP methods
+ * @param {Map} cache - Cache for route results
+ * @returns {Object} Registry object with ignore, allowed, routes, register, list methods
+ */
 export function createMiddlewareRegistry(middleware, ignored, methods, cache) {
 	let ignoreFn, allowedFn, routesFn, registerFn, listFn;
 

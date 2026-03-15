@@ -62,7 +62,29 @@ import { createFileServer } from "./fileserver.js";
 import { validateConfig, validateLogging } from "./config.js";
 import { createLogger } from "./logger.js";
 
+/**
+ * Woodland HTTP server framework class extending EventEmitter
+ * @class
+ * @extends {EventEmitter}
+ */
 export class Woodland extends EventEmitter {
+	/**
+	 * Creates a new Woodland instance
+	 * @param {Object} [config={}] - Configuration object
+	 * @param {boolean} [config.autoindex=false] - Enable automatic directory indexing
+	 * @param {number} [config.cacheSize=1000] - Size of internal cache
+	 * @param {number} [config.cacheTTL=10000] - Cache TTL in milliseconds
+	 * @param {string} [config.charset='utf-8'] - Default charset
+	 * @param {string} [config.corsExpose=''] - CORS expose headers
+	 * @param {Object} [config.defaultHeaders={}] - Default headers to set
+	 * @param {number} [config.digit=3] - Digit precision for timing
+	 * @param {boolean} [config.etags=true] - Enable ETags
+	 * @param {Array} [config.indexes=['index.htm','index.html']] - Index files
+	 * @param {Object} [config.logging={}] - Logging configuration
+	 * @param {Array} [config.origins=[]] - Allowed CORS origins
+	 * @param {boolean} [config.silent=false] - Silent mode
+	 * @param {boolean} [config.time=false] - Enable timing
+	 */
 	constructor(config = {}) {
 		super();
 
@@ -207,10 +229,23 @@ export class Woodland extends EventEmitter {
 		);
 	}
 
+	/**
+	 * Checks if a method is allowed for a URI
+	 * @param {string} method - HTTP method
+	 * @param {string} uri - URI to check
+	 * @param {boolean} [override=false] - Override cache
+	 * @returns {boolean} True if method is allowed
+	 */
 	allowed(method, uri, override = false) {
 		return this.middlewareRegistry.allowed(method, uri, override);
 	}
 
+	/**
+	 * Determines allowed methods for a URI
+	 * @param {string} uri - URI to check
+	 * @param {boolean} [override=false] - Override cache
+	 * @returns {string} Comma-separated list of allowed methods
+	 */
 	allows(uri, override = false) {
 		let result = override === false ? this.permissions.get(uri) : void 0;
 
@@ -253,18 +288,39 @@ export class Woodland extends EventEmitter {
 		return result;
 	}
 
+	/**
+	 * Registers wildcard middleware for all methods
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
+	 */
 	always(...args) {
 		return this.use(...args, WILDCARD);
 	}
 
+	/**
+	 * Registers CONNECT middleware
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
+	 */
 	connect(...args) {
 		return this.use(...args, CONNECT);
 	}
 
+	/**
+	 * Generates common log format entry
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @returns {string} Common log format string
+	 */
 	clf(req, res) {
 		return this.logger.clfm(req, res);
 	}
 
+	/**
+	 * Decorates request and response objects with framework utilities
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 */
 	decorate(req, res) {
 		let timing = null;
 		if (this.time) {
@@ -334,10 +390,21 @@ export class Woodland extends EventEmitter {
 		res.on(CLOSE, () => this.log(this.clf(req, res), INFO));
 	}
 
+	/**
+	 * Registers DELETE middleware
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
+	 */
 	delete(...args) {
 		return this.use(...args, DELETE);
 	}
 
+	/**
+	 * Generates ETag for response caching
+	 * @param {string} method - HTTP method
+	 * @param {...*} args - Values to hash
+	 * @returns {string} ETag string or empty string
+	 */
 	etag(method, ...args) {
 		return (method === GET || method === HEAD || method === OPTIONS) && this.etags !== null
 			? this.etags.create(
@@ -348,14 +415,30 @@ export class Woodland extends EventEmitter {
 			: EMPTY;
 	}
 
+	/**
+	 * Registers file server middleware
+	 * @param {string} [root='/'] - Root path
+	 * @param {string} [folder=process.cwd()] - Folder to serve
+	 * @returns {Woodland} Returns self for chaining
+	 */
 	files(root = SLASH, folder = process.cwd()) {
 		this.fileServer.register(root, folder, this.use.bind(this));
 	}
 
+	/**
+	 * Registers GET middleware
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
+	 */
 	get(...args) {
 		return this.use(...args, GET);
 	}
 
+	/**
+	 * Adds function to ignored set
+	 * @param {Function} fn - Function to ignore
+	 * @returns {Woodland} Returns self for chaining
+	 */
 	ignore(fn) {
 		this.ignored.add(fn);
 		this.logger.log(`type=ignore, message="Added function to ignored Set", name="${fn.name}"`);
@@ -363,6 +446,12 @@ export class Woodland extends EventEmitter {
 		return this;
 	}
 
+	/**
+	 * Lists middleware routes
+	 * @param {string} [method='GET'] - HTTP method
+	 * @param {string} [type='array'] - Return type (array or object)
+	 * @returns {Array|Object} List of routes
+	 */
 	list(method = GET.toLowerCase(), type = "array") {
 		let result;
 
@@ -381,12 +470,25 @@ export class Woodland extends EventEmitter {
 		return result;
 	}
 
+	/**
+	 * Logs a message
+	 * @param {string} msg - Message to log
+	 * @param {string} [level='debug'] - Log level
+	 * @returns {Woodland} Returns self for chaining
+	 */
 	log(msg, level = DEBUG) {
 		this.logger.log(msg, level);
 
 		return this;
 	}
 
+	/**
+	 * Handles response done event
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {string} body - Response body
+	 * @param {Object} headers - Response headers
+	 */
 	onDone(req, res, body, headers) {
 		if (
 			res.statusCode !== INT_204 &&
@@ -400,6 +502,15 @@ export class Woodland extends EventEmitter {
 		res.end(body, this.charset);
 	}
 
+	/**
+	 * Handles response ready event
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {string} body - Response body
+	 * @param {number} status - HTTP status code
+	 * @param {Object} headers - Response headers
+	 * @returns {Array} Response array
+	 */
 	onReady(req, res, body, status, headers) {
 		if (this.time && res.getHeader(X_RESPONSE_TIME) === void 0) {
 			const diff = req.precise.stop().diff();
@@ -410,30 +521,69 @@ export class Woodland extends EventEmitter {
 		return this.onSend(req, res, body, status, headers);
 	}
 
+	/**
+	 * Handles response send event
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {string} body - Response body
+	 * @param {number} status - HTTP status code
+	 * @param {Object} headers - Response headers
+	 * @returns {Array} Response array
+	 */
 	onSend(req, res, body, status, headers) {
 		return [body, status, headers];
 	}
 
+	/**
+	 * Registers OPTIONS middleware
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
+	 */
 	options(...args) {
 		return this.use(...args, OPTIONS);
 	}
 
+	/**
+	 * Registers PATCH middleware
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
+	 */
 	patch(...args) {
 		return this.use(...args, PATCH);
 	}
 
+	/**
+	 * Converts parameterized route to regex
+	 * @param {string} [arg=''] - Route path
+	 * @returns {string} Regex pattern string
+	 */
 	extractPath(arg = EMPTY) {
 		return arg.replace(/\/:([^/]+)/g, "/(?<$1>[^/]+)");
 	}
 
+	/**
+	 * Registers POST middleware
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
+	 */
 	post(...args) {
 		return this.use(...args, POST);
 	}
 
+	/**
+	 * Registers PUT middleware
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
+	 */
 	put(...args) {
 		return this.use(...args, PUT);
 	}
 
+	/**
+	 * Routes request to middleware
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 */
 	route(req, res) {
 		const method = req.method === HEAD ? GET : req.method;
 
@@ -471,14 +621,41 @@ export class Woodland extends EventEmitter {
 		}
 	}
 
+	/**
+	 * Gets route information
+	 * @param {string} uri - URI to check
+	 * @param {string} method - HTTP method
+	 * @param {boolean} [override=false] - Override cache
+	 * @returns {Object} Route information
+	 */
 	routes(uri, method, override = false) {
 		return this.middlewareRegistry.routes(uri, method, override);
 	}
 
+	/**
+	 * Serves file from disk
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {string} arg - File path
+	 * @param {string} [folder=process.cwd()] - Folder to serve from
+	 * @returns {Promise} Promise that resolves when done
+	 */
 	async serve(req, res, arg, folder = process.cwd()) {
 		return this.fileServer.serve(req, res, arg, folder);
 	}
 
+	/**
+	 * Streams file to response
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {Object} file - File descriptor object
+	 * @param {string} file.path - File path
+	 * @param {string} file.etag - File ETag
+	 * @param {string} file.charset - File charset
+	 * @param {Object} file.stats - File statistics
+	 * @param {number} file.stats.size - File size
+	 * @param {Date} file.stats.mtime - File modification time
+	 */
 	stream(
 		req,
 		res,
@@ -539,10 +716,23 @@ export class Woodland extends EventEmitter {
 		this.emit(STREAM, req, res);
 	}
 
+	/**
+	 * Registers TRACE middleware
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
+	 */
 	trace(...args) {
 		return this.use(...args, TRACE);
 	}
 
+	/**
+	 * Registers middleware for a route
+	 * @param {string|Function} rpath - Route path or middleware function
+	 * @param {...Function} fn - Middleware function(s)
+	 * @param {string} [method='GET'] - HTTP method
+	 * @returns {Woodland} Returns self for chaining
+	 * @throws {TypeError} When invalid HTTP method or HEAD method is used
+	 */
 	use(rpath, ...fn) {
 		if (typeof rpath === "function") {
 			fn = [rpath, ...fn];
@@ -591,6 +781,11 @@ export class Woodland extends EventEmitter {
 	}
 }
 
+/**
+ * Factory function to create a new Woodland instance
+ * @param {Object} [arg={}] - Configuration object
+ * @returns {Woodland} New Woodland instance
+ */
 export function woodland(arg) {
 	const app = new Woodland(arg);
 

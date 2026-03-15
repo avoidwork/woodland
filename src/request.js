@@ -22,6 +22,11 @@ const IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/;
 const IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i;
 const HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
 
+/**
+ * Validates if an IP address is properly formatted
+ * @param {string} ip - IP address to validate
+ * @returns {boolean} True if IP is valid format
+ */
 export function isValidIP(ip) {
 	if (!ip || typeof ip !== "string") {
 		return false;
@@ -111,6 +116,11 @@ export function isValidIP(ip) {
 	}
 }
 
+/**
+ * Creates CORS handler for checking and handling CORS requests
+ * @param {Array} origins - Array of allowed origins
+ * @returns {Object} CORS handler with cors, corsHost, corsRequest methods
+ */
 export function createCorsHandler(origins) {
 	function cors(req) {
 		if (origins.length === 0) {
@@ -133,6 +143,10 @@ export function createCorsHandler(origins) {
 	return { cors, corsHost, corsRequest };
 }
 
+/**
+ * Creates IP extractor for extracting client IP from request
+ * @returns {Object} IP extractor with extract method
+ */
 export function createIpExtractor() {
 	function extract(req) {
 		const connection = req.connection;
@@ -160,6 +174,21 @@ export function createIpExtractor() {
 	return { extract };
 }
 
+/**
+ * Creates request decorator for adding framework utilities to request/response objects
+ * @param {Object} config - Configuration object
+ * @param {Array} config.origins - CORS origins
+ * @param {boolean} config.time - Enable timing
+ * @param {Array} config.defaultHeaders - Default headers
+ * @param {Object} config.etags - ETag generator
+ * @param {string} config.corsExpose - CORS expose headers
+ * @param {Function} config.getAllows - Function to get allowed methods
+ * @param {Function} config.corsHostCheck - CORS host check function
+ * @param {Function} config.corsCheck - CORS check function
+ * @param {Function} config.ipExtractor - IP extractor function
+ * @param {Function} config.logDecorator - Log decoration function
+ * @returns {Object} Request decorator with decorate, logClose methods
+ */
 export function createRequestDecorator({
 	origins: _origins,
 	time: _time,

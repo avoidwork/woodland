@@ -43,6 +43,16 @@ function getStatusText(status) {
 	return statusTexts[status] || "Error";
 }
 
+/**
+ * Creates response handler with all response methods
+ * @param {Object} config - Configuration object
+ * @param {number} config.digit - Digit precision for timing
+ * @param {Object} config.etags - ETag generator or null
+ * @param {Function} config.onReady - Callback for response ready
+ * @param {Function} config.onDone - Callback for response done
+ * @param {Function} config.onSend - Callback for response send
+ * @returns {Object} Response handler with createErrorHandler, createJsonHandler, createRedirectHandler, createSendHandler, createSetHandler, createStatusHandler, stream
+ */
 export function createResponseHandler({ digit: _digit, etags, onReady, onDone, onSend: _onSend }) {
 	function createErrorHandler(emitError, logError) {
 		return (req, res) => {

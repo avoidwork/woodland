@@ -52,6 +52,12 @@ function validateValue(key, value, schema) {
 	return null;
 }
 
+/**
+ * Validates configuration object against schema
+ * @param {Object} [config={}] - Configuration object to validate
+ * @returns {Object} Validated configuration object with defaults
+ * @throws {Error} When configuration validation fails
+ */
 export function validateConfig(config = {}) {
 	const validated = {};
 	const errors = [];
@@ -78,6 +84,11 @@ export function validateConfig(config = {}) {
 	return validated;
 }
 
+/**
+ * Validates and merges logging configuration with environment variables
+ * @param {Object} [logging={}] - Logging configuration object
+ * @returns {Object} Logging configuration with enabled, format, level
+ */
 export function validateLogging(logging = {}) {
 	const envLogEnabled = process.env.WOODLAND_LOG_ENABLED;
 	const envLogFormat = process.env.WOODLAND_LOG_FORMAT;
@@ -95,6 +106,11 @@ export function validateLogging(logging = {}) {
 	return { enabled, format, level };
 }
 
+/**
+ * Validates and filters array of CORS origins
+ * @param {Array} [origins=[]] - Array of origin strings to validate
+ * @returns {Array} Filtered array of valid origins
+ */
 export function validateOrigins(origins = []) {
 	if (!Array.isArray(origins)) {
 		return [];
@@ -117,6 +133,11 @@ export function validateOrigins(origins = []) {
 	});
 }
 
+/**
+ * Merges logging configuration with environment variables
+ * @param {Object} [logging={}] - Logging configuration object
+ * @returns {Object} Merged logging configuration
+ */
 export function mergeEnvLogging(logging = {}) {
 	const envLogEnabled = process.env.WOODLAND_LOG_ENABLED;
 	const envLogFormat = process.env.WOODLAND_LOG_FORMAT;
