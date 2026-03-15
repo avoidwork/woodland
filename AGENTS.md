@@ -50,8 +50,9 @@
 - `src/fileserver.js` - File server handler with `createFileServer` factory
 - `src/middleware.js` - Middleware registry with `createMiddlewareRegistry` factory
 - `src/tpl/autoindex.html` - Template for autoindex directory listings
-- `tests/integration/` - Integration tests with Node.js test runner
-- `tests/unit/` - Unit tests with Node.js test runner
+- `tests/unit/` - Unit tests with Node.js test runner (comprehensive coverage, 406 tests)
+
+**Note:** Integration tests are optional when unit tests provide comprehensive coverage of all exported functions.
 
 ## Performance patterns
 
