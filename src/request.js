@@ -122,6 +122,12 @@ export function isValidIP(ip) {
  * @returns {Object} CORS handler with cors, corsHost, corsRequest methods
  */
 export function createCorsHandler(origins) {
+	/**
+	 * Checks if request origin is allowed for CORS
+	 * @private
+	 * @param {Object} req - Request object
+	 * @returns {boolean} True if CORS is allowed
+	 */
 	function cors(req) {
 		if (origins.length === 0) {
 			return false;
@@ -130,12 +136,23 @@ export function createCorsHandler(origins) {
 		return req.corsHost && (origins.includes(WILDCARD) || origins.includes(req.headers.origin));
 	}
 
+	/**
+	 * Checks if request origin host differs from request host
+	 * @private
+	 * @param {Object} req - Request object
+	 * @returns {boolean} True if hosts differ
+	 */
 	function corsHost(req) {
 		return (
 			ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host
 		);
 	}
 
+	/**
+	 * Creates CORS request handler that sends 204 No Content
+	 * @private
+	 * @returns {Function} Request handler function
+	 */
 	function corsRequest() {
 		return (req, res) => res.status(204).send(EMPTY);
 	}
@@ -148,6 +165,12 @@ export function createCorsHandler(origins) {
  * @returns {Object} IP extractor with extract method
  */
 export function createIpExtractor() {
+	/**
+	 * Extracts client IP address from request
+	 * @private
+	 * @param {Object} req - Request object
+	 * @returns {string} Client IP address
+	 */
 	function extract(req) {
 		const connection = req.connection;
 		const socket = req.socket;
@@ -201,10 +224,23 @@ export function createRequestDecorator({
 	ipExtractor,
 	logDecorator,
 }) {
+	/**
+	 * Placeholder for log close handler (no-op)
+	 * @private
+	 * @param {Object} _req - Request object (unused)
+	 * @param {Object} _res - Response object (unused)
+	 */
 	function logClose(_req, _res) {
 		// Placeholder for log close handler
 	}
 
+	/**
+	 * Decorates request and response objects with framework utilities
+	 * @private
+	 * @param {Object} req - Request object
+	 * @param {Object} res - Response object
+	 * @param {number} [timing=null] - Optional timing value
+	 */
 	function decorate(req, res, timing = null) {
 		const parsed = parseUrl(req);
 		const pathname = parsed.pathname;
