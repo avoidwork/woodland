@@ -15,7 +15,6 @@ import {
 	X_CONTENT_TYPE_OPTIONS,
 	NO_SNIFF,
 } from "./constants.js";
-import { parse as parseUrl } from "./utility.js";
 
 const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
 const IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/;
@@ -121,184 +120,143 @@ export function isValidIP(ip) {
 }
 
 /**
- * Creates CORS handler for checking and handling CORS requests
+ * Checks if request origin is allowed for CORS
+ * @param {Object} req - Request object
  * @param {Array} origins - Array of allowed origins
- * @returns {Object} CORS handler with cors, corsHost, corsRequest methods
+ * @returns {boolean} True if CORS is allowed
  */
-export function createCorsHandler(origins) {
-	/**
-	 * Checks if request origin is allowed for CORS
-	 * @private
-	 * @param {Object} req - Request object
-	 * @returns {boolean} True if CORS is allowed
-	 */
-	function cors(req) {
-		if (origins.length === 0) {
-			return false;
-		}
-
-		return req.corsHost && (origins.includes(WILDCARD) || origins.includes(req.headers.origin));
+export function cors(req, origins) {
+	if (origins.length === 0) {
+		return false;
 	}
 
-	/**
-	 * Checks if request origin host differs from request host
-	 * @private
-	 * @param {Object} req - Request object
-	 * @returns {boolean} True if hosts differ
-	 */
-	function corsHost(req) {
-		return (
-			ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host
-		);
-	}
-
-	/**
-	 * Creates CORS request handler that sends 204 No Content
-	 * @private
-	 * @returns {Function} Request handler function
-	 */
-	function corsRequest() {
-		return (req, res) => res.status(204).send(EMPTY);
-	}
-
-	return { cors, corsHost, corsRequest };
+	return req.corsHost && (origins.includes(WILDCARD) || origins.includes(req.headers.origin));
 }
 
 /**
- * Creates IP extractor for extracting client IP from request
- * @returns {Object} IP extractor with extract method
+ * Checks if request origin host differs from request host
+ * @param {Object} req - Request object
+ * @returns {boolean} True if hosts differ
  */
-export function createIpExtractor() {
-	/**
-	 * Extracts client IP address from request
-	 * @private
-	 * @param {Object} req - Request object
-	 * @returns {string} Client IP address
-	 */
-	function extract(req) {
-		const connection = req.connection;
-		const socket = req.socket;
-		const fallbackIP =
-			(connection && connection.remoteAddress) || (socket && socket.remoteAddress) || "127.0.0.1";
+export function corsHost(req) {
+	return (
+		ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host
+	);
+}
 
-		const forwardedHeader = req.headers["x-forwarded-for"];
-		if (!forwardedHeader || !forwardedHeader.trim()) {
-			return fallbackIP;
-		}
+/**
+ * Creates CORS request handler that sends 204 No Content
+ * @returns {Function} Request handler function
+ */
+export function corsRequest() {
+	return (req, res) => res.status(204).send(EMPTY);
+}
 
-		const forwardedIPs = forwardedHeader.split(",");
+/**
+ * Extracts client IP address from request
+ * @param {Object} req - Request object
+ * @returns {string} Client IP address
+ */
+export function extractIP(req) {
+	const connection = req.connection;
+	const socket = req.socket;
+	const fallbackIP =
+		(connection && connection.remoteAddress) || (socket && socket.remoteAddress) || "127.0.0.1";
 
-		for (let i = 0; i < forwardedIPs.length; i++) {
-			const ip = forwardedIPs[i].trim();
-			if (isValidIP(ip)) {
-				return ip;
-			}
-		}
-
+	const forwardedHeader = req.headers["x-forwarded-for"];
+	if (!forwardedHeader || !forwardedHeader.trim()) {
 		return fallbackIP;
 	}
 
-	return { extract };
+	const forwardedIPs = forwardedHeader.split(",");
+
+	for (let i = 0; i < forwardedIPs.length; i++) {
+		const ip = forwardedIPs[i].trim();
+		if (isValidIP(ip)) {
+			return ip;
+		}
+	}
+
+	return fallbackIP;
 }
 
 /**
- * Creates request decorator for adding framework utilities to request/response objects
+ * Decorates request and response objects with framework utilities
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
  * @param {Object} config - Configuration object
- * @param {Array} config.origins - CORS origins
- * @param {boolean} config.time - Enable timing
- * @param {Array} config.defaultHeaders - Default headers
- * @param {Object} config.etags - ETag generator
- * @param {string} config.corsExpose - CORS expose headers
- * @param {Function} config.getAllows - Function to get allowed methods
- * @param {Function} config.corsHostCheck - CORS host check function
- * @param {Function} config.corsCheck - CORS check function
- * @param {Function} config.ipExtractor - IP extractor function
- * @param {Function} config.logDecorator - Log decoration function
- * @returns {Object} Request decorator with decorate, logClose methods
  */
-export function createRequestDecorator({
-	origins: _origins,
-	time: _time,
-	defaultHeaders,
-	etags: _etags,
-	corsExpose,
-	getAllows,
-	corsHostCheck,
-	corsCheck,
-	ipExtractor,
-	logDecorator,
-}) {
-	/**
-	 * Placeholder for log close handler (no-op)
-	 * @private
-	 * @param {Object} _req - Request object (unused)
-	 * @param {Object} _res - Response object (unused)
-	 */
-	function logClose(_req, _res) {
-		// Placeholder for log close handler
+export function decorate(req, res, config) {
+	const {
+		parsed,
+		allowString,
+		timing,
+		corsHostCheck,
+		corsCheck,
+		ipExtractor,
+		defaultHeaders,
+		corsExpose,
+		logDecorator,
+		logClose,
+	} = config;
+
+	const pathname = parsed.pathname;
+
+	req.parsed = parsed;
+	req.allow = allowString;
+	req.body = EMPTY;
+	req.host = parsed.hostname;
+	req.params = {};
+	req.valid = true;
+
+	if (timing) {
+		req.precise = timing;
 	}
 
-	/**
-	 * Decorates request and response objects with framework utilities
-	 * @private
-	 * @param {Object} req - Request object
-	 * @param {Object} res - Response object
-	 * @param {number} [timing=null] - Optional timing value
-	 */
-	function decorate(req, res, timing = null) {
-		const parsed = parseUrl(req);
-		const pathname = parsed.pathname;
-		const allowString = getAllows(pathname);
+	req.corsHost = corsHostCheck(req);
+	req.cors = corsCheck(req);
 
-		req.parsed = parsed;
-		req.allow = allowString;
-		req.body = EMPTY;
-		req.host = parsed.hostname;
-		req.params = {};
-		req.valid = true;
+	const clientIP = ipExtractor(req);
+	req.ip = clientIP;
 
-		if (timing) {
-			req.precise = timing;
-		}
+	res.locals = {};
 
-		req.corsHost = corsHostCheck(req);
-		req.cors = corsCheck(req);
+	const headersBatch = Object.create(null);
+	headersBatch[ALLOW] = allowString;
+	headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
 
-		const clientIP = ipExtractor(req);
-		req.ip = clientIP;
-
-		res.locals = {};
-
-		const headersBatch = Object.create(null);
-		headersBatch[ALLOW] = allowString;
-		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
-
-		for (let i = 0; i < defaultHeaders.length; i++) {
-			const [key, value] = defaultHeaders[i];
-			headersBatch[key] = value;
-		}
-
-		if (req.cors) {
-			const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? corsExpose;
-			const origin = req.headers.origin;
-
-			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
-			headersBatch[TIMING_ALLOW_ORIGIN] = origin;
-			headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
-			headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = allowString;
-
-			if (corsHeaders !== void 0) {
-				headersBatch[
-					req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS
-				] = corsHeaders;
-			}
-		}
-
-		res.set(headersBatch);
-
-		logDecorator(pathname, req.method, clientIP);
-		res.on("close", () => logClose(req, res));
+	for (let i = 0; i < defaultHeaders.length; i++) {
+		const [key, value] = defaultHeaders[i];
+		headersBatch[key] = value;
 	}
 
-	return { decorate, logClose };
+	if (req.cors) {
+		const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? corsExpose;
+		const origin = req.headers.origin;
+
+		headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
+		headersBatch[TIMING_ALLOW_ORIGIN] = origin;
+		headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
+		headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = allowString;
+
+		if (corsHeaders !== void 0) {
+			headersBatch[
+				req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS
+			] = corsHeaders;
+		}
+	}
+
+	res.set(headersBatch);
+
+	logDecorator(pathname, req.method, clientIP);
+	res.on("close", () => logClose(req, res));
+}
+
+/**
+ * Placeholder for log close handler (no-op)
+ * @param {Object} _req - Request object (unused)
+ * @param {Object} _res - Response object (unused)
+ */
+export function logClose(_req, _res) {
+	// Placeholder for log close handler
 }

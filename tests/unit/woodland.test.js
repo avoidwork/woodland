@@ -412,6 +412,7 @@ describe("woodland", () => {
 					setHeader: () => {},
 					on: () => {},
 					set: () => {},
+					send: () => {},
 				};
 
 				app.decorate(req, res);
@@ -439,6 +440,7 @@ describe("woodland", () => {
 					setHeader: () => {},
 					on: () => {},
 					set: () => {},
+					send: () => {},
 				};
 
 				appWithCors.decorate(req, res);
@@ -640,6 +642,7 @@ describe("woodland", () => {
 				end: () => {},
 				error: () => {},
 				set: () => {},
+				send: () => {},
 			};
 
 			app.route(req, res);
@@ -669,6 +672,7 @@ describe("woodland", () => {
 				end: () => {},
 				error: () => {},
 				set: () => {},
+				send: () => {},
 			};
 
 			app.route(req, res);
@@ -698,6 +702,7 @@ describe("woodland", () => {
 				end: () => {},
 				error: () => {},
 				set: () => {},
+				send: () => {},
 			};
 
 			app.route(req, res);

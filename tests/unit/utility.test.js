@@ -270,6 +270,54 @@ describe("utility", () => {
 			await new Promise((resolve) => setTimeout(resolve, 10));
 			assert.strictEqual(errorHandlerCalled, true);
 		});
+
+		it("should send value when middleware returns non-function", async () => {
+			let sentValue = null;
+			const req = { allow: ["GET"], method: "GET" };
+			const res = {
+				statusCode: 200,
+				error: () => {},
+				send: (value) => {
+					sentValue = value;
+				},
+			};
+			const middleware = {
+				next: () => ({ done: false, value: { message: "hello" } }),
+			};
+
+			const fn = next(req, res, middleware);
+			fn();
+
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			assert.deepStrictEqual(sentValue, { message: "hello" });
+		});
+
+		it("should skip non-error-handlers when error is passed", async () => {
+			let errorCalled = false;
+			const req = { allow: [], method: "GET" };
+			const res = {
+				statusCode: 500,
+				error: () => {
+					errorCalled = true;
+				},
+			};
+			let callCount = 0;
+			const middleware = {
+				next: () => {
+					callCount++;
+					if (callCount === 1) {
+						return { done: false, value: () => {} };
+					}
+					return { done: true };
+				},
+			};
+
+			const fn = next(req, res, middleware);
+			fn(new Error("test"));
+
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			assert.strictEqual(errorCalled, true);
+		});
 	});
 
 	describe("params", () => {
@@ -322,6 +370,18 @@ describe("utility", () => {
 			assert.strictEqual(req.params.id, "");
 		});
 
+		it("should handle undefined parameter values", () => {
+			const req = {
+				parsed: { pathname: "/users/" },
+				params: {},
+			};
+			const getParams = /\/users\/(?<id>[^/]*)?/;
+
+			params(req, getParams);
+
+			assert.strictEqual(req.params.id, null);
+		});
+
 		it("should decode URL-encoded parameters", () => {
 			const req = {
 				parsed: { pathname: "/users/john%20doe" },
@@ -344,6 +404,18 @@ describe("utility", () => {
 			params(req, getParams);
 
 			assert.strictEqual(req.params.id, "&lt;script&gt;");
+		});
+
+		it("should handle malformed URL encoding gracefully", () => {
+			const req = {
+				parsed: { pathname: "/users/%ZZ" },
+				params: {},
+			};
+			const getParams = /\/users\/(?<id>[^/]+)/;
+
+			params(req, getParams);
+
+			assert.strictEqual(req.params.id, "%ZZ");
 		});
 	});
 
@@ -468,6 +540,76 @@ describe("utility", () => {
 			const [headers] = partialHeaders(req, res, 1000, 200);
 
 			assert.strictEqual(headers["content-range"], "bytes */1000");
+		});
+
+		it("should handle invalid range with no hyphen", () => {
+			const req = { headers: { range: "bytes=12345" } };
+			const res = {
+				removeHeader: () => {},
+				header: () => {},
+				statusCode: 200,
+			};
+
+			const [headers, options] = partialHeaders(req, res, 1000, 200);
+
+			assert.deepStrictEqual(headers, {});
+			assert.deepStrictEqual(options, {});
+		});
+
+		it("should handle invalid range with non-numeric start", () => {
+			const req = { headers: { range: "bytes=abc-500" } };
+			const res = {
+				removeHeader: () => {},
+				header: () => {},
+				statusCode: 200,
+			};
+
+			const [headers, options] = partialHeaders(req, res, 1000, 200);
+
+			assert.deepStrictEqual(headers, {});
+			assert.deepStrictEqual(options, {});
+		});
+
+		it("should handle invalid range with non-numeric end", () => {
+			const req = { headers: { range: "bytes=0-abc" } };
+			const res = {
+				removeHeader: () => {},
+				header: () => {},
+				statusCode: 200,
+			};
+
+			const [headers, options] = partialHeaders(req, res, 1000, 200);
+
+			assert.deepStrictEqual(headers, {});
+			assert.deepStrictEqual(options, {});
+		});
+
+		it("should handle invalid suffix range with empty end", () => {
+			const req = { headers: { range: "bytes=-" } };
+			const res = {
+				removeHeader: () => {},
+				header: () => {},
+				statusCode: 200,
+			};
+
+			const [headers, options] = partialHeaders(req, res, 1000, 200);
+
+			assert.deepStrictEqual(headers, {});
+			assert.deepStrictEqual(options, {});
+		});
+
+		it("should handle invalid suffix range with non-numeric end", () => {
+			const req = { headers: { range: "bytes=-abc" } };
+			const res = {
+				removeHeader: () => {},
+				header: () => {},
+				statusCode: 200,
+			};
+
+			const [headers, options] = partialHeaders(req, res, 1000, 200);
+
+			assert.deepStrictEqual(headers, {});
+			assert.deepStrictEqual(options, {});
 		});
 
 		it("should ignore multiple range specifications", () => {
@@ -686,6 +828,66 @@ describe("utility", () => {
 		it("should reject invalid IPv6 addresses", () => {
 			assert.strictEqual(isValidIP("2001:db8:85a3:0:0:8a2e:370:7334:extra"), false);
 			assert.strictEqual(isValidIP("12345::1"), false);
+		});
+
+		it("should reject IPv6 with multiple :: compression", () => {
+			assert.strictEqual(isValidIP("2001::db8::1"), false);
+			assert.strictEqual(isValidIP("::1::"), false);
+		});
+
+		it("should reject IPv6 compressed with too many groups", () => {
+			assert.strictEqual(isValidIP("1:2:3:4:5:6:7:8::"), false);
+			assert.strictEqual(isValidIP("::1:2:3:4:5:6:7:8"), false);
+		});
+
+		it("should reject IPv6 with invalid hex groups", () => {
+			assert.strictEqual(isValidIP("2001:db8:85a3:xxxx:0:0:8a2e:370:7334"), false);
+			assert.strictEqual(isValidIP("gggg::1"), false);
+		});
+
+		it("should reject IPv6 full notation with wrong group count", () => {
+			assert.strictEqual(isValidIP("2001:db8:85a3:0:0:8a2e:370"), false);
+			assert.strictEqual(isValidIP("2001:db8:85a3:0:0:8a2e:370:7334:extra"), false);
+		});
+
+		it("should reject IPv6 with empty groups in full notation", () => {
+			assert.strictEqual(isValidIP("2001:db8::85a3:0:0:8a2e:370:7334"), false);
+		});
+
+		it("should accept valid compressed IPv6 with empty left side", () => {
+			assert.strictEqual(isValidIP("::85a3:0:0:8a2e:370:7334"), true);
+		});
+
+		it("should accept valid compressed IPv6 with empty right side", () => {
+			assert.strictEqual(isValidIP("2001:db8:85a3:0:0:8a2e::"), true);
+		});
+
+		it("should reject compressed IPv6 with 8+ groups when expanded", () => {
+			// 6 groups + ::1:2 expands to 8 groups, which is valid, but 6 + ::1:2:3 = 9 which is invalid
+			assert.strictEqual(isValidIP("2001:db8:85a3:0:0:8a2e::1:2:3"), false);
+		});
+
+		it("should reject compressed IPv6 with too many groups", () => {
+			// This has 7 explicit groups + at least 1 from compression = 9+, which should be rejected
+			assert.strictEqual(isValidIP("1:2:3:4:5:6:7::8:9"), false);
+		});
+
+		it("should reject compressed IPv6 with invalid hex group on right", () => {
+			assert.strictEqual(isValidIP("2001::gggg"), false);
+		});
+
+		it("should reject compressed IPv6 with invalid hex group in middle of right side", () => {
+			// Right side has multiple groups, invalid one at index 1
+			assert.strictEqual(isValidIP("2001::1:gggg:3"), false);
+		});
+
+		it("should reject full IPv6 with invalid hex group", () => {
+			assert.strictEqual(isValidIP("2001:db8:85a3:0:0:8a2e:370:gggg"), false);
+		});
+
+		it("should reject full IPv6 with invalid hex group at position 3", () => {
+			// Invalid group at index 3 to ensure loop coverage
+			assert.strictEqual(isValidIP("2001:db8:85a3:gggg:0:8a2e:370:1234"), false);
 		});
 
 		it("should reject empty or invalid input", () => {

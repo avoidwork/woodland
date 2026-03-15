@@ -11,17 +11,14 @@ import {
 	ACCESS_CONTROL_REQUEST_HEADERS,
 	ACCESS_CONTROL_ALLOW_ORIGIN,
 	ALLOW,
-	CACHE_CONTROL,
 	CLOSE,
 	CONNECT,
 	CONTENT_LENGTH,
-	CONTENT_RANGE,
 	CONTENT_TYPE,
 	DEBUG,
 	DELETE,
 	EMPTY,
 	ERROR,
-	ETAG,
 	FINISH,
 	GET,
 	HEAD,
@@ -31,15 +28,12 @@ import {
 	INT_204,
 	INT_304,
 	INT_403,
-	LAST_MODIFIED,
 	NO_SNIFF,
 	OPTIONS,
-	OPTIONS_BODY,
 	ORIGIN,
 	PATCH,
 	POST,
 	PUT,
-	RANGE,
 	STREAM,
 	STRING,
 	SERVER,
@@ -54,13 +48,14 @@ import {
 	X_POWERED_BY_VALUE,
 	X_RESPONSE_TIME,
 } from "./constants.js";
-import { getStatus, mime, next, params, parse, partialHeaders, writeHead } from "./utility.js";
+import { getStatus, next, params, parse, writeHead } from "./utility.js";
 import { createMiddlewareRegistry } from "./middleware.js";
-import { createResponseHandler } from "./response.js";
-import { createCorsHandler, createIpExtractor } from "./request.js";
-import { createFileServer } from "./fileserver.js";
+import { error, json, redirect, send, set, status, stream as responseStream } from "./response.js";
 import { validateConfig, validateLogging } from "./config.js";
 import { createLogger } from "./logger.js";
+import { cors, corsHost, corsRequest } from "./request.js";
+import { createFileServer } from "./fileserver.js";
+import { APPLICATION_JSON } from "./constants.js";
 
 /**
  * Woodland HTTP server framework class extending EventEmitter
@@ -150,15 +145,18 @@ export class Woodland extends EventEmitter {
 			logServe,
 		};
 
-		const { cors, corsHost, corsRequest } = createCorsHandler(this.origins);
-		this.cors = cors;
+		this.cors = (req) => cors(req, this.origins);
 		this.corsHost = corsHost;
 		this.corsRequest = corsRequest;
+		this.ip = extractIP;
 
-		const { extract } = createIpExtractor();
-		this.ip = extract;
+		this.error = this.error.bind(this);
+		this.json = this.json.bind(this);
+		this.redirect = this.redirect.bind(this);
+		this.send = this.send.bind(this);
+		this.set = this.set.bind(this);
+		this.status = this.status.bind(this);
 
-		this.initResponseHandlers();
 		this.initFileServer();
 		this.initMiddleware();
 
@@ -172,52 +170,6 @@ export class Woodland extends EventEmitter {
 		}
 
 		this.on(ERROR, () => {});
-	}
-
-	/**
-	 * Initializes response handlers
-	 * @private
-	 */
-	initResponseHandlers() {
-		const onReady = this.onReady.bind(this);
-		const onDone = this.onDone.bind(this);
-		const onSend = this.onSend.bind(this);
-
-		const {
-			createErrorHandler,
-			createJsonHandler,
-			createRedirectHandler,
-			createSendHandler,
-			createSetHandler,
-			createStatusHandler,
-			stream,
-		} = createResponseHandler({
-			digit: this.digit,
-			etags: this.etags,
-			onReady,
-			onDone,
-			onSend,
-		});
-
-		this.responseHandler = {
-			createErrorHandler,
-			createJsonHandler,
-			createRedirectHandler,
-			createSendHandler,
-			createSetHandler,
-			createStatusHandler,
-			stream,
-		};
-
-		this.error = createErrorHandler(
-			(req, res, err) => this.emit(ERROR, req, res, err),
-			(req, _status) => this.logger.logError(req.parsed.pathname, req.method, req.ip),
-		);
-		this.json = createJsonHandler;
-		this.redirect = createRedirectHandler;
-		this.send = createSendHandler;
-		this.set = createSetHandler;
-		this.status = createStatusHandler;
 	}
 
 	/**
@@ -239,6 +191,101 @@ export class Woodland extends EventEmitter {
 			this.methods,
 			this.cache,
 		);
+	}
+
+	/**
+	 * Error response handler
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {number} status - HTTP status code
+	 * @param {*} body - Response body
+	 */
+	error(req, res, status = 500, body) {
+		if (arguments.length === 2) {
+			return (s, b) =>
+				error(
+					req,
+					res,
+					(req, res, err) => this.emit(ERROR, req, res, err),
+					(req, _status) => this.logger.logError(req.parsed.pathname, req.method, req.ip),
+					s,
+					b,
+				);
+		}
+		error(
+			req,
+			res,
+			(req, res, err) => this.emit(ERROR, req, res, err),
+			(req, _status) => this.logger.logError(req.parsed.pathname, req.method, req.ip),
+			status,
+			body,
+		);
+	}
+
+	/**
+	 * JSON response handler
+	 * @param {Object} res - HTTP response object
+	 * @param {*} arg - Response data
+	 * @param {number} status - HTTP status code
+	 * @param {Object} headers - Response headers
+	 */
+	json(res, arg, status = 200, headers = { [CONTENT_TYPE]: `${APPLICATION_JSON}; charset=utf-8` }) {
+		if (arguments.length === 1) {
+			return (a, s, h) => json(res, a, s, h);
+		}
+		json(res, arg, status, headers);
+	}
+
+	/**
+	 * Redirect response handler
+	 * @param {Object} res - HTTP response object
+	 * @param {string} uri - Redirect URI
+	 * @param {boolean} perm - Permanent redirect
+	 */
+	redirect(res, uri, perm = true) {
+		if (arguments.length === 1) {
+			return (u, p) => redirect(res, u, p);
+		}
+		redirect(res, uri, perm);
+	}
+
+	/**
+	 * Send response handler
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {*} body - Response body
+	 * @param {number} status - HTTP status code
+	 * @param {Object} headers - Response headers
+	 */
+	send(req, res, body = EMPTY, status = res.statusCode, headers = {}) {
+		if (arguments.length === 2) {
+			return (b, s, h) => send(req, res, b, s, h, this.onReady.bind(this), this.onDone.bind(this));
+		}
+		send(req, res, body, status, headers, this.onReady.bind(this), this.onDone.bind(this));
+	}
+
+	/**
+	 * Set headers handler
+	 * @param {Object} res - HTTP response object
+	 * @param {Object} arg - Headers object
+	 */
+	set(res, arg = {}) {
+		if (arguments.length === 1) {
+			return (a) => set(res, a);
+		}
+		set(res, arg);
+	}
+
+	/**
+	 * Status handler
+	 * @param {Object} res - HTTP response object
+	 * @param {number} arg - Status code
+	 */
+	status(res, arg = INT_200) {
+		if (arguments.length === 1) {
+			return (a) => status(res, a);
+		}
+		status(res, arg);
 	}
 
 	/**
@@ -340,34 +387,9 @@ export class Woodland extends EventEmitter {
 		}
 
 		const parsed = parse(req);
-		const pathname = parsed.pathname;
-		const allowString = this.allows(pathname);
-
-		req.parsed = parsed;
-		req.allow = allowString;
-		req.body = EMPTY;
-		req.host = parsed.hostname;
-		req.params = {};
-		req.valid = true;
-
-		if (timing) {
-			req.precise = timing;
-		}
-
-		req.corsHost = this.corsHost(req);
-		req.cors = this.cors(req);
+		const allowString = this.allows(parsed.pathname);
 
 		const clientIP = this.ip(req);
-		req.ip = clientIP;
-
-		res.locals = {};
-		res.error = this.error(req, res);
-		res.header = res.setHeader;
-		res.json = this.json(res);
-		res.redirect = this.redirect(res);
-		res.send = this.send(req, res);
-		res.set = this.set(res);
-		res.status = this.status(res);
 
 		const headersBatch = Object.create(null);
 		headersBatch[ALLOW] = allowString;
@@ -378,7 +400,7 @@ export class Woodland extends EventEmitter {
 			headersBatch[key] = value;
 		}
 
-		if (req.cors) {
+		if (this.cors(req)) {
 			const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
 			const origin = req.headers.origin;
 
@@ -394,10 +416,34 @@ export class Woodland extends EventEmitter {
 			}
 		}
 
+		req.parsed = parsed;
+		req.allow = allowString;
+		req.body = EMPTY;
+		req.host = parsed.hostname;
+		req.params = {};
+		req.valid = true;
+
+		if (timing) {
+			req.precise = timing;
+		}
+
+		req.corsHost = this.corsHost(req);
+		req.cors = this.cors(req);
+		req.ip = clientIP;
+
+		res.locals = {};
+		res.error = this.error(req, res);
+		res.header = res.setHeader;
+		res.json = this.json(res);
+		res.redirect = this.redirect(res);
+		res.send = this.send(req, res);
+		res.set = this.set(res);
+		res.status = this.status(res);
+
 		res.set(headersBatch);
 
 		this.log(
-			`type=decorate, uri=${pathname}, method=${req.method}, ip=${clientIP}, message="Decorated request from ${clientIP}"`,
+			`type=decorate, uri=${parsed.pathname}, method=${req.method}, ip=${clientIP}, message="Decorated request from ${clientIP}"`,
 		);
 		res.on(CLOSE, () => this.log(this.clf(req, res), INFO));
 	}
@@ -678,54 +724,14 @@ export class Woodland extends EventEmitter {
 			stats: { mtime: new Date(), size: INT_0 },
 		},
 	) {
-		if (file.path === EMPTY || file.stats.size === INT_0) {
-			throw new TypeError("Invalid file descriptor");
-		}
-
-		res.header(CONTENT_LENGTH, file.stats.size);
-		res.header(
-			CONTENT_TYPE,
-			file.charset.length > INT_0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path),
+		responseStream(
+			req,
+			res,
+			file,
+			(req, res) => this.emit(STREAM, req, res),
+			createReadStream,
+			this.etags,
 		);
-		res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
-
-		if (this.etags && file.etag.length > INT_0) {
-			res.header(ETAG, file.etag);
-			res.removeHeader(CACHE_CONTROL);
-		}
-
-		if (req.method === "GET") {
-			let status = INT_200;
-			let options = {};
-			let headers = {};
-
-			if (RANGE in req.headers) {
-				[headers, options] = partialHeaders(req, res, file.stats.size, status);
-
-				if (Object.keys(options).length > INT_0) {
-					res.removeHeader(CONTENT_LENGTH);
-					res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
-
-					if (CONTENT_LENGTH in headers) {
-						res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
-					}
-				} else {
-					options = {};
-				}
-			}
-
-			res.send(
-				createReadStream(file.path, Object.keys(options).length > INT_0 ? options : undefined),
-				status,
-			);
-		} else if (req.method === HEAD) {
-			res.send(EMPTY);
-		} else if (req.method === OPTIONS) {
-			res.removeHeader(CONTENT_LENGTH);
-			res.send(OPTIONS_BODY);
-		}
-
-		this.emit(STREAM, req, res);
 	}
 
 	/**
