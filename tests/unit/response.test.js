@@ -1,17 +1,25 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
 import { createResponseHandler } from "../../src/response.js";
+import { EventEmitter } from "node:events";
+
+const createMockStream = () => {
+	const stream = new EventEmitter();
+	stream.on = stream.on.bind(stream);
+	return stream;
+};
+
+const mockApp = {
+	digit: 3,
+	etags: true,
+	onReady: (_req, _res, body, status, headers) => [body, status, headers],
+	onDone: (_req, _res, _body, _headers) => {},
+	onSend: (_req, _res) => {},
+	createReadStream: createMockStream,
+};
 
 describe("response", () => {
 	describe("createResponseHandler", () => {
-		const mockApp = {
-			digit: 3,
-			etags: true,
-			onReady: (_req, _res, body, status, headers) => [body, status, headers],
-			onDone: (_req, _res, _body, _headers) => {},
-			onSend: (_req, _res) => {},
-		};
-
 		it("should create response handler with all methods", () => {
 			const handler = createResponseHandler(mockApp);
 
@@ -292,6 +300,58 @@ describe("response", () => {
 				const obj = { toString: () => "custom string" };
 				sendHandler(obj);
 			});
+
+			it("should handle range header with valid range", () => {
+				let onDoneCalled = false;
+				const mockAppWithRange = {
+					...mockApp,
+					onDone: (_req, _res, _body, _headers) => {
+						onDoneCalled = true;
+					},
+				};
+				const handler = createResponseHandler(mockAppWithRange);
+				const req = {
+					method: "GET",
+					headers: { range: "bytes=0-9" },
+					range: { start: 0, end: 9 },
+				};
+				const res = {
+					headersSent: false,
+					statusCode: 200,
+					header: () => {},
+					removeHeader: () => {},
+					error: () => {},
+				};
+				const sendHandler = handler.createSendHandler(req, res);
+				sendHandler("0123456789");
+				assert.strictEqual(onDoneCalled, true);
+			});
+
+			it("should handle range header with invalid range", () => {
+				let errorCalled = false;
+				const mockAppWithError = {
+					...mockApp,
+					onDone: () => {},
+				};
+				const handler = createResponseHandler(mockAppWithError);
+				const req = {
+					method: "GET",
+					headers: { range: "bytes=999-1000" },
+				};
+				const res = {
+					headersSent: false,
+					statusCode: 200,
+					header: () => {},
+					removeHeader: () => {},
+					error: (status) => {
+						errorCalled = true;
+						assert.strictEqual(status, 416);
+					},
+				};
+				const sendHandler = handler.createSendHandler(req, res);
+				sendHandler("test body");
+				assert.strictEqual(errorCalled, true);
+			});
 		});
 
 		describe("createSetHandler", () => {
@@ -386,6 +446,173 @@ describe("response", () => {
 						() => {},
 					);
 				}, /Invalid file descriptor/);
+			});
+
+			it("should handle GET request with valid range", () => {
+				let headersSet = {};
+				let sentData = null;
+				const req = {
+					method: "GET",
+					headers: { range: "bytes=0-99" },
+					range: { start: 0, end: 99 },
+				};
+				const res = {
+					headersSent: false,
+					statusCode: 200,
+					header: (name, value) => {
+						headersSet[name] = value;
+					},
+					removeHeader: (name) => {
+						delete headersSet[name];
+					},
+					send: (data) => {
+						sentData = data;
+					},
+				};
+				const file = {
+					path: "/test.txt",
+					etag: "",
+					charset: "",
+					stats: { size: 200, mtime: new Date() },
+				};
+				const handler = createResponseHandler(mockApp);
+				handler.stream(req, res, file, () => {});
+				assert.strictEqual(sentData instanceof EventEmitter, true);
+				assert.strictEqual(headersSet["content-range"], "bytes 0-99/200");
+			});
+
+			it("should handle GET request with invalid range", () => {
+				let headersSet = {};
+				let sentData = null;
+				const req = {
+					method: "GET",
+					headers: { range: "bytes=999-1000" },
+				};
+				const res = {
+					headersSent: false,
+					statusCode: 200,
+					header: (name, value) => {
+						headersSet[name] = value;
+					},
+					removeHeader: (name) => {
+						delete headersSet[name];
+					},
+					send: (data) => {
+						sentData = data;
+					},
+				};
+				const file = {
+					path: "/test.txt",
+					etag: "",
+					charset: "",
+					stats: { size: 100, mtime: new Date() },
+				};
+				const handler = createResponseHandler(mockApp);
+				handler.stream(req, res, file, () => {});
+				assert.strictEqual(sentData instanceof EventEmitter, true);
+				assert.strictEqual(headersSet["content-range"], "bytes */100");
+			});
+
+			it("should stream file with charset", () => {
+				const handler = createResponseHandler(mockApp);
+				let headersSet = {};
+				const req = { method: "HEAD", headers: {} };
+				const res = {
+					headersSent: false,
+					statusCode: 200,
+					header: (name, value) => {
+						headersSet[name] = value;
+					},
+					removeHeader: () => {},
+					send: () => {},
+				};
+				const file = {
+					path: "/test.html",
+					etag: "",
+					charset: "utf-8",
+					stats: { size: 100, mtime: new Date() },
+				};
+				handler.stream(req, res, file, () => {});
+				assert.ok(headersSet["content-type"].includes("charset=utf-8"));
+			});
+
+			it("should stream file with etag", () => {
+				const mockAppWithEtags = {
+					digit: 3,
+					etags: { generate: () => "test-etag" },
+					onReady: (_req, _res, body, status, headers) => [body, status, headers],
+					onDone: (_req, _res, _body, _headers) => {},
+					onSend: (_req, _res) => {},
+					createReadStream: createMockStream,
+				};
+				const handler = createResponseHandler(mockAppWithEtags);
+				let headersSet = {};
+				const req = { method: "HEAD", headers: {} };
+				const res = {
+					headersSent: false,
+					statusCode: 200,
+					header: (name, value) => {
+						headersSet[name] = value;
+					},
+					removeHeader: (name) => {
+						delete headersSet[name];
+					},
+					send: () => {},
+				};
+				const file = {
+					path: "/test.txt",
+					etag: "test-etag",
+					charset: "",
+					stats: { size: 100, mtime: new Date() },
+				};
+				handler.stream(req, res, file, () => {});
+				assert.strictEqual(headersSet["etag"], "test-etag");
+			});
+
+			it("should handle HEAD request", () => {
+				const handler = createResponseHandler(mockApp);
+				let sentData = null;
+				const req = { method: "HEAD", headers: {} };
+				const res = {
+					headersSent: false,
+					statusCode: 200,
+					header: () => {},
+					removeHeader: () => {},
+					send: (data) => {
+						sentData = data;
+					},
+				};
+				const file = {
+					path: "/test.txt",
+					etag: "",
+					charset: "",
+					stats: { size: 100, mtime: new Date() },
+				};
+				handler.stream(req, res, file, () => {});
+				assert.strictEqual(sentData, "");
+			});
+
+			it("should handle OPTIONS request", () => {
+				const handler = createResponseHandler(mockApp);
+				let sentData = null;
+				const req = { method: "OPTIONS", headers: {} };
+				const res = {
+					headersSent: false,
+					statusCode: 200,
+					header: () => {},
+					removeHeader: () => {},
+					send: (data) => {
+						sentData = data;
+					},
+				};
+				const file = {
+					path: "/test.txt",
+					etag: "",
+					charset: "",
+					stats: { size: 100, mtime: new Date() },
+				};
+				handler.stream(req, res, file, () => {});
+				assert.ok(sentData !== null);
 			});
 		});
 	});

@@ -18,7 +18,7 @@ import {
 	TO_STRING,
 } from "./constants.js";
 import { partialHeaders, writeHead, pipeable, mimeExtensions } from "./utility.js";
-import { createReadStream } from "node:fs";
+import * as fs from "node:fs";
 
 /**
  * Gets MIME type for file extension
@@ -63,9 +63,17 @@ function getStatusText(status) {
  * @param {Function} config.onReady - Callback for response ready
  * @param {Function} config.onDone - Callback for response done
  * @param {Function} config.onSend - Callback for response send
+ * @param {Function} [config.createReadStream] - Stream factory function (defaults to fs.createReadStream)
  * @returns {Object} Response handler with createErrorHandler, createJsonHandler, createRedirectHandler, createSendHandler, createSetHandler, createStatusHandler, stream
  */
-export function createResponseHandler({ digit: _digit, etags, onReady, onDone, onSend: _onSend }) {
+export function createResponseHandler({
+	digit: _digit,
+	etags,
+	onReady,
+	onDone,
+	onSend: _onSend,
+	createReadStream: _createReadStream = fs.createReadStream,
+}) {
 	/**
 	 * Creates error handler function
 	 * @param {Function} emitError - Error emit function
@@ -222,6 +230,7 @@ export function createResponseHandler({ digit: _digit, etags, onReady, onDone, o
 	 * @private
 	 */
 	function stream(req, res, file, emitStream) {
+		const createStream = _createReadStream;
 		if (file.path === EMPTY || file.stats.size === 0) {
 			throw new TypeError("Invalid file descriptor");
 		}
@@ -259,7 +268,7 @@ export function createResponseHandler({ digit: _digit, etags, onReady, onDone, o
 			}
 
 			res.send(
-				createReadStream(file.path, Object.keys(options).length > 0 ? options : undefined),
+				createStream(file.path, Object.keys(options).length > 0 ? options : undefined),
 				status,
 			);
 		} else if (req.method === "HEAD") {

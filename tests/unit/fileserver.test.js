@@ -147,6 +147,61 @@ describe("fileserver", () => {
 
 				assert.strictEqual(errorCalled, true);
 			});
+
+			it("should serve index file from directory", async () => {
+				let streamed = false;
+				const app = createMockApp();
+				app.indexes = ["index.html"];
+				app.logger.logServe = () => ({ log: () => {} });
+				app.stream = () => {
+					streamed = true;
+				};
+				const server = createFileServer(app);
+
+				await server.serve(
+					{
+						method: "GET",
+						parsed: { pathname: "/subdir-with-index/", search: "" },
+					},
+					{
+						error: () => {},
+						redirect: () => {},
+					},
+					"subdir-with-index",
+					testFilesDir,
+				);
+
+				assert.strictEqual(streamed, true);
+			});
+
+			it("should serve directory listing with autoindex enabled", async () => {
+				let sentBody = null;
+				const app = createMockApp();
+				app.autoindex = true;
+				app.indexes = [];
+				app.logger.logServe = () => ({ log: () => {} });
+				const server = createFileServer(app);
+
+				await server.serve(
+					{
+						method: "GET",
+						parsed: { pathname: "/subdir/", search: "" },
+					},
+					{
+						error: () => {},
+						redirect: () => {},
+						header: () => {},
+						send: (body) => {
+							sentBody = body;
+						},
+					},
+					"subdir",
+					testFilesDir,
+				);
+
+				assert.ok(sentBody !== null);
+				assert.ok(sentBody.includes("<!doctype html>"));
+			});
 		});
 
 		describe("register", () => {
