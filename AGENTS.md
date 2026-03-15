@@ -14,7 +14,7 @@
 ## Development workflow
 
 1. Make changes to source files
-2. Run tests: `npm test` (ensure 376 tests still pass)
+2. Run tests: `npm test` (ensure 406 tests still pass)
 3. Fix lint errors: `npm run fix`
 4. Build: `npm run build`
 
@@ -40,10 +40,15 @@
 
 ## Codebase structure
 
-- `src/woodland.js` - Main framework file (1144 lines), exports `Woodland` class and `woodland` factory function
+- `src/woodland.js` - Main framework file, exports `Woodland` class and `woodland` factory function
+- `src/response.js` - Response handlers (`mime`, `getStatusText`, `error`, `json`, `redirect`, `send`, `set`, `status`, `stream`)
+- `src/request.js` - Request handlers (`isValidIP`, `cors`, `corsHost`, `corsRequest`, `extractIP`, `decorate`, `logClose`)
+- `src/logger.js` - Logger factory and functions (`createLogger`, `log`, `clfm`, `extractIP`, `logRoute`, `logMiddleware`, `logDecoration`, `logError`, `logServe`)
 - `src/utility.js` - Utility functions (559 lines), all named exports
 - `src/constants.js` - All constants and regex patterns used throughout framework
 - `src/cli.js` - CLI entry point for running the server
+- `src/fileserver.js` - File server handler with `createFileServer` factory
+- `src/middleware.js` - Middleware registry with `createMiddlewareRegistry` factory
 - `src/tpl/autoindex.html` - Template for autoindex directory listings
 - `tests/integration/` - Integration tests with Node.js test runner
 - `tests/unit/` - Unit tests with Node.js test runner
@@ -81,7 +86,7 @@
 
 ## Test count
 
-- 376 tests passing
+- 406 tests passing
 
 ## Key implementation details
 
@@ -94,3 +99,6 @@
 - Middleware execution is async via `process.nextTick`, tests need to wait
 - CORS check (`req.cors`) only true when origin host differs from request host
 - Unknown file extensions may have MIME types in mime-db; use unique extensions for octet-stream
+- Response handler functions (`error`, `json`, `redirect`, `send`, `set`, `status`) are exported directly and support curried calls when passed to `res.*` decorators (e.g., `res.json = this.json(res)` returns a function that can be called later with data)
+- Request handler functions (`cors`, `corsHost`, `corsRequest`, `extractIP`) are exported directly instead of being wrapped in factory functions
+- Logger functions (`log`, `clfm`, `logRoute`, `logMiddleware`, `logDecoration`, `logError`, `logServe`) are exported directly with `createLogger` returning an object with bound methods
