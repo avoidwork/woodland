@@ -44,7 +44,7 @@
     "build": "npm run rollup",
     "changelog": "auto-changelog -p",
     "clean": "rimraf dist coverage coverage.txt",
-    "coverage": "node --test --experimental-test-coverage --test-coverage-exclude=dist/** --test-coverage-exclude=tests/** tests/**/*.test.js 2>&1 | sed -n '/^ℹ start of coverage report/,$p' | tee coverage.txt",
+    "coverage": "node --test --experimental-test-coverage --test-coverage-exclude=dist/** --test-coverage-exclude=tests/** --test-reporter=spec tests/**/*.test.js 2>&1 | grep -A 1000 \"start of coverage report\" > coverage.txt",
     "fix": "oxlint --fix *.js benchmarks src tests && oxfmt *.js benchmarks src tests --write",
     "lint": "oxlint *.js benchmarks src tests && oxfmt *.js benchmarks src tests --check",
     "prepare": "husky",
