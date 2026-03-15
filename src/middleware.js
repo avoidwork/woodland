@@ -124,6 +124,14 @@ export function next(req, res, middleware, immediate = false) {
 export function createMiddlewareRegistry(middleware, ignored, methods, cache) {
 	let ignoreFn, allowedFn, routesFn, registerFn, listFn;
 
+	/**
+	 * Computes route information for a given URI and method
+	 * @private
+	 * @param {string} uri - The URI to match
+	 * @param {string} method - HTTP method
+	 * @param {boolean} [override=false] - Whether to override cache
+	 * @returns {Object} Route information object
+	 */
 	function routes(uri, method, override = false) {
 		const key = `${method}${DELIMITER}${uri}`;
 		const cached = override === false ? cache.get(key) : void 0;
@@ -153,6 +161,13 @@ export function createMiddlewareRegistry(middleware, ignored, methods, cache) {
 	}
 	routesFn = routes;
 
+	/**
+	 * Lists middleware routes for a given method
+	 * @private
+	 * @param {string} [method=get] - HTTP method to list
+	 * @param {string} [type=array] - Return type (array or object)
+	 * @returns {Array|Object} List of routes
+	 */
 	function list(method = GET.toLowerCase(), type = "array") {
 		let result;
 
@@ -170,11 +185,26 @@ export function createMiddlewareRegistry(middleware, ignored, methods, cache) {
 	}
 	listFn = list;
 
+	/**
+	 * Checks if a method is allowed for a given URI
+	 * @private
+	 * @param {string} method - HTTP method
+	 * @param {string} uri - The URI to check
+	 * @param {boolean} [override=false] - Whether to override cache
+	 * @returns {boolean} True if allowed
+	 */
 	function allowed(method, uri, override = false) {
 		return routesFn(uri, method, override).visible > 0;
 	}
 	allowedFn = allowed;
 
+	/**
+	 * Registers middleware for a route
+	 * @private
+	 * @param {string|Function} rpath - Route path or middleware function
+	 * @param {...Function} fn - Middleware functions to register
+	 * @returns {Object} Registry object for chaining
+	 */
 	function register(rpath, ...fn) {
 		if (typeof rpath === FUNCTION) {
 			fn = [rpath, ...fn];
@@ -239,6 +269,12 @@ export function createMiddlewareRegistry(middleware, ignored, methods, cache) {
 	}
 	registerFn = register;
 
+	/**
+	 * Adds function to ignored set
+	 * @private
+	 * @param {Function} fn - Function to ignore
+	 * @returns {Object} Registry object for chaining
+	 */
 	function ignore(fn) {
 		ignored.add(fn);
 
