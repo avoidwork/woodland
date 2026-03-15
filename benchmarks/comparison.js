@@ -1,19 +1,19 @@
-import {createServer} from "node:http";
+import { createServer } from "node:http";
 import express from "express";
 import fastify from "fastify";
-import {woodland} from "../dist/woodland.js";
+import { woodland } from "../dist/woodland.js";
 
 // Shared data object in lexical scope for all frameworks
 const data = {
 	message: "Hello World",
 	timestamp: Date.now(),
-	success: true
+	success: true,
 };
 
 // Test server configuration
 const SERVER_CONFIG = {
 	port: 0, // Use random available port
-	host: "127.0.0.1"
+	host: "127.0.0.1",
 };
 
 // Server instances
@@ -30,7 +30,7 @@ let fastifyServerUrl = null;
  * Creates a raw Node.js HTTP server for JSON responses
  * @returns {Object} HTTP server instance
  */
-function createRawServer () {
+function createRawServer() {
 	return createServer((req, res) => {
 		// Set headers
 		res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -46,13 +46,13 @@ function createRawServer () {
  * Creates a Woodland server for JSON responses
  * @returns {Object} Woodland app instance
  */
-function createWoodlandServer () {
+function createWoodlandServer() {
 	const app = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
 		etags: false, // Disable for fair comparison
-		logging: {enabled: false}, // Disable logging for benchmarks
-		time: false // Disable timing for fair comparison
+		logging: { enabled: false }, // Disable logging for benchmarks
+		time: false, // Disable timing for fair comparison
 	});
 
 	// Use shared data object from lexical scope
@@ -67,7 +67,7 @@ function createWoodlandServer () {
  * Creates an Express server for JSON responses
  * @returns {Object} Express app instance
  */
-function createExpressServer () {
+function createExpressServer() {
 	const app = express();
 
 	// Use shared data object from lexical scope
@@ -82,9 +82,9 @@ function createExpressServer () {
  * Creates a Fastify server for JSON responses
  * @returns {Object} Fastify app instance
  */
-function createFastifyServer () {
+function createFastifyServer() {
 	const app = fastify({
-		logger: false // Disable logging for benchmarks
+		logger: false, // Disable logging for benchmarks
 	});
 
 	// Use shared data object from lexical scope
@@ -99,7 +99,7 @@ function createFastifyServer () {
  * Starts the raw Node.js HTTP server
  * @returns {Promise<void>}
  */
-async function startRawServer () {
+async function startRawServer() {
 	if (rawServer) {
 		return Promise.resolve(); // Already started
 	}
@@ -121,7 +121,7 @@ async function startRawServer () {
  * Starts the Woodland server
  * @returns {Promise<void>}
  */
-async function startWoodlandServer () {
+async function startWoodlandServer() {
 	if (woodlandServer) {
 		return Promise.resolve(); // Already started
 	}
@@ -144,12 +144,12 @@ async function startWoodlandServer () {
  * Stops the raw server
  * @returns {Promise<void>}
  */
-async function stopRawServer () {
+async function stopRawServer() {
 	if (!rawServer) {
 		return Promise.resolve();
 	}
 
-	return new Promise(resolve => {
+	return new Promise((resolve) => {
 		rawServer.close(() => {
 			rawServer = null;
 			rawServerUrl = null;
@@ -162,12 +162,12 @@ async function stopRawServer () {
  * Stops the Woodland server
  * @returns {Promise<void>}
  */
-async function stopWoodlandServer () {
+async function stopWoodlandServer() {
 	if (!woodlandServer) {
 		return Promise.resolve();
 	}
 
-	return new Promise(resolve => {
+	return new Promise((resolve) => {
 		woodlandServer.close(() => {
 			woodlandServer = null;
 			woodlandServerUrl = null;
@@ -180,7 +180,7 @@ async function stopWoodlandServer () {
  * Starts the Express server
  * @returns {Promise<void>}
  */
-async function startExpressServer () {
+async function startExpressServer() {
 	if (expressServer) {
 		return Promise.resolve(); // Already started
 	}
@@ -203,7 +203,7 @@ async function startExpressServer () {
  * Starts the Fastify server
  * @returns {Promise<void>}
  */
-async function startFastifyServer () {
+async function startFastifyServer() {
 	if (fastifyServer) {
 		return Promise.resolve(); // Already started
 	}
@@ -212,7 +212,7 @@ async function startFastifyServer () {
 
 	await fastifyServer.listen({
 		port: SERVER_CONFIG.port,
-		host: SERVER_CONFIG.host
+		host: SERVER_CONFIG.host,
 	});
 
 	const address = fastifyServer.server.address();
@@ -225,12 +225,12 @@ async function startFastifyServer () {
  * Stops the Express server
  * @returns {Promise<void>}
  */
-async function stopExpressServer () {
+async function stopExpressServer() {
 	if (!expressServer) {
 		return Promise.resolve();
 	}
 
-	return new Promise(resolve => {
+	return new Promise((resolve) => {
 		expressServer.close(() => {
 			expressServer = null;
 			expressServerUrl = null;
@@ -243,7 +243,7 @@ async function stopExpressServer () {
  * Stops the Fastify server
  * @returns {Promise<void>}
  */
-async function stopFastifyServer () {
+async function stopFastifyServer() {
 	if (!fastifyServer) {
 		return Promise.resolve();
 	}
@@ -264,7 +264,7 @@ async function stopFastifyServer () {
  * @param {string} url - Server URL
  * @returns {Promise<Object>} Response data
  */
-async function makeRequest (url) {
+async function makeRequest(url) {
 	const response = await fetch(url);
 	if (!response.ok) {
 		throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -276,28 +276,28 @@ async function makeRequest (url) {
 /**
  * Benchmark raw Node.js HTTP server JSON response
  */
-function benchmarkRawServer () {
+function benchmarkRawServer() {
 	return makeRequest(rawServerUrl);
 }
 
 /**
  * Benchmark Woodland JSON response
  */
-function benchmarkWoodlandServer () {
+function benchmarkWoodlandServer() {
 	return makeRequest(woodlandServerUrl);
 }
 
 /**
  * Benchmark Express JSON response
  */
-function benchmarkExpressServer () {
+function benchmarkExpressServer() {
 	return makeRequest(expressServerUrl);
 }
 
 /**
  * Benchmark Fastify JSON response
  */
-function benchmarkFastifyServer () {
+function benchmarkFastifyServer() {
 	return makeRequest(fastifyServerUrl);
 }
 
@@ -305,12 +305,12 @@ function benchmarkFastifyServer () {
  * Initialize servers for comparison benchmarks
  * @returns {Promise<void>}
  */
-async function initializeComparisonServers () {
+async function initializeComparisonServers() {
 	await Promise.all([
 		startRawServer(),
 		startWoodlandServer(),
 		startExpressServer(),
-		startFastifyServer()
+		startFastifyServer(),
 	]);
 }
 
@@ -318,12 +318,12 @@ async function initializeComparisonServers () {
  * Cleanup servers after comparison benchmarks
  * @returns {Promise<void>}
  */
-async function cleanupComparisonServers () {
+async function cleanupComparisonServers() {
 	await Promise.all([
 		stopRawServer(),
 		stopWoodlandServer(),
 		stopExpressServer(),
-		stopFastifyServer()
+		stopFastifyServer(),
 	]);
 }
 
@@ -335,7 +335,7 @@ const benchmarks = {
 	"raw Node.js HTTP server": benchmarkRawServer,
 	"Express.js framework": benchmarkExpressServer,
 	"Fastify framework": benchmarkFastifyServer,
-	"Woodland framework": benchmarkWoodlandServer
+	"Woodland framework": benchmarkWoodlandServer,
 };
 
 // Add cleanup function to benchmark exports

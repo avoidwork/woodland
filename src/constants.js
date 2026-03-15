@@ -1,10 +1,10 @@
-import {createRequire} from "node:module";
-import {join} from "node:path";
-import {fileURLToPath, URL} from "node:url";
+import { createRequire } from "node:module";
+import { join } from "node:path";
+import { fileURLToPath, URL } from "node:url";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const require = createRequire(import.meta.url);
-const {name, version} = require(join(__dirname, "..", "package.json"));
+const { name, version } = require(join(__dirname, "..", "package.json"));
 
 // =============================================================================
 // HTTP METHODS
@@ -80,6 +80,9 @@ export const SERVER_VALUE = `${name}/${version}`;
 export const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform}/${process.arch}`;
 export const LOCALHOST = "127.0.0.1";
 export const INT_8000 = 8000;
+export const IPV4_REGEX =
+	/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+export const PROTOCOL_REGEX = /^http(s)?:\/\//;
 
 // =============================================================================
 // FILE SYSTEM & ROUTING
@@ -146,12 +149,12 @@ export const LEVELS = Object.freeze({
 	warn: 4,
 	notice: 5,
 	info: 6,
-	debug: 7
+	debug: 7,
 });
 
 // Log format tokens
 export const LOG_B = "%b";
-export const LOG_FORMAT = "%h %l %u %t \"%r\" %>s %b";
+export const LOG_FORMAT = '%h %l %u %t "%r" %>s %b';
 export const LOG_H = "%h";
 export const LOG_L = "%l";
 export const LOG_R = "%r";
@@ -206,9 +209,11 @@ export const TOKEN_N = "%N";
 export const TO_STRING = "toString";
 export const TRUE = "true";
 
-export const MONTHS = Object.freeze(Array.from(Array(12).values()).map((i, idx) => {
-	const d = new Date();
-	d.setMonth(idx);
+export const MONTHS = Object.freeze(
+	Array.from(Array(12).values()).map((i, idx) => {
+		const d = new Date();
+		d.setMonth(idx);
 
-	return Object.freeze(d.toLocaleString(EN_US, {month: SHORT}));
-}));
+		return Object.freeze(d.toLocaleString(EN_US, { month: SHORT }));
+	}),
+);

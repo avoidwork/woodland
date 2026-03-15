@@ -1,29 +1,28 @@
 /**
  * woodland
  *
- * @copyright 2025 Jason Mulligan <jason.mulligan@avoidwork.com>
+ * @copyright 2026 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
  * @version 20.2.10
  */
 'use strict';
 
 var node_http = require('node:http');
-var node_path = require('node:path');
 var node_events = require('node:events');
-var promises = require('node:fs/promises');
 var node_fs = require('node:fs');
 var tinyEtag = require('tiny-etag');
 var precise = require('precise');
-var tinyLru = require('tiny-lru');
 var node_module = require('node:module');
+var node_path = require('node:path');
 var node_url = require('node:url');
 var tinyCoerce = require('tiny-coerce');
 var mimeDb = require('mime-db');
+var promises = require('node:fs/promises');
 
 var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
 const __dirname$2 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href))));
 const require$1 = node_module.createRequire((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href)));
-const {name, version} = require$1(node_path.join(__dirname$2, "..", "package.json"));
+const { name, version } = require$1(node_path.join(__dirname$2, "..", "package.json"));
 
 // =============================================================================
 // HTTP METHODS
@@ -45,8 +44,6 @@ const INT_200 = 200;
 const INT_204 = 204;
 const INT_206 = 206;
 const INT_304 = 304;
-const INT_307 = 307;
-const INT_308 = 308;
 const INT_403 = 403;
 const INT_404 = 404;
 const INT_405 = 405;
@@ -75,9 +72,7 @@ const ORIGIN = "origin";
 const RANGE = "range";
 const SERVER = "server";
 const TIMING_ALLOW_ORIGIN = "timing-allow-origin";
-const USER_AGENT = "user-agent";
 const X_CONTENT_TYPE_OPTIONS = "x-content-type-options";
-const X_FORWARDED_FOR = "x-forwarded-for";
 const X_POWERED_BY = "x-powered-by";
 const X_RESPONSE_TIME = "x-response-time";
 
@@ -101,7 +96,6 @@ const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform}/${pro
 const INDEX_HTM = "index.htm";
 const INDEX_HTML = "index.html";
 const EXTENSIONS = "extensions";
-const PARAMS_GROUP = "/(?<$1>[^/]+)";
 
 // =============================================================================
 // NUMERIC CONSTANTS
@@ -109,19 +103,11 @@ const PARAMS_GROUP = "/(?<$1>[^/]+)";
 const INT_0 = 0;
 const INT_2 = 2;
 const INT_3 = 3;
-const INT_4 = 4;
 const INT_10 = 10;
 const INT_60 = 60;
 const INT_1e3 = 1e3;
 const INT_1e4 = 1e4;
-const INT_1e6 = 1e6;
-
-// =============================================================================
-// STRING & CHARACTER CONSTANTS
-// =============================================================================
-const COLON = ":";
 const COMMA = ",";
-const COMMA_SPACE = ", ";
 const DELIMITER = "|";
 const EMPTY = "";
 const HYPHEN = "-";
@@ -129,13 +115,7 @@ const LEFT_PAREN = "(";
 const SLASH = "/";
 const STRING_0 = "0";
 const WILDCARD = "*";
-
-// =============================================================================
-// DATA TYPES
-// =============================================================================
-const ARRAY = "array";
 const FUNCTION = "function";
-const OBJECT = "object";
 const STRING = "string";
 
 // =============================================================================
@@ -144,46 +124,7 @@ const STRING = "string";
 const DEBUG = "debug";
 const ERROR = "error";
 const INFO = "info";
-const LOG = "log";
-
-const LEVELS = Object.freeze({
-	emerg: 0,
-	alert: 1,
-	crit: 2,
-	error: 3,
-	warn: 4,
-	notice: 5,
-	info: 6,
-	debug: 7
-});
-
-// Log format tokens
-const LOG_B = "%b";
-const LOG_FORMAT = "%h %l %u %t \"%r\" %>s %b";
-const LOG_H = "%h";
-const LOG_L = "%l";
-const LOG_R = "%r";
-const LOG_REFERRER = "%{Referer}i";
-const LOG_S = "%>s";
-const LOG_T = "%t";
-const LOG_U = "%u";
-const LOG_USER_AGENT = "%{User-agent}i";
-const LOG_V = "%v";
-
-// =============================================================================
-// MESSAGES & RESPONSES
-// =============================================================================
-const MSG_DECORATED_IP = "Decorated request from %IP";
-const MSG_DETERMINED_ALLOW = "Determined 'allow' header value";
-const MSG_ERROR_HEAD_ROUTE = "Cannot set HEAD route, use GET";
-const MSG_ERROR_INVALID_METHOD = "Invalid HTTP method";
-const MSG_ERROR_IP = "Handled error response for %IP";
-const MSG_IGNORED_FN = "Added function to ignored Set";
-const MSG_REGISTERING_MIDDLEWARE = "Registering middleware";
-const MSG_RETRIEVED_MIDDLEWARE = "Retrieved middleware for request";
-const MSG_ROUTING = "Routing request";
-const MSG_ROUTING_FILE = "Routing request to file system";
-const MSG_SENDING_BODY = "Sending response body";
+const LOG_FORMAT = '%h %l %u %t "%r" %>s %b';
 
 const OPTIONS_BODY = "Make a GET request to retrieve the file";
 
@@ -203,25 +144,24 @@ const STREAM = "stream";
 // UTILITY & MISC
 // =============================================================================
 const EN_US = "en-US";
-const IP_TOKEN = "%IP";
 const SHORT = "short";
-const TIME_MS = "%N ms";
-const TOKEN_N = "%N";
 const TO_STRING = "toString";
 const TRUE = "true";
 
-const MONTHS = Object.freeze(Array.from(Array(12).values()).map((i, idx) => {
-	const d = new Date();
-	d.setMonth(idx);
+const MONTHS = Object.freeze(
+	Array.from(Array(12).values()).map((i, idx) => {
+		const d = new Date();
+		d.setMonth(idx);
 
-	return Object.freeze(d.toLocaleString(EN_US, {month: SHORT}));
-}));
+		return Object.freeze(d.toLocaleString(EN_US, { month: SHORT }));
+	}),
+);
 
 const __dirname$1 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href)))),
-	html = node_fs.readFileSync(node_path.join(__dirname$1, "..", "tpl", "autoindex.html"), {encoding: UTF8}),
-	valid = Object.entries(mimeDb).filter(i => EXTENSIONS in i[1]),
-	extensions = valid.reduce((a, v) => {
-		const result = Object.assign({type: v[0]}, v[1]);
+	html = node_fs.readFileSync(node_path.join(__dirname$1, "..", "tpl", "autoindex.html"), { encoding: UTF8 }),
+	valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
+	mimeExtensions = valid.reduce((a, v) => {
+		const result = Object.assign({ type: v[0] }, v[1]);
 
 		for (const key of result.extensions) {
 			a[`.${key}`] = result;
@@ -235,17 +175,17 @@ const __dirname$1 = node_url.fileURLToPath(new node_url.URL(".", (typeof documen
  * @param {string} [str=""] - The string to escape
  * @returns {string} The escaped string with HTML entities
  */
-function escapeHtml (str = EMPTY) {
+function escapeHtml(str = EMPTY) {
 	// Use lookup table for single-pass replacement
 	const htmlEscapes = {
 		"&": "&amp;",
 		"<": "&lt;",
 		">": "&gt;",
 		'"': "&quot;",
-		"'": "&#39;"
+		"'": "&#39;",
 	};
 
-	return str.replace(/[&<>"']/g, match => htmlEscapes[match]);
+	return str.replace(/[&<>"']/g, (match) => htmlEscapes[match]);
 }
 
 /**
@@ -254,19 +194,19 @@ function escapeHtml (str = EMPTY) {
  * @param {Array} [files=[]] - Array of file objects from fs.readdir with withFileTypes: true
  * @returns {string} The complete HTML string for the autoindex page
  */
-function autoindex (title = EMPTY, files = []) {
+function autoindex(title = EMPTY, files = []) {
 	const safeTitle = escapeHtml(title);
 
 	// Optimized: Fast path for empty files array
 	if (files.length === 0) {
 		return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) => {
-			return key === "TITLE" ? safeTitle : "    <li><a href=\"..\" rel=\"collection\">../</a></li>";
+			return key === "TITLE" ? safeTitle : '    <li><a href=".." rel="collection">../</a></li>';
 		});
 	}
 
 	// Pre-allocate array for better performance
-	const listItems = new Array(files.length + 1);
-	listItems[0] = "    <li><a href=\"..\" rel=\"collection\">../</a></li>";
+	const listItems = Array.from({ length: files.length + 1 });
+	listItems[0] = '    <li><a href=".." rel="collection">../</a></li>';
 
 	// Optimized: Cache file count and optimize loop
 	const fileCount = files.length;
@@ -278,15 +218,15 @@ function autoindex (title = EMPTY, files = []) {
 		const isDir = file.isDirectory();
 
 		// Optimized: Use ternary operator for better performance
-		listItems[i + 1] = isDir ?
-			`    <li><a href="${safeHref}/" rel="collection">${safeName}/</a></li>` :
-			`    <li><a href="${safeHref}" rel="item">${safeName}</a></li>`;
+		listItems[i + 1] = isDir
+			? `    <li><a href="${safeHref}/" rel="collection">${safeName}/</a></li>`
+			: `    <li><a href="${safeHref}" rel="item">${safeName}</a></li>`;
 	}
 
 	const safeFiles = listItems.join("\n");
 
 	// Optimized: Cache replace callback for reuse
-	const replaceCallback = (match, key) => key === "TITLE" ? safeTitle : safeFiles;
+	const replaceCallback = (match, key) => (key === "TITLE" ? safeTitle : safeFiles);
 
 	return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, replaceCallback);
 }
@@ -297,7 +237,7 @@ function autoindex (title = EMPTY, files = []) {
  * @param {Object} res - The HTTP response object
  * @returns {number} The appropriate HTTP status code
  */
-function getStatus (req, res) {
+function getStatus(req, res) {
 	// No allowed methods - always 404
 	if (req.allow.length === INT_0) {
 		return INT_404;
@@ -322,20 +262,10 @@ function getStatus (req, res) {
  * @param {string} [arg=""] - The filename or path to get the MIME type for
  * @returns {string} The MIME type or application/octet-stream as default
  */
-function mime (arg = EMPTY) {
+function mime$1(arg = EMPTY) {
 	const ext = node_path.extname(arg);
 
-	return ext in extensions ? extensions[ext].type : APPLICATION_OCTET_STREAM;
-}
-
-/**
- * Formats a time value in milliseconds with specified precision
- * @param {number} [arg=0] - The time value in nanoseconds
- * @param {number} [digits=3] - Number of decimal places for precision
- * @returns {string} Formatted time string with "ms" suffix
- */
-function ms (arg = INT_0, digits = INT_3) {
-	return TIME_MS.replace(TOKEN_N, Number(arg / INT_1e6).toFixed(digits));
+	return ext in mimeExtensions ? mimeExtensions[ext].type : APPLICATION_OCTET_STREAM;
 }
 
 /**
@@ -346,7 +276,7 @@ function ms (arg = INT_0, digits = INT_3) {
  * @param {boolean} [immediate=false] - Whether to execute immediately or on next tick
  * @returns {Function} The next function for middleware chain
  */
-function next (req, res, middleware, immediate = false) {
+function next(req, res, middleware, immediate = false) {
 	// Optimized: Pre-calculate getStatus to avoid repeated function calls
 	const errorStatus = getStatus(req, res);
 
@@ -380,20 +310,11 @@ function next (req, res, middleware, immediate = false) {
 	};
 
 	// Optimized: Create function based on immediate flag without conditional in hot path
-	const fn = immediate ?
-		err => internalFn(err, fn) :
-		err => process.nextTick(() => internalFn(err, fn));
+	const fn = immediate
+		? (err) => internalFn(err, fn)
+		: (err) => process.nextTick(() => internalFn(err, fn));
 
 	return fn;
-}
-
-/**
- * Pads a number with leading zeros to make it 2 digits
- * @param {number} [arg=0] - The number to pad
- * @returns {string} The padded string representation
- */
-function pad (arg = INT_0) {
-	return String(arg).padStart(INT_2, STRING_0);
 }
 
 /**
@@ -401,7 +322,7 @@ function pad (arg = INT_0) {
  * @param {Object} req - The HTTP request object
  * @param {RegExp} getParams - Regular expression for parameter extraction
  */
-function params (req, getParams) {
+function params(req, getParams) {
 	getParams.lastIndex = INT_0;
 	const match = getParams.exec(req.parsed.pathname);
 	const groups = match?.groups;
@@ -451,8 +372,12 @@ function params (req, getParams) {
  * @param {string|Object} arg - URL string or request object to parse
  * @returns {URL} Parsed URL object
  */
-function parse (arg) {
-	return new node_url.URL(typeof arg === STRING ? arg : `http://${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || "8000"}`}${arg.url}`);
+function parse(arg) {
+	return new node_url.URL(
+		typeof arg === STRING
+			? arg
+			: `http://${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || "8000"}`}${arg.url}`,
+	);
 }
 
 /**
@@ -465,7 +390,7 @@ function parse (arg) {
  * @param {Object} [options={}] - Options for range processing
  * @returns {Array} Array containing [headers, options]
  */
-function partialHeaders (req, res, size, status, headers = {}, options = {}) {
+function partialHeaders(req, res, size, status, headers = {}, options = {}) {
 	const rangeHeader = req.headers.range;
 
 	if (!rangeHeader || !rangeHeader.startsWith(KEY_BYTES)) {
@@ -516,7 +441,6 @@ function partialHeaders (req, res, size, status, headers = {}, options = {}) {
 		}
 	}
 
-
 	// Clean up headers once
 	res.removeHeader(CONTENT_RANGE);
 	res.removeHeader(CONTENT_LENGTH);
@@ -552,52 +476,8 @@ function partialHeaders (req, res, size, status, headers = {}, options = {}) {
  * @param {*} arg - Object to check for pipeability
  * @returns {boolean} True if the object is pipeable
  */
-function pipeable (method, arg) {
+function pipeable(method, arg) {
 	return method !== HEAD && arg !== null && arg !== undefined && typeof arg.on === FUNCTION;
-}
-
-/**
- * Processes middleware map for a given URI and populates middleware array
- * @param {string} uri - The URI to match against
- * @param {Map} [map=new Map()] - Map of middleware handlers
- * @param {Object} [arg={}] - Object containing middleware array and parameters
- */
-function reduce (uri, map = new Map(), arg = {}) {
-	// Optimized: Early return if map is empty
-	if (map.size === 0) {
-		return;
-	}
-
-	// Optimized: Cache middleware array reference to avoid property access
-	const middlewareArray = arg.middleware;
-	let paramsFound = arg.params;
-
-	// Iterate directly over map values without creating intermediate array
-	for (const middleware of map.values()) {
-		// Optimized: Reset lastIndex only when needed
-		middleware.regex.lastIndex = INT_0;
-
-		if (middleware.regex.test(uri)) {
-			// Optimized: Use Array.prototype.push.apply for better performance with large arrays
-			const handlers = middleware.handlers;
-			const handlerCount = handlers.length;
-
-			if (handlerCount === 1) {
-				// Fast path for single handler
-				middlewareArray.push(handlers[0]);
-			} else if (handlerCount > 1) {
-				// Use push.apply for multiple handlers
-				middlewareArray.push.apply(middlewareArray, handlers);
-			}
-
-			// Set params info if needed (only check once)
-			if (middleware.params && paramsFound === false) {
-				arg.params = true;
-				arg.getParams = middleware.regex;
-				paramsFound = true; // Avoid redundant checks
-			}
-		}
-	}
 }
 
 /**
@@ -605,19 +485,17 @@ function reduce (uri, map = new Map(), arg = {}) {
  * @param {number} [arg=0] - Time offset value
  * @returns {string} Formatted time offset string
  */
-function timeOffset (arg = INT_0) {
+function timeOffset(arg = INT_0) {
 	const isNegative = arg < INT_0;
 	const absValue = isNegative ? -arg : arg;
 	const offsetMinutes = absValue / INT_60;
 
-	// Convert to hours and minutes
 	const hours = Math.floor(offsetMinutes);
 	const minutes = Math.floor((offsetMinutes - hours) * INT_60);
 
-	// Format with zero padding
 	const sign = isNegative ? EMPTY : HYPHEN;
-	const hoursStr = pad(hours);
-	const minutesStr = pad(minutes);
+	const hoursStr = String(hours).padStart(INT_2, STRING_0);
+	const minutesStr = String(minutes).padStart(INT_2, STRING_0);
 
 	return `${sign}${hoursStr}${minutesStr}`;
 }
@@ -627,820 +505,363 @@ function timeOffset (arg = INT_0) {
  * @param {Object} res - The HTTP response object
  * @param {Object} [headers={}] - Headers object to write
  */
-function writeHead (res, headers = {}) {
+function writeHead(res, headers = {}) {
 	res.writeHead(res.statusCode, node_http.STATUS_CODES[res.statusCode], headers);
 }
 
-// Pre-compiled regex patterns for better performance
-const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-const IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/;
-const IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i;
-const HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
+/**
+ * Converts a route path with parameters to a regex pattern
+ * @param {string} [arg=''] - Route path with parameter placeholders
+ * @returns {string} Regex pattern string
+ */
+function extractPath(arg = EMPTY) {
+	return arg.replace(/\/:([^/]+)/g, "/(?<$1>[^/]+)");
+}
 
 /**
- * Validates if an IP address is properly formatted
- * @param {string} ip - IP address to validate
- * @returns {boolean} True if IP is valid format
+ * Processes middleware map for a given URI and populates middleware array
+ * @param {string} uri - The URI to match against
+ * @param {Map} [map=new Map()] - Map of middleware handlers
+ * @param {Object} [arg={}] - Object containing middleware array and parameters
  */
-function isValidIP (ip) {
-	if (!ip || typeof ip !== "string") {
-		return false;
+function reduce(uri, map = new Map(), arg = {}) {
+	if (map.size === 0) {
+		return;
 	}
 
-	// IPv4 validation - optimize with early character check
-	if (ip.indexOf(":") === -1) {
-		const match = IPV4_PATTERN.exec(ip);
+	const middlewareArray = arg.middleware;
+	let paramsFound = arg.params;
 
-		if (!match) {
-			return false;
-		}
+	for (const middleware of map.values()) {
+		middleware.regex.lastIndex = 0;
 
-		// Optimized octet validation - avoid array methods
-		for (let i = 1; i < 5; i++) {
-			const num = parseInt(match[i], 10);
-			if (num > 255) {
-				return false;
+		if (middleware.regex.test(uri)) {
+			const handlers = middleware.handlers;
+			const handlerCount = handlers.length;
+
+			if (handlerCount === 1) {
+				middlewareArray.push(handlers[0]);
+			} else if (handlerCount > 1) {
+				middlewareArray.push.apply(middlewareArray, handlers);
+			}
+
+			if (middleware.params && paramsFound === false) {
+				arg.params = true;
+				arg.getParams = middleware.regex;
+				paramsFound = true;
 			}
 		}
-
-		return true;
-	}
-
-	// IPv6 validation
-	// Quick character validation
-	if (!IPV6_CHAR_PATTERN.test(ip)) {
-		return false;
-	}
-
-	// Handle IPv4-mapped IPv6 addresses
-	const ipv4MappedMatch = IPV4_MAPPED_PATTERN.exec(ip);
-	if (ipv4MappedMatch) {
-		return isValidIP(ipv4MappedMatch[1]);
-	}
-
-	// Special case for "::" alone
-	if (ip === "::") {
-		return true;
-	}
-
-	// Handle "::" compression - optimize split operations
-	const doubleColonIndex = ip.indexOf("::");
-	const isCompressed = doubleColonIndex !== -1;
-
-	if (isCompressed) {
-		// Check for multiple "::" which is invalid
-		if (ip.indexOf("::", doubleColonIndex + 2) !== -1) {
-			return false;
-		}
-
-		const beforeDoubleColon = ip.substring(0, doubleColonIndex);
-		const afterDoubleColon = ip.substring(doubleColonIndex + 2);
-
-		const leftGroups = beforeDoubleColon ? beforeDoubleColon.split(":") : [];
-		const rightGroups = afterDoubleColon ? afterDoubleColon.split(":") : [];
-
-		// Filter out empty groups and validate total count
-		const nonEmptyLeft = leftGroups.filter(g => g !== "");
-		const nonEmptyRight = rightGroups.filter(g => g !== "");
-		const totalGroups = nonEmptyLeft.length + nonEmptyRight.length;
-
-		// Must be compressed (less than 8 groups)
-		if (totalGroups >= 8) {
-			return false;
-		}
-
-		// Validate each group
-		for (let i = 0; i < nonEmptyLeft.length; i++) {
-			if (!HEX_GROUP_PATTERN.test(nonEmptyLeft[i])) {
-				return false;
-			}
-		}
-		for (let i = 0; i < nonEmptyRight.length; i++) {
-			if (!HEX_GROUP_PATTERN.test(nonEmptyRight[i])) {
-				return false;
-			}
-		}
-
-		return true;
-	} else {
-		const groups = ip.split(":");
-		// Full notation must have exactly 8 groups
-		if (groups.length !== 8) {
-			return false;
-		}
-
-		// Validate each group
-		for (let i = 0; i < 8; i++) {
-			if (!groups[i] || !HEX_GROUP_PATTERN.test(groups[i])) {
-				return false;
-			}
-		}
-
-		return true;
 	}
 }
 
-// Optimized: Cache regex for corsHost method to avoid recompilation
-const PROTOCOL_REGEX = /^http(s)?:\/\//;
-
 /**
- * Woodland HTTP server framework class extending EventEmitter
- * @class
- * @extends {EventEmitter}
+ * Creates a middleware registry for managing routes and handlers
+ * @param {Map} middleware - Map of middleware by method
+ * @param {Set} ignored - Set of ignored middleware functions
+ * @param {Array} methods - Array of registered HTTP methods
+ * @param {Map} cache - Cache for route results
+ * @returns {Object} Registry object with ignore, allowed, routes, register, list methods
  */
-class Woodland extends node_events.EventEmitter {
-	/**
-	 * Creates a new Woodland instance
-	 * @param {Object} [config={}] - Configuration object
-	 * @param {boolean} [config.autoindex=false] - Enable automatic directory indexing
-	 * @param {number} [config.cacheSize=1000] - Size of internal cache
-	 * @param {number} [config.cacheTTL=10000] - Cache time-to-live in milliseconds
-	 * @param {string} [config.charset='utf-8'] - Default character encoding
-	 * @param {string} [config.corsExpose=''] - CORS headers to expose to the client
-	 * @param {Object} [config.defaultHeaders={}] - Default HTTP headers
-	 * @param {number} [config.digit=3] - Number of digits for timing precision
-	 * @param {boolean} [config.etags=true] - Enable ETag generation
-	 * @param {string[]} [config.indexes=['index.htm', 'index.html']] - Index file names
-	 * @param {Object} [config.logging={}] - Logging configuration
-	 * @param {string[]} [config.origins=[]] - Allowed CORS origins (empty array denies all cross-origin requests)
-	 * @param {boolean} [config.silent=false] - Disable default headers
-	 * @param {boolean} [config.time=false] - Enable response time tracking
-	 */
-	constructor ({
-		autoindex = false,
-		cacheSize = INT_1e3,
-		cacheTTL = INT_1e4,
-		charset = UTF_8,
-		corsExpose = EMPTY,
-		defaultHeaders = {},
-		digit = INT_3,
-		etags = true,
-		indexes = [
-			INDEX_HTM,
-			INDEX_HTML
-		],
-		logging = {},
-		origins = [],
-		silent = false,
-		time = false
-	} = {}) {
-		super();
-
-		if (silent === false) {
-			if (SERVER in defaultHeaders === false) {
-				defaultHeaders[SERVER] = SERVER_VALUE;
-			}
-
-			defaultHeaders[X_POWERED_BY] = X_POWERED_BY_VALUE;
-		}
-
-		this.autoindex = autoindex;
-		this.ignored = new Set();
-		this.cache = tinyLru.lru(cacheSize, cacheTTL);
-		this.charset = charset;
-		this.corsExpose = corsExpose;
-		this.defaultHeaders = Reflect.ownKeys(defaultHeaders).map(key => [key.toLowerCase(), defaultHeaders[key]]);
-		this.digit = digit;
-		this.etags = etags ? tinyEtag.etag({cacheSize, cacheTTL}) : null;
-		this.indexes = structuredClone(indexes);
-		this.permissions = tinyLru.lru(cacheSize, cacheTTL);
-		this.logging = {
-			enabled: (logging?.enabled ?? true) !== false,
-			format: logging?.format ?? LOG_FORMAT,
-			level: logging?.level ?? INFO
-		};
-		this.methods = [];
-		this.middleware = new Map();
-		this.origins = structuredClone(origins);
-		this.time = time;
-
-		if (this.etags !== null) {
-			this.get(this.etags.middleware).ignore(this.etags.middleware);
-		}
-
-		if (this.origins.length > INT_0) {
-			const fnCorsRequest = this.corsRequest();
-			this.options(fnCorsRequest).ignore(fnCorsRequest);
-		}
-	}
+function createMiddlewareRegistry(middleware, ignored, methods, cache) {
+	let ignoreFn, allowedFn, routesFn, registerFn, listFn;
 
 	/**
-	 * Checks if a method is allowed for a specific URI
+	 * Computes route information for a given URI and method
+	 * @private
+	 * @param {string} uri - The URI to match
 	 * @param {string} method - HTTP method
-	 * @param {string} uri - Request URI
-	 * @param {boolean} [override=false] - Skip cache lookup
-	 * @returns {boolean} True if method is allowed
-	 */
-	allowed (method, uri, override = false) {
-		return this.routes(uri, method, override).visible > INT_0;
-	}
-
-	/**
-	 * Gets allowed methods for a URI as a comma-separated string
-	 * @param {string} uri - Request URI
-	 * @param {boolean} [override=false] - Skip cache lookup
-	 * @returns {string} Comma-separated list of allowed methods
-	 */
-	allows (uri, override = false) {
-		let result = override === false ? this.permissions.get(uri) : void 0;
-
-		if (override || result === void 0) {
-			const allMethods = this.routes(uri, WILDCARD, override).visible > INT_0;
-			let list;
-
-			if (allMethods) {
-				// Optimized: Use array spread instead of structuredClone for simple array
-				list = [...node_http.METHODS];
-			} else {
-				// Optimized: Use Set for faster lookups and dedupe, then convert to array
-				const methodSet = new Set();
-
-				for (const method of this.methods) {
-					if (this.allowed(method, uri, override)) {
-						methodSet.add(method);
-					}
-				}
-
-				list = Array.from(methodSet);
-			}
-
-			// Optimized: Use Set for O(1) lookup instead of includes()
-			const methodSet = new Set(list);
-
-			// Add HEAD when GET is present
-			if (methodSet.has(GET) && !methodSet.has(HEAD)) {
-				list.push(HEAD);
-			}
-
-			// Add OPTIONS for any route that has methods defined
-			if (list.length > INT_0 && !methodSet.has(OPTIONS)) {
-				list.push(OPTIONS);
-			}
-
-			result = list.sort().join(COMMA_SPACE);
-			this.permissions.set(uri, result);
-			this.log(`type=allows, uri=${uri}, override=${override}, message="${MSG_DETERMINED_ALLOW}"`);
-		}
-
-		return result;
-	}
-
-	/**
-	 * Registers middleware that runs for all HTTP methods
-	 * @param {...Function} args - Middleware functions followed by optional method
-	 * @returns {Woodland} This instance for chaining
-	 */
-	always (...args) {
-		return this.use(...args, WILDCARD);
-	}
-
-	/**
-	 * Registers middleware for CONNECT method
-	 * @param {...Function} args - Middleware functions
-	 * @returns {Woodland} This instance for chaining
-	 */
-	connect (...args) {
-		return this.use(...args, CONNECT);
-	}
-
-	/**
-	 * Generates a Common Log Format entry for a request/response
-	 * @param {Object} req - HTTP request object
-	 * @param {Object} res - HTTP response object
-	 * @returns {string} Formatted log entry
-	 */
-	clf (req, res) {
-		const date = new Date();
-
-		// Optimized: Cache date parts and avoid repeated property access
-		const month = MONTHS[date.getMonth()];
-		const day = date.getDate();
-		const year = date.getFullYear();
-		const hours = pad(date.getHours());
-		const minutes = pad(date.getMinutes());
-		const seconds = pad(date.getSeconds());
-		const timezone = timeOffset(date.getTimezoneOffset());
-		const dateStr = `[${day}/${month}/${year}:${hours}:${minutes}:${seconds} ${timezone}]`;
-
-		const host = req.headers?.host ?? HYPHEN;
-		const ip = req?.ip ?? HYPHEN;
-		const username = req?.parsed?.username ?? HYPHEN;
-		const requestLine = `${req.method} ${req.parsed.pathname}${req.parsed.search} HTTP/1.1`;
-		const contentLength = res?.getHeader(CONTENT_LENGTH) ?? HYPHEN;
-		const referer = req.headers?.referer ?? HYPHEN;
-		const userAgent = req.headers?.[USER_AGENT] ?? HYPHEN;
-
-		return this.logging.format
-			.replace(LOG_V, host)
-			.replace(LOG_H, ip)
-			.replace(LOG_L, HYPHEN)
-			.replace(LOG_U, username)
-			.replace(LOG_T, dateStr)
-			.replace(LOG_R, requestLine)
-			.replace(LOG_S, res.statusCode)
-			.replace(LOG_B, contentLength)
-			.replace(LOG_REFERRER, referer)
-			.replace(LOG_USER_AGENT, userAgent);
-	}
-
-	/**
-	 * Checks if a request should be handled with CORS
-	 * @param {Object} req - HTTP request object
-	 * @returns {boolean} True if CORS should be applied
-	 */
-	cors (req) {
-		// Security: Only allow CORS if origins are explicitly configured
-		if (this.origins.length === 0) {
-			return false;
-		}
-
-		return req.corsHost && (this.origins.includes(WILDCARD) || this.origins.includes(req.headers.origin));
-	}
-
-	/**
-	 * Determines if the request origin differs from the host
-	 * @param {Object} req - HTTP request object
-	 * @returns {boolean} True if cross-origin request
-	 */
-	corsHost (req) {
-		// Optimized: Use cached regex instead of creating new one each time
-		return ORIGIN in req.headers && req.headers.origin.replace(PROTOCOL_REGEX, "") !== req.headers.host;
-	}
-
-	/**
-	 * Creates a CORS preflight request handler middleware
-	 * @returns {Function} Middleware function that responds to OPTIONS requests with 204 No Content
-	 */
-	corsRequest () {
-		return (req, res) => res.status(INT_204).send(EMPTY);
-	}
-
-	/**
-	 * Decorates request and response objects with additional properties and methods
-	 * @param {Object} req - HTTP request object
-	 * @param {Object} res - HTTP response object
-	 */
-	decorate (req, res) {
-		// Optimized: Start timing before any other operations if needed
-		let timing = null;
-		if (this.time) {
-			timing = precise.precise().start();
-		}
-
-		// Optimized: Parse URL once and cache pathname for multiple uses
-		const parsed = parse(req);
-		const pathname = parsed.pathname;
-
-		// Optimized: Get allow string early to avoid recalculation
-		const allowString = this.allows(pathname);
-
-		// Optimized: Batch request property assignments
-		req.parsed = parsed;
-		req.allow = allowString;
-		req.body = EMPTY;
-		req.host = parsed.hostname;
-		req.params = {};
-		req.valid = true;
-
-		// Optimized: Only assign timing if enabled
-		if (timing) {
-			req.precise = timing;
-		}
-
-		// Optimized: Calculate CORS properties efficiently
-		req.corsHost = this.corsHost(req);
-		req.cors = this.cors(req);
-
-		// Optimized: Get IP early for logging
-		const clientIP = this.ip(req);
-		req.ip = clientIP;
-
-		// Optimized: Batch response property assignments
-		res.locals = {};
-		res.error = this.error(req, res);
-		res.header = res.setHeader;
-		res.json = this.json(res);
-		res.redirect = this.redirect(res);
-		res.send = this.send(req, res);
-		res.set = this.set(res);
-		res.status = this.status(res);
-
-		// Optimized: Use null prototype for faster property access
-		const headersBatch = Object.create(null);
-
-		// Required headers
-		headersBatch[ALLOW] = allowString;
-		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
-
-		// Optimized: Use for loop for default headers (faster than for..of)
-		for (let i = 0; i < this.defaultHeaders.length; i++) {
-			const [key, value] = this.defaultHeaders[i];
-			headersBatch[key] = value;
-		}
-
-		// Optimized: Only add CORS headers if needed
-		if (req.cors) {
-			const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
-			const origin = req.headers.origin;
-
-			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
-			headersBatch[TIMING_ALLOW_ORIGIN] = origin;
-			headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
-			headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = allowString;
-
-			if (corsHeaders !== void 0) {
-				headersBatch[req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS] = corsHeaders;
-			}
-		}
-
-		// Set all headers in one batch operation
-		res.set(headersBatch);
-
-		this.log(`type=decorate, uri=${pathname}, method=${req.method}, ip=${clientIP}, message="${MSG_DECORATED_IP.replace(IP_TOKEN, clientIP)}"`);
-		res.on(CLOSE, () => this.log(this.clf(req, res), INFO));
-	}
-
-	/**
-	 * Registers middleware for DELETE method
-	 * @param {...Function} args - Middleware functions
-	 * @returns {Woodland} This instance for chaining
-	 */
-	delete (...args) {
-		return this.use(...args, DELETE);
-	}
-
-	/**
-	 * Creates an error handler function for the response
-	 * @param {Object} req - HTTP request object
-	 * @param {Object} res - HTTP response object
-	 * @returns {Function} Error handler function
-	 */
-	error (req, res) {
-		return (status = INT_500, body) => {
-			if (res.headersSent === false) {
-				const err = body instanceof Error ? body : new Error(body ?? node_http.STATUS_CODES[status]);
-				let output = err.message,
-					headers = {};
-
-				[output, status, headers] = this.onReady(req, res, output, status, headers);
-
-				if (status === INT_404) {
-					res.removeHeader(ALLOW);
-					res.header(ALLOW, EMPTY);
-
-					if (req.cors) {
-						res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
-						res.header(ACCESS_CONTROL_ALLOW_METHODS, EMPTY);
-					}
-				}
-
-				res.removeHeader(CONTENT_LENGTH);
-				res.statusCode = status;
-
-				if (this.listenerCount(ERROR) > INT_0) {
-					this.emit(ERROR, req, res, err);
-				}
-
-				this.log(`type=error, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ERROR_IP.replace(IP_TOKEN, req.ip)}"`);
-				this.onDone(req, res, output, headers);
-			}
-		};
-	}
-
-	/**
-	 * Generates an ETag for the given method and arguments
-	 * @param {string} method - HTTP method
-	 * @param {...*} args - Arguments to generate ETag from
-	 * @returns {string} Generated ETag or empty string
-	 */
-	etag (method, ...args) {
-		return (method === GET || method === HEAD || method === OPTIONS) && this.etags !== null ? this.etags.create(args.map(i => typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i).join(HYPHEN)) : EMPTY;
-	}
-
-	/**
-	 * Serves static files from a directory
-	 * @param {string} [root='/'] - URL root path
-	 * @param {string} [folder=process.cwd()] - File system folder to serve from
-	 */
-	files (root = SLASH, folder = process.cwd()) {
-		this.get(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) => this.serve(req, res, req.parsed.pathname.substring(1), folder));
-	}
-
-	/**
-	 * Registers middleware for GET method
-	 * @param {...Function} args - Middleware functions
-	 * @returns {Woodland} This instance for chaining
-	 */
-	get (...args) {
-		return this.use(...args, GET);
-	}
-
-	/**
-	 * Marks a middleware function to be ignored in route visibility calculations
-	 * @param {Function} fn - Middleware function to ignore
-	 * @returns {Woodland} This instance for chaining
-	 */
-	ignore (fn) {
-		this.ignored.add(fn);
-		this.log(`type=ignore, message="${MSG_IGNORED_FN}", name="${fn.name}"`);
-
-		return this;
-	}
-
-	/**
-	 * Extracts the client IP address from the request with security validation
-	 * @param {Object} req - HTTP request object
-	 * @returns {string} Client IP address
-	 */
-	ip (req) {
-		// Optimized: Cache fallback IP and fast path for common case
-		const fallbackIP = req.connection.remoteAddress || req.socket.remoteAddress || "127.0.0.1";
-
-		// Fast path: If no X-Forwarded-For header or empty, return connection IP
-		const forwardedHeader = req.headers[X_FORWARDED_FOR];
-		if (!forwardedHeader || !forwardedHeader.trim()) {
-			return fallbackIP;
-		}
-
-		// Optimized: Avoid map() allocation, process inline
-		const forwardedIPs = forwardedHeader.split(COMMA);
-
-		for (let i = 0; i < forwardedIPs.length; i++) {
-			const ip = forwardedIPs[i].trim();
-			if (isValidIP(ip)) {
-				return ip;
-			}
-		}
-
-		// Fall back to connection IP if no valid IP found
-		return fallbackIP;
-	}
-
-	/**
-	 * Creates a JSON response function for the response object
-	 * @param {Object} res - HTTP response object
-	 * @returns {Function} JSON response function
-	 */
-	json (res) {
-		return (arg, status = 200, headers = {[CONTENT_TYPE]: `${APPLICATION_JSON}; charset=${UTF_8}`}) => {
-			res.send(JSON.stringify(arg), status, headers);
-		};
-	}
-
-	/**
-	 * Lists registered routes for a specific method
-	 * @param {string} [method='get'] - HTTP method to list routes for
-	 * @param {string} [type='array'] - Return type: 'array' or 'object'
-	 * @returns {Array|Object} Array of route patterns or object with route details
-	 */
-	list (method = GET.toLowerCase(), type = ARRAY) {
-		let result;
-
-		if (type === ARRAY) {
-			result = Array.from(this.middleware.get(method.toUpperCase()).keys());
-		} else if (type === OBJECT) {
-			result = {};
-
-			for (const [key, value] of this.middleware.get(method.toUpperCase()).entries()) {
-				result[key] = value;
-			}
-		}
-
-		this.log(`type=list, method=${method}, type=${type}`);
-
-		return result;
-	}
-
-	/**
-	 * Logs a message at the specified level
-	 * @param {string} msg - Message to log
-	 * @param {string} [level='debug'] - Log level
-	 * @returns {Woodland} This instance for chaining
-	 */
-	log (msg, level = DEBUG) {
-		if (this.logging.enabled) {
-			const idx = LEVELS[level];
-
-			if (idx <= LEVELS[this.logging.level]) {
-				/* istanbul ignore next */
-				process.nextTick(() => console[idx > INT_4 ? LOG : ERROR](msg));
-			}
-		}
-
-		return this;
-	}
-
-	/**
-	 * Finalizes the response by setting headers and ending the response
-	 * @param {Object} req - HTTP request object
-	 * @param {Object} res - HTTP response object
-	 * @param {string} body - Response body
-	 * @param {Object} headers - Additional headers to set
-	 */
-	onDone (req, res, body, headers) {
-		if (res.statusCode !== INT_204 && res.statusCode !== INT_304 && res.getHeader(CONTENT_LENGTH) === void 0) {
-			res.header(CONTENT_LENGTH, Buffer.byteLength(body));
-		}
-
-		writeHead(res, headers);
-		res.end(body, this.charset);
-	}
-
-	/**
-	 * Prepares the response before sending, adding timing headers if enabled
-	 * @param {Object} req - HTTP request object
-	 * @param {Object} res - HTTP response object
-	 * @param {string} body - Response body
-	 * @param {number} status - HTTP status code
-	 * @param {Object} headers - Response headers
-	 * @returns {Array} Array containing [body, status, headers]
-	 */
-	onReady (req, res, body, status, headers) {
-		if (this.time && res.getHeader(X_RESPONSE_TIME) === void 0) {
-			res.header(X_RESPONSE_TIME, `${ms(req.precise.stop().diff(), this.digit)}`);
-		}
-
-		return this.onSend(req, res, body, status, headers);
-	}
-
-	/**
-	 * Hook called before sending response, allows modification of response data
-	 * @param {Object} req - HTTP request object
-	 * @param {Object} res - HTTP response object
-	 * @param {string} body - Response body
-	 * @param {number} status - HTTP status code
-	 * @param {Object} headers - Response headers
-	 * @returns {Array} Array containing [body, status, headers]
-	 */
-	/* istanbul ignore next */
-	onSend (req, res, body, status, headers) {
-		return [body, status, headers];
-	}
-
-	/**
-	 * Registers middleware for OPTIONS method
-	 * @param {...Function} args - Middleware functions
-	 * @returns {Woodland} This instance for chaining
-	 */
-	options (...args) {
-		return this.use(...args, OPTIONS);
-	}
-
-	/**
-	 * Registers middleware for PATCH method
-	 * @param {...Function} args - Middleware functions
-	 * @returns {Woodland} This instance for chaining
-	 */
-	patch (...args) {
-		return this.use(...args, PATCH);
-	}
-
-	/**
-	 * Converts a route path with parameters to a regex pattern
-	 * @param {string} [arg=''] - Route path with parameter placeholders
-	 * @returns {string} Regex pattern string
-	 */
-	path (arg = EMPTY) {
-		return arg.replace(/\/:([^/]+)/g, PARAMS_GROUP);
-	}
-
-	/**
-	 * Registers middleware for POST method
-	 * @param {...Function} args - Middleware functions
-	 * @returns {Woodland} This instance for chaining
-	 */
-	post (...args) {
-		return this.use(...args, POST);
-	}
-
-	/**
-	 * Registers middleware for PUT method
-	 * @param {...Function} args - Middleware functions
-	 * @returns {Woodland} This instance for chaining
-	 */
-	put (...args) {
-		return this.use(...args, PUT);
-	}
-
-	/**
-	 * Creates a redirect function for the response object
-	 * @param {Object} res - HTTP response object
-	 * @returns {Function} Redirect function
-	 */
-	redirect (res) {
-		return (uri, perm = true) => {
-			res.send(EMPTY, perm ? INT_308 : INT_307, {[LOCATION]: uri});
-		};
-	}
-
-	/**
-	 * Routes an incoming HTTP request through the middleware stack
-	 * @param {Object} req - HTTP request object
-	 * @param {Object} res - HTTP response object
-	 */
-	route (req, res) {
-		// Optimized: Cache constants to avoid repeated property access
-		const evc = CONNECT.toLowerCase();
-		const evf = FINISH;
-		const method = req.method === HEAD ? GET : req.method;
-
-		this.decorate(req, res);
-
-		// Optimized: Combine event listener checks to avoid multiple calls
-		const connectListeners = this.listenerCount(evc);
-		const finishListeners = this.listenerCount(evf);
-
-		if (connectListeners > INT_0) {
-			this.emit(evc, req, res);
-		}
-
-		if (finishListeners > INT_0) {
-			res.on(evf, () => this.emit(evf, req, res));
-		}
-
-		// Optimized: Cache pathname and IP to avoid property access in logging
-		const pathname = req.parsed.pathname;
-		const requestMethod = req.method;
-		const clientIP = req.ip;
-
-		this.log(`type=route, uri=${pathname}, method=${requestMethod}, ip=${clientIP}, message="${MSG_ROUTING}"`);
-
-		// Optimized: Streamline CORS validation logic
-		const hasOriginHeader = ORIGIN in req.headers;
-		const isOriginAllowed = hasOriginHeader && this.origins.includes(req.headers.origin);
-
-		if (req.cors === false && hasOriginHeader && req.corsHost && !isOriginAllowed) {
-			req.valid = false;
-			res.error(INT_403);
-		} else if (req.allow.includes(method)) {
-			// Optimized: Get route result once and reuse
-			const result = this.routes(pathname, method);
-
-			if (result.params) {
-				params(req, result.getParams);
-			}
-
-			// Optimized: Create exit middleware iterator more efficiently
-			const exitMiddleware = result.middleware.slice(result.exit)[Symbol.iterator]();
-
-			req.exit = next(req, res, exitMiddleware, true);
-			next(req, res, result.middleware[Symbol.iterator]())();
-		} else {
-			req.valid = false;
-			res.error(getStatus(req, res));
-		}
-	}
-
-	/**
-	 * Retrieves route information for a URI and method
-	 * @param {string} uri - Request URI
-	 * @param {string} method - HTTP method
-	 * @param {boolean} [override=false] - Skip cache lookup
+	 * @param {boolean} [override=false] - Whether to override cache
 	 * @returns {Object} Route information object
 	 */
-	routes (uri, method, override = false) {
-		const key = `${method}${DELIMITER}${uri}`,
-			cached = override === false ? this.cache.get(key) : void 0;
+	function routes(uri, method, override = false) {
+		const key = `${method}${DELIMITER}${uri}`;
+		const cached = override === false ? cache.get(key) : void 0;
 		let result;
 
 		if (cached !== void 0) {
 			result = cached;
 		} else {
-			result = {getParams: null, middleware: [], params: false, visible: INT_0, exit: -1};
-			reduce(uri, this.middleware.get(WILDCARD), result);
+			result = { getParams: null, middleware: [], params: false, visible: 0, exit: -1 };
+			reduce(uri, middleware.get(WILDCARD) ?? new Map(), result);
 
 			if (method !== WILDCARD) {
 				result.exit = result.middleware.length;
-				reduce(uri, this.middleware.get(method), result);
+				reduce(uri, middleware.get(method) ?? new Map(), result);
 			}
 
-			// Optimized: Count without creating an intermediate array
-			result.visible = INT_0;
-			for (const middleware of result.middleware) {
-				if (this.ignored.has(middleware) === false) {
+			result.visible = 0;
+			for (let i = 0; i < result.middleware.length; i++) {
+				if (ignored.has(result.middleware[i]) === false) {
 					result.visible++;
 				}
 			}
-			this.cache.set(key, result);
+			cache.set(key, result);
 		}
-
-		this.log(`type=routes, uri=${uri}, method=${method}, cached=${cached !== void 0}, middleware=${result.middleware.length}, params=${result.params}, visible=${result.visible}, override=${override}, message="${MSG_RETRIEVED_MIDDLEWARE}"`);
 
 		return result;
 	}
+	routesFn = routes;
 
 	/**
-	 * Creates a send function for the response object
-	 * @param {Object} req - HTTP request object
-	 * @param {Object} res - HTTP response object
-	 * @returns {Function} Send function
+	 * Lists middleware routes for a given method
+	 * @private
+	 * @param {string} [method=get] - HTTP method to list
+	 * @param {string} [type=array] - Return type (array or object)
+	 * @returns {Array|Object} List of routes
 	 */
-	send (req, res) {
+	function list(method = GET.toLowerCase(), type = "array") {
+		let result;
+
+		if (type === "array") {
+			result = Array.from(middleware.get(method.toUpperCase()).keys());
+		} else if (type === "object") {
+			result = {};
+
+			for (const [key, value] of middleware.get(method.toUpperCase()).entries()) {
+				result[key] = value;
+			}
+		}
+
+		return result;
+	}
+	listFn = list;
+
+	/**
+	 * Checks if a method is allowed for a given URI
+	 * @private
+	 * @param {string} method - HTTP method
+	 * @param {string} uri - The URI to check
+	 * @param {boolean} [override=false] - Whether to override cache
+	 * @returns {boolean} True if allowed
+	 */
+	function allowed(method, uri, override = false) {
+		return routesFn(uri, method, override).visible > 0;
+	}
+	allowedFn = allowed;
+
+	/**
+	 * Registers middleware for a route
+	 * @private
+	 * @param {string|Function} rpath - Route path or middleware function
+	 * @param {...Function} fn - Middleware functions to register
+	 * @returns {Object} Registry object for chaining
+	 */
+	function register(rpath, ...fn) {
+		if (typeof rpath === FUNCTION) {
+			fn = [rpath, ...fn];
+			rpath = `/.${WILDCARD}`;
+		}
+
+		const method = typeof fn[fn.length - 1] === STRING ? fn.pop().toUpperCase() : GET;
+
+		const nodeMethods = [
+			"CONNECT",
+			"DELETE",
+			"GET",
+			"HEAD",
+			"OPTIONS",
+			"PATCH",
+			"POST",
+			"PUT",
+			"TRACE",
+		];
+
+		if (method !== WILDCARD && nodeMethods.includes(method) === false) {
+			throw new TypeError("Invalid HTTP method");
+		}
+
+		if (method === HEAD) {
+			throw new TypeError("Cannot set HEAD route, use GET");
+		}
+
+		if (middleware.has(method) === false) {
+			if (method !== WILDCARD) {
+				methods.push(method);
+			}
+
+			middleware.set(method, new Map());
+		}
+
+		const mmethod = middleware.get(method);
+		let lrpath = rpath,
+			lparams = false;
+
+		if (lrpath.includes(`${SLASH}${LEFT_PAREN}`) === false && lrpath.includes(`${SLASH}:`)) {
+			lparams = true;
+			lrpath = extractPath(lrpath);
+		}
+
+		const current = mmethod.get(lrpath) ?? { handlers: [] };
+
+		current.handlers.push(...fn);
+		mmethod.set(lrpath, {
+			handlers: current.handlers,
+			params: lparams,
+			regex: new RegExp(`^${lrpath}$`),
+		});
+
+		return {
+			ignore: ignoreFn,
+			allowed: allowedFn,
+			routes: routesFn,
+			register: registerFn,
+			list: listFn,
+		};
+	}
+	registerFn = register;
+
+	/**
+	 * Adds function to ignored set
+	 * @private
+	 * @param {Function} fn - Function to ignore
+	 * @returns {Object} Registry object for chaining
+	 */
+	function ignore(fn) {
+		ignored.add(fn);
+
+		return {
+			ignore: ignoreFn,
+			allowed: allowedFn,
+			routes: routesFn,
+			register: registerFn,
+			list: listFn,
+		};
+	}
+	ignoreFn = ignore;
+
+	return {
+		ignore: ignoreFn,
+		allowed: allowedFn,
+		routes: routesFn,
+		register: registerFn,
+		list: listFn,
+	};
+}
+
+/**
+ * Gets MIME type for file extension
+ * @param {string} [arg=""] - File path or extension
+ * @returns {string} MIME type string
+ * @private
+ */
+function mime(arg = EMPTY) {
+	const ext = node_path.extname(arg);
+
+	return ext in mimeExtensions ? mimeExtensions[ext].type : APPLICATION_OCTET_STREAM;
+}
+
+/**
+ * Gets HTTP status text for status code
+ * @param {number} status - HTTP status code
+ * @returns {string} Status text string
+ * @private
+ */
+function getStatusText(status) {
+	const statusTexts = {
+		200: "OK",
+		204: "No Content",
+		307: "Temporary Redirect",
+		308: "Permanent Redirect",
+		400: "Bad Request",
+		403: "Forbidden",
+		404: "Not Found",
+		405: "Method Not Allowed",
+		416: "Range Not Satisfiable",
+		500: "Internal Server Error",
+	};
+
+	return statusTexts[status] || "Error";
+}
+
+/**
+ * Creates response handler with all response methods
+ * @param {Object} config - Configuration object
+ * @param {number} config.digit - Digit precision for timing
+ * @param {Object} config.etags - ETag generator or null
+ * @param {Function} config.onReady - Callback for response ready
+ * @param {Function} config.onDone - Callback for response done
+ * @param {Function} config.onSend - Callback for response send
+ * @returns {Object} Response handler with createErrorHandler, createJsonHandler, createRedirectHandler, createSendHandler, createSetHandler, createStatusHandler, stream
+ */
+function createResponseHandler({ digit: _digit, etags, onReady, onDone, onSend: _onSend }) {
+	/**
+	 * Creates error handler function
+	 * @param {Function} emitError - Error emit function
+	 * @param {Function} logError - Error log function
+	 * @returns {Function} Error handler
+	 * @private
+	 */
+	function createErrorHandler(emitError, logError) {
+		return (req, res) => {
+			return (status = 500, body) => {
+				if (res.headersSent === false) {
+					const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
+					let output = err.message,
+						headers = {};
+
+					[output, status, headers] = onReady(req, res, output, status, headers);
+
+					if (status === 404) {
+						res.removeHeader("allow");
+						res.header("allow", EMPTY);
+
+						if (req.cors) {
+							res.removeHeader("access-control-allow-methods");
+							res.header("access-control-allow-methods", EMPTY);
+						}
+					}
+
+					res.removeHeader(CONTENT_LENGTH);
+					res.statusCode = status;
+
+					emitError(req, res, err);
+					logError(req, status);
+					onDone(req, res, output, headers);
+				}
+			};
+		};
+	}
+
+	/**
+	 * Creates JSON handler function
+	 * @param {Object} res - Response object
+	 * @returns {Function} JSON handler
+	 * @private
+	 */
+	function createJsonHandler(res) {
+		return (
+			arg,
+			status = 200,
+			headers = { [CONTENT_TYPE]: `${APPLICATION_JSON}; charset=utf-8` },
+		) => {
+			res.send(JSON.stringify(arg), status, headers);
+		};
+	}
+
+	/**
+	 * Creates redirect handler function
+	 * @param {Object} res - Response object
+	 * @returns {Function} Redirect handler
+	 * @private
+	 */
+	function createRedirectHandler(res) {
+		return (uri, perm = true) => {
+			res.send(EMPTY, perm ? 308 : 307, { [LOCATION]: uri });
+		};
+	}
+
+	/**
+	 * Creates send handler function
+	 * @param {Object} req - Request object
+	 * @param {Object} res - Response object
+	 * @returns {Function} Send handler
+	 * @private
+	 */
+	function createSendHandler(req, res) {
 		return (body = EMPTY, status = res.statusCode, headers = {}) => {
 			if (res.headersSent === false) {
-				[body, status, headers] = this.onReady(req, res, body, status, headers);
+				[body, status, headers] = onReady(req, res, body, status, headers);
 
-				// Optimized: Cache method and range header for reuse
 				const method = req.method;
 				const rangeHeader = req.headers.range;
 				const isPipeable = pipeable(method, body);
@@ -1448,51 +869,46 @@ class Woodland extends node_events.EventEmitter {
 				if (isPipeable) {
 					if (rangeHeader === void 0 || req.range !== void 0) {
 						writeHead(res, headers);
-						body.on(ERROR, err => res.error(INT_500, err)).pipe(res);
+						body.on("error", (err) => res.error(500, err)).pipe(res);
 					} else {
 						res.error(INT_416);
 					}
 				} else {
-					// Optimized: Check for toString method more efficiently
-					if (typeof body !== STRING && body && typeof body[TO_STRING] === FUNCTION) {
+					if (typeof body !== STRING && body && typeof body[TO_STRING] === "function") {
 						body = body.toString();
 					}
 
 					if (rangeHeader !== void 0) {
-						// Optimized: Create buffer only once and reuse byteLength
 						const buffered = Buffer.from(body);
 						const byteLength = buffered.length;
 
 						[headers] = partialHeaders(req, res, byteLength, status, headers);
 
 						if (req.range !== void 0) {
-							// Optimized: Use slice with proper range calculation
 							const rangeBuffer = buffered.slice(req.range.start, req.range.end + 1);
-							this.onDone(req, res, rangeBuffer.toString(), headers);
+							onDone(req, res, rangeBuffer.toString(), headers);
 						} else {
 							res.error(INT_416);
 						}
 					} else {
 						res.statusCode = status;
-						this.onDone(req, res, body, headers);
+						onDone(req, res, body, headers);
 					}
 				}
-
-				this.log(`type=res.send, uri=${req.parsed.pathname}, method=${method}, ip=${req.ip}, valid=true, message="${MSG_SENDING_BODY}"`);
 			}
 		};
 	}
 
 	/**
-	 * Creates a function to set multiple headers on the response
-	 * @param {Object} res - HTTP response object
-	 * @returns {Function} Header setting function
+	 * Creates set handler function
+	 * @param {Object} res - Response object
+	 * @returns {Function} Set handler
+	 * @private
 	 */
-	set (res) {
+	function createSetHandler(res) {
 		return (arg = {}) => {
 			const headers = arg instanceof Map || arg instanceof Headers ? arg : new Headers(arg);
 
-			// Node.js HTTP response doesn't have setHeaders, use setHeader for each
 			for (const [key, value] of headers) {
 				res.setHeader(key, value);
 			}
@@ -1502,85 +918,12 @@ class Woodland extends node_events.EventEmitter {
 	}
 
 	/**
-	 * Serves a file or directory from the file system
-	 * @param {Object} req - HTTP request object
-	 * @param {Object} res - HTTP response object
-	 * @param {string} arg - File path relative to folder
-	 * @param {string} [folder=process.cwd()] - Base directory to serve from
-	 * @returns {Promise<void>} Promise that resolves when serving is complete
+	 * Creates status handler function
+	 * @param {Object} res - Response object
+	 * @returns {Function} Status handler
+	 * @private
 	 */
-	async serve (req, res, arg, folder = process.cwd()) {
-		const fp = node_path.resolve(folder, arg);
-
-		// Security: Ensure resolved path stays within the allowed directory
-		if (!fp.startsWith(node_path.resolve(folder))) {
-			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path outside allowed directory", path="${arg}"`, ERROR);
-			res.error(INT_403);
-
-			return;
-		}
-
-		let valid = true;
-		let stats;
-
-		this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ROUTING_FILE}"`);
-
-		try {
-			stats = await promises.stat(fp, {bigint: false});
-		} catch {
-			valid = false;
-		}
-
-		if (valid === false) {
-			res.error(INT_404);
-		} else if (stats.isDirectory() === false) {
-			this.stream(req, res, {
-				charset: this.charset,
-				etag: this.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
-				path: fp,
-				stats: stats
-			});
-		} else if (req.parsed.pathname.endsWith(SLASH) === false) {
-			res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
-		} else {
-			const files = await promises.readdir(fp, {encoding: UTF8, withFileTypes: true});
-			let result = EMPTY;
-
-			for (const file of files) {
-				if (this.indexes.includes(file.name)) {
-					result = node_path.join(fp, file.name);
-					break;
-				}
-			}
-
-			if (result.length === INT_0) {
-				if (this.autoindex === false) {
-					res.error(INT_404);
-				} else {
-					const body = autoindex(decodeURIComponent(req.parsed.pathname), files);
-
-					res.header(CONTENT_TYPE, `text/html; charset=${this.charset}`);
-					res.send(body);
-				}
-			} else {
-				const rstats = await promises.stat(result, {bigint: false});
-
-				this.stream(req, res, {
-					charset: this.charset,
-					etag: this.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
-					path: result,
-					stats: rstats
-				});
-			}
-		}
-	}
-
-	/**
-	 * Creates a status code setting function for the response
-	 * @param {Object} res - HTTP response object
-	 * @returns {Function} Status setting function
-	 */
-	status (res) {
+	function createStatusHandler(res) {
 		return (arg = INT_200) => {
 			res.statusCode = arg;
 
@@ -1589,35 +932,31 @@ class Woodland extends node_events.EventEmitter {
 	}
 
 	/**
-	 * Streams a file to the response with appropriate headers
-	 * @param {Object} req - HTTP request object
-	 * @param {Object} res - HTTP response object
-	 * @param {Object} [file] - File information object
-	 * @param {string} [file.charset=''] - Character encoding
-	 * @param {string} [file.etag=''] - ETag value
-	 * @param {string} [file.path=''] - File system path
-	 * @param {Object} [file.stats] - File statistics
+	 * Streams file to response
+	 * @param {Object} req - Request object
+	 * @param {Object} res - Response object
+	 * @param {Object} file - File descriptor
+	 * @param {Function} emitStream - Stream emit function
+	 * @private
 	 */
-	stream (req, res, file = {
-		charset: EMPTY,
-		etag: EMPTY,
-		path: EMPTY,
-		stats: {mtime: new Date(), size: INT_0}
-	}) {
-		if (file.path === EMPTY || file.stats.size === INT_0) {
+	function stream(req, res, file, emitStream) {
+		if (file.path === EMPTY || file.stats.size === 0) {
 			throw new TypeError("Invalid file descriptor");
 		}
 
 		res.header(CONTENT_LENGTH, file.stats.size);
-		res.header(CONTENT_TYPE, file.charset.length > INT_0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path));
-		res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
+		res.header(
+			CONTENT_TYPE,
+			file.charset.length > 0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path),
+		);
+		res.header("last-modified", file.stats.mtime.toUTCString());
 
-		if (this.etags && file.etag.length > INT_0) {
+		if (etags && file.etag.length > 0) {
 			res.header(ETAG, file.etag);
 			res.removeHeader(CACHE_CONTROL);
 		}
 
-		if (req.method === GET) {
+		if (req.method === "GET") {
 			let status = INT_200;
 			let options = {};
 			let headers = {};
@@ -1633,12 +972,1271 @@ class Woodland extends node_events.EventEmitter {
 						res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
 					}
 				} else {
-					// Invalid range, reset options to serve full file
 					options = {};
 				}
 			}
 
-			res.send(node_fs.createReadStream(file.path, Object.keys(options).length > 0 ? options : undefined), status);
+			res.send(
+				node_fs.createReadStream(file.path, Object.keys(options).length > 0 ? options : undefined),
+				status,
+			);
+		} else if (req.method === "HEAD") {
+			res.send(EMPTY);
+		} else if (req.method === OPTIONS) {
+			res.removeHeader(CONTENT_LENGTH);
+			res.send(OPTIONS_BODY);
+		}
+
+		emitStream(req, res);
+	}
+
+	return {
+		createErrorHandler,
+		createJsonHandler,
+		createRedirectHandler,
+		createSendHandler,
+		createSetHandler,
+		createStatusHandler,
+		stream,
+	};
+}
+
+const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+const IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/;
+const IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i;
+const HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
+
+/**
+ * Validates if an IP address is properly formatted
+ * @param {string} ip - IP address to validate
+ * @returns {boolean} True if IP is valid format
+ */
+function isValidIP(ip) {
+	if (!ip || typeof ip !== "string") {
+		return false;
+	}
+
+	if (ip.indexOf(":") === -1) {
+		const match = IPV4_PATTERN.exec(ip);
+
+		if (!match) {
+			return false;
+		}
+
+		for (let i = 1; i < 5; i++) {
+			const num = parseInt(match[i], 10);
+			if (num > 255) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	if (!IPV6_CHAR_PATTERN.test(ip)) {
+		return false;
+	}
+
+	const ipv4MappedMatch = IPV4_MAPPED_PATTERN.exec(ip);
+	if (ipv4MappedMatch) {
+		return isValidIP(ipv4MappedMatch[1]);
+	}
+
+	if (ip === "::") {
+		return true;
+	}
+
+	const doubleColonIndex = ip.indexOf("::");
+	const isCompressed = doubleColonIndex !== -1;
+
+	if (isCompressed) {
+		if (ip.indexOf("::", doubleColonIndex + 2) !== -1) {
+			return false;
+		}
+
+		const beforeDoubleColon = ip.substring(0, doubleColonIndex);
+		const afterDoubleColon = ip.substring(doubleColonIndex + 2);
+
+		if (afterDoubleColon === ":" || (afterDoubleColon && afterDoubleColon.endsWith(":"))) {
+			return false;
+		}
+
+		const leftGroups = beforeDoubleColon ? beforeDoubleColon.split(":") : [];
+		const rightGroups = afterDoubleColon ? afterDoubleColon.split(":") : [];
+
+		const nonEmptyLeft = leftGroups.filter((g) => g !== "");
+		const nonEmptyRight = rightGroups.filter((g) => g !== "");
+		const totalGroups = nonEmptyLeft.length + nonEmptyRight.length;
+
+		if (totalGroups >= 8) {
+			return false;
+		}
+
+		for (let i = 0; i < nonEmptyLeft.length; i++) {
+			if (!HEX_GROUP_PATTERN.test(nonEmptyLeft[i])) {
+				return false;
+			}
+		}
+		for (let i = 0; i < nonEmptyRight.length; i++) {
+			if (!HEX_GROUP_PATTERN.test(nonEmptyRight[i])) {
+				return false;
+			}
+		}
+
+		return true;
+	} else {
+		const groups = ip.split(":");
+		if (groups.length !== 8) {
+			return false;
+		}
+
+		for (let i = 0; i < 8; i++) {
+			if (!groups[i] || !HEX_GROUP_PATTERN.test(groups[i])) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+}
+
+/**
+ * Creates CORS handler for checking and handling CORS requests
+ * @param {Array} origins - Array of allowed origins
+ * @returns {Object} CORS handler with cors, corsHost, corsRequest methods
+ */
+function createCorsHandler(origins) {
+	/**
+	 * Checks if request origin is allowed for CORS
+	 * @private
+	 * @param {Object} req - Request object
+	 * @returns {boolean} True if CORS is allowed
+	 */
+	function cors(req) {
+		if (origins.length === 0) {
+			return false;
+		}
+
+		return req.corsHost && (origins.includes(WILDCARD) || origins.includes(req.headers.origin));
+	}
+
+	/**
+	 * Checks if request origin host differs from request host
+	 * @private
+	 * @param {Object} req - Request object
+	 * @returns {boolean} True if hosts differ
+	 */
+	function corsHost(req) {
+		return (
+			ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host
+		);
+	}
+
+	/**
+	 * Creates CORS request handler that sends 204 No Content
+	 * @private
+	 * @returns {Function} Request handler function
+	 */
+	function corsRequest() {
+		return (req, res) => res.status(204).send(EMPTY);
+	}
+
+	return { cors, corsHost, corsRequest };
+}
+
+/**
+ * Creates IP extractor for extracting client IP from request
+ * @returns {Object} IP extractor with extract method
+ */
+function createIpExtractor() {
+	/**
+	 * Extracts client IP address from request
+	 * @private
+	 * @param {Object} req - Request object
+	 * @returns {string} Client IP address
+	 */
+	function extract(req) {
+		const connection = req.connection;
+		const socket = req.socket;
+		const fallbackIP =
+			(connection && connection.remoteAddress) || (socket && socket.remoteAddress) || "127.0.0.1";
+
+		const forwardedHeader = req.headers["x-forwarded-for"];
+		if (!forwardedHeader || !forwardedHeader.trim()) {
+			return fallbackIP;
+		}
+
+		const forwardedIPs = forwardedHeader.split(",");
+
+		for (let i = 0; i < forwardedIPs.length; i++) {
+			const ip = forwardedIPs[i].trim();
+			if (isValidIP(ip)) {
+				return ip;
+			}
+		}
+
+		return fallbackIP;
+	}
+
+	return { extract };
+}
+
+/**
+ * Creates file server middleware for serving static files
+ * @param {Object} app - Woodland application instance
+ * @returns {Object} File server with register, serve methods
+ */
+function createFileServer(app) {
+	/**
+	 * Serves files from filesystem
+	 * @private
+	 * @param {Object} req - Request object
+	 * @param {Object} res - Response object
+	 * @param {string} arg - File path argument
+	 * @param {string} [folder] - Root folder to serve from
+	 */
+	async function serve(req, res, arg, folder = process.cwd()) {
+		const fp = node_path.resolve(folder, arg);
+		const resolvedFolder = node_path.resolve(folder);
+
+		if (!fp.startsWith(resolvedFolder)) {
+			app.logger.logServe(req, "Path outside allowed directory");
+			res.error(INT_403);
+
+			return;
+		}
+
+		let valid = true;
+		let stats;
+
+		app.logger.logServe(req, "Routing request to file system");
+
+		try {
+			stats = await promises.stat(fp, { bigint: false });
+		} catch {
+			valid = false;
+		}
+
+		if (valid === false) {
+			res.error(INT_404);
+		} else if (stats.isDirectory() === false) {
+			app.stream(req, res, {
+				charset: app.charset,
+				etag: app.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
+				path: fp,
+				stats: stats,
+			});
+		} else if (req.parsed.pathname.endsWith(SLASH) === false) {
+			res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
+		} else {
+			const files = await promises.readdir(fp, { encoding: UTF8, withFileTypes: true });
+			let result = EMPTY;
+
+			for (let i = 0; i < files.length; i++) {
+				const file = files[i];
+				if (app.indexes.includes(file.name)) {
+					result = node_path.join(fp, file.name);
+					break;
+				}
+			}
+
+			if (result.length === INT_0) {
+				if (app.autoindex === false) {
+					res.error(INT_404);
+				} else {
+					const body = autoindex(decodeURIComponent(req.parsed.pathname), files);
+					res.header("content-type", `text/html; charset=${app.charset}`);
+					res.send(body);
+				}
+			} else {
+				const rstats = await promises.stat(result, { bigint: false });
+
+				app.stream(req, res, {
+					charset: app.charset,
+					etag: app.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
+					path: result,
+					stats: rstats,
+				});
+			}
+		}
+	}
+
+	/**
+	 * Registers file serving middleware for a root path
+	 * @private
+	 * @param {string} root - Root path to register
+	 * @param {string} folder - Folder to serve files from
+	 * @param {Function} useMiddleware - Middleware registration function
+	 */
+	function register(root, folder, useMiddleware) {
+		useMiddleware(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) =>
+			serve(req, res, req.parsed.pathname.substring(1), folder),
+		);
+	}
+
+	return { register, serve };
+}
+
+const CONFIG_SCHEMA = {
+	autoindex: { type: "boolean", default: false },
+	cacheSize: { type: "number", default: INT_1e3, min: 1 },
+	cacheTTL: { type: "number", default: INT_1e4, min: 1 },
+	charset: { type: "string", default: UTF_8 },
+	corsExpose: { type: "string", default: EMPTY },
+	defaultHeaders: { type: "object", default: {} },
+	digit: { type: "number", default: INT_3, min: 1, max: 10 },
+	etags: { type: "boolean", default: true },
+	indexes: { type: "array", default: [INDEX_HTM, INDEX_HTML] },
+	logging: { type: "object", default: {} },
+	origins: { type: "array", default: [] },
+	silent: { type: "boolean", default: false },
+	time: { type: "boolean", default: false },
+};
+
+/**
+ * Validates a single configuration value against schema
+ * @private
+ * @param {string} key - Configuration key
+ * @param {*} value - Value to validate
+ * @param {Object} schema - Schema definition
+ * @returns {string|null} Error message or null if valid
+ */
+function validateValue(key, value, schema) {
+	if (schema.type === "array") {
+		if (!Array.isArray(value)) {
+			return `Config "${key}" must be an array`;
+		}
+	} else if (schema.type === "object") {
+		if (value === null || typeof value !== "object" || Array.isArray(value)) {
+			return `Config "${key}" must be an object`;
+		}
+	} else if (typeof value !== schema.type) {
+		return `Config "${key}" must be ${schema.type}`;
+	}
+
+	if (schema.type === "number") {
+		if (schema.min !== void 0 && value < schema.min) {
+			return `Config "${key}" must be >= ${schema.min}`;
+		}
+		if (schema.max !== void 0 && value > schema.max) {
+			return `Config "${key}" must be <= ${schema.max}`;
+		}
+	}
+
+	return null;
+}
+
+/**
+ * Validates configuration object against schema
+ * @param {Object} [config={}] - Configuration object to validate
+ * @returns {Object} Validated configuration object with defaults
+ * @throws {Error} When configuration validation fails
+ */
+function validateConfig(config = {}) {
+	const validated = {};
+	const errors = [];
+
+	for (const [key, schema] of Object.entries(CONFIG_SCHEMA)) {
+		const value = config[key];
+
+		if (value === void 0) {
+			validated[key] = schema.default;
+		} else {
+			const error = validateValue(key, value, schema);
+			if (error) {
+				errors.push(error);
+			} else {
+				validated[key] = value;
+			}
+		}
+	}
+
+	if (errors.length > 0) {
+		throw new Error(`Configuration validation failed: ${errors.join("; ")}`);
+	}
+
+	return validated;
+}
+
+/**
+ * Validates and merges logging configuration with environment variables
+ * @param {Object} [logging={}] - Logging configuration object
+ * @returns {Object} Logging configuration with enabled, format, level
+ */
+function validateLogging(logging = {}) {
+	const envLogEnabled = process.env.WOODLAND_LOG_ENABLED;
+	const envLogFormat = process.env.WOODLAND_LOG_FORMAT;
+	const envLogLevel = process.env.WOODLAND_LOG_LEVEL;
+
+	const enabled = logging?.enabled ?? (envLogEnabled ? envLogEnabled !== "false" : true);
+	const format = logging?.format ?? envLogFormat ?? LOG_FORMAT;
+	const level = logging?.level ?? envLogLevel ?? INFO;
+
+	const validLevels = [DEBUG, INFO, "warn", "error", "critical", "alert", "emerg", "notice"];
+	if (!validLevels.includes(level)) {
+		return { enabled, format, level: INFO };
+	}
+
+	return { enabled, format, level };
+}
+
+const LEVELS = {
+	emerg: 0,
+	alert: 1,
+	crit: 2,
+	error: 3,
+	warn: 4,
+	notice: 5,
+	info: 6,
+	debug: 7,
+};
+
+/**
+ * Creates logger with configurable format and level
+ * @param {Object} [config={}] - Configuration object
+ * @param {boolean} [config.enabled=true] - Enable/disable logging
+ * @param {string} [config.format] - Custom log format string
+ * @param {string} [config.level='info'] - Log level
+ * @returns {Object} Logger with log, clfm, extractIP, logRoute, logMiddleware, logDecoration, logError, logServe methods
+ */
+function createLogger(config = {}) {
+	const { enabled = true, format, level = INFO } = config;
+	const validLevels = [DEBUG, INFO, "warn", "error", "critical", "alert", "emerg", "notice"];
+	const actualLevel = validLevels.includes(level) ? level : INFO;
+
+	let logFn, clfmFn, logRouteFn, logMiddlewareFn, logDecorationFn, logErrorFn, logServeFn;
+
+	/**
+	 * Extracts IP address from request object
+	 * @private
+	 * @param {Object} req - Request object
+	 * @returns {string} IP address
+	 */
+	function extractIP(req) {
+		const connection = req.connection;
+		const socket = req.socket;
+
+		return (
+			(connection && connection.remoteAddress) || (socket && socket.remoteAddress) || "127.0.0.1"
+		);
+	}
+
+	/**
+	 * Main logging function
+	 * @private
+	 * @param {string} msg - Log message
+	 * @param {string} [logLevel=debug] - Log level
+	 * @returns {Object} Logger object for chaining
+	 */
+	logFn = function (msg, logLevel = DEBUG) {
+		if (enabled) {
+			const idx = LEVELS[logLevel];
+			if (idx <= LEVELS[actualLevel]) {
+				process.nextTick(() => {
+					const consoleMethod = idx > 4 ? "log" : "error";
+					console[consoleMethod](msg);
+				});
+			}
+		}
+
+		return {
+			log: logFn,
+			clfm: clfmFn,
+			extractIP,
+			logRoute: logRouteFn,
+			logMiddleware: logMiddlewareFn,
+			logDecoration: logDecorationFn,
+			logError: logErrorFn,
+			logServe: logServeFn,
+		};
+	};
+
+	/**
+	 * Generates common log format entry
+	 * @private
+	 * @param {Object} req - Request object
+	 * @param {Object} res - Response object
+	 * @returns {string} Common log format string
+	 */
+	clfmFn = function (req, res) {
+		const date = new Date();
+		const month = MONTHS[date.getMonth()];
+		const day = date.getDate();
+		const year = date.getFullYear();
+		const hours = String(date.getHours()).padStart(2, "0");
+		const minutes = String(date.getMinutes()).padStart(2, "0");
+		const seconds = String(date.getSeconds()).padStart(2, "0");
+		const timezone = timeOffset(date.getTimezoneOffset());
+		const dateStr = `[${day}/${month}/${year}:${hours}:${minutes}:${seconds} ${timezone}]`;
+
+		const host = req.headers?.host ?? HYPHEN;
+		const clientIP = req.ip || extractIP(req);
+		const ip = clientIP;
+		const logname = HYPHEN;
+		const username = req?.parsed?.username ?? HYPHEN;
+
+		const parsed = req?.parsed;
+		const pathname = parsed?.pathname ?? req.url ?? HYPHEN;
+		const search = parsed?.search ?? HYPHEN;
+		const requestLine = `${req.method ?? HYPHEN} ${pathname}${search} HTTP/1.1`;
+
+		const statusCode = res?.statusCode ?? 500;
+		const contentLength = res?.getHeader("content-length") ?? HYPHEN;
+
+		const referer = req.headers?.referer ?? HYPHEN;
+		const userAgent = req.headers?.["user-agent"] ?? HYPHEN;
+
+		let logEntry = format;
+
+		logEntry = logEntry
+			.replace("%v", host)
+			.replace("%h", ip)
+			.replace("%l", logname)
+			.replace("%u", username)
+			.replace("%t", dateStr)
+			.replace("%r", requestLine)
+			.replace("%>s", String(statusCode))
+			.replace("%b", contentLength)
+			.replace("%{Referer}i", referer)
+			.replace("%{User-agent}i", userAgent);
+
+		return logEntry;
+	};
+
+	/**
+	 * Creates route log message
+	 * @private
+	 * @param {string} uri - Request URI
+	 * @param {string} method - HTTP method
+	 * @param {string} ip - Client IP
+	 * @returns {Object} Logger object for chaining
+	 */
+	logRouteFn = function (uri, method, ip) {
+		return logFn(`type=route, uri=${uri}, method=${method}, ip=${ip}, message="Routing request"`);
+	};
+
+	/**
+	 * Creates middleware log message
+	 * @private
+	 * @param {string} route - Route path
+	 * @param {string} method - HTTP method
+	 * @returns {Object} Logger object for chaining
+	 */
+	logMiddlewareFn = function (route, method) {
+		return logFn(`type=use, route=${route}, method=${method}, message="Registering middleware"`);
+	};
+
+	/**
+	 * Creates decoration log message
+	 * @private
+	 * @param {string} uri - Request URI
+	 * @param {string} method - HTTP method
+	 * @param {string} ip - Client IP
+	 * @returns {Object} Logger object for chaining
+	 */
+	logDecorationFn = function (uri, method, ip) {
+		return logFn(
+			`type=decorate, uri=${uri}, method=${method}, ip=${ip}, message="Decorated request from ${ip}"`,
+		);
+	};
+
+	/**
+	 * Creates error log message
+	 * @private
+	 * @param {string} uri - Request URI
+	 * @param {string} method - HTTP method
+	 * @param {string} ip - Client IP
+	 * @returns {Object} Logger object for chaining
+	 */
+	logErrorFn = function (uri, method, ip) {
+		return logFn(
+			`type=error, uri=${uri}, method=${method}, ip=${ip}, message="Handled error response for ${ip}"`,
+			ERROR,
+		);
+	};
+
+	/**
+	 * Creates serve log message
+	 * @private
+	 * @param {Object} req - Request object
+	 * @param {string} message - Log message
+	 * @returns {Object} Logger object for chaining
+	 */
+	logServeFn = function (req, message) {
+		return logFn(
+			`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${message}"`,
+			ERROR,
+		);
+	};
+
+	return {
+		log: logFn,
+		clfm: clfmFn,
+		extractIP,
+		logRoute: logRouteFn,
+		logMiddleware: logMiddlewareFn,
+		logDecoration: logDecorationFn,
+		logError: logErrorFn,
+		logServe: logServeFn,
+	};
+}
+
+/**
+ * Woodland HTTP server framework class extending EventEmitter
+ * @class
+ * @extends {EventEmitter}
+ */
+class Woodland extends node_events.EventEmitter {
+	/**
+	 * Creates a new Woodland instance
+	 * @param {Object} [config={}] - Configuration object
+	 * @param {boolean} [config.autoindex=false] - Enable automatic directory indexing
+	 * @param {number} [config.cacheSize=1000] - Size of internal cache
+	 * @param {number} [config.cacheTTL=10000] - Cache TTL in milliseconds
+	 * @param {string} [config.charset='utf-8'] - Default charset
+	 * @param {string} [config.corsExpose=''] - CORS expose headers
+	 * @param {Object} [config.defaultHeaders={}] - Default headers to set
+	 * @param {number} [config.digit=3] - Digit precision for timing
+	 * @param {boolean} [config.etags=true] - Enable ETags
+	 * @param {Array} [config.indexes=['index.htm','index.html']] - Index files
+	 * @param {Object} [config.logging={}] - Logging configuration
+	 * @param {Array} [config.origins=[]] - Allowed CORS origins
+	 * @param {boolean} [config.silent=false] - Silent mode
+	 * @param {boolean} [config.time=false] - Enable timing
+	 */
+	constructor(config = {}) {
+		super();
+
+		const validated = validateConfig(config);
+		const {
+			autoindex,
+			cacheSize,
+			cacheTTL,
+			charset,
+			corsExpose,
+			defaultHeaders,
+			digit,
+			etags,
+			indexes,
+			logging,
+			origins,
+			silent,
+			time,
+		} = validated;
+
+		const finalHeaders = { ...defaultHeaders };
+		if (silent === false) {
+			if (SERVER in finalHeaders === false) {
+				finalHeaders[SERVER] = SERVER_VALUE;
+			}
+			finalHeaders[X_POWERED_BY] = X_POWERED_BY_VALUE;
+		}
+
+		this.autoindex = autoindex;
+		this.charset = charset;
+		this.corsExpose = corsExpose;
+		this.defaultHeaders = Reflect.ownKeys(finalHeaders).map((key) => [
+			key.toLowerCase(),
+			finalHeaders[key],
+		]);
+		this.digit = digit;
+		this.etags = etags ? tinyEtag.etag({ cacheSize, cacheTTL }) : null;
+		this.indexes = [...indexes];
+		this.logging = validateLogging(logging);
+		this.origins = [...origins];
+		this.time = time;
+
+		this.cache = new Map();
+		this.permissions = new Map();
+		this.ignored = new Set();
+		this.middleware = new Map();
+		this.methods = [];
+
+		const { log, clfm, extractIP, logRoute, logMiddleware, logDecoration, logError, logServe } =
+			createLogger({
+				enabled: this.logging.enabled,
+				format: this.logging.format,
+				level: this.logging.level,
+			});
+		this.logger = {
+			log,
+			clfm,
+			extractIP,
+			logRoute,
+			logMiddleware,
+			logDecoration,
+			logError,
+			logServe,
+		};
+
+		const { cors, corsHost, corsRequest } = createCorsHandler(this.origins);
+		this.cors = cors;
+		this.corsHost = corsHost;
+		this.corsRequest = corsRequest;
+
+		const { extract } = createIpExtractor();
+		this.ip = extract;
+
+		this.initResponseHandlers();
+		this.initFileServer();
+		this.initMiddleware();
+
+		if (this.etags !== null) {
+			this.get(this.etags.middleware).ignore(this.etags.middleware);
+		}
+
+		if (this.origins.length > INT_0) {
+			const fnCorsRequest = this.corsRequest();
+			this.options(fnCorsRequest).ignore(fnCorsRequest);
+		}
+
+		this.on(ERROR, () => {});
+	}
+
+	/**
+	 * Initializes response handlers
+	 * @private
+	 */
+	initResponseHandlers() {
+		const onReady = this.onReady.bind(this);
+		const onDone = this.onDone.bind(this);
+		const onSend = this.onSend.bind(this);
+
+		const {
+			createErrorHandler,
+			createJsonHandler,
+			createRedirectHandler,
+			createSendHandler,
+			createSetHandler,
+			createStatusHandler,
+			stream,
+		} = createResponseHandler({
+			digit: this.digit,
+			etags: this.etags,
+			onReady,
+			onDone,
+			onSend,
+		});
+
+		this.responseHandler = {
+			createErrorHandler,
+			createJsonHandler,
+			createRedirectHandler,
+			createSendHandler,
+			createSetHandler,
+			createStatusHandler,
+			stream,
+		};
+
+		this.error = createErrorHandler(
+			(req, res, err) => this.emit(ERROR, req, res, err),
+			(req, _status) => this.logger.logError(req.parsed.pathname, req.method, req.ip),
+		);
+		this.json = createJsonHandler;
+		this.redirect = createRedirectHandler;
+		this.send = createSendHandler;
+		this.set = createSetHandler;
+		this.status = createStatusHandler;
+	}
+
+	/**
+	 * Initializes file server
+	 * @private
+	 */
+	initFileServer() {
+		this.fileServer = createFileServer(this);
+	}
+
+	/**
+	 * Initializes middleware registry
+	 * @private
+	 */
+	initMiddleware() {
+		this.middlewareRegistry = createMiddlewareRegistry(
+			this.middleware,
+			this.ignored,
+			this.methods,
+			this.cache,
+		);
+	}
+
+	/**
+	 * Checks if a method is allowed for a URI
+	 * @param {string} method - HTTP method
+	 * @param {string} uri - URI to check
+	 * @param {boolean} [override=false] - Override cache
+	 * @returns {boolean} True if method is allowed
+	 */
+	allowed(method, uri, override = false) {
+		return this.middlewareRegistry.allowed(method, uri, override);
+	}
+
+	/**
+	 * Determines allowed methods for a URI
+	 * @param {string} uri - URI to check
+	 * @param {boolean} [override=false] - Override cache
+	 * @returns {string} Comma-separated list of allowed methods
+	 */
+	allows(uri, override = false) {
+		let result = override === false ? this.permissions.get(uri) : void 0;
+
+		if (override || result === void 0) {
+			const allMethods = this.middlewareRegistry.routes(uri, WILDCARD, override).visible > INT_0;
+			let list;
+
+			if (allMethods) {
+				list = [...node_http.METHODS];
+			} else {
+				const methodSet = new Set();
+
+				for (let i = 0; i < this.methods.length; i++) {
+					const method = this.methods[i];
+					if (this.allowed(method, uri, override)) {
+						methodSet.add(method);
+					}
+				}
+
+				list = Array.from(methodSet);
+			}
+
+			const methodSet = new Set(list);
+
+			if (methodSet.has(GET) && !methodSet.has(HEAD)) {
+				list.push(HEAD);
+			}
+
+			if (list.length > INT_0 && !methodSet.has(OPTIONS)) {
+				list.push(OPTIONS);
+			}
+
+			result = list.sort().join(", ");
+			this.permissions.set(uri, result);
+			this.logger.log(
+				`type=allows, uri=${uri}, override=${override}, message="Determined 'allow' header header value"`,
+			);
+		}
+
+		return result;
+	}
+
+	/**
+	 * Registers wildcard middleware for all methods
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
+	 */
+	always(...args) {
+		return this.use(...args, WILDCARD);
+	}
+
+	/**
+	 * Registers CONNECT middleware
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
+	 */
+	connect(...args) {
+		return this.use(...args, CONNECT);
+	}
+
+	/**
+	 * Generates common log format entry
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @returns {string} Common log format string
+	 */
+	clf(req, res) {
+		return this.logger.clfm(req, res);
+	}
+
+	/**
+	 * Decorates request and response objects with framework utilities
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 */
+	decorate(req, res) {
+		let timing = null;
+		if (this.time) {
+			timing = precise.precise().start();
+		}
+
+		const parsed = parse(req);
+		const pathname = parsed.pathname;
+		const allowString = this.allows(pathname);
+
+		req.parsed = parsed;
+		req.allow = allowString;
+		req.body = EMPTY;
+		req.host = parsed.hostname;
+		req.params = {};
+		req.valid = true;
+
+		if (timing) {
+			req.precise = timing;
+		}
+
+		req.corsHost = this.corsHost(req);
+		req.cors = this.cors(req);
+
+		const clientIP = this.ip(req);
+		req.ip = clientIP;
+
+		res.locals = {};
+		res.error = this.error(req, res);
+		res.header = res.setHeader;
+		res.json = this.json(res);
+		res.redirect = this.redirect(res);
+		res.send = this.send(req, res);
+		res.set = this.set(res);
+		res.status = this.status(res);
+
+		const headersBatch = Object.create(null);
+		headersBatch[ALLOW] = allowString;
+		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
+
+		for (let i = 0; i < this.defaultHeaders.length; i++) {
+			const [key, value] = this.defaultHeaders[i];
+			headersBatch[key] = value;
+		}
+
+		if (req.cors) {
+			const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
+			const origin = req.headers.origin;
+
+			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
+			headersBatch[TIMING_ALLOW_ORIGIN] = origin;
+			headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
+			headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = allowString;
+
+			if (corsHeaders !== void 0) {
+				headersBatch[
+					req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS
+				] = corsHeaders;
+			}
+		}
+
+		res.set(headersBatch);
+
+		this.log(
+			`type=decorate, uri=${pathname}, method=${req.method}, ip=${clientIP}, message="Decorated request from ${clientIP}"`,
+		);
+		res.on(CLOSE, () => this.log(this.clf(req, res), INFO));
+	}
+
+	/**
+	 * Registers DELETE middleware
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
+	 */
+	delete(...args) {
+		return this.use(...args, DELETE);
+	}
+
+	/**
+	 * Generates ETag for response caching
+	 * @param {string} method - HTTP method
+	 * @param {...*} args - Values to hash
+	 * @returns {string} ETag string or empty string
+	 */
+	etag(method, ...args) {
+		return (method === GET || method === HEAD || method === OPTIONS) && this.etags !== null
+			? this.etags.create(
+					args
+						.map((i) => (typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i))
+						.join("-"),
+				)
+			: EMPTY;
+	}
+
+	/**
+	 * Registers file server middleware
+	 * @param {string} [root='/'] - Root path
+	 * @param {string} [folder=process.cwd()] - Folder to serve
+	 * @returns {Woodland} Returns self for chaining
+	 */
+	files(root = SLASH, folder = process.cwd()) {
+		this.fileServer.register(root, folder, this.use.bind(this));
+	}
+
+	/**
+	 * Registers GET middleware
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
+	 */
+	get(...args) {
+		return this.use(...args, GET);
+	}
+
+	/**
+	 * Adds function to ignored set
+	 * @param {Function} fn - Function to ignore
+	 * @returns {Woodland} Returns self for chaining
+	 */
+	ignore(fn) {
+		this.ignored.add(fn);
+		this.logger.log(`type=ignore, message="Added function to ignored Set", name="${fn.name}"`);
+
+		return this;
+	}
+
+	/**
+	 * Lists middleware routes
+	 * @param {string} [method='GET'] - HTTP method
+	 * @param {string} [type='array'] - Return type (array or object)
+	 * @returns {Array|Object} List of routes
+	 */
+	list(method = GET.toLowerCase(), type = "array") {
+		let result;
+
+		if (type === "array") {
+			result = Array.from(this.middleware.get(method.toUpperCase()).keys());
+		} else if (type === "object") {
+			result = {};
+
+			for (const [key, value] of this.middleware.get(method.toUpperCase()).entries()) {
+				result[key] = value;
+			}
+		}
+
+		this.logger.log(`type=list, method=${method}, type=${type}`);
+
+		return result;
+	}
+
+	/**
+	 * Logs a message
+	 * @param {string} msg - Message to log
+	 * @param {string} [level='debug'] - Log level
+	 * @returns {Woodland} Returns self for chaining
+	 */
+	log(msg, level = DEBUG) {
+		this.logger.log(msg, level);
+
+		return this;
+	}
+
+	/**
+	 * Handles response done event
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {string} body - Response body
+	 * @param {Object} headers - Response headers
+	 */
+	onDone(req, res, body, headers) {
+		if (
+			res.statusCode !== INT_204 &&
+			res.statusCode !== INT_304 &&
+			res.getHeader(CONTENT_LENGTH) === void 0
+		) {
+			res.header(CONTENT_LENGTH, Buffer.byteLength(body));
+		}
+
+		writeHead(res, headers);
+		res.end(body, this.charset);
+	}
+
+	/**
+	 * Handles response ready event
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {string} body - Response body
+	 * @param {number} status - HTTP status code
+	 * @param {Object} headers - Response headers
+	 * @returns {Array} Response array
+	 */
+	onReady(req, res, body, status, headers) {
+		if (this.time && res.getHeader(X_RESPONSE_TIME) === void 0) {
+			const diff = req.precise.stop().diff();
+			const msValue = Number(diff / 1e6).toFixed(this.digit);
+			res.header(X_RESPONSE_TIME, `${msValue} ms`);
+		}
+
+		return this.onSend(req, res, body, status, headers);
+	}
+
+	/**
+	 * Handles response send event
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {string} body - Response body
+	 * @param {number} status - HTTP status code
+	 * @param {Object} headers - Response headers
+	 * @returns {Array} Response array
+	 */
+	onSend(req, res, body, status, headers) {
+		return [body, status, headers];
+	}
+
+	/**
+	 * Registers OPTIONS middleware
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
+	 */
+	options(...args) {
+		return this.use(...args, OPTIONS);
+	}
+
+	/**
+	 * Registers PATCH middleware
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
+	 */
+	patch(...args) {
+		return this.use(...args, PATCH);
+	}
+
+	/**
+	 * Converts parameterized route to regex
+	 * @param {string} [arg=''] - Route path
+	 * @returns {string} Regex pattern string
+	 */
+	extractPath(arg = EMPTY) {
+		return arg.replace(/\/:([^/]+)/g, "/(?<$1>[^/]+)");
+	}
+
+	/**
+	 * Registers POST middleware
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
+	 */
+	post(...args) {
+		return this.use(...args, POST);
+	}
+
+	/**
+	 * Registers PUT middleware
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
+	 */
+	put(...args) {
+		return this.use(...args, PUT);
+	}
+
+	/**
+	 * Routes request to middleware
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 */
+	route(req, res) {
+		const method = req.method === HEAD ? GET : req.method;
+
+		this.decorate(req, res);
+
+		if (this.listenerCount("connect") > INT_0) {
+			this.emit("connect", req, res);
+		}
+
+		if (this.listenerCount(FINISH) > INT_0) {
+			res.on(FINISH, () => this.emit(FINISH, req, res));
+		}
+
+		this.logger.logRoute(req.parsed.pathname, req.method, req.ip);
+
+		const hasOriginHeader = ORIGIN in req.headers;
+		const isOriginAllowed = hasOriginHeader && this.origins.includes(req.headers.origin);
+
+		if (req.cors === false && hasOriginHeader && req.corsHost && !isOriginAllowed) {
+			req.valid = false;
+			res.error(INT_403);
+		} else if (req.allow.includes(method)) {
+			const result = this.middlewareRegistry.routes(req.parsed.pathname, method);
+
+			if (result.params) {
+				params(req, result.getParams);
+			}
+
+			const exitMiddleware = result.middleware.slice(result.exit)[Symbol.iterator]();
+			req.exit = next(req, res, exitMiddleware, true);
+			next(req, res, result.middleware[Symbol.iterator]())();
+		} else {
+			req.valid = false;
+			res.error(getStatus(req, res));
+		}
+	}
+
+	/**
+	 * Gets route information
+	 * @param {string} uri - URI to check
+	 * @param {string} method - HTTP method
+	 * @param {boolean} [override=false] - Override cache
+	 * @returns {Object} Route information
+	 */
+	routes(uri, method, override = false) {
+		return this.middlewareRegistry.routes(uri, method, override);
+	}
+
+	/**
+	 * Serves file from disk
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {string} arg - File path
+	 * @param {string} [folder=process.cwd()] - Folder to serve from
+	 * @returns {Promise} Promise that resolves when done
+	 */
+	async serve(req, res, arg, folder = process.cwd()) {
+		return this.fileServer.serve(req, res, arg, folder);
+	}
+
+	/**
+	 * Streams file to response
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {Object} file - File descriptor object
+	 * @param {string} file.path - File path
+	 * @param {string} file.etag - File ETag
+	 * @param {string} file.charset - File charset
+	 * @param {Object} file.stats - File statistics
+	 * @param {number} file.stats.size - File size
+	 * @param {Date} file.stats.mtime - File modification time
+	 */
+	stream(
+		req,
+		res,
+		file = {
+			charset: EMPTY,
+			etag: EMPTY,
+			path: EMPTY,
+			stats: { mtime: new Date(), size: INT_0 },
+		},
+	) {
+		if (file.path === EMPTY || file.stats.size === INT_0) {
+			throw new TypeError("Invalid file descriptor");
+		}
+
+		res.header(CONTENT_LENGTH, file.stats.size);
+		res.header(
+			CONTENT_TYPE,
+			file.charset.length > INT_0 ? `${mime$1(file.path)}; charset=${file.charset}` : mime$1(file.path),
+		);
+		res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
+
+		if (this.etags && file.etag.length > INT_0) {
+			res.header(ETAG, file.etag);
+			res.removeHeader(CACHE_CONTROL);
+		}
+
+		if (req.method === "GET") {
+			let status = INT_200;
+			let options = {};
+			let headers = {};
+
+			if (RANGE in req.headers) {
+				[headers, options] = partialHeaders(req, res, file.stats.size);
+
+				if (Object.keys(options).length > INT_0) {
+					res.removeHeader(CONTENT_LENGTH);
+					res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
+
+					if (CONTENT_LENGTH in headers) {
+						res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
+					}
+				} else {
+					options = {};
+				}
+			}
+
+			res.send(
+				node_fs.createReadStream(file.path, Object.keys(options).length > INT_0 ? options : undefined),
+				status,
+			);
 		} else if (req.method === HEAD) {
 			res.send(EMPTY);
 		} else if (req.method === OPTIONS) {
@@ -1650,23 +2248,24 @@ class Woodland extends node_events.EventEmitter {
 	}
 
 	/**
-	 * Registers middleware for TRACE method
-	 * @param {...Function} args - Middleware functions
-	 * @returns {Woodland} This instance for chaining
+	 * Registers TRACE middleware
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
 	 */
-	trace (...args) {
+	trace(...args) {
 		return this.use(...args, TRACE);
 	}
 
 	/**
-	 * Registers middleware for a route pattern and HTTP method
-	 * @param {string|Function} rpath - Route pattern or middleware function
-	 * @param {...Function} fn - Middleware functions, optionally ending with method string
-	 * @returns {Woodland} This instance for chaining
-	 * @throws {TypeError} If invalid method or HEAD route is specified
+	 * Registers middleware for a route
+	 * @param {string|Function} rpath - Route path or middleware function
+	 * @param {...Function} fn - Middleware function(s)
+	 * @param {string} [method='GET'] - HTTP method
+	 * @returns {Woodland} Returns self for chaining
+	 * @throws {TypeError} When invalid HTTP method or HEAD method is used
 	 */
-	use (rpath, ...fn) {
-		if (typeof rpath === FUNCTION) {
+	use(rpath, ...fn) {
+		if (typeof rpath === "function") {
 			fn = [rpath, ...fn];
 			rpath = `/.${WILDCARD}`;
 		}
@@ -1674,11 +2273,11 @@ class Woodland extends node_events.EventEmitter {
 		const method = typeof fn[fn.length - 1] === STRING ? fn.pop().toUpperCase() : GET;
 
 		if (method !== WILDCARD && node_http.METHODS.includes(method) === false) {
-			throw new TypeError(MSG_ERROR_INVALID_METHOD);
+			throw new TypeError("Invalid HTTP method");
 		}
 
 		if (method === HEAD) {
-			throw new TypeError(MSG_ERROR_HEAD_ROUTE);
+			throw new TypeError("Cannot set HEAD route, use GET");
 		}
 
 		if (this.middleware.has(method) === false) {
@@ -1693,21 +2292,21 @@ class Woodland extends node_events.EventEmitter {
 		let lrpath = rpath,
 			lparams = false;
 
-		if (lrpath.includes(`${SLASH}${COLON}`) && lrpath.includes(LEFT_PAREN) === false) {
+		if (lrpath.includes(`${SLASH}:`) && lrpath.includes("(") === false) {
 			lparams = true;
-			lrpath = this.path(lrpath);
+			lrpath = this.extractPath(lrpath);
 		}
 
-		const current = mmethod.get(lrpath) ?? {handlers: []};
+		const current = mmethod.get(lrpath) ?? { handlers: [] };
 
 		current.handlers.push(...fn);
 		mmethod.set(lrpath, {
 			handlers: current.handlers,
 			params: lparams,
-			regex: new RegExp(`^${lrpath}$`)
+			regex: new RegExp(`^${lrpath}$`),
 		});
 
-		this.log(`type=use, route=${rpath}, method=${method}, message="${MSG_REGISTERING_MIDDLEWARE}"`);
+		this.logger.logMiddleware(rpath, method);
 
 		return this;
 	}
@@ -1715,10 +2314,10 @@ class Woodland extends node_events.EventEmitter {
 
 /**
  * Factory function to create a new Woodland instance
- * @param {Object} [arg] - Configuration object passed to Woodland constructor
- * @returns {Woodland} New Woodland instance with bound route method
+ * @param {Object} [arg={}] - Configuration object
+ * @returns {Woodland} New Woodland instance
  */
-function woodland (arg) {
+function woodland(arg) {
 	const app = new Woodland(arg);
 
 	app.route = app.route.bind(app);

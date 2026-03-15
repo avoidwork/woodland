@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-import {performance} from "node:perf_hooks";
-import {readdir} from "node:fs/promises";
-import {join} from "node:path";
-import {fileURLToPath} from "node:url";
+import { performance } from "node:perf_hooks";
+import { readdir } from "node:fs/promises";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const BENCHMARKS_DIR = join(__dirname, "benchmarks");
@@ -27,7 +27,7 @@ const DEFAULT_WARMUP = 100;
  * @param {number[]} times - Array of execution times in milliseconds
  * @returns {BenchmarkStats} Statistical measures
  */
-function calculateStats (times) {
+function calculateStats(times) {
 	const sorted = times.slice().sort((a, b) => a - b);
 	const mean = times.reduce((sum, time) => sum + time, 0) / times.length;
 	const median = sorted[Math.floor(sorted.length / 2)];
@@ -38,7 +38,7 @@ function calculateStats (times) {
 	const opsPerSecond = 1000 / mean;
 	const total = times.reduce((sum, time) => sum + time, 0);
 
-	return {mean, median, min, max, stddev, opsPerSecond, total};
+	return { mean, median, min, max, stddev, opsPerSecond, total };
 }
 
 /**
@@ -47,7 +47,7 @@ function calculateStats (times) {
  * @param {BenchmarkStats} stats - Statistical measures
  * @returns {string} Formatted output string
  */
-function formatResults (name, stats) {
+function formatResults(name, stats) {
 	return `
 ${name}:
   Mean: ${stats.mean.toFixed(4)}ms
@@ -69,7 +69,7 @@ ${name}:
  * @param {number} [options.warmup=100] - Number of warmup iterations
  * @returns {Promise<BenchmarkStats>} Benchmark results
  */
-async function runBenchmark (name, benchmarkFn, options = {}) {
+async function runBenchmark(name, benchmarkFn, options = {}) {
 	const iterations = options.iterations ?? DEFAULT_ITERATIONS;
 	const warmup = options.warmup ?? DEFAULT_WARMUP;
 	const times = [];
@@ -102,7 +102,7 @@ async function runBenchmark (name, benchmarkFn, options = {}) {
  * @param {Object} options - Benchmark options
  * @returns {Promise<Object>} Results for all benchmarks in the suite
  */
-async function runBenchmarkSuite (suiteName, benchmarks, options = {}) {
+async function runBenchmarkSuite(suiteName, benchmarks, options = {}) {
 	console.log(`\n=== ${suiteName.toUpperCase()} BENCHMARKS ===`);
 	const results = {};
 
@@ -114,7 +114,7 @@ async function runBenchmarkSuite (suiteName, benchmarks, options = {}) {
 			results[name] = await runBenchmark(name, benchmarkFn, options);
 		} catch (error) {
 			console.error(`Error in benchmark ${name}:`, error);
-			results[name] = {error: error.message};
+			results[name] = { error: error.message };
 		}
 	}
 
@@ -136,14 +136,15 @@ async function runBenchmarkSuite (suiteName, benchmarks, options = {}) {
  * @param {Object} [options] - Benchmark options
  * @returns {Promise<Object>} Results for all benchmark suites
  */
-async function runAllBenchmarks (specificBenchmarks = [], options = {}) {
+async function runAllBenchmarks(specificBenchmarks = [], options = {}) {
 	const results = {};
 
 	try {
 		const files = await readdir(BENCHMARKS_DIR);
-		const benchmarkFiles = files.filter(file =>
-			file.endsWith(".js") &&
-			(specificBenchmarks.length === 0 || specificBenchmarks.includes(file.replace(".js", "")))
+		const benchmarkFiles = files.filter(
+			(file) =>
+				file.endsWith(".js") &&
+				(specificBenchmarks.length === 0 || specificBenchmarks.includes(file.replace(".js", ""))),
 		);
 
 		for (const file of benchmarkFiles) {
@@ -169,11 +170,11 @@ async function runAllBenchmarks (specificBenchmarks = [], options = {}) {
 /**
  * Main function to parse CLI arguments and run benchmarks
  */
-async function main () {
+async function main() {
 	const args = process.argv.slice(2);
 	const options = {
 		iterations: DEFAULT_ITERATIONS,
-		warmup: DEFAULT_WARMUP
+		warmup: DEFAULT_WARMUP,
 	};
 	const specificBenchmarks = [];
 
@@ -205,7 +206,9 @@ Examples:
 		}
 	}
 
-	console.log(`Starting benchmarks with ${options.iterations} iterations and ${options.warmup} warmup iterations...`);
+	console.log(
+		`Starting benchmarks with ${options.iterations} iterations and ${options.warmup} warmup iterations...`,
+	);
 
 	const startTime = performance.now();
 	const results = await runAllBenchmarks(specificBenchmarks, options);
@@ -223,7 +226,7 @@ Examples:
 				allBenchmarks.push({
 					name: `${suite}.${benchmark}`,
 					opsPerSecond: stats.opsPerSecond,
-					mean: stats.mean
+					mean: stats.mean,
 				});
 			}
 		}
@@ -248,4 +251,4 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
 	main().catch(console.error);
 }
 
-export {runBenchmark, runBenchmarkSuite, runAllBenchmarks, calculateStats, formatResults};
+export { runBenchmark, runBenchmarkSuite, runAllBenchmarks, calculateStats, formatResults };

@@ -1,8 +1,8 @@
-import {extname, join} from "node:path";
-import {readFileSync} from "node:fs";
-import {STATUS_CODES} from "node:http";
-import {fileURLToPath, URL} from "node:url";
-import {coerce} from "tiny-coerce";
+import { extname, join } from "node:path";
+import { readFileSync } from "node:fs";
+import { STATUS_CODES } from "node:http";
+import { fileURLToPath, URL } from "node:url";
+import { coerce } from "tiny-coerce";
 import mimeDb from "mime-db";
 import {
 	APPLICATION_OCTET_STREAM,
@@ -31,14 +31,14 @@ import {
 	STRING_0,
 	TIME_MS,
 	TOKEN_N,
-	UTF8
+	UTF8,
 } from "./constants.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url)),
-	html = readFileSync(join(__dirname, "..", "tpl", "autoindex.html"), {encoding: UTF8}),
-	valid = Object.entries(mimeDb).filter(i => EXTENSIONS in i[1]),
-	extensions = valid.reduce((a, v) => {
-		const result = Object.assign({type: v[0]}, v[1]);
+	html = readFileSync(join(__dirname, "..", "tpl", "autoindex.html"), { encoding: UTF8 }),
+	valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
+	mimeExtensions = valid.reduce((a, v) => {
+		const result = Object.assign({ type: v[0] }, v[1]);
 
 		for (const key of result.extensions) {
 			a[`.${key}`] = result;
@@ -52,17 +52,17 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url)),
  * @param {string} [str=""] - The string to escape
  * @returns {string} The escaped string with HTML entities
  */
-function escapeHtml (str = EMPTY) {
+function escapeHtml(str = EMPTY) {
 	// Use lookup table for single-pass replacement
 	const htmlEscapes = {
 		"&": "&amp;",
 		"<": "&lt;",
 		">": "&gt;",
 		'"': "&quot;",
-		"'": "&#39;"
+		"'": "&#39;",
 	};
 
-	return str.replace(/[&<>"']/g, match => htmlEscapes[match]);
+	return str.replace(/[&<>"']/g, (match) => htmlEscapes[match]);
 }
 
 /**
@@ -71,19 +71,19 @@ function escapeHtml (str = EMPTY) {
  * @param {Array} [files=[]] - Array of file objects from fs.readdir with withFileTypes: true
  * @returns {string} The complete HTML string for the autoindex page
  */
-export function autoindex (title = EMPTY, files = []) {
+export function autoindex(title = EMPTY, files = []) {
 	const safeTitle = escapeHtml(title);
 
 	// Optimized: Fast path for empty files array
 	if (files.length === 0) {
 		return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) => {
-			return key === "TITLE" ? safeTitle : "    <li><a href=\"..\" rel=\"collection\">../</a></li>";
+			return key === "TITLE" ? safeTitle : '    <li><a href=".." rel="collection">../</a></li>';
 		});
 	}
 
 	// Pre-allocate array for better performance
-	const listItems = new Array(files.length + 1);
-	listItems[0] = "    <li><a href=\"..\" rel=\"collection\">../</a></li>";
+	const listItems = Array.from({ length: files.length + 1 });
+	listItems[0] = '    <li><a href=".." rel="collection">../</a></li>';
 
 	// Optimized: Cache file count and optimize loop
 	const fileCount = files.length;
@@ -95,15 +95,15 @@ export function autoindex (title = EMPTY, files = []) {
 		const isDir = file.isDirectory();
 
 		// Optimized: Use ternary operator for better performance
-		listItems[i + 1] = isDir ?
-			`    <li><a href="${safeHref}/" rel="collection">${safeName}/</a></li>` :
-			`    <li><a href="${safeHref}" rel="item">${safeName}</a></li>`;
+		listItems[i + 1] = isDir
+			? `    <li><a href="${safeHref}/" rel="collection">${safeName}/</a></li>`
+			: `    <li><a href="${safeHref}" rel="item">${safeName}</a></li>`;
 	}
 
 	const safeFiles = listItems.join("\n");
 
 	// Optimized: Cache replace callback for reuse
-	const replaceCallback = (match, key) => key === "TITLE" ? safeTitle : safeFiles;
+	const replaceCallback = (match, key) => (key === "TITLE" ? safeTitle : safeFiles);
 
 	return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, replaceCallback);
 }
@@ -114,7 +114,7 @@ export function autoindex (title = EMPTY, files = []) {
  * @param {Object} res - The HTTP response object
  * @returns {number} The appropriate HTTP status code
  */
-export function getStatus (req, res) {
+export function getStatus(req, res) {
 	// No allowed methods - always 404
 	if (req.allow.length === INT_0) {
 		return INT_404;
@@ -139,10 +139,10 @@ export function getStatus (req, res) {
  * @param {string} [arg=""] - The filename or path to get the MIME type for
  * @returns {string} The MIME type or application/octet-stream as default
  */
-export function mime (arg = EMPTY) {
+export function mime(arg = EMPTY) {
 	const ext = extname(arg);
 
-	return ext in extensions ? extensions[ext].type : APPLICATION_OCTET_STREAM;
+	return ext in mimeExtensions ? mimeExtensions[ext].type : APPLICATION_OCTET_STREAM;
 }
 
 /**
@@ -151,7 +151,7 @@ export function mime (arg = EMPTY) {
  * @param {number} [digits=3] - Number of decimal places for precision
  * @returns {string} Formatted time string with "ms" suffix
  */
-export function ms (arg = INT_0, digits = INT_3) {
+export function ms(arg = INT_0, digits = INT_3) {
 	return TIME_MS.replace(TOKEN_N, Number(arg / INT_1e6).toFixed(digits));
 }
 
@@ -163,7 +163,7 @@ export function ms (arg = INT_0, digits = INT_3) {
  * @param {boolean} [immediate=false] - Whether to execute immediately or on next tick
  * @returns {Function} The next function for middleware chain
  */
-export function next (req, res, middleware, immediate = false) {
+export function next(req, res, middleware, immediate = false) {
 	// Optimized: Pre-calculate getStatus to avoid repeated function calls
 	const errorStatus = getStatus(req, res);
 
@@ -197,20 +197,11 @@ export function next (req, res, middleware, immediate = false) {
 	};
 
 	// Optimized: Create function based on immediate flag without conditional in hot path
-	const fn = immediate ?
-		err => internalFn(err, fn) :
-		err => process.nextTick(() => internalFn(err, fn));
+	const fn = immediate
+		? (err) => internalFn(err, fn)
+		: (err) => process.nextTick(() => internalFn(err, fn));
 
 	return fn;
-}
-
-/**
- * Pads a number with leading zeros to make it 2 digits
- * @param {number} [arg=0] - The number to pad
- * @returns {string} The padded string representation
- */
-export function pad (arg = INT_0) {
-	return String(arg).padStart(INT_2, STRING_0);
 }
 
 /**
@@ -218,7 +209,7 @@ export function pad (arg = INT_0) {
  * @param {Object} req - The HTTP request object
  * @param {RegExp} getParams - Regular expression for parameter extraction
  */
-export function params (req, getParams) {
+export function params(req, getParams) {
 	getParams.lastIndex = INT_0;
 	const match = getParams.exec(req.parsed.pathname);
 	const groups = match?.groups;
@@ -268,8 +259,12 @@ export function params (req, getParams) {
  * @param {string|Object} arg - URL string or request object to parse
  * @returns {URL} Parsed URL object
  */
-export function parse (arg) {
-	return new URL(typeof arg === STRING ? arg : `http://${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || "8000"}`}${arg.url}`);
+export function parse(arg) {
+	return new URL(
+		typeof arg === STRING
+			? arg
+			: `http://${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || "8000"}`}${arg.url}`,
+	);
 }
 
 /**
@@ -282,7 +277,7 @@ export function parse (arg) {
  * @param {Object} [options={}] - Options for range processing
  * @returns {Array} Array containing [headers, options]
  */
-export function partialHeaders (req, res, size, status, headers = {}, options = {}) {
+export function partialHeaders(req, res, size, status, headers = {}, options = {}) {
 	const rangeHeader = req.headers.range;
 
 	if (!rangeHeader || !rangeHeader.startsWith(KEY_BYTES)) {
@@ -333,7 +328,6 @@ export function partialHeaders (req, res, size, status, headers = {}, options = 
 		}
 	}
 
-
 	// Clean up headers once
 	res.removeHeader(CONTENT_RANGE);
 	res.removeHeader(CONTENT_LENGTH);
@@ -369,7 +363,7 @@ export function partialHeaders (req, res, size, status, headers = {}, options = 
  * @param {*} arg - Object to check for pipeability
  * @returns {boolean} True if the object is pipeable
  */
-export function pipeable (method, arg) {
+export function pipeable(method, arg) {
 	return method !== HEAD && arg !== null && arg !== undefined && typeof arg.on === FUNCTION;
 }
 
@@ -379,7 +373,7 @@ export function pipeable (method, arg) {
  * @param {Map} [map=new Map()] - Map of middleware handlers
  * @param {Object} [arg={}] - Object containing middleware array and parameters
  */
-export function reduce (uri, map = new Map(), arg = {}) {
+export function reduce(uri, map = new Map(), arg = {}) {
 	// Optimized: Early return if map is empty
 	if (map.size === 0) {
 		return;
@@ -422,19 +416,17 @@ export function reduce (uri, map = new Map(), arg = {}) {
  * @param {number} [arg=0] - Time offset value
  * @returns {string} Formatted time offset string
  */
-export function timeOffset (arg = INT_0) {
+export function timeOffset(arg = INT_0) {
 	const isNegative = arg < INT_0;
 	const absValue = isNegative ? -arg : arg;
 	const offsetMinutes = absValue / INT_60;
 
-	// Convert to hours and minutes
 	const hours = Math.floor(offsetMinutes);
 	const minutes = Math.floor((offsetMinutes - hours) * INT_60);
 
-	// Format with zero padding
 	const sign = isNegative ? EMPTY : HYPHEN;
-	const hoursStr = pad(hours);
-	const minutesStr = pad(minutes);
+	const hoursStr = String(hours).padStart(INT_2, STRING_0);
+	const minutesStr = String(minutes).padStart(INT_2, STRING_0);
 
 	return `${sign}${hoursStr}${minutesStr}`;
 }
@@ -444,9 +436,11 @@ export function timeOffset (arg = INT_0) {
  * @param {Object} res - The HTTP response object
  * @param {Object} [headers={}] - Headers object to write
  */
-export function writeHead (res, headers = {}) {
+export function writeHead(res, headers = {}) {
 	res.writeHead(res.statusCode, STATUS_CODES[res.statusCode], headers);
 }
+
+export { mimeExtensions };
 
 // Pre-compiled regex patterns for better performance
 const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
@@ -459,7 +453,7 @@ const HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
  * @param {string} ip - IP address to validate
  * @returns {boolean} True if IP is valid format
  */
-export function isValidIP (ip) {
+export function isValidIP(ip) {
 	if (!ip || typeof ip !== "string") {
 		return false;
 	}
@@ -517,8 +511,8 @@ export function isValidIP (ip) {
 		const rightGroups = afterDoubleColon ? afterDoubleColon.split(":") : [];
 
 		// Filter out empty groups and validate total count
-		const nonEmptyLeft = leftGroups.filter(g => g !== "");
-		const nonEmptyRight = rightGroups.filter(g => g !== "");
+		const nonEmptyLeft = leftGroups.filter((g) => g !== "");
+		const nonEmptyRight = rightGroups.filter((g) => g !== "");
 		const totalGroups = nonEmptyLeft.length + nonEmptyRight.length;
 
 		// Must be compressed (less than 8 groups)
@@ -557,3 +551,11 @@ export function isValidIP (ip) {
 	}
 }
 
+/**
+ * Converts a route path with parameters to a regex pattern
+ * @param {string} [arg=''] - Route path with parameter placeholders
+ * @returns {string} Regex pattern string
+ */
+export function extractPath(arg = EMPTY) {
+	return arg.replace(/\/:([^/]+)/g, "/(?<$1>[^/]+)");
+}

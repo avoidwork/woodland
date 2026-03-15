@@ -1,7 +1,7 @@
-import {woodland} from "../dist/woodland.js";
-import {join} from "node:path";
-import {writeFileSync, mkdirSync, rmSync, existsSync} from "node:fs";
-import {fileURLToPath} from "node:url";
+import { woodland } from "../dist/woodland.js";
+import { join } from "node:path";
+import { writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const testDir = join(__dirname, "..", "test-files");
@@ -21,16 +21,16 @@ const createMockRequest = (method = "GET", url = "/", headers = {}) => ({
 	headers: {
 		host: "localhost:3000",
 		"user-agent": "benchmark-test",
-		...headers
+		...headers,
 	},
 	connection: {
-		remoteAddress: "127.0.0.1"
+		remoteAddress: "127.0.0.1",
 	},
 	socket: {
 		server: {
-			_connectionKey: "6::::3000"
-		}
-	}
+			_connectionKey: "6::::3000",
+		},
+	},
 });
 
 const createMockResponse = () => {
@@ -39,9 +39,9 @@ const createMockResponse = () => {
 		statusCode: 200,
 		headersSent: false,
 		setHeader: (name, value) => headers.set(name.toLowerCase(), value),
-		getHeader: name => headers.get(name.toLowerCase()),
-		removeHeader: name => headers.delete(name.toLowerCase()),
-		setHeaders: hdrs => {
+		getHeader: (name) => headers.get(name.toLowerCase()),
+		removeHeader: (name) => headers.delete(name.toLowerCase()),
+		setHeaders: (hdrs) => {
 			if (hdrs instanceof Map) {
 				for (const [key, value] of hdrs) {
 					headers.set(key.toLowerCase(), value);
@@ -77,7 +77,7 @@ const createMockResponse = () => {
 		send: (body, status = 200) => {
 			response.statusCode = status;
 			response.end(body);
-		}
+		},
 	};
 
 	return response;
@@ -88,15 +88,15 @@ const testContents = {
 	small: "Hello World",
 	medium: "A".repeat(1000),
 	large: "B".repeat(10000),
-	xlarge: "C".repeat(100000)
+	xlarge: "C".repeat(100000),
 };
 
 /**
  * Setup test files for benchmarking
  */
-function setupTestFiles () {
+function setupTestFiles() {
 	try {
-		mkdirSync(testDir, {recursive: true});
+		mkdirSync(testDir, { recursive: true });
 
 		// Create files of different sizes
 		writeFileSync(join(testDir, "small.txt"), testContents.small);
@@ -112,14 +112,13 @@ function setupTestFiles () {
 		writeFileSync(join(testDir, "test.xml"), '<?xml version="1.0"?><root>test</root>');
 
 		// Create binary-like file
-		const binaryData = Buffer.from(Array.from({length: 1000}, (_, i) => i % 256));
+		const binaryData = Buffer.from(Array.from({ length: 1000 }, (_, i) => i % 256));
 		writeFileSync(join(testDir, "binary.dat"), binaryData);
 
 		// Create subdirectory with files
-		mkdirSync(join(testDir, "subdir"), {recursive: true});
+		mkdirSync(join(testDir, "subdir"), { recursive: true });
 		writeFileSync(join(testDir, "subdir", "nested.txt"), "Nested file content");
 		writeFileSync(join(testDir, "subdir", "index.html"), "<html><body>Index</body></html>");
-
 	} catch (error) {
 		console.warn("Could not setup test files:", error.message);
 	}
@@ -128,9 +127,9 @@ function setupTestFiles () {
 /**
  * Cleanup test files after benchmarking
  */
-function cleanupTestFiles () {
+function cleanupTestFiles() {
 	try {
-		rmSync(testDir, {recursive: true, force: true});
+		rmSync(testDir, { recursive: true, force: true });
 	} catch (error) {
 		console.warn("Could not cleanup test files:", error.message);
 	}
@@ -142,16 +141,16 @@ setupTestFiles();
 /**
  * Benchmark serve() function for small files
  */
-async function benchmarkServeSmallFile () {
+async function benchmarkServeSmallFile() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
 		etags: true,
-		logging: {enabled: false}
+		logging: { enabled: false },
 	});
 
 	const req = createMockRequest("GET", "/small.txt");
-	req.parsed = {pathname: "/small.txt"};
+	req.parsed = { pathname: "/small.txt" };
 	const res = createMockResponse();
 
 	return await freshApp.serve(req, res, "small.txt", testDir);
@@ -160,16 +159,16 @@ async function benchmarkServeSmallFile () {
 /**
  * Benchmark serve() function for medium files
  */
-async function benchmarkServeMediumFile () {
+async function benchmarkServeMediumFile() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
 		etags: true,
-		logging: {enabled: false}
+		logging: { enabled: false },
 	});
 
 	const req = createMockRequest("GET", "/medium.txt");
-	req.parsed = {pathname: "/medium.txt"};
+	req.parsed = { pathname: "/medium.txt" };
 	const res = createMockResponse();
 
 	return await freshApp.serve(req, res, "medium.txt", testDir);
@@ -178,16 +177,16 @@ async function benchmarkServeMediumFile () {
 /**
  * Benchmark serve() function for large files
  */
-async function benchmarkServeLargeFile () {
+async function benchmarkServeLargeFile() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
 		etags: true,
-		logging: {enabled: false}
+		logging: { enabled: false },
 	});
 
 	const req = createMockRequest("GET", "/large.txt");
-	req.parsed = {pathname: "/large.txt"};
+	req.parsed = { pathname: "/large.txt" };
 	const res = createMockResponse();
 
 	return await freshApp.serve(req, res, "large.txt", testDir);
@@ -196,19 +195,19 @@ async function benchmarkServeLargeFile () {
 /**
  * Benchmark serve() function for different file types
  */
-async function benchmarkServeDifferentTypes () {
+async function benchmarkServeDifferentTypes() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
 		etags: true,
-		logging: {enabled: false}
+		logging: { enabled: false },
 	});
 
 	const files = ["test.js", "test.css", "test.json", "test.html", "test.xml", "binary.dat"];
 	const file = files[Math.floor(Math.random() * files.length)];
 
 	const req = createMockRequest("GET", `/${file}`);
-	req.parsed = {pathname: `/${file}`};
+	req.parsed = { pathname: `/${file}` };
 	const res = createMockResponse();
 
 	return await freshApp.serve(req, res, file, testDir);
@@ -217,16 +216,16 @@ async function benchmarkServeDifferentTypes () {
 /**
  * Benchmark serve() function for HEAD requests
  */
-async function benchmarkServeHeadRequest () {
+async function benchmarkServeHeadRequest() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
 		etags: true,
-		logging: {enabled: false}
+		logging: { enabled: false },
 	});
 
 	const req = createMockRequest("HEAD", "/medium.txt");
-	req.parsed = {pathname: "/medium.txt"};
+	req.parsed = { pathname: "/medium.txt" };
 	const res = createMockResponse();
 
 	return await freshApp.serve(req, res, "medium.txt", testDir);
@@ -235,16 +234,16 @@ async function benchmarkServeHeadRequest () {
 /**
  * Benchmark serve() function for OPTIONS requests
  */
-async function benchmarkServeOptionsRequest () {
+async function benchmarkServeOptionsRequest() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
 		etags: true,
-		logging: {enabled: false}
+		logging: { enabled: false },
 	});
 
 	const req = createMockRequest("OPTIONS", "/medium.txt");
-	req.parsed = {pathname: "/medium.txt"};
+	req.parsed = { pathname: "/medium.txt" };
 	const res = createMockResponse();
 
 	return await freshApp.serve(req, res, "medium.txt", testDir);
@@ -253,16 +252,16 @@ async function benchmarkServeOptionsRequest () {
 /**
  * Benchmark serve() function for non-existent files
  */
-async function benchmarkServeNotFound () {
+async function benchmarkServeNotFound() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
 		etags: true,
-		logging: {enabled: false}
+		logging: { enabled: false },
 	});
 
 	const req = createMockRequest("GET", "/notfound.txt");
-	req.parsed = {pathname: "/notfound.txt"};
+	req.parsed = { pathname: "/notfound.txt" };
 	const res = createMockResponse();
 
 	return await freshApp.serve(req, res, "notfound.txt", testDir);
@@ -271,16 +270,16 @@ async function benchmarkServeNotFound () {
 /**
  * Benchmark serve() function for directory requests
  */
-async function benchmarkServeDirectory () {
+async function benchmarkServeDirectory() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
 		etags: true,
-		logging: {enabled: false}
+		logging: { enabled: false },
 	});
 
 	const req = createMockRequest("GET", "/subdir/");
-	req.parsed = {pathname: "/subdir/"};
+	req.parsed = { pathname: "/subdir/" };
 	const res = createMockResponse();
 
 	return await freshApp.serve(req, res, "subdir", testDir);
@@ -289,16 +288,16 @@ async function benchmarkServeDirectory () {
 /**
  * Benchmark serve() function for directory without trailing slash
  */
-async function benchmarkServeDirectoryRedirect () {
+async function benchmarkServeDirectoryRedirect() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
 		etags: true,
-		logging: {enabled: false}
+		logging: { enabled: false },
 	});
 
 	const req = createMockRequest("GET", "/subdir");
-	req.parsed = {pathname: "/subdir", search: ""};
+	req.parsed = { pathname: "/subdir", search: "" };
 	const res = createMockResponse();
 
 	return await freshApp.serve(req, res, "subdir", testDir);
@@ -307,23 +306,23 @@ async function benchmarkServeDirectoryRedirect () {
 /**
  * Benchmark serve() function with autoindex enabled
  */
-async function benchmarkServeAutoindex () {
+async function benchmarkServeAutoindex() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
 		etags: true,
 		autoindex: true,
-		logging: {enabled: false}
+		logging: { enabled: false },
 	});
 
 	const req = createMockRequest("GET", "/subdir/");
-	req.parsed = {pathname: "/subdir/"};
+	req.parsed = { pathname: "/subdir/" };
 	const res = createMockResponse();
 
 	// Create a subdirectory to test autoindex with
 	const subdir = join(testDir, "subdir");
 	if (!existsSync(subdir)) {
-		mkdirSync(subdir, {recursive: true});
+		mkdirSync(subdir, { recursive: true });
 		writeFileSync(join(subdir, "file1.txt"), "Test file 1");
 		writeFileSync(join(subdir, "file2.html"), "<h1>Test HTML</h1>");
 	}
@@ -334,18 +333,18 @@ async function benchmarkServeAutoindex () {
 /**
  * Benchmark serve() function with range requests
  */
-async function benchmarkServeRangeRequest () {
+async function benchmarkServeRangeRequest() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
 		etags: true,
-		logging: {enabled: false}
+		logging: { enabled: false },
 	});
 
 	const req = createMockRequest("GET", "/large.txt", {
-		range: "bytes=0-1023"
+		range: "bytes=0-1023",
 	});
-	req.parsed = {pathname: "/large.txt"};
+	req.parsed = { pathname: "/large.txt" };
 	const res = createMockResponse();
 
 	return await freshApp.serve(req, res, "large.txt", testDir);
@@ -354,12 +353,12 @@ async function benchmarkServeRangeRequest () {
 /**
  * Benchmark stream() function with small files
  */
-function benchmarkStreamSmallFile () {
+function benchmarkStreamSmallFile() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
 		etags: true,
-		logging: {enabled: false}
+		logging: { enabled: false },
 	});
 
 	const req = createMockRequest("GET", "/small.txt");
@@ -371,8 +370,8 @@ function benchmarkStreamSmallFile () {
 		path: join(testDir, "small.txt"),
 		stats: {
 			mtime: new Date(),
-			size: testContents.small.length
-		}
+			size: testContents.small.length,
+		},
 	};
 
 	return freshApp.stream(req, res, file);
@@ -381,12 +380,12 @@ function benchmarkStreamSmallFile () {
 /**
  * Benchmark stream() function with different HTTP methods
  */
-function benchmarkStreamDifferentMethods () {
+function benchmarkStreamDifferentMethods() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
 		etags: true,
-		logging: {enabled: false}
+		logging: { enabled: false },
 	});
 
 	const methods = ["GET", "HEAD", "OPTIONS"];
@@ -401,8 +400,8 @@ function benchmarkStreamDifferentMethods () {
 		path: join(testDir, "small.txt"),
 		stats: {
 			mtime: new Date(),
-			size: testContents.small.length
-		}
+			size: testContents.small.length,
+		},
 	};
 
 	return freshApp.stream(req, res, file);
@@ -411,12 +410,12 @@ function benchmarkStreamDifferentMethods () {
 /**
  * Benchmark stream() function with ETags
  */
-function benchmarkStreamWithEtags () {
+function benchmarkStreamWithEtags() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
 		etags: true,
-		logging: {enabled: false}
+		logging: { enabled: false },
 	});
 
 	const req = createMockRequest("GET", "/test.txt");
@@ -428,8 +427,8 @@ function benchmarkStreamWithEtags () {
 		path: join(testDir, "small.txt"),
 		stats: {
 			mtime: new Date(),
-			size: testContents.small.length
-		}
+			size: testContents.small.length,
+		},
 	};
 
 	return freshApp.stream(req, res, file);
@@ -438,12 +437,12 @@ function benchmarkStreamWithEtags () {
 /**
  * Benchmark stream() function without ETags
  */
-function benchmarkStreamWithoutEtags () {
+function benchmarkStreamWithoutEtags() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
 		etags: false,
-		logging: {enabled: false}
+		logging: { enabled: false },
 	});
 
 	const req = createMockRequest("GET", "/test.txt");
@@ -455,8 +454,8 @@ function benchmarkStreamWithoutEtags () {
 		path: join(testDir, "small.txt"),
 		stats: {
 			mtime: new Date(),
-			size: testContents.small.length
-		}
+			size: testContents.small.length,
+		},
 	};
 
 	return freshApp.stream(req, res, file);
@@ -465,12 +464,12 @@ function benchmarkStreamWithoutEtags () {
 /**
  * Benchmark files() method - static file serving setup
  */
-function benchmarkFilesMethod () {
+function benchmarkFilesMethod() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
 		etags: true,
-		logging: {enabled: false}
+		logging: { enabled: false },
 	});
 
 	const roots = ["/", "/static", "/assets", "/public"];
@@ -482,12 +481,12 @@ function benchmarkFilesMethod () {
 /**
  * Benchmark ETag generation
  */
-function benchmarkEtagGeneration () {
+function benchmarkEtagGeneration() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
 		etags: true,
-		logging: {enabled: false}
+		logging: { enabled: false },
 	});
 
 	const methods = ["GET", "HEAD", "OPTIONS"];
@@ -516,10 +515,10 @@ export default {
 	"stream() - with ETags": benchmarkStreamWithEtags,
 	"stream() - without ETags": benchmarkStreamWithoutEtags,
 	"files() - static serving": benchmarkFilesMethod,
-	"etag() - generation": benchmarkEtagGeneration
+	"etag() - generation": benchmarkEtagGeneration,
 };
 
 // Cleanup function to be called after benchmarks
-export function cleanup () {
+export function cleanup() {
 	cleanupTestFiles();
 }

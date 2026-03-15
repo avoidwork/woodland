@@ -1,135 +1,66 @@
-import {METHODS, STATUS_CODES} from "node:http";
-import {join, resolve} from "node:path";
-import {EventEmitter} from "node:events";
-import {readdir, stat} from "node:fs/promises";
-import {createReadStream} from "node:fs";
-import {etag} from "tiny-etag";
-import {precise} from "precise";
-import {lru} from "tiny-lru";
+import { METHODS } from "node:http";
+import { EventEmitter } from "node:events";
+import { createReadStream } from "node:fs";
+import { etag } from "tiny-etag";
+import { precise } from "precise";
 import {
 	ACCESS_CONTROL_ALLOW_CREDENTIALS,
-	ACCESS_CONTROL_ALLOW_HEADERS,
 	ACCESS_CONTROL_ALLOW_METHODS,
-	ACCESS_CONTROL_ALLOW_ORIGIN,
+	ACCESS_CONTROL_ALLOW_HEADERS,
 	ACCESS_CONTROL_EXPOSE_HEADERS,
 	ACCESS_CONTROL_REQUEST_HEADERS,
+	ACCESS_CONTROL_ALLOW_ORIGIN,
 	ALLOW,
-	APPLICATION_JSON,
-	ARRAY,
 	CACHE_CONTROL,
 	CLOSE,
-	COLON,
-	COMMA,
-	COMMA_SPACE,
 	CONNECT,
 	CONTENT_LENGTH,
 	CONTENT_RANGE,
 	CONTENT_TYPE,
 	DEBUG,
 	DELETE,
-	DELIMITER,
 	EMPTY,
 	ERROR,
 	ETAG,
 	FINISH,
-	FUNCTION,
 	GET,
 	HEAD,
-	HYPHEN,
-	INDEX_HTM,
-	INDEX_HTML,
 	INFO,
 	INT_0,
-	INT_1e3,
-	INT_1e4,
 	INT_200,
 	INT_204,
-	INT_3,
 	INT_304,
-	INT_307,
-	INT_308,
-	INT_4,
 	INT_403,
-	INT_404,
-	INT_416,
-	INT_500,
-	IP_TOKEN,
 	LAST_MODIFIED,
-	LEFT_PAREN,
-	LEVELS,
-	LOCATION,
-	LOG,
-	LOG_B,
-	LOG_FORMAT,
-	LOG_H,
-	LOG_L,
-	LOG_R,
-	LOG_REFERRER,
-	LOG_S,
-	LOG_T,
-	LOG_U,
-	LOG_USER_AGENT,
-	LOG_V,
-	MONTHS,
-	MSG_DECORATED_IP,
-	MSG_DETERMINED_ALLOW,
-	MSG_ERROR_HEAD_ROUTE,
-	MSG_ERROR_INVALID_METHOD,
-	MSG_ERROR_IP,
-	MSG_IGNORED_FN,
-	MSG_REGISTERING_MIDDLEWARE,
-	MSG_RETRIEVED_MIDDLEWARE,
-	MSG_ROUTING,
-	MSG_ROUTING_FILE,
-	MSG_SENDING_BODY,
 	NO_SNIFF,
-	OBJECT,
 	OPTIONS,
 	OPTIONS_BODY,
 	ORIGIN,
-	PARAMS_GROUP,
 	PATCH,
 	POST,
 	PUT,
 	RANGE,
+	STREAM,
+	STRING,
 	SERVER,
 	SERVER_VALUE,
 	SLASH,
-	STREAM,
-	STRING,
 	TIMING_ALLOW_ORIGIN,
-	TO_STRING,
 	TRACE,
 	TRUE,
-	USER_AGENT,
-	UTF8,
-	UTF_8,
 	WILDCARD,
 	X_CONTENT_TYPE_OPTIONS,
-	X_FORWARDED_FOR,
 	X_POWERED_BY,
 	X_POWERED_BY_VALUE,
-	X_RESPONSE_TIME
+	X_RESPONSE_TIME,
 } from "./constants.js";
-import {
-	autoindex as aindex,
-	getStatus,
-	mime,
-	ms,
-	next,
-	pad,
-	params,
-	parse,
-	partialHeaders,
-	pipeable,
-	reduce,
-	timeOffset,
-	writeHead,
-	isValidIP
-} from "./utility.js";
-
-// Optimized: Cache regex for corsHost method to avoid recompilation
-const PROTOCOL_REGEX = /^http(s)?:\/\//;
+import { getStatus, mime, next, params, parse, partialHeaders, writeHead } from "./utility.js";
+import { createMiddlewareRegistry } from "./middleware.js";
+import { createResponseHandler } from "./response.js";
+import { createCorsHandler, createIpExtractor } from "./request.js";
+import { createFileServer } from "./fileserver.js";
+import { validateConfig, validateLogging } from "./config.js";
+import { createLogger } from "./logger.js";
 
 /**
  * Woodland HTTP server framework class extending EventEmitter
@@ -142,65 +73,94 @@ export class Woodland extends EventEmitter {
 	 * @param {Object} [config={}] - Configuration object
 	 * @param {boolean} [config.autoindex=false] - Enable automatic directory indexing
 	 * @param {number} [config.cacheSize=1000] - Size of internal cache
-	 * @param {number} [config.cacheTTL=10000] - Cache time-to-live in milliseconds
-	 * @param {string} [config.charset='utf-8'] - Default character encoding
-	 * @param {string} [config.corsExpose=''] - CORS headers to expose to the client
-	 * @param {Object} [config.defaultHeaders={}] - Default HTTP headers
-	 * @param {number} [config.digit=3] - Number of digits for timing precision
-	 * @param {boolean} [config.etags=true] - Enable ETag generation
-	 * @param {string[]} [config.indexes=['index.htm', 'index.html']] - Index file names
+	 * @param {number} [config.cacheTTL=10000] - Cache TTL in milliseconds
+	 * @param {string} [config.charset='utf-8'] - Default charset
+	 * @param {string} [config.corsExpose=''] - CORS expose headers
+	 * @param {Object} [config.defaultHeaders={}] - Default headers to set
+	 * @param {number} [config.digit=3] - Digit precision for timing
+	 * @param {boolean} [config.etags=true] - Enable ETags
+	 * @param {Array} [config.indexes=['index.htm','index.html']] - Index files
 	 * @param {Object} [config.logging={}] - Logging configuration
-	 * @param {string[]} [config.origins=[]] - Allowed CORS origins (empty array denies all cross-origin requests)
-	 * @param {boolean} [config.silent=false] - Disable default headers
-	 * @param {boolean} [config.time=false] - Enable response time tracking
+	 * @param {Array} [config.origins=[]] - Allowed CORS origins
+	 * @param {boolean} [config.silent=false] - Silent mode
+	 * @param {boolean} [config.time=false] - Enable timing
 	 */
-	constructor ({
-		autoindex = false,
-		cacheSize = INT_1e3,
-		cacheTTL = INT_1e4,
-		charset = UTF_8,
-		corsExpose = EMPTY,
-		defaultHeaders = {},
-		digit = INT_3,
-		etags = true,
-		indexes = [
-			INDEX_HTM,
-			INDEX_HTML
-		],
-		logging = {},
-		origins = [],
-		silent = false,
-		time = false
-	} = {}) {
+	constructor(config = {}) {
 		super();
 
-		if (silent === false) {
-			if (SERVER in defaultHeaders === false) {
-				defaultHeaders[SERVER] = SERVER_VALUE;
-			}
+		const validated = validateConfig(config);
+		const {
+			autoindex,
+			cacheSize,
+			cacheTTL,
+			charset,
+			corsExpose,
+			defaultHeaders,
+			digit,
+			etags,
+			indexes,
+			logging,
+			origins,
+			silent,
+			time,
+		} = validated;
 
-			defaultHeaders[X_POWERED_BY] = X_POWERED_BY_VALUE;
+		const finalHeaders = { ...defaultHeaders };
+		if (silent === false) {
+			if (SERVER in finalHeaders === false) {
+				finalHeaders[SERVER] = SERVER_VALUE;
+			}
+			finalHeaders[X_POWERED_BY] = X_POWERED_BY_VALUE;
 		}
 
 		this.autoindex = autoindex;
-		this.ignored = new Set();
-		this.cache = lru(cacheSize, cacheTTL);
 		this.charset = charset;
 		this.corsExpose = corsExpose;
-		this.defaultHeaders = Reflect.ownKeys(defaultHeaders).map(key => [key.toLowerCase(), defaultHeaders[key]]);
+		this.defaultHeaders = Reflect.ownKeys(finalHeaders).map((key) => [
+			key.toLowerCase(),
+			finalHeaders[key],
+		]);
 		this.digit = digit;
-		this.etags = etags ? etag({cacheSize, cacheTTL}) : null;
-		this.indexes = structuredClone(indexes);
-		this.permissions = lru(cacheSize, cacheTTL);
-		this.logging = {
-			enabled: (logging?.enabled ?? true) !== false,
-			format: logging?.format ?? LOG_FORMAT,
-			level: logging?.level ?? INFO
-		};
-		this.methods = [];
-		this.middleware = new Map();
-		this.origins = structuredClone(origins);
+		this.etags = etags ? etag({ cacheSize, cacheTTL }) : null;
+		this.indexes = [...indexes];
+		this.logging = validateLogging(logging);
+		this.origins = [...origins];
 		this.time = time;
+
+		this.cache = new Map();
+		this.permissions = new Map();
+		this.ignored = new Set();
+		this.middleware = new Map();
+		this.methods = [];
+
+		const { log, clfm, extractIP, logRoute, logMiddleware, logDecoration, logError, logServe } =
+			createLogger({
+				enabled: this.logging.enabled,
+				format: this.logging.format,
+				level: this.logging.level,
+			});
+		this.logger = {
+			log,
+			clfm,
+			extractIP,
+			logRoute,
+			logMiddleware,
+			logDecoration,
+			logError,
+			logServe,
+		};
+
+		const { cors, corsHost, corsRequest } = createCorsHandler(this.origins);
+		this.cors = cors;
+		this.corsHost = corsHost;
+		this.corsRequest = corsRequest;
+
+		const { extract } = createIpExtractor();
+		this.ip = extract;
+
+		this.initResponseHandlers();
+		this.initFileServer();
+		this.initMiddleware();
 
 		if (this.etags !== null) {
 			this.get(this.etags.middleware).ignore(this.etags.middleware);
@@ -210,40 +170,108 @@ export class Woodland extends EventEmitter {
 			const fnCorsRequest = this.corsRequest();
 			this.options(fnCorsRequest).ignore(fnCorsRequest);
 		}
+
+		this.on(ERROR, () => {});
 	}
 
 	/**
-	 * Checks if a method is allowed for a specific URI
+	 * Initializes response handlers
+	 * @private
+	 */
+	initResponseHandlers() {
+		const onReady = this.onReady.bind(this);
+		const onDone = this.onDone.bind(this);
+		const onSend = this.onSend.bind(this);
+
+		const {
+			createErrorHandler,
+			createJsonHandler,
+			createRedirectHandler,
+			createSendHandler,
+			createSetHandler,
+			createStatusHandler,
+			stream,
+		} = createResponseHandler({
+			digit: this.digit,
+			etags: this.etags,
+			onReady,
+			onDone,
+			onSend,
+		});
+
+		this.responseHandler = {
+			createErrorHandler,
+			createJsonHandler,
+			createRedirectHandler,
+			createSendHandler,
+			createSetHandler,
+			createStatusHandler,
+			stream,
+		};
+
+		this.error = createErrorHandler(
+			(req, res, err) => this.emit(ERROR, req, res, err),
+			(req, _status) => this.logger.logError(req.parsed.pathname, req.method, req.ip),
+		);
+		this.json = createJsonHandler;
+		this.redirect = createRedirectHandler;
+		this.send = createSendHandler;
+		this.set = createSetHandler;
+		this.status = createStatusHandler;
+	}
+
+	/**
+	 * Initializes file server
+	 * @private
+	 */
+	initFileServer() {
+		this.fileServer = createFileServer(this);
+	}
+
+	/**
+	 * Initializes middleware registry
+	 * @private
+	 */
+	initMiddleware() {
+		this.middlewareRegistry = createMiddlewareRegistry(
+			this.middleware,
+			this.ignored,
+			this.methods,
+			this.cache,
+		);
+	}
+
+	/**
+	 * Checks if a method is allowed for a URI
 	 * @param {string} method - HTTP method
-	 * @param {string} uri - Request URI
-	 * @param {boolean} [override=false] - Skip cache lookup
+	 * @param {string} uri - URI to check
+	 * @param {boolean} [override=false] - Override cache
 	 * @returns {boolean} True if method is allowed
 	 */
-	allowed (method, uri, override = false) {
-		return this.routes(uri, method, override).visible > INT_0;
+	allowed(method, uri, override = false) {
+		return this.middlewareRegistry.allowed(method, uri, override);
 	}
 
 	/**
-	 * Gets allowed methods for a URI as a comma-separated string
-	 * @param {string} uri - Request URI
-	 * @param {boolean} [override=false] - Skip cache lookup
+	 * Determines allowed methods for a URI
+	 * @param {string} uri - URI to check
+	 * @param {boolean} [override=false] - Override cache
 	 * @returns {string} Comma-separated list of allowed methods
 	 */
-	allows (uri, override = false) {
+	allows(uri, override = false) {
 		let result = override === false ? this.permissions.get(uri) : void 0;
 
 		if (override || result === void 0) {
-			const allMethods = this.routes(uri, WILDCARD, override).visible > INT_0;
+			const allMethods = this.middlewareRegistry.routes(uri, WILDCARD, override).visible > INT_0;
 			let list;
 
 			if (allMethods) {
-				// Optimized: Use array spread instead of structuredClone for simple array
 				list = [...METHODS];
 			} else {
-				// Optimized: Use Set for faster lookups and dedupe, then convert to array
 				const methodSet = new Set();
 
-				for (const method of this.methods) {
+				for (let i = 0; i < this.methods.length; i++) {
+					const method = this.methods[i];
 					if (this.allowed(method, uri, override)) {
 						methodSet.add(method);
 					}
@@ -252,137 +280,69 @@ export class Woodland extends EventEmitter {
 				list = Array.from(methodSet);
 			}
 
-			// Optimized: Use Set for O(1) lookup instead of includes()
 			const methodSet = new Set(list);
 
-			// Add HEAD when GET is present
 			if (methodSet.has(GET) && !methodSet.has(HEAD)) {
 				list.push(HEAD);
 			}
 
-			// Add OPTIONS for any route that has methods defined
 			if (list.length > INT_0 && !methodSet.has(OPTIONS)) {
 				list.push(OPTIONS);
 			}
 
-			result = list.sort().join(COMMA_SPACE);
+			result = list.sort().join(", ");
 			this.permissions.set(uri, result);
-			this.log(`type=allows, uri=${uri}, override=${override}, message="${MSG_DETERMINED_ALLOW}"`);
+			this.logger.log(
+				`type=allows, uri=${uri}, override=${override}, message="Determined 'allow' header header value"`,
+			);
 		}
 
 		return result;
 	}
 
 	/**
-	 * Registers middleware that runs for all HTTP methods
-	 * @param {...Function} args - Middleware functions followed by optional method
-	 * @returns {Woodland} This instance for chaining
+	 * Registers wildcard middleware for all methods
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
 	 */
-	always (...args) {
+	always(...args) {
 		return this.use(...args, WILDCARD);
 	}
 
 	/**
-	 * Registers middleware for CONNECT method
-	 * @param {...Function} args - Middleware functions
-	 * @returns {Woodland} This instance for chaining
+	 * Registers CONNECT middleware
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
 	 */
-	connect (...args) {
+	connect(...args) {
 		return this.use(...args, CONNECT);
 	}
 
 	/**
-	 * Generates a Common Log Format entry for a request/response
+	 * Generates common log format entry
 	 * @param {Object} req - HTTP request object
 	 * @param {Object} res - HTTP response object
-	 * @returns {string} Formatted log entry
+	 * @returns {string} Common log format string
 	 */
-	clf (req, res) {
-		const date = new Date();
-
-		// Optimized: Cache date parts and avoid repeated property access
-		const month = MONTHS[date.getMonth()];
-		const day = date.getDate();
-		const year = date.getFullYear();
-		const hours = pad(date.getHours());
-		const minutes = pad(date.getMinutes());
-		const seconds = pad(date.getSeconds());
-		const timezone = timeOffset(date.getTimezoneOffset());
-		const dateStr = `[${day}/${month}/${year}:${hours}:${minutes}:${seconds} ${timezone}]`;
-
-		const host = req.headers?.host ?? HYPHEN;
-		const ip = req?.ip ?? HYPHEN;
-		const username = req?.parsed?.username ?? HYPHEN;
-		const requestLine = `${req.method} ${req.parsed.pathname}${req.parsed.search} HTTP/1.1`;
-		const contentLength = res?.getHeader(CONTENT_LENGTH) ?? HYPHEN;
-		const referer = req.headers?.referer ?? HYPHEN;
-		const userAgent = req.headers?.[USER_AGENT] ?? HYPHEN;
-
-		return this.logging.format
-			.replace(LOG_V, host)
-			.replace(LOG_H, ip)
-			.replace(LOG_L, HYPHEN)
-			.replace(LOG_U, username)
-			.replace(LOG_T, dateStr)
-			.replace(LOG_R, requestLine)
-			.replace(LOG_S, res.statusCode)
-			.replace(LOG_B, contentLength)
-			.replace(LOG_REFERRER, referer)
-			.replace(LOG_USER_AGENT, userAgent);
+	clf(req, res) {
+		return this.logger.clfm(req, res);
 	}
 
 	/**
-	 * Checks if a request should be handled with CORS
-	 * @param {Object} req - HTTP request object
-	 * @returns {boolean} True if CORS should be applied
-	 */
-	cors (req) {
-		// Security: Only allow CORS if origins are explicitly configured
-		if (this.origins.length === 0) {
-			return false;
-		}
-
-		return req.corsHost && (this.origins.includes(WILDCARD) || this.origins.includes(req.headers.origin));
-	}
-
-	/**
-	 * Determines if the request origin differs from the host
-	 * @param {Object} req - HTTP request object
-	 * @returns {boolean} True if cross-origin request
-	 */
-	corsHost (req) {
-		// Optimized: Use cached regex instead of creating new one each time
-		return ORIGIN in req.headers && req.headers.origin.replace(PROTOCOL_REGEX, "") !== req.headers.host;
-	}
-
-	/**
-	 * Creates a CORS preflight request handler middleware
-	 * @returns {Function} Middleware function that responds to OPTIONS requests with 204 No Content
-	 */
-	corsRequest () {
-		return (req, res) => res.status(INT_204).send(EMPTY);
-	}
-
-	/**
-	 * Decorates request and response objects with additional properties and methods
+	 * Decorates request and response objects with framework utilities
 	 * @param {Object} req - HTTP request object
 	 * @param {Object} res - HTTP response object
 	 */
-	decorate (req, res) {
-		// Optimized: Start timing before any other operations if needed
+	decorate(req, res) {
 		let timing = null;
 		if (this.time) {
 			timing = precise().start();
 		}
 
-		// Optimized: Parse URL once and cache pathname for multiple uses
 		const parsed = parse(req);
 		const pathname = parsed.pathname;
-
-		// Optimized: Get allow string early to avoid recalculation
 		const allowString = this.allows(pathname);
 
-		// Optimized: Batch request property assignments
 		req.parsed = parsed;
 		req.allow = allowString;
 		req.body = EMPTY;
@@ -390,20 +350,16 @@ export class Woodland extends EventEmitter {
 		req.params = {};
 		req.valid = true;
 
-		// Optimized: Only assign timing if enabled
 		if (timing) {
 			req.precise = timing;
 		}
 
-		// Optimized: Calculate CORS properties efficiently
 		req.corsHost = this.corsHost(req);
 		req.cors = this.cors(req);
 
-		// Optimized: Get IP early for logging
 		const clientIP = this.ip(req);
 		req.ip = clientIP;
 
-		// Optimized: Batch response property assignments
 		res.locals = {};
 		res.error = this.error(req, res);
 		res.header = res.setHeader;
@@ -413,20 +369,15 @@ export class Woodland extends EventEmitter {
 		res.set = this.set(res);
 		res.status = this.status(res);
 
-		// Optimized: Use null prototype for faster property access
 		const headersBatch = Object.create(null);
-
-		// Required headers
 		headersBatch[ALLOW] = allowString;
 		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
 
-		// Optimized: Use for loop for default headers (faster than for..of)
 		for (let i = 0; i < this.defaultHeaders.length; i++) {
 			const [key, value] = this.defaultHeaders[i];
 			headersBatch[key] = value;
 		}
 
-		// Optimized: Only add CORS headers if needed
 		if (req.cors) {
 			const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
 			const origin = req.headers.origin;
@@ -437,156 +388,88 @@ export class Woodland extends EventEmitter {
 			headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = allowString;
 
 			if (corsHeaders !== void 0) {
-				headersBatch[req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS] = corsHeaders;
+				headersBatch[
+					req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS
+				] = corsHeaders;
 			}
 		}
 
-		// Set all headers in one batch operation
 		res.set(headersBatch);
 
-		this.log(`type=decorate, uri=${pathname}, method=${req.method}, ip=${clientIP}, message="${MSG_DECORATED_IP.replace(IP_TOKEN, clientIP)}"`);
+		this.log(
+			`type=decorate, uri=${pathname}, method=${req.method}, ip=${clientIP}, message="Decorated request from ${clientIP}"`,
+		);
 		res.on(CLOSE, () => this.log(this.clf(req, res), INFO));
 	}
 
 	/**
-	 * Registers middleware for DELETE method
-	 * @param {...Function} args - Middleware functions
-	 * @returns {Woodland} This instance for chaining
+	 * Registers DELETE middleware
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
 	 */
-	delete (...args) {
+	delete(...args) {
 		return this.use(...args, DELETE);
 	}
 
 	/**
-	 * Creates an error handler function for the response
-	 * @param {Object} req - HTTP request object
-	 * @param {Object} res - HTTP response object
-	 * @returns {Function} Error handler function
-	 */
-	error (req, res) {
-		return (status = INT_500, body) => {
-			if (res.headersSent === false) {
-				const err = body instanceof Error ? body : new Error(body ?? STATUS_CODES[status]);
-				let output = err.message,
-					headers = {};
-
-				[output, status, headers] = this.onReady(req, res, output, status, headers);
-
-				if (status === INT_404) {
-					res.removeHeader(ALLOW);
-					res.header(ALLOW, EMPTY);
-
-					if (req.cors) {
-						res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
-						res.header(ACCESS_CONTROL_ALLOW_METHODS, EMPTY);
-					}
-				}
-
-				res.removeHeader(CONTENT_LENGTH);
-				res.statusCode = status;
-
-				if (this.listenerCount(ERROR) > INT_0) {
-					this.emit(ERROR, req, res, err);
-				}
-
-				this.log(`type=error, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ERROR_IP.replace(IP_TOKEN, req.ip)}"`);
-				this.onDone(req, res, output, headers);
-			}
-		};
-	}
-
-	/**
-	 * Generates an ETag for the given method and arguments
+	 * Generates ETag for response caching
 	 * @param {string} method - HTTP method
-	 * @param {...*} args - Arguments to generate ETag from
-	 * @returns {string} Generated ETag or empty string
+	 * @param {...*} args - Values to hash
+	 * @returns {string} ETag string or empty string
 	 */
-	etag (method, ...args) {
-		return (method === GET || method === HEAD || method === OPTIONS) && this.etags !== null ? this.etags.create(args.map(i => typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i).join(HYPHEN)) : EMPTY;
+	etag(method, ...args) {
+		return (method === GET || method === HEAD || method === OPTIONS) && this.etags !== null
+			? this.etags.create(
+					args
+						.map((i) => (typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i))
+						.join("-"),
+				)
+			: EMPTY;
 	}
 
 	/**
-	 * Serves static files from a directory
-	 * @param {string} [root='/'] - URL root path
-	 * @param {string} [folder=process.cwd()] - File system folder to serve from
+	 * Registers file server middleware
+	 * @param {string} [root='/'] - Root path
+	 * @param {string} [folder=process.cwd()] - Folder to serve
+	 * @returns {Woodland} Returns self for chaining
 	 */
-	files (root = SLASH, folder = process.cwd()) {
-		this.get(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) => this.serve(req, res, req.parsed.pathname.substring(1), folder));
+	files(root = SLASH, folder = process.cwd()) {
+		this.fileServer.register(root, folder, this.use.bind(this));
 	}
 
 	/**
-	 * Registers middleware for GET method
-	 * @param {...Function} args - Middleware functions
-	 * @returns {Woodland} This instance for chaining
+	 * Registers GET middleware
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
 	 */
-	get (...args) {
+	get(...args) {
 		return this.use(...args, GET);
 	}
 
 	/**
-	 * Marks a middleware function to be ignored in route visibility calculations
-	 * @param {Function} fn - Middleware function to ignore
-	 * @returns {Woodland} This instance for chaining
+	 * Adds function to ignored set
+	 * @param {Function} fn - Function to ignore
+	 * @returns {Woodland} Returns self for chaining
 	 */
-	ignore (fn) {
+	ignore(fn) {
 		this.ignored.add(fn);
-		this.log(`type=ignore, message="${MSG_IGNORED_FN}", name="${fn.name}"`);
+		this.logger.log(`type=ignore, message="Added function to ignored Set", name="${fn.name}"`);
 
 		return this;
 	}
 
 	/**
-	 * Extracts the client IP address from the request with security validation
-	 * @param {Object} req - HTTP request object
-	 * @returns {string} Client IP address
+	 * Lists middleware routes
+	 * @param {string} [method='GET'] - HTTP method
+	 * @param {string} [type='array'] - Return type (array or object)
+	 * @returns {Array|Object} List of routes
 	 */
-	ip (req) {
-		// Optimized: Cache fallback IP and fast path for common case
-		const fallbackIP = req.connection.remoteAddress || req.socket.remoteAddress || "127.0.0.1";
-
-		// Fast path: If no X-Forwarded-For header or empty, return connection IP
-		const forwardedHeader = req.headers[X_FORWARDED_FOR];
-		if (!forwardedHeader || !forwardedHeader.trim()) {
-			return fallbackIP;
-		}
-
-		// Optimized: Avoid map() allocation, process inline
-		const forwardedIPs = forwardedHeader.split(COMMA);
-
-		for (let i = 0; i < forwardedIPs.length; i++) {
-			const ip = forwardedIPs[i].trim();
-			if (isValidIP(ip)) {
-				return ip;
-			}
-		}
-
-		// Fall back to connection IP if no valid IP found
-		return fallbackIP;
-	}
-
-	/**
-	 * Creates a JSON response function for the response object
-	 * @param {Object} res - HTTP response object
-	 * @returns {Function} JSON response function
-	 */
-	json (res) {
-		return (arg, status = 200, headers = {[CONTENT_TYPE]: `${APPLICATION_JSON}; charset=${UTF_8}`}) => {
-			res.send(JSON.stringify(arg), status, headers);
-		};
-	}
-
-	/**
-	 * Lists registered routes for a specific method
-	 * @param {string} [method='get'] - HTTP method to list routes for
-	 * @param {string} [type='array'] - Return type: 'array' or 'object'
-	 * @returns {Array|Object} Array of route patterns or object with route details
-	 */
-	list (method = GET.toLowerCase(), type = ARRAY) {
+	list(method = GET.toLowerCase(), type = "array") {
 		let result;
 
-		if (type === ARRAY) {
+		if (type === "array") {
 			result = Array.from(this.middleware.get(method.toUpperCase()).keys());
-		} else if (type === OBJECT) {
+		} else if (type === "object") {
 			result = {};
 
 			for (const [key, value] of this.middleware.get(method.toUpperCase()).entries()) {
@@ -594,39 +477,36 @@ export class Woodland extends EventEmitter {
 			}
 		}
 
-		this.log(`type=list, method=${method}, type=${type}`);
+		this.logger.log(`type=list, method=${method}, type=${type}`);
 
 		return result;
 	}
 
 	/**
-	 * Logs a message at the specified level
+	 * Logs a message
 	 * @param {string} msg - Message to log
 	 * @param {string} [level='debug'] - Log level
-	 * @returns {Woodland} This instance for chaining
+	 * @returns {Woodland} Returns self for chaining
 	 */
-	log (msg, level = DEBUG) {
-		if (this.logging.enabled) {
-			const idx = LEVELS[level];
-
-			if (idx <= LEVELS[this.logging.level]) {
-				/* istanbul ignore next */
-				process.nextTick(() => console[idx > INT_4 ? LOG : ERROR](msg));
-			}
-		}
+	log(msg, level = DEBUG) {
+		this.logger.log(msg, level);
 
 		return this;
 	}
 
 	/**
-	 * Finalizes the response by setting headers and ending the response
+	 * Handles response done event
 	 * @param {Object} req - HTTP request object
 	 * @param {Object} res - HTTP response object
 	 * @param {string} body - Response body
-	 * @param {Object} headers - Additional headers to set
+	 * @param {Object} headers - Response headers
 	 */
-	onDone (req, res, body, headers) {
-		if (res.statusCode !== INT_204 && res.statusCode !== INT_304 && res.getHeader(CONTENT_LENGTH) === void 0) {
+	onDone(req, res, body, headers) {
+		if (
+			res.statusCode !== INT_204 &&
+			res.statusCode !== INT_304 &&
+			res.getHeader(CONTENT_LENGTH) === void 0
+		) {
 			res.header(CONTENT_LENGTH, Buffer.byteLength(body));
 		}
 
@@ -635,125 +515,102 @@ export class Woodland extends EventEmitter {
 	}
 
 	/**
-	 * Prepares the response before sending, adding timing headers if enabled
+	 * Handles response ready event
 	 * @param {Object} req - HTTP request object
 	 * @param {Object} res - HTTP response object
 	 * @param {string} body - Response body
 	 * @param {number} status - HTTP status code
 	 * @param {Object} headers - Response headers
-	 * @returns {Array} Array containing [body, status, headers]
+	 * @returns {Array} Response array
 	 */
-	onReady (req, res, body, status, headers) {
+	onReady(req, res, body, status, headers) {
 		if (this.time && res.getHeader(X_RESPONSE_TIME) === void 0) {
-			res.header(X_RESPONSE_TIME, `${ms(req.precise.stop().diff(), this.digit)}`);
+			const diff = req.precise.stop().diff();
+			const msValue = Number(diff / 1e6).toFixed(this.digit);
+			res.header(X_RESPONSE_TIME, `${msValue} ms`);
 		}
 
 		return this.onSend(req, res, body, status, headers);
 	}
 
 	/**
-	 * Hook called before sending response, allows modification of response data
+	 * Handles response send event
 	 * @param {Object} req - HTTP request object
 	 * @param {Object} res - HTTP response object
 	 * @param {string} body - Response body
 	 * @param {number} status - HTTP status code
 	 * @param {Object} headers - Response headers
-	 * @returns {Array} Array containing [body, status, headers]
+	 * @returns {Array} Response array
 	 */
-	/* istanbul ignore next */
-	onSend (req, res, body, status, headers) {
+	onSend(req, res, body, status, headers) {
 		return [body, status, headers];
 	}
 
 	/**
-	 * Registers middleware for OPTIONS method
-	 * @param {...Function} args - Middleware functions
-	 * @returns {Woodland} This instance for chaining
+	 * Registers OPTIONS middleware
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
 	 */
-	options (...args) {
+	options(...args) {
 		return this.use(...args, OPTIONS);
 	}
 
 	/**
-	 * Registers middleware for PATCH method
-	 * @param {...Function} args - Middleware functions
-	 * @returns {Woodland} This instance for chaining
+	 * Registers PATCH middleware
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
 	 */
-	patch (...args) {
+	patch(...args) {
 		return this.use(...args, PATCH);
 	}
 
 	/**
-	 * Converts a route path with parameters to a regex pattern
-	 * @param {string} [arg=''] - Route path with parameter placeholders
+	 * Converts parameterized route to regex
+	 * @param {string} [arg=''] - Route path
 	 * @returns {string} Regex pattern string
 	 */
-	path (arg = EMPTY) {
-		return arg.replace(/\/:([^/]+)/g, PARAMS_GROUP);
+	extractPath(arg = EMPTY) {
+		return arg.replace(/\/:([^/]+)/g, "/(?<$1>[^/]+)");
 	}
 
 	/**
-	 * Registers middleware for POST method
-	 * @param {...Function} args - Middleware functions
-	 * @returns {Woodland} This instance for chaining
+	 * Registers POST middleware
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
 	 */
-	post (...args) {
+	post(...args) {
 		return this.use(...args, POST);
 	}
 
 	/**
-	 * Registers middleware for PUT method
-	 * @param {...Function} args - Middleware functions
-	 * @returns {Woodland} This instance for chaining
+	 * Registers PUT middleware
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
 	 */
-	put (...args) {
+	put(...args) {
 		return this.use(...args, PUT);
 	}
 
 	/**
-	 * Creates a redirect function for the response object
-	 * @param {Object} res - HTTP response object
-	 * @returns {Function} Redirect function
-	 */
-	redirect (res) {
-		return (uri, perm = true) => {
-			res.send(EMPTY, perm ? INT_308 : INT_307, {[LOCATION]: uri});
-		};
-	}
-
-	/**
-	 * Routes an incoming HTTP request through the middleware stack
+	 * Routes request to middleware
 	 * @param {Object} req - HTTP request object
 	 * @param {Object} res - HTTP response object
 	 */
-	route (req, res) {
-		// Optimized: Cache constants to avoid repeated property access
-		const evc = CONNECT.toLowerCase();
-		const evf = FINISH;
+	route(req, res) {
 		const method = req.method === HEAD ? GET : req.method;
 
 		this.decorate(req, res);
 
-		// Optimized: Combine event listener checks to avoid multiple calls
-		const connectListeners = this.listenerCount(evc);
-		const finishListeners = this.listenerCount(evf);
-
-		if (connectListeners > INT_0) {
-			this.emit(evc, req, res);
+		if (this.listenerCount("connect") > INT_0) {
+			this.emit("connect", req, res);
 		}
 
-		if (finishListeners > INT_0) {
-			res.on(evf, () => this.emit(evf, req, res));
+		if (this.listenerCount(FINISH) > INT_0) {
+			res.on(FINISH, () => this.emit(FINISH, req, res));
 		}
 
-		// Optimized: Cache pathname and IP to avoid property access in logging
-		const pathname = req.parsed.pathname;
-		const requestMethod = req.method;
-		const clientIP = req.ip;
+		this.logger.logRoute(req.parsed.pathname, req.method, req.ip);
 
-		this.log(`type=route, uri=${pathname}, method=${requestMethod}, ip=${clientIP}, message="${MSG_ROUTING}"`);
-
-		// Optimized: Streamline CORS validation logic
 		const hasOriginHeader = ORIGIN in req.headers;
 		const isOriginAllowed = hasOriginHeader && this.origins.includes(req.headers.origin);
 
@@ -761,16 +618,13 @@ export class Woodland extends EventEmitter {
 			req.valid = false;
 			res.error(INT_403);
 		} else if (req.allow.includes(method)) {
-			// Optimized: Get route result once and reuse
-			const result = this.routes(pathname, method);
+			const result = this.middlewareRegistry.routes(req.parsed.pathname, method);
 
 			if (result.params) {
 				params(req, result.getParams);
 			}
 
-			// Optimized: Create exit middleware iterator more efficiently
 			const exitMiddleware = result.middleware.slice(result.exit)[Symbol.iterator]();
-
 			req.exit = next(req, res, exitMiddleware, true);
 			next(req, res, result.middleware[Symbol.iterator]())();
 		} else {
@@ -780,224 +634,59 @@ export class Woodland extends EventEmitter {
 	}
 
 	/**
-	 * Retrieves route information for a URI and method
-	 * @param {string} uri - Request URI
+	 * Gets route information
+	 * @param {string} uri - URI to check
 	 * @param {string} method - HTTP method
-	 * @param {boolean} [override=false] - Skip cache lookup
-	 * @returns {Object} Route information object
+	 * @param {boolean} [override=false] - Override cache
+	 * @returns {Object} Route information
 	 */
-	routes (uri, method, override = false) {
-		const key = `${method}${DELIMITER}${uri}`,
-			cached = override === false ? this.cache.get(key) : void 0;
-		let result;
-
-		if (cached !== void 0) {
-			result = cached;
-		} else {
-			result = {getParams: null, middleware: [], params: false, visible: INT_0, exit: -1};
-			reduce(uri, this.middleware.get(WILDCARD), result);
-
-			if (method !== WILDCARD) {
-				result.exit = result.middleware.length;
-				reduce(uri, this.middleware.get(method), result, true);
-			}
-
-			// Optimized: Count without creating an intermediate array
-			result.visible = INT_0;
-			for (const middleware of result.middleware) {
-				if (this.ignored.has(middleware) === false) {
-					result.visible++;
-				}
-			}
-			this.cache.set(key, result);
-		}
-
-		this.log(`type=routes, uri=${uri}, method=${method}, cached=${cached !== void 0}, middleware=${result.middleware.length}, params=${result.params}, visible=${result.visible}, override=${override}, message="${MSG_RETRIEVED_MIDDLEWARE}"`);
-
-		return result;
+	routes(uri, method, override = false) {
+		return this.middlewareRegistry.routes(uri, method, override);
 	}
 
 	/**
-	 * Creates a send function for the response object
+	 * Serves file from disk
 	 * @param {Object} req - HTTP request object
 	 * @param {Object} res - HTTP response object
-	 * @returns {Function} Send function
+	 * @param {string} arg - File path
+	 * @param {string} [folder=process.cwd()] - Folder to serve from
+	 * @returns {Promise} Promise that resolves when done
 	 */
-	send (req, res) {
-		return (body = EMPTY, status = res.statusCode, headers = {}) => {
-			if (res.headersSent === false) {
-				[body, status, headers] = this.onReady(req, res, body, status, headers);
-
-				// Optimized: Cache method and range header for reuse
-				const method = req.method;
-				const rangeHeader = req.headers.range;
-				const isPipeable = pipeable(method, body);
-
-				if (isPipeable) {
-					if (rangeHeader === void 0 || req.range !== void 0) {
-						writeHead(res, headers);
-						body.on(ERROR, err => res.error(INT_500, err)).pipe(res);
-					} else {
-						res.error(INT_416);
-					}
-				} else {
-					// Optimized: Check for toString method more efficiently
-					if (typeof body !== STRING && body && typeof body[TO_STRING] === FUNCTION) {
-						body = body.toString();
-					}
-
-					if (rangeHeader !== void 0) {
-						// Optimized: Create buffer only once and reuse byteLength
-						const buffered = Buffer.from(body);
-						const byteLength = buffered.length;
-
-						[headers] = partialHeaders(req, res, byteLength, status, headers);
-
-						if (req.range !== void 0) {
-							// Optimized: Use slice with proper range calculation
-							const rangeBuffer = buffered.slice(req.range.start, req.range.end + 1);
-							this.onDone(req, res, rangeBuffer.toString(), headers);
-						} else {
-							res.error(INT_416);
-						}
-					} else {
-						res.statusCode = status;
-						this.onDone(req, res, body, headers);
-					}
-				}
-
-				this.log(`type=res.send, uri=${req.parsed.pathname}, method=${method}, ip=${req.ip}, valid=true, message="${MSG_SENDING_BODY}"`);
-			}
-		};
+	async serve(req, res, arg, folder = process.cwd()) {
+		return this.fileServer.serve(req, res, arg, folder);
 	}
 
 	/**
-	 * Creates a function to set multiple headers on the response
-	 * @param {Object} res - HTTP response object
-	 * @returns {Function} Header setting function
-	 */
-	set (res) {
-		return (arg = {}) => {
-			const headers = arg instanceof Map || arg instanceof Headers ? arg : new Headers(arg);
-
-			// Node.js HTTP response doesn't have setHeaders, use setHeader for each
-			for (const [key, value] of headers) {
-				res.setHeader(key, value);
-			}
-
-			return res;
-		};
-	}
-
-	/**
-	 * Serves a file or directory from the file system
+	 * Streams file to response
 	 * @param {Object} req - HTTP request object
 	 * @param {Object} res - HTTP response object
-	 * @param {string} arg - File path relative to folder
-	 * @param {string} [folder=process.cwd()] - Base directory to serve from
-	 * @returns {Promise<void>} Promise that resolves when serving is complete
+	 * @param {Object} file - File descriptor object
+	 * @param {string} file.path - File path
+	 * @param {string} file.etag - File ETag
+	 * @param {string} file.charset - File charset
+	 * @param {Object} file.stats - File statistics
+	 * @param {number} file.stats.size - File size
+	 * @param {Date} file.stats.mtime - File modification time
 	 */
-	async serve (req, res, arg, folder = process.cwd()) {
-		const fp = resolve(folder, arg);
-
-		// Security: Ensure resolved path stays within the allowed directory
-		if (!fp.startsWith(resolve(folder))) {
-			this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path outside allowed directory", path="${arg}"`, ERROR);
-			res.error(INT_403);
-
-			return;
-		}
-
-		let valid = true;
-		let stats;
-
-		this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${MSG_ROUTING_FILE}"`);
-
-		try {
-			stats = await stat(fp, {bigint: false});
-		} catch {
-			valid = false;
-		}
-
-		if (valid === false) {
-			res.error(INT_404);
-		} else if (stats.isDirectory() === false) {
-			this.stream(req, res, {
-				charset: this.charset,
-				etag: this.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
-				path: fp,
-				stats: stats
-			});
-		} else if (req.parsed.pathname.endsWith(SLASH) === false) {
-			res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
-		} else {
-			const files = await readdir(fp, {encoding: UTF8, withFileTypes: true});
-			let result = EMPTY;
-
-			for (const file of files) {
-				if (this.indexes.includes(file.name)) {
-					result = join(fp, file.name);
-					break;
-				}
-			}
-
-			if (result.length === INT_0) {
-				if (this.autoindex === false) {
-					res.error(INT_404);
-				} else {
-					const body = aindex(decodeURIComponent(req.parsed.pathname), files);
-
-					res.header(CONTENT_TYPE, `text/html; charset=${this.charset}`);
-					res.send(body);
-				}
-			} else {
-				const rstats = await stat(result, {bigint: false});
-
-				this.stream(req, res, {
-					charset: this.charset,
-					etag: this.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
-					path: result,
-					stats: rstats
-				});
-			}
-		}
-	}
-
-	/**
-	 * Creates a status code setting function for the response
-	 * @param {Object} res - HTTP response object
-	 * @returns {Function} Status setting function
-	 */
-	status (res) {
-		return (arg = INT_200) => {
-			res.statusCode = arg;
-
-			return res;
-		};
-	}
-
-	/**
-	 * Streams a file to the response with appropriate headers
-	 * @param {Object} req - HTTP request object
-	 * @param {Object} res - HTTP response object
-	 * @param {Object} [file] - File information object
-	 * @param {string} [file.charset=''] - Character encoding
-	 * @param {string} [file.etag=''] - ETag value
-	 * @param {string} [file.path=''] - File system path
-	 * @param {Object} [file.stats] - File statistics
-	 */
-	stream (req, res, file = {
-		charset: EMPTY,
-		etag: EMPTY,
-		path: EMPTY,
-		stats: {mtime: new Date(), size: INT_0}
-	}) {
+	stream(
+		req,
+		res,
+		file = {
+			charset: EMPTY,
+			etag: EMPTY,
+			path: EMPTY,
+			stats: { mtime: new Date(), size: INT_0 },
+		},
+	) {
 		if (file.path === EMPTY || file.stats.size === INT_0) {
 			throw new TypeError("Invalid file descriptor");
 		}
 
 		res.header(CONTENT_LENGTH, file.stats.size);
-		res.header(CONTENT_TYPE, file.charset.length > INT_0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path));
+		res.header(
+			CONTENT_TYPE,
+			file.charset.length > INT_0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path),
+		);
 		res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
 
 		if (this.etags && file.etag.length > INT_0) {
@@ -1005,7 +694,7 @@ export class Woodland extends EventEmitter {
 			res.removeHeader(CACHE_CONTROL);
 		}
 
-		if (req.method === GET) {
+		if (req.method === "GET") {
 			let status = INT_200;
 			let options = {};
 			let headers = {};
@@ -1013,7 +702,7 @@ export class Woodland extends EventEmitter {
 			if (RANGE in req.headers) {
 				[headers, options] = partialHeaders(req, res, file.stats.size, status);
 
-				if (Object.keys(options).length > 0) {
+				if (Object.keys(options).length > INT_0) {
 					res.removeHeader(CONTENT_LENGTH);
 					res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
 
@@ -1021,12 +710,14 @@ export class Woodland extends EventEmitter {
 						res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
 					}
 				} else {
-					// Invalid range, reset options to serve full file
 					options = {};
 				}
 			}
 
-			res.send(createReadStream(file.path, Object.keys(options).length > 0 ? options : undefined), status);
+			res.send(
+				createReadStream(file.path, Object.keys(options).length > INT_0 ? options : undefined),
+				status,
+			);
 		} else if (req.method === HEAD) {
 			res.send(EMPTY);
 		} else if (req.method === OPTIONS) {
@@ -1038,23 +729,24 @@ export class Woodland extends EventEmitter {
 	}
 
 	/**
-	 * Registers middleware for TRACE method
-	 * @param {...Function} args - Middleware functions
-	 * @returns {Woodland} This instance for chaining
+	 * Registers TRACE middleware
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
 	 */
-	trace (...args) {
+	trace(...args) {
 		return this.use(...args, TRACE);
 	}
 
 	/**
-	 * Registers middleware for a route pattern and HTTP method
-	 * @param {string|Function} rpath - Route pattern or middleware function
-	 * @param {...Function} fn - Middleware functions, optionally ending with method string
-	 * @returns {Woodland} This instance for chaining
-	 * @throws {TypeError} If invalid method or HEAD route is specified
+	 * Registers middleware for a route
+	 * @param {string|Function} rpath - Route path or middleware function
+	 * @param {...Function} fn - Middleware function(s)
+	 * @param {string} [method='GET'] - HTTP method
+	 * @returns {Woodland} Returns self for chaining
+	 * @throws {TypeError} When invalid HTTP method or HEAD method is used
 	 */
-	use (rpath, ...fn) {
-		if (typeof rpath === FUNCTION) {
+	use(rpath, ...fn) {
+		if (typeof rpath === "function") {
 			fn = [rpath, ...fn];
 			rpath = `/.${WILDCARD}`;
 		}
@@ -1062,11 +754,11 @@ export class Woodland extends EventEmitter {
 		const method = typeof fn[fn.length - 1] === STRING ? fn.pop().toUpperCase() : GET;
 
 		if (method !== WILDCARD && METHODS.includes(method) === false) {
-			throw new TypeError(MSG_ERROR_INVALID_METHOD);
+			throw new TypeError("Invalid HTTP method");
 		}
 
 		if (method === HEAD) {
-			throw new TypeError(MSG_ERROR_HEAD_ROUTE);
+			throw new TypeError("Cannot set HEAD route, use GET");
 		}
 
 		if (this.middleware.has(method) === false) {
@@ -1081,21 +773,21 @@ export class Woodland extends EventEmitter {
 		let lrpath = rpath,
 			lparams = false;
 
-		if (lrpath.includes(`${SLASH}${COLON}`) && lrpath.includes(LEFT_PAREN) === false) {
+		if (lrpath.includes(`${SLASH}:`) && lrpath.includes("(") === false) {
 			lparams = true;
-			lrpath = this.path(lrpath);
+			lrpath = this.extractPath(lrpath);
 		}
 
-		const current = mmethod.get(lrpath) ?? {handlers: []};
+		const current = mmethod.get(lrpath) ?? { handlers: [] };
 
 		current.handlers.push(...fn);
 		mmethod.set(lrpath, {
 			handlers: current.handlers,
 			params: lparams,
-			regex: new RegExp(`^${lrpath}$`)
+			regex: new RegExp(`^${lrpath}$`),
 		});
 
-		this.log(`type=use, route=${rpath}, method=${method}, message="${MSG_REGISTERING_MIDDLEWARE}"`);
+		this.logger.logMiddleware(rpath, method);
 
 		return this;
 	}
@@ -1103,10 +795,10 @@ export class Woodland extends EventEmitter {
 
 /**
  * Factory function to create a new Woodland instance
- * @param {Object} [arg] - Configuration object passed to Woodland constructor
- * @returns {Woodland} New Woodland instance with bound route method
+ * @param {Object} [arg={}] - Configuration object
+ * @returns {Woodland} New Woodland instance
  */
-export function woodland (arg) {
+export function woodland(arg) {
 	const app = new Woodland(arg);
 
 	app.route = app.route.bind(app);

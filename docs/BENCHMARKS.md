@@ -113,7 +113,7 @@ node benchmark.js comparison -i 500 -w 50
 ### Command Line Options
 
 - `--iterations, -i <number>`: Number of iterations per benchmark (default: 1000)
-- `--warmup, -w <number>`: Number of warmup iterations (default: 100)  
+- `--warmup, -w <number>`: Number of warmup iterations (default: 100)
 - `--help, -h`: Show help message
 
 ## Benchmark Suites
@@ -123,6 +123,7 @@ node benchmark.js comparison -i 500 -w 50
 **Revolutionary discovery**: Compares Woodland framework performance against all major Node.js HTTP frameworks including raw Node.js HTTP module, Express.js framework, and Fastify framework to measure framework overhead and optimizations.
 
 **Key Findings (averaged across 5 runs on Apple Mac Mini M4 Pro, Node.js 24.8.0):**
+
 - Fastify framework: **14,283 ops/sec** (0.070ms avg) 🥇 **FASTEST**
 - Woodland framework: **12,478 ops/sec** (0.080ms avg) 🥈 **Strong second**
 - Express.js framework: **12,112 ops/sec** (0.083ms avg) 🥉 **Third place**
@@ -130,6 +131,7 @@ node benchmark.js comparison -i 500 -w 50
 - **Performance improvement: +15% faster than raw Node.js, +3% faster than Express.js, 87% of Fastify's performance**
 
 **Test Methodology:**
+
 - Identical JSON response scenarios across all four frameworks for fair comparison
 - All servers configured with equivalent functionality
 - Woodland optimizations (ETags, logging, timing) disabled for fair testing
@@ -137,6 +139,7 @@ node benchmark.js comparison -i 500 -w 50
 - Express.js and Fastify tested with default configurations (no optimizations disabled)
 
 **Why Woodland Outperforms All Alternatives:**
+
 - **vs Raw Node.js**: Optimized request/response pipeline that eliminates common inefficiencies
 - **vs Express.js**: Lightweight middleware system without Express's overhead and legacy bloat
 - **vs Fastify**: Performance-first architecture with even more efficient JSON handling and routing optimizations
@@ -145,6 +148,7 @@ node benchmark.js comparison -i 500 -w 50
 - Performance-first architecture designed from the ground up for speed
 
 **Example Output (5-run average on Apple Mac Mini M4 Pro, Node.js 24.8.0):**
+
 ```
 Fastify framework: 14,283 ops/sec
 Woodland framework: 12,478 ops/sec
@@ -166,6 +170,7 @@ Tests the performance of core routing functions:
 - Path conversion (parameter routes to regex)
 
 **Example Output:**
+
 ```
 allows() - with cache: 4,797,153 ops/sec
 allowed() - with cache: 2,093,055 ops/sec
@@ -194,6 +199,7 @@ Tests middleware registration and execution performance:
 - Response helpers
 
 **Example Output:**
+
 ```
 ignore middleware: 572,834 ops/sec
 multiple handlers registration: 316,608 ops/sec
@@ -225,6 +231,7 @@ Tests core utility functions:
 - `reduce()` - Route reduction for middleware matching
 
 **Example Output:**
+
 ```
 pad() - number padding: 6,846,970 ops/sec
 mime() - basic files: 5,112,082 ops/sec
@@ -258,6 +265,7 @@ Tests file serving and streaming performance:
 - Error handling for non-existent files
 
 **Example Output:**
+
 ```
 files() - static serving: 594,692 ops/sec
 stream() - with ETags: 370,153 ops/sec
@@ -279,6 +287,7 @@ serve() - autoindex: 18,165 ops/sec
 ```
 
 **Example Features:**
+
 - Tests files from small (11 bytes) to extra large (100KB)
 - Benchmarks different MIME types
 - Tests range requests for partial content
@@ -299,6 +308,7 @@ Tests end-to-end HTTP server performance with **individual request measurements*
 - Server startup performance
 
 **Example Output:**
+
 ```
 server startup: 116,140 ops/sec
 DELETE requests: 16,039 ops/sec
@@ -317,6 +327,7 @@ large response: 913 ops/sec
 ```
 
 **Architecture Notes:**
+
 - Uses a shared test server for efficient resource management
 - Measures individual HTTP request performance, not load testing
 - Automatically cleans up server resources after benchmark completion
@@ -348,6 +359,7 @@ The benchmark suite follows Node.js best practices:
 ### Output Format
 
 Each benchmark reports:
+
 - **Mean**: Average execution time in milliseconds
 - **Median**: Middle value execution time
 - **Min/Max**: Fastest and slowest execution times
@@ -427,19 +439,19 @@ When adding new benchmarks:
 
 ```javascript
 // Custom benchmark usage
-import {runBenchmark} from './benchmark.js';
+import { runBenchmark } from "./benchmark.js";
 
 const customBenchmark = () => {
-    // Your code to benchmark
-    return someFunction();
+  // Your code to benchmark
+  return someFunction();
 };
 
-const results = await runBenchmark('Custom Test', customBenchmark, {
-    iterations: 1000,
-    warmup: 100
+const results = await runBenchmark("Custom Test", customBenchmark, {
+  iterations: 1000,
+  warmup: 100,
 });
 
 console.log(`Performance: ${results.opsPerSecond} ops/sec`);
 ```
 
-This benchmark suite provides comprehensive performance insights for the Woodland framework, helping developers understand performance characteristics and optimize their applications accordingly. The recent improvements ensure accurate measurements and reliable benchmark execution. 
+This benchmark suite provides comprehensive performance insights for the Woodland framework, helping developers understand performance characteristics and optimize their applications accordingly. The recent improvements ensure accurate measurements and reliable benchmark execution.

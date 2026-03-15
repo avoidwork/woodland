@@ -1,4 +1,5 @@
 import assert from "node:assert";
+import { describe, it } from "node:test";
 import { spawn } from "node:child_process";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,22 +12,22 @@ const cliPath = join(projectRoot, "src", "cli.js");
 /**
  * Spawns the CLI process with given arguments
  */
-function spawnCli (args = [], options = {}) {
+function spawnCli(args = [], options = {}) {
 	return new Promise((resolve, reject) => {
 		const child = spawn("node", [cliPath, ...args], {
 			cwd: projectRoot,
 			stdio: ["pipe", "pipe", "pipe"],
-			...options
+			...options,
 		});
 
 		let stdout = "";
 		let stderr = "";
 
-		child.stdout.on("data", data => {
+		child.stdout.on("data", (data) => {
 			stdout += data.toString();
 		});
 
-		child.stderr.on("data", data => {
+		child.stderr.on("data", (data) => {
 			stderr += data.toString();
 		});
 
@@ -35,11 +36,11 @@ function spawnCli (args = [], options = {}) {
 				code,
 				signal,
 				stdout: stdout.trim(),
-				stderr: stderr.trim()
+				stderr: stderr.trim(),
 			});
 		});
 
-		child.on("error", error => {
+		child.on("error", (error) => {
 			reject(error);
 		});
 
@@ -56,19 +57,22 @@ function spawnCli (args = [], options = {}) {
 /**
  * Makes an HTTP request to verify server is listening
  */
-function makeRequest (port, ip = "127.0.0.1") {
+function makeRequest(port, ip = "127.0.0.1") {
 	return new Promise((resolve, reject) => {
-		const req = http.request({
-			hostname: ip,
-			port: port,
-			path: "/",
-			method: "GET",
-			timeout: 1000
-		}, res => {
-			resolve(res);
-		});
+		const req = http.request(
+			{
+				hostname: ip,
+				port: port,
+				path: "/",
+				method: "GET",
+				timeout: 1000,
+			},
+			(res) => {
+				resolve(res);
+			},
+		);
 
-		req.on("error", err => {
+		req.on("error", (err) => {
 			reject(err);
 		});
 
@@ -84,22 +88,22 @@ function makeRequest (port, ip = "127.0.0.1") {
 /**
  * Spawns CLI and waits for server to be ready by making HTTP request
  */
-function spawnCliAndWaitForServer (args = [], options = {}) {
+function spawnCliAndWaitForServer(args = [], options = {}) {
 	return new Promise((resolve, reject) => {
 		const child = spawn("node", [cliPath, ...args], {
 			cwd: projectRoot,
 			stdio: ["pipe", "pipe", "pipe"],
-			...options
+			...options,
 		});
 
 		let stdout = "";
 		let stderr = "";
 
-		child.stdout.on("data", data => {
+		child.stdout.on("data", (data) => {
 			stdout += data.toString();
 		});
 
-		child.stderr.on("data", data => {
+		child.stderr.on("data", (data) => {
 			stderr += data.toString();
 		});
 
@@ -108,11 +112,11 @@ function spawnCliAndWaitForServer (args = [], options = {}) {
 				code,
 				signal,
 				stdout: stdout.trim(),
-				stderr: stderr.trim()
+				stderr: stderr.trim(),
 			});
 		});
 
-		child.on("error", error => {
+		child.on("error", (error) => {
 			reject(error);
 		});
 
@@ -193,13 +197,13 @@ describe("CLI", () => {
 			const port = 8002;
 			const child = spawn("node", [cliPath, `--port=${port}`], {
 				cwd: projectRoot,
-				stdio: ["pipe", "pipe", "pipe"]
+				stdio: ["pipe", "pipe", "pipe"],
 			});
 
 			let stdout = "";
 			let serverReady = false;
 
-			child.stdout.on("data", data => {
+			child.stdout.on("data", (data) => {
 				stdout += data.toString();
 				if (stdout.includes(`port=${port}`) && !serverReady) {
 					serverReady = true;
@@ -216,7 +220,7 @@ describe("CLI", () => {
 				}
 			});
 
-			return new Promise(resolve => {
+			return new Promise((resolve) => {
 				child.on("close", () => {
 					assert.match(stdout, /id=woodland/, "Should log startup message");
 					resolve();
@@ -321,7 +325,11 @@ describe("CLI", () => {
 
 			for (const ip of validIPs) {
 				const result = await spawnCliAndWaitForServer([`--ip=${ip}`]);
-				assert.match(result.stdout, new RegExp(`ip=${ip.replace(/\./g, "\\.")}`), `Should use IP ${ip}`);
+				assert.match(
+					result.stdout,
+					new RegExp(`ip=${ip.replace(/\./g, "\\.")}`),
+					`Should use IP ${ip}`,
+				);
 			}
 		});
 	});
@@ -348,12 +356,11 @@ describe("CLI", () => {
 			const port = 8003;
 			const child = spawn("node", [cliPath, `--port=${port}`, "--logging=false"], {
 				cwd: projectRoot,
-				stdio: ["pipe", "pipe", "pipe"]
+				stdio: ["pipe", "pipe", "pipe"],
 			});
 
-
 			// Wait a bit for server to start, then test if it's listening
-			await new Promise(resolve => {
+			await new Promise((resolve) => {
 				setTimeout(async () => {
 					try {
 						await makeRequest(port);
@@ -367,8 +374,8 @@ describe("CLI", () => {
 				}, 500);
 			});
 
-			return new Promise(resolve => {
-				child.on("close", code => {
+			return new Promise((resolve) => {
+				child.on("close", (code) => {
 					// Should not exit with error code when logging is disabled
 					assert.notStrictEqual(code, 1, "Should not exit with error code");
 					resolve();
@@ -415,7 +422,7 @@ describe("CLI", () => {
 		it("should handle SIGTERM gracefully", async () => {
 			const child = spawn("node", [cliPath], {
 				cwd: projectRoot,
-				stdio: ["pipe", "pipe", "pipe"]
+				stdio: ["pipe", "pipe", "pipe"],
 			});
 
 			// Wait a bit for startup, then kill
@@ -423,7 +430,7 @@ describe("CLI", () => {
 				child.kill("SIGTERM");
 			}, 500);
 
-			return new Promise(resolve => {
+			return new Promise((resolve) => {
 				child.on("close", (code, signal) => {
 					assert.ok(signal === "SIGTERM" || code === 0, "Should handle termination gracefully");
 					resolve();
@@ -467,7 +474,7 @@ describe("CLI", () => {
 			assert.match(
 				result.stdout,
 				/id=woodland, hostname=localhost, ip=10\.0\.0\.1, port=9999/,
-				"Should log complete startup message"
+				"Should log complete startup message",
 			);
 		});
 
@@ -479,7 +486,7 @@ describe("CLI", () => {
 			assert.match(
 				output,
 				/Invalid port: must be an integer between 0 and 65535\./,
-				"Should format error message correctly"
+				"Should format error message correctly",
 			);
 		});
 	});
