@@ -1,6 +1,17 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
-import { createResponseHandler } from "../../src/response.js";
+import {
+	createResponseHandler,
+	mime,
+	getStatusText,
+	createErrorHandler,
+	createJsonHandler,
+	createRedirectHandler,
+	createSendHandler,
+	createSetHandler,
+	createStatusHandler,
+	stream,
+} from "../../src/response.js";
 import { EventEmitter } from "node:events";
 
 const createMockStream = () => {
@@ -19,6 +30,42 @@ const mockApp = {
 };
 
 describe("response", () => {
+	describe("mime", () => {
+		it("should return MIME type for html file", () => {
+			assert.strictEqual(mime("test.html"), "text/html");
+		});
+
+		it("should return MIME type for json file", () => {
+			assert.strictEqual(mime("test.json"), "application/json");
+		});
+
+		it("should return octet-stream for unknown extension", () => {
+			assert.strictEqual(mime("test.nonexistent"), "application/octet-stream");
+		});
+
+		it("should return octet-stream for empty string", () => {
+			assert.strictEqual(mime(""), "application/octet-stream");
+		});
+	});
+
+	describe("getStatusText", () => {
+		it("should return OK for 200", () => {
+			assert.strictEqual(getStatusText(200), "OK");
+		});
+
+		it("should return Not Found for 404", () => {
+			assert.strictEqual(getStatusText(404), "Not Found");
+		});
+
+		it("should return Range Not Satisfiable for 416", () => {
+			assert.strictEqual(getStatusText(416), "Range Not Satisfiable");
+		});
+
+		it("should return Error for unknown status", () => {
+			assert.strictEqual(getStatusText(999), "Error");
+		});
+	});
+
 	describe("createResponseHandler", () => {
 		it("should create response handler with all methods", () => {
 			const handler = createResponseHandler(mockApp);

@@ -107,6 +107,78 @@ describe("request", () => {
 			it("should reject incomplete compressed", () => {
 				assert.strictEqual(isValidIP("2001:db8:::"), false);
 			});
+
+			it("should reject compressed IPv6 with 8+ total groups", () => {
+				assert.strictEqual(isValidIP("1:2:3:4::5:6:7:8"), false);
+			});
+
+			it("should reject compressed IPv6 with invalid hex in left groups", () => {
+				assert.strictEqual(isValidIP("gggg:db8::1"), false);
+			});
+
+			it("should reject compressed IPv6 with invalid hex in right groups", () => {
+				assert.strictEqual(isValidIP("2001::hhhh"), false);
+			});
+
+			it("should reject compressed IPv6 with invalid hex in both sides", () => {
+				assert.strictEqual(isValidIP("gggg::hhhh"), false);
+			});
+
+			it("should reject compressed IPv6 with invalid hex on left only", () => {
+				assert.strictEqual(isValidIP("xyz1:2:3::5:6:7"), false);
+			});
+
+			it("should reject compressed IPv6 with invalid hex on right only", () => {
+				assert.strictEqual(isValidIP("1:2:3::abc:xyz:7"), false);
+			});
+
+			it("should reject compressed IPv6 with invalid hex as first left group", () => {
+				assert.strictEqual(isValidIP("zzzz::1"), false);
+			});
+
+			it("should reject compressed IPv6 with invalid hex as last right group", () => {
+				assert.strictEqual(isValidIP("1::zzzz"), false);
+			});
+
+			it("should reject compressed IPv6 with valid first group but invalid second", () => {
+				assert.strictEqual(isValidIP("2001:zzzz::1"), false);
+			});
+
+			it("should reject compressed IPv6 with valid first right but invalid second", () => {
+				assert.strictEqual(isValidIP("1::2001:zzzz"), false);
+			});
+
+			it("should reject full IPv6 with invalid hex group", () => {
+				assert.strictEqual(isValidIP("2001:0db8:85a3:0000:ZZZZ:8a2e:0370:7334"), false);
+			});
+
+			it("should reject full IPv6 with first group invalid", () => {
+				assert.strictEqual(isValidIP("zzzz:0db8:85a3:0000:8a2e:0370:7334"), false);
+			});
+
+			it("should reject full IPv6 with last group invalid", () => {
+				assert.strictEqual(isValidIP("2001:0db8:85a3:0000:8a2e:0370:zzzz"), false);
+			});
+
+			it("should reject full IPv6 with second group invalid", () => {
+				assert.strictEqual(isValidIP("2001:zzzz:85a3:0000:8a2e:0370:7334"), false);
+			});
+
+			it("should reject full IPv6 with middle group invalid", () => {
+				assert.strictEqual(isValidIP("2001:0db8:85a3:zzzz:8a2e:0370:7334"), false);
+			});
+
+			it("should reject full IPv6 with empty group at start", () => {
+				assert.strictEqual(isValidIP(":0db8:85a3:0000:8a2e:0370:7334"), false);
+			});
+
+			it("should reject full IPv6 with empty group", () => {
+				assert.strictEqual(isValidIP("2001:0db8:85a3:::8a2e:0370:7334"), false);
+			});
+
+			it("should reject full IPv6 with invalid hex group", () => {
+				assert.strictEqual(isValidIP("2001:0db8:85a3:0000:8a2e:0370:733g"), false);
+			});
 		});
 	});
 
@@ -320,6 +392,16 @@ describe("request", () => {
 				};
 
 				assert.strictEqual(extractor.extract(req), "10.0.0.1");
+			});
+
+			it("should return fallback IP when all forwarded IPs are invalid", () => {
+				const extractor = createIpExtractor();
+				const req = {
+					connection: { remoteAddress: "192.168.1.1" },
+					headers: { "x-forwarded-for": "invalid, not-an-ip" },
+				};
+
+				assert.strictEqual(extractor.extract(req), "192.168.1.1");
 			});
 		});
 	});
@@ -550,6 +632,23 @@ describe("request", () => {
 				decorator.decorate(req, res);
 
 				assert.ok(closeListener);
+			});
+
+			it("should set precise timing when provided", () => {
+				const decorator = createRequestDecorator(createMockApp());
+				const req = {
+					method: "GET",
+					url: "/test",
+					headers: {},
+				};
+				const res = {
+					set: () => {},
+					on: () => {},
+				};
+
+				decorator.decorate(req, res, 123.456);
+
+				assert.strictEqual(req.precise, 123.456);
 			});
 		});
 

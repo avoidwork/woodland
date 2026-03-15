@@ -73,7 +73,11 @@ export function isValidIP(ip) {
 		const beforeDoubleColon = ip.substring(0, doubleColonIndex);
 		const afterDoubleColon = ip.substring(doubleColonIndex + 2);
 
-		if (afterDoubleColon === ":" || (afterDoubleColon && afterDoubleColon.endsWith(":"))) {
+		if (
+			afterDoubleColon === ":" ||
+			(afterDoubleColon && afterDoubleColon.endsWith(":")) ||
+			(afterDoubleColon && afterDoubleColon.startsWith(":"))
+		) {
 			return false;
 		}
 
