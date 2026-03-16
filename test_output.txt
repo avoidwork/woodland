@@ -1,0 +1,178 @@
+test message
+type=error, uri=/test, method=GET, ip=127.0.0.1, message="Handled error response for 127.0.0.1"
+type=error, uri=/test, method=GET, ip=127.0.0.1, message="Handled error response for 127.0.0.1"
+type=error, uri=/test, method=GET, ip=127.0.0.1, message="Handled error response for 127.0.0.1"
+type=error, uri=/test, method=GET, ip=127.0.0.1, message="Handled error response for 127.0.0.1"
+type=use, route=/.*, method=GET, message="Registering middleware"
+type=ignore, message="Added function to ignored Set", name="bound middleware"
+▶ woodland
+  ▶ Woodland class
+    ✔ should create instance with default config (1.8748ms)
+    ✔ should create instance with woodland factory function (0.3753ms)
+    ✔ should have EventEmitter methods (0.2791ms)
+    ✔ should have default properties (0.257ms)
+    ✔ should have cache, permissions, ignored, middleware, methods (0.2607ms)
+    ✔ should have logger object with all methods (0.204ms)
+    ✔ should have cors handlers (0.2303ms)
+    ✔ should have IP extractor (0.1876ms)
+    ✔ should have response handlers (0.2463ms)
+    ✔ should have file server (0.275ms)
+    ✔ should have middleware registry (0.1897ms)
+  ✔ Woodland class (5.0657ms)
+  ▶ Woodland methods
+    ▶ use
+      ✔ should register middleware for GET by default (0.419ms)
+      ✔ should register middleware for specific method (0.1747ms)
+      ✔ should register wildcard middleware (0.1886ms)
+      ✔ should throw error for invalid HTTP method (0.4365ms)
+      ✔ should throw error for HEAD method (0.2298ms)
+      ✔ should convert parameterized routes to regex (0.3619ms)
+      ✔ should return app instance for chaining (0.2073ms)
+      ✔ should accept multiple handlers (0.1888ms)
+    ✔ use (2.3626ms)
+    ▶ HTTP method shortcuts
+      ✔ should register GET middleware (0.2966ms)
+      ✔ should register POST middleware (0.176ms)
+      ✔ should register PUT middleware (0.1661ms)
+      ✔ should register DELETE middleware (0.2071ms)
+      ✔ should register PATCH middleware (0.153ms)
+      ✔ should register OPTIONS middleware (0.1558ms)
+      ✔ should register CONNECT middleware (0.1743ms)
+      ✔ should register TRACE middleware (0.1417ms)
+      ✔ should return app instance for chaining (1.0311ms)
+    ✔ HTTP method shortcuts (2.6748ms)
+    ▶ always
+      ✔ should register wildcard middleware (0.3422ms)
+      ✔ should return app instance for chaining (0.1638ms)
+    ✔ always (0.5626ms)
+    ▶ ignore
+      ✔ should add function to ignored set (0.167ms)
+      ✔ should return app instance for chaining (0.1702ms)
+      ✔ should log ignored function name (0.1467ms)
+    ✔ ignore (0.5317ms)
+    ▶ list
+      ✔ should return array of routes (0.1662ms)
+      ✔ should return object of routes (0.1599ms)
+      ✔ should return empty array for non-existent method (0.1257ms)
+    ✔ list (0.5088ms)
+    ▶ log
+      ✔ should log message (0.1482ms)
+      ✔ should accept log level (0.1504ms)
+    ✔ log (0.3567ms)
+    ▶ extractPath
+      ✔ should convert parameterized route to regex (0.1299ms)
+      ✔ should handle multiple parameters (0.1249ms)
+    ✔ extractPath (0.3337ms)
+    ▶ files
+      ✔ should register file server (0.2349ms)
+      ✔ should use process.cwd() as default folder (0.2139ms)
+    ✔ files (0.4982ms)
+    ▶ allowed
+      ✔ should check if method is allowed for URI (0.3188ms)
+      ✔ should return false for non-allowed method (0.1787ms)
+    ✔ allowed (0.5519ms)
+    ▶ allows
+      ✔ should return allowed methods for URI (0.2495ms)
+      ✔ should include HEAD when GET is allowed (0.1832ms)
+      ✔ should include OPTIONS when other methods allowed (0.1928ms)
+    ✔ allows (0.6827ms)
+    ▶ decorate
+      ✔ should decorate request and response objects (1.0521ms)
+      ✔ should set CORS headers when origins configured (0.61ms)
+    ✔ decorate (1.7168ms)
+    ▶ routes
+      ✔ should return route information (0.2313ms)
+      ✔ should cache route results (0.1638ms)
+    ✔ routes (0.4463ms)
+    ▶ etag
+      ✔ should generate etag for GET methods (0.5858ms)
+      ✔ should return empty string for non-GET methods (0.257ms)
+      ✔ should return empty string when etags disabled (0.187ms)
+    ✔ etag (1.0897ms)
+    ▶ clf
+      ✔ should generate common log format (0.2732ms)
+    ✔ clf (0.3045ms)
+    ▶ onReady
+      ✔ should handle response ready (0.2298ms)
+    ✔ onReady (0.2632ms)
+    ▶ onSend
+      ✔ should return response array (0.5958ms)
+    ✔ onSend (0.6269ms)
+    ▶ onDone
+      ✔ should handle response done (0.2677ms)
+    ✔ onDone (0.2995ms)
+    ▶ error
+      ✔ should handle direct error call (1.0159ms)
+      ✔ should return curried error function (0.1377ms)
+      ✔ should execute curried error function (0.2654ms)
+      ✔ should handle 404 error with allow header removal (0.1521ms)
+      ✔ should handle 404 error with CORS headers removal (0.1728ms)
+    ✔ error (1.8247ms)
+    ▶ json
+      ✔ should handle direct json call (0.2002ms)
+      ✔ should return curried json function (0.1595ms)
+      ✔ should execute curried json function (0.128ms)
+    ✔ json (0.5368ms)
+    ▶ redirect
+      ✔ should handle direct redirect call (0.1504ms)
+      ✔ should handle temporary redirect (0.1149ms)
+      ✔ should return curried redirect function (0.0967ms)
+    ✔ redirect (0.4025ms)
+    ▶ send
+      ✖ should handle direct send call (0.3586ms)
+      ✔ should return curried send function (0.1562ms)
+    ✖ send (0.5761ms)
+    ▶ set
+      ✔ should handle direct set call (0.2501ms)
+      ✔ should return curried set function (0.1636ms)
+    ✔ set (0.5325ms)
+    ▶ status
+      ✔ should handle direct status call (0.161ms)
+      ✔ should return curried status function (0.1212ms)
+    ✔ status (0.3255ms)
+    ▶ decorate with timing
+      ✔ should set timing when time is enabled (0.3372ms)
+    ✔ decorate with timing (0.3629ms)
+    ▶ decorate with CORS
+      ✔ should set CORS headers when CORS is enabled (0.4202ms)
+      ✔ should set CORS headers for OPTIONS request (0.4121ms)
+    ✔ decorate with CORS (0.8775ms)
+  ✖ Woodland methods (19.8137ms)
+  ▶ Woodland with config
+    ✔ should configure with origins (0.1702ms)
+    ✔ should configure with etags enabled (0.1244ms)
+    ✔ should configure with custom digit precision (0.1765ms)
+    ✔ should configure with custom indexes (0.1231ms)
+    ✔ should configure with silent mode (0.1048ms)
+    ✔ should configure with custom default headers (0.132ms)
+    ✔ should configure logging (0.1372ms)
+  ✔ Woodland with config (1.0525ms)
+  ▶ Woodland request handling
+    ✔ should handle route with middleware (15.3001ms)
+    ✔ should handle parameterized routes (11.6798ms)
+    ✔ should handle HEAD requests as GET (15.4668ms)
+  ✔ Woodland request handling (42.6068ms)
+✖ woodland (68.8567ms)
+ℹ tests 88
+ℹ suites 30
+ℹ pass 87
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 173.2733
+
+✖ failing tests:
+
+test at tests\unit\woodland.test.js:753:4
+✖ should handle direct send call (0.3586ms)
+  TypeError: res.end is not a function
+      at Woodland.onDone (file:///C:/Users/jason/Projects/woodland/src/woodland.js:558:7)
+      at send (file:///C:/Users/jason/Projects/woodland/src/response.js:170:5)
+      at Woodland.send (file:///C:/Users/jason/Projects/woodland/src/woodland.js:262:3)
+      at TestContext.<anonymous> (file:///C:/Users/jason/Projects/woodland/tests/unit/woodland.test.js:767:9)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1619:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7)

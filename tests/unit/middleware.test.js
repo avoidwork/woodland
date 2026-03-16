@@ -720,7 +720,7 @@ describe("middleware", () => {
 		});
 
 		it("should register middleware for specific method", () => {
-			const registry = registerMiddleware(
+			const _registry = registerMiddleware(
 				middleware,
 				ignored,
 				methods,
@@ -754,7 +754,7 @@ describe("middleware", () => {
 		});
 
 		it("should convert parameterized routes to regex", () => {
-			const registry = registerMiddleware(
+			const _registry2 = registerMiddleware(
 				middleware,
 				ignored,
 				methods,

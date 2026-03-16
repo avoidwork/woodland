@@ -560,6 +560,332 @@ describe("woodland", () => {
 				assert.ok(ended);
 			});
 		});
+
+		describe("error", () => {
+			it("should handle direct error call", () => {
+				let errorEmitted = false;
+
+				const appWithEmit = woodland();
+				appWithEmit.on("error", () => {
+					errorEmitted = true;
+				});
+
+				const req = {
+					parsed: { pathname: "/test" },
+					method: "GET",
+					ip: "127.0.0.1",
+				};
+				const res = {
+					headersSent: false,
+					removeHeader: () => {},
+					header: () => {},
+					statusCode: 500,
+				};
+
+				appWithEmit.error(req, res, 500, "Test error");
+
+				assert.ok(errorEmitted);
+			});
+
+			it("should return curried error function", () => {
+				const req = {};
+				const res = {};
+				const result = app.error(req, res);
+
+				assert.strictEqual(typeof result, "function");
+			});
+
+			it("should execute curried error function", () => {
+				let errorEmitted = false;
+
+				const appWithEmit = woodland();
+				appWithEmit.on("error", () => {
+					errorEmitted = true;
+				});
+
+				const req = {
+					parsed: { pathname: "/test" },
+					method: "GET",
+					ip: "127.0.0.1",
+				};
+				const res = {
+					headersSent: false,
+					removeHeader: () => {},
+					header: () => {},
+					statusCode: 500,
+				};
+
+				const curriedError = appWithEmit.error(req, res);
+				curriedError(500, "Test error");
+
+				assert.ok(errorEmitted);
+			});
+
+			it("should handle 404 error with allow header removal", () => {
+				let allowRemoved = false;
+
+				const req = {
+					parsed: { pathname: "/test" },
+					method: "GET",
+					ip: "127.0.0.1",
+					cors: false,
+				};
+				const res = {
+					headersSent: false,
+					removeHeader: (name) => {
+						if (name === "allow") {
+							allowRemoved = true;
+						}
+					},
+					header: () => {},
+					statusCode: 500,
+				};
+
+				app.error(req, res, 404, "Not Found");
+
+				assert.ok(allowRemoved);
+			});
+
+			it("should handle 404 error with CORS headers removal", () => {
+				let corsRemoved = false;
+
+				const req = {
+					parsed: { pathname: "/test" },
+					method: "GET",
+					ip: "127.0.0.1",
+					cors: true,
+				};
+				const res = {
+					headersSent: false,
+					removeHeader: (name) => {
+						if (name === "access-control-allow-methods") {
+							corsRemoved = true;
+						}
+					},
+					header: () => {},
+					statusCode: 500,
+				};
+
+				app.error(req, res, 404, "Not Found");
+
+				assert.ok(corsRemoved);
+			});
+		});
+
+		describe("json", () => {
+			it("should handle direct json call", () => {
+				let jsonSent = null;
+
+				const res = {
+					send: (data) => {
+						jsonSent = data;
+					},
+				};
+
+				app.json(res, { foo: "bar" }, 200);
+
+				assert.strictEqual(jsonSent, '{"foo":"bar"}');
+			});
+
+			it("should return curried json function", () => {
+				const res = {};
+				const result = app.json(res);
+
+				assert.strictEqual(typeof result, "function");
+			});
+
+			it("should execute curried json function", () => {
+				let jsonSent = null;
+
+				const res = {
+					send: (data) => {
+						jsonSent = data;
+					},
+				};
+
+				const curriedJson = app.json(res);
+				curriedJson({ test: "value" });
+
+				assert.strictEqual(jsonSent, '{"test":"value"}');
+			});
+		});
+
+		describe("redirect", () => {
+			it("should handle direct redirect call", () => {
+				let redirectUri = null;
+				let redirectStatus = null;
+
+				const res = {
+					send: (data, status, headers) => {
+						redirectUri = headers.location;
+						redirectStatus = status;
+					},
+				};
+
+				app.redirect(res, "/new-location", true);
+
+				assert.strictEqual(redirectUri, "/new-location");
+				assert.strictEqual(redirectStatus, 308);
+			});
+
+			it("should handle temporary redirect", () => {
+				let redirectStatus = null;
+
+				const res = {
+					send: (data, status) => {
+						redirectStatus = status;
+					},
+				};
+
+				app.redirect(res, "/new-location", false);
+
+				assert.strictEqual(redirectStatus, 307);
+			});
+
+			it("should return curried redirect function", () => {
+				const result = app.redirect({});
+
+				assert.strictEqual(typeof result, "function");
+			});
+		});
+
+		describe("send", () => {
+			it("should handle direct send call", () => {
+				const req = {
+					method: "GET",
+					headers: {},
+					parsed: { pathname: "/test" },
+				};
+				const res = {
+					statusCode: 200,
+					headersSent: false,
+					getHeader: () => null,
+					writeHead: () => {},
+					end: () => {},
+					send: () => {},
+				};
+
+				app.send(req, res, "test body", 200, {});
+			});
+
+			it("should return curried send function", () => {
+				const req = { method: "GET", headers: {}, parsed: { pathname: "/test" } };
+				const res = { statusCode: 200, headersSent: false, send: () => {} };
+				const result = app.send(req, res);
+
+				assert.strictEqual(typeof result, "function");
+			});
+		});
+
+		describe("set", () => {
+			it("should handle direct set call", () => {
+				const headersSet = {};
+
+				const res = {
+					setHeader: (key, value) => {
+						headersSet[key] = value;
+					},
+				};
+
+				app.set(res, { "content-type": "text/html" });
+
+				assert.strictEqual(headersSet["content-type"], "text/html");
+			});
+
+			it("should return curried set function", () => {
+				const result = app.set({});
+
+				assert.strictEqual(typeof result, "function");
+			});
+		});
+
+		describe("status", () => {
+			it("should handle direct status call", () => {
+				const res = { statusCode: 200 };
+
+				app.status(res, 404);
+
+				assert.strictEqual(res.statusCode, 404);
+			});
+
+			it("should return curried status function", () => {
+				const result = app.status({});
+
+				assert.strictEqual(typeof result, "function");
+			});
+		});
+
+		describe("decorate with timing", () => {
+			it("should set timing when time is enabled", () => {
+				const appWithTime = woodland({ time: true });
+				const req = {
+					headers: { host: "example.com" },
+					url: "/test",
+					socket: null,
+				};
+				const res = {
+					setHeader: () => {},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+				};
+
+				appWithTime.decorate(req, res);
+
+				assert.ok(req.precise);
+			});
+		});
+
+		describe("decorate with CORS", () => {
+			it("should set CORS headers when CORS is enabled", () => {
+				const appWithCors = woodland({ origins: ["http://example.com"] });
+				const req = {
+					headers: {
+						host: "different.com",
+						origin: "http://example.com",
+						"access-control-request-headers": "x-custom",
+					},
+					url: "/test",
+					socket: null,
+					method: "GET",
+				};
+				const res = {
+					setHeader: () => {},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+				};
+
+				appWithCors.decorate(req, res);
+
+				assert.strictEqual(req.cors, true);
+				assert.strictEqual(req.corsHost, true);
+			});
+
+			it("should set CORS headers for OPTIONS request", () => {
+				const appWithCors = woodland({ origins: ["http://example.com"] });
+				const req = {
+					headers: {
+						host: "different.com",
+						origin: "http://example.com",
+						"access-control-request-headers": "x-custom",
+					},
+					url: "/test",
+					socket: null,
+					method: "OPTIONS",
+				};
+				const res = {
+					setHeader: () => {},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+				};
+
+				appWithCors.decorate(req, res);
+
+				assert.strictEqual(req.cors, true);
+			});
+		});
 	});
 
 	describe("Woodland with config", () => {
