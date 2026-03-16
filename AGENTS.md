@@ -23,8 +23,9 @@
 - **Linting**: oxlint (with `no-console: error` and `no-unused-vars: error` rules)
 - **Formatting**: oxfmt
 - **Testing**: Node.js built-in test runner (`node --test`)
-- **Git hooks**: husky (runs `npm test` on pre-commit)
+- **Git hooks**: husky (runs `npm run fix && npm run coverage && git add -A` on pre-commit)
 - **Build**: rollup
+- **Validation**: jsonschema (JSON Schema Draft-07 for config validation)
 
 ## Code style
 
@@ -40,6 +41,7 @@
 
 ## Codebase structure
 
+- `src/config.js` - Configuration validation using jsonschema (JSON Schema Draft-07) (`validateConfig`, `validateValue`, `validateLogging`, `validateOrigins`, `mergeEnvLogging`)
 - `src/woodland.js` - Main framework file, exports `Woodland` class and `woodland` factory function
 - `src/response.js` - Response handlers (`mime`, `getStatusText`, `error`, `json`, `redirect`, `send`, `set`, `status`, `stream`)
 - `src/request.js` - Request handlers (`isValidIP`, `cors`, `corsHost`, `corsRequest`, `extractIP`, `decorate`, `logClose`)

@@ -17,6 +17,7 @@ var node_path = require('node:path');
 var node_url = require('node:url');
 var tinyCoerce = require('tiny-coerce');
 var mimeDb = require('mime-db');
+var jsonschema = require('jsonschema');
 var promises = require('node:fs/promises');
 
 var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
@@ -939,53 +940,44 @@ function stream(req, res, file, emitStream, createReadStream, etags) {
 	emitStream(req, res);
 }
 
-const CONFIG_SCHEMA = {
-	autoindex: { type: "boolean", default: false },
-	cacheSize: { type: "number", default: INT_1e3, min: 1 },
-	cacheTTL: { type: "number", default: INT_1e4, min: 1 },
-	charset: { type: "string", default: UTF_8 },
-	corsExpose: { type: "string", default: EMPTY },
-	defaultHeaders: { type: "object", default: {} },
-	digit: { type: "number", default: INT_3, min: 1, max: 10 },
-	etags: { type: "boolean", default: true },
-	indexes: { type: "array", default: [INDEX_HTM, INDEX_HTML] },
-	logging: { type: "object", default: {} },
-	origins: { type: "array", default: [] },
-	silent: { type: "boolean", default: false },
-	time: { type: "boolean", default: false },
+const DEFAULTS = {
+	autoindex: false,
+	cacheSize: INT_1e3,
+	cacheTTL: INT_1e4,
+	charset: UTF_8,
+	corsExpose: EMPTY,
+	defaultHeaders: {},
+	digit: INT_3,
+	etags: true,
+	indexes: [INDEX_HTM, INDEX_HTML],
+	logging: {},
+	origins: [],
+	silent: false,
+	time: false,
 };
 
-/**
- * Validates a single configuration value against schema
- * @param {string} key - Configuration key
- * @param {*} value - Value to validate
- * @param {Object} schema - Schema definition
- * @returns {string|null} Error message or null if valid
- */
-function validateValue(key, value, schema) {
-	if (schema.type === "array") {
-		if (!Array.isArray(value)) {
-			return `Config "${key}" must be an array`;
-		}
-	} else if (schema.type === "object") {
-		if (value === null || typeof value !== "object" || Array.isArray(value)) {
-			return `Config "${key}" must be an object`;
-		}
-	} else if (typeof value !== schema.type) {
-		return `Config "${key}" must be ${schema.type}`;
-	}
+const CONFIG_SCHEMA = {
+	$schema: "http://json-schema.org/draft-07/schema#",
+	type: "object",
+	properties: {
+		autoindex: { type: "boolean" },
+		cacheSize: { type: "number", minimum: 1 },
+		cacheTTL: { type: "number", minimum: 1 },
+		charset: { type: "string" },
+		corsExpose: { type: "string" },
+		defaultHeaders: { type: "object" },
+		digit: { type: "number", minimum: 1, maximum: 10 },
+		etags: { type: "boolean" },
+		indexes: { type: "array", items: { type: "string" } },
+		logging: { type: "object" },
+		origins: { type: "array", items: { type: "string" } },
+		silent: { type: "boolean" },
+		time: { type: "boolean" },
+	},
+	additionalProperties: false,
+};
 
-	if (schema.type === "number") {
-		if (schema.min !== void 0 && value < schema.min) {
-			return `Config "${key}" must be >= ${schema.min}`;
-		}
-		if (schema.max !== void 0 && value > schema.max) {
-			return `Config "${key}" must be <= ${schema.max}`;
-		}
-	}
-
-	return null;
-}
+const validator = new jsonschema.Validator();
 
 /**
  * Validates configuration object against schema
@@ -994,26 +986,36 @@ function validateValue(key, value, schema) {
  * @throws {Error} When configuration validation fails
  */
 function validateConfig(config = {}) {
-	const validated = {};
-	const errors = [];
+	const result = validator.validate(config, CONFIG_SCHEMA);
 
-	for (const [key, schema] of Object.entries(CONFIG_SCHEMA)) {
-		const value = config[key];
+	if (!result.valid) {
+		const errors = result.errors.map((err) => {
+			const field = Array.isArray(err.path)
+				? err.path.join(".")
+				: String(err.path).replace(/^\./, "");
+			let msg = err.message;
 
-		if (value === void 0) {
-			validated[key] = schema.default;
-		} else {
-			const error = validateValue(key, value, schema);
-			if (error) {
-				errors.push(error);
-			} else {
-				validated[key] = value;
+			if (msg.includes("is not of a type(s)")) {
+				const types = msg.match(/type\(s\) ([a-z, ]+)/i);
+				const type = types ? types[1].split(",")[0].trim() : "type";
+				msg = `must be ${type}`;
+			} else if (msg.includes("must be greater than or equal to")) {
+				const val = msg.match(/greater than or equal to (\d+)/);
+				msg = val ? `must be >= ${val[1]}` : msg;
+			} else if (msg.includes("must be less than or equal to")) {
+				const val = msg.match(/less than or equal to (\d+)/);
+				msg = val ? `must be <= ${val[1]}` : msg;
 			}
-		}
+
+			return `Config "${field}" ${msg}`;
+		});
+		throw new Error(`Configuration validation failed: ${errors.join("; ")}`);
 	}
 
-	if (errors.length > 0) {
-		throw new Error(`Configuration validation failed: ${errors.join("; ")}`);
+	const validated = {};
+	for (const [key] of Object.entries(CONFIG_SCHEMA.properties)) {
+		const value = config[key];
+		validated[key] = value === void 0 ? DEFAULTS[key] : value;
 	}
 
 	return validated;

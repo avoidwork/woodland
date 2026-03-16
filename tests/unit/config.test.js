@@ -61,13 +61,13 @@ describe("config", () => {
 		it("should throw error for invalid array type", () => {
 			assert.throws(() => {
 				validateConfig({ indexes: "not-an-array" });
-			}, /Config "indexes" must be an array/);
+			}, /Config "indexes" must be array/);
 		});
 
 		it("should throw error for invalid object type", () => {
 			assert.throws(() => {
 				validateConfig({ defaultHeaders: "not-an-object" });
-			}, /Config "defaultHeaders" must be an object/);
+			}, /Config "defaultHeaders" must be object/);
 		});
 
 		it("should throw error for invalid string type", () => {
@@ -97,13 +97,13 @@ describe("config", () => {
 		it("should accept null object value", () => {
 			assert.throws(() => {
 				validateConfig({ defaultHeaders: null });
-			}, /Config "defaultHeaders" must be an object/);
+			}, /Config "defaultHeaders" must be object/);
 		});
 
 		it("should reject array as object", () => {
 			assert.throws(() => {
 				validateConfig({ defaultHeaders: [] });
-			}, /Config "defaultHeaders" must be an object/);
+			}, /Config "defaultHeaders" must be object/);
 		});
 	});
 

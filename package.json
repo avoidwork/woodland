@@ -55,6 +55,7 @@
     "test:watch": "node --test --watch tests/**/*.test.js"
   },
   "dependencies": {
+    "jsonschema": "^1.5.0",
     "mime-db": "^1.54.0",
     "precise": "^4.0.3",
     "tiny-coerce": "^3.0.2",
