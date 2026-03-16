@@ -1,7 +1,7 @@
 ℹ start of coverage report
-ℹ -------------------------------------------------------------------------------------------------------------------
+ℹ -----------------------------------------------------------------------------------------------------------
 ℹ file           | line % | branch % | funcs % | uncovered lines
-ℹ -------------------------------------------------------------------------------------------------------------------
+ℹ -----------------------------------------------------------------------------------------------------------
 ℹ src            |        |          |         | 
 ℹ  cli.js        | 100.00 |   100.00 |  100.00 | 
 ℹ  config.js     | 100.00 |    90.91 |  100.00 | 
@@ -9,11 +9,35 @@
 ℹ  fileserver.js | 100.00 |    95.65 |   83.33 | 
 ℹ  logger.js     | 100.00 |    92.00 |  100.00 | 
 ℹ  middleware.js | 100.00 |   100.00 |   67.86 | 
-ℹ  request.js    |  97.71 |    91.43 |   90.91 | 96-97 101-102 114-115
+ℹ  request.js    |  97.71 |    91.55 |   90.91 | 96-97 101-102 114-115
 ℹ  response.js   | 100.00 |   100.00 |  100.00 | 
 ℹ  utility.js    |  99.29 |    98.60 |   96.15 | 531-532 546-547
-ℹ  woodland.js   |  94.08 |    88.60 |   88.68 | 314 402-415 572-575 649-650 653-654 662-663 675-677 700-701 716-733
-ℹ -------------------------------------------------------------------------------------------------------------------
-ℹ all files      |  98.07 |    94.89 |   89.16 | 
-ℹ -------------------------------------------------------------------------------------------------------------------
+ℹ  woodland.js   |  95.84 |    88.89 |   88.68 | 320 579-582 656-657 660-661 669-670 682-684 707-708 723-740
+ℹ -----------------------------------------------------------------------------------------------------------
+ℹ all files      |  98.54 |    94.92 |   89.16 | 
+ℹ -----------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
+
+✖ failing tests:
+
+test at tests\unit\woodland.test.js:781:4
+✖ should handle direct set call (0.9027ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - 'text/html'
+  
+      at TestContext.<anonymous> (file:///C:/Users/jason/Projects/woodland/tests/unit/woodland.test.js:792:12)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1619:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'text/html',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

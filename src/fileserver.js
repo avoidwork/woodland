@@ -1,7 +1,7 @@
 import { readdir, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { EMPTY, INT_0, INT_403, INT_404, SLASH, UTF8 } from "./constants.js";
-import { autoindex as aindex } from "./utility.js";
+import { autoindex } from "./utility.js";
 
 /**
  * Serves files from filesystem
@@ -60,7 +60,7 @@ export async function serve(app, req, res, arg, folder = process.cwd()) {
 			if (app.autoindex === false) {
 				res.error(INT_404);
 			} else {
-				const body = aindex(decodeURIComponent(req.parsed.pathname), files);
+				const body = autoindex(decodeURIComponent(req.parsed.pathname), files);
 				res.header("content-type", `text/html; charset=${app.charset}`);
 				res.send(body);
 			}
