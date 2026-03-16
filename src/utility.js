@@ -52,7 +52,7 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url)),
  * @param {string} [str=""] - The string to escape
  * @returns {string} The escaped string with HTML entities
  */
-function escapeHtml(str = EMPTY) {
+export function escapeHtml(str = EMPTY) {
 	// Use lookup table for single-pass replacement
 	const htmlEscapes = {
 		"&": "&amp;",

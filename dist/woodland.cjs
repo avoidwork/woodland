@@ -543,6 +543,81 @@ function reduce(uri, map = new Map(), arg = {}) {
 }
 
 /**
+ * Computes route information for a given URI and method
+ * @param {Map} middleware - Map of middleware by method
+ * @param {Set} ignored - Set of ignored middleware functions
+ * @param {string} uri - The URI to match
+ * @param {string} method - HTTP method
+ * @param {Map} cache - Cache for route results
+ * @param {boolean} [override=false] - Whether to override cache
+ * @returns {Object} Route information object
+ */
+function computeRoutes(middleware, ignored, uri, method, cache, override = false) {
+	const key = `${method}${DELIMITER}${uri}`;
+	const cached = override === false ? cache.get(key) : void 0;
+	let result;
+
+	if (cached !== void 0) {
+		result = cached;
+	} else {
+		result = { getParams: null, middleware: [], params: false, visible: 0, exit: -1 };
+		reduce(uri, middleware.get(WILDCARD) ?? new Map(), result);
+
+		if (method !== WILDCARD) {
+			result.exit = result.middleware.length;
+			reduce(uri, middleware.get(method) ?? new Map(), result);
+		}
+
+		result.visible = 0;
+		for (let i = 0; i < result.middleware.length; i++) {
+			if (ignored.has(result.middleware[i]) === false) {
+				result.visible++;
+			}
+		}
+		cache.set(key, result);
+	}
+
+	return result;
+}
+
+/**
+ * Lists middleware routes for a given method
+ * @param {Map} middleware - Map of middleware by method
+ * @param {string} [method=get] - HTTP method to list
+ * @param {string} [type=array] - Return type (array or object)
+ * @returns {Array|Object} List of routes
+ */
+function listRoutes(middleware, method = GET.toLowerCase(), type = "array") {
+	let result;
+
+	if (type === "array") {
+		result = Array.from(middleware.get(method.toUpperCase()).keys());
+	} else if (type === "object") {
+		result = {};
+
+		for (const [key, value] of middleware.get(method.toUpperCase()).entries()) {
+			result[key] = value;
+		}
+	}
+
+	return result;
+}
+
+/**
+ * Checks if a method is allowed for a given URI
+ * @param {Map} middleware - Map of middleware by method
+ * @param {Set} ignored - Set of ignored middleware functions
+ * @param {Map} cache - Cache for route results
+ * @param {string} method - HTTP method
+ * @param {string} uri - The URI to check
+ * @param {boolean} [override=false] - Whether to override cache
+ * @returns {boolean} True if allowed
+ */
+function checkAllowed(middleware, ignored, cache, method, uri, override = false) {
+	return computeRoutes(middleware, ignored, uri, method, cache, override).visible > 0;
+}
+
+/**
  * Creates a middleware registry for managing routes and handlers
  * @param {Map} middleware - Map of middleware by method
  * @param {Set} ignored - Set of ignored middleware functions
@@ -551,179 +626,75 @@ function reduce(uri, map = new Map(), arg = {}) {
  * @returns {Object} Registry object with ignore, allowed, routes, register, list methods
  */
 function createMiddlewareRegistry(middleware, ignored, methods, cache) {
-	let ignoreFn, allowedFn, routesFn, registerFn, listFn;
-
-	/**
-	 * Computes route information for a given URI and method
-	 * @private
-	 * @param {string} uri - The URI to match
-	 * @param {string} method - HTTP method
-	 * @param {boolean} [override=false] - Whether to override cache
-	 * @returns {Object} Route information object
-	 */
-	function routes(uri, method, override = false) {
-		const key = `${method}${DELIMITER}${uri}`;
-		const cached = override === false ? cache.get(key) : void 0;
-		let result;
-
-		if (cached !== void 0) {
-			result = cached;
-		} else {
-			result = { getParams: null, middleware: [], params: false, visible: 0, exit: -1 };
-			reduce(uri, middleware.get(WILDCARD) ?? new Map(), result);
-
-			if (method !== WILDCARD) {
-				result.exit = result.middleware.length;
-				reduce(uri, middleware.get(method) ?? new Map(), result);
+	const registry = {
+		ignore: (fn) => {
+			ignored.add(fn);
+			return registry;
+		},
+		allowed: (method, uri, override = false) =>
+			checkAllowed(middleware, ignored, cache, method, uri, override),
+		routes: (uri, method, override = false) =>
+			computeRoutes(middleware, ignored, uri, method, cache, override),
+		register: (rpath, ...fn) => {
+			if (typeof rpath === FUNCTION) {
+				fn = [rpath, ...fn];
+				rpath = `/.${WILDCARD}`;
 			}
 
-			result.visible = 0;
-			for (let i = 0; i < result.middleware.length; i++) {
-				if (ignored.has(result.middleware[i]) === false) {
-					result.visible++;
+			const method = typeof fn[fn.length - 1] === STRING ? fn.pop().toUpperCase() : GET;
+
+			const nodeMethods = [
+				"CONNECT",
+				"DELETE",
+				"GET",
+				"HEAD",
+				"OPTIONS",
+				"PATCH",
+				"POST",
+				"PUT",
+				"TRACE",
+			];
+
+			if (method !== WILDCARD && nodeMethods.includes(method) === false) {
+				throw new TypeError("Invalid HTTP method");
+			}
+
+			if (method === HEAD) {
+				throw new TypeError("Cannot set HEAD route, use GET");
+			}
+
+			if (middleware.has(method) === false) {
+				if (method !== WILDCARD) {
+					methods.push(method);
 				}
-			}
-			cache.set(key, result);
-		}
 
-		return result;
-	}
-	routesFn = routes;
-
-	/**
-	 * Lists middleware routes for a given method
-	 * @private
-	 * @param {string} [method=get] - HTTP method to list
-	 * @param {string} [type=array] - Return type (array or object)
-	 * @returns {Array|Object} List of routes
-	 */
-	function list(method = GET.toLowerCase(), type = "array") {
-		let result;
-
-		if (type === "array") {
-			result = Array.from(middleware.get(method.toUpperCase()).keys());
-		} else if (type === "object") {
-			result = {};
-
-			for (const [key, value] of middleware.get(method.toUpperCase()).entries()) {
-				result[key] = value;
-			}
-		}
-
-		return result;
-	}
-	listFn = list;
-
-	/**
-	 * Checks if a method is allowed for a given URI
-	 * @private
-	 * @param {string} method - HTTP method
-	 * @param {string} uri - The URI to check
-	 * @param {boolean} [override=false] - Whether to override cache
-	 * @returns {boolean} True if allowed
-	 */
-	function allowed(method, uri, override = false) {
-		return routesFn(uri, method, override).visible > 0;
-	}
-	allowedFn = allowed;
-
-	/**
-	 * Registers middleware for a route
-	 * @private
-	 * @param {string|Function} rpath - Route path or middleware function
-	 * @param {...Function} fn - Middleware functions to register
-	 * @returns {Object} Registry object for chaining
-	 */
-	function register(rpath, ...fn) {
-		if (typeof rpath === FUNCTION) {
-			fn = [rpath, ...fn];
-			rpath = `/.${WILDCARD}`;
-		}
-
-		const method = typeof fn[fn.length - 1] === STRING ? fn.pop().toUpperCase() : GET;
-
-		const nodeMethods = [
-			"CONNECT",
-			"DELETE",
-			"GET",
-			"HEAD",
-			"OPTIONS",
-			"PATCH",
-			"POST",
-			"PUT",
-			"TRACE",
-		];
-
-		if (method !== WILDCARD && nodeMethods.includes(method) === false) {
-			throw new TypeError("Invalid HTTP method");
-		}
-
-		if (method === HEAD) {
-			throw new TypeError("Cannot set HEAD route, use GET");
-		}
-
-		if (middleware.has(method) === false) {
-			if (method !== WILDCARD) {
-				methods.push(method);
+				middleware.set(method, new Map());
 			}
 
-			middleware.set(method, new Map());
-		}
+			const mmethod = middleware.get(method);
+			let lrpath = rpath,
+				lparams = false;
 
-		const mmethod = middleware.get(method);
-		let lrpath = rpath,
-			lparams = false;
+			if (lrpath.includes(`${SLASH}${LEFT_PAREN}`) === false && lrpath.includes(`${SLASH}:`)) {
+				lparams = true;
+				lrpath = extractPath(lrpath);
+			}
 
-		if (lrpath.includes(`${SLASH}${LEFT_PAREN}`) === false && lrpath.includes(`${SLASH}:`)) {
-			lparams = true;
-			lrpath = extractPath(lrpath);
-		}
+			const current = mmethod.get(lrpath) ?? { handlers: [] };
 
-		const current = mmethod.get(lrpath) ?? { handlers: [] };
+			current.handlers.push(...fn);
+			mmethod.set(lrpath, {
+				handlers: current.handlers,
+				params: lparams,
+				regex: new RegExp(`^${lrpath}$`),
+			});
 
-		current.handlers.push(...fn);
-		mmethod.set(lrpath, {
-			handlers: current.handlers,
-			params: lparams,
-			regex: new RegExp(`^${lrpath}$`),
-		});
-
-		return {
-			ignore: ignoreFn,
-			allowed: allowedFn,
-			routes: routesFn,
-			register: registerFn,
-			list: listFn,
-		};
-	}
-	registerFn = register;
-
-	/**
-	 * Adds function to ignored set
-	 * @private
-	 * @param {Function} fn - Function to ignore
-	 * @returns {Object} Registry object for chaining
-	 */
-	function ignore(fn) {
-		ignored.add(fn);
-
-		return {
-			ignore: ignoreFn,
-			allowed: allowedFn,
-			routes: routesFn,
-			register: registerFn,
-			list: listFn,
-		};
-	}
-	ignoreFn = ignore;
-
-	return {
-		ignore: ignoreFn,
-		allowed: allowedFn,
-		routes: routesFn,
-		register: registerFn,
-		list: listFn,
+			return registry;
+		},
+		list: (method = GET.toLowerCase(), type = "array") => listRoutes(middleware, method, type),
 	};
+
+	return registry;
 }
 
 /**
@@ -986,7 +957,6 @@ const CONFIG_SCHEMA = {
 
 /**
  * Validates a single configuration value against schema
- * @private
  * @param {string} key - Configuration key
  * @param {*} value - Value to validate
  * @param {Object} schema - Schema definition
@@ -1309,99 +1279,103 @@ function corsRequest() {
 }
 
 /**
+ * Serves files from filesystem
+ * @param {Object} app - Woodland application instance
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @param {string} arg - File path argument
+ * @param {string} [folder=process.cwd()] - Root folder to serve from
+ */
+async function serve(app, req, res, arg, folder = process.cwd()) {
+	const fp = node_path.resolve(folder, arg);
+	const resolvedFolder = node_path.resolve(folder);
+
+	if (!fp.startsWith(resolvedFolder)) {
+		app.logger.logServe(req, "Path outside allowed directory");
+		res.error(INT_403);
+
+		return;
+	}
+
+	let valid = true;
+	let stats;
+
+	app.logger.logServe(req, "Routing request to file system");
+
+	try {
+		stats = await promises.stat(fp, { bigint: false });
+	} catch {
+		valid = false;
+	}
+
+	if (valid === false) {
+		res.error(INT_404);
+	} else if (stats.isDirectory() === false) {
+		app.stream(req, res, {
+			charset: app.charset,
+			etag: app.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
+			path: fp,
+			stats: stats,
+		});
+	} else if (req.parsed.pathname.endsWith(SLASH) === false) {
+		res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
+	} else {
+		const files = await promises.readdir(fp, { encoding: UTF8, withFileTypes: true });
+		let result = EMPTY;
+
+		for (let i = 0; i < files.length; i++) {
+			const file = files[i];
+			if (app.indexes.includes(file.name)) {
+				result = node_path.join(fp, file.name);
+				break;
+			}
+		}
+
+		if (result.length === INT_0) {
+			if (app.autoindex === false) {
+				res.error(INT_404);
+			} else {
+				const body = autoindex(decodeURIComponent(req.parsed.pathname), files);
+				res.header("content-type", `text/html; charset=${app.charset}`);
+				res.send(body);
+			}
+		} else {
+			const rstats = await promises.stat(result, { bigint: false });
+
+			app.stream(req, res, {
+				charset: app.charset,
+				etag: app.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
+				path: result,
+				stats: rstats,
+			});
+		}
+	}
+}
+
+/**
+ * Registers file serving middleware for a root path
+ * @param {Object} app - Woodland application instance
+ * @param {string} root - Root path to register
+ * @param {string} folder - Folder to serve files from
+ * @param {Function} useMiddleware - Middleware registration function
+ */
+function register(app, root, folder, useMiddleware) {
+	useMiddleware(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) =>
+		serve(app, req, res, req.parsed.pathname.substring(1), folder),
+	);
+}
+
+/**
  * Creates file server middleware for serving static files
  * @param {Object} app - Woodland application instance
  * @returns {Object} File server with register, serve methods
  */
 function createFileServer(app) {
-	/**
-	 * Serves files from filesystem
-	 * @private
-	 * @param {Object} req - Request object
-	 * @param {Object} res - Response object
-	 * @param {string} arg - File path argument
-	 * @param {string} [folder] - Root folder to serve from
-	 */
-	async function serve(req, res, arg, folder = process.cwd()) {
-		const fp = node_path.resolve(folder, arg);
-		const resolvedFolder = node_path.resolve(folder);
-
-		if (!fp.startsWith(resolvedFolder)) {
-			app.logger.logServe(req, "Path outside allowed directory");
-			res.error(INT_403);
-
-			return;
-		}
-
-		let valid = true;
-		let stats;
-
-		app.logger.logServe(req, "Routing request to file system");
-
-		try {
-			stats = await promises.stat(fp, { bigint: false });
-		} catch {
-			valid = false;
-		}
-
-		if (valid === false) {
-			res.error(INT_404);
-		} else if (stats.isDirectory() === false) {
-			app.stream(req, res, {
-				charset: app.charset,
-				etag: app.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
-				path: fp,
-				stats: stats,
-			});
-		} else if (req.parsed.pathname.endsWith(SLASH) === false) {
-			res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
-		} else {
-			const files = await promises.readdir(fp, { encoding: UTF8, withFileTypes: true });
-			let result = EMPTY;
-
-			for (let i = 0; i < files.length; i++) {
-				const file = files[i];
-				if (app.indexes.includes(file.name)) {
-					result = node_path.join(fp, file.name);
-					break;
-				}
-			}
-
-			if (result.length === INT_0) {
-				if (app.autoindex === false) {
-					res.error(INT_404);
-				} else {
-					const body = autoindex(decodeURIComponent(req.parsed.pathname), files);
-					res.header("content-type", `text/html; charset=${app.charset}`);
-					res.send(body);
-				}
-			} else {
-				const rstats = await promises.stat(result, { bigint: false });
-
-				app.stream(req, res, {
-					charset: app.charset,
-					etag: app.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
-					path: result,
-					stats: rstats,
-				});
-			}
-		}
-	}
-
-	/**
-	 * Registers file serving middleware for a root path
-	 * @private
-	 * @param {string} root - Root path to register
-	 * @param {string} folder - Folder to serve files from
-	 * @param {Function} useMiddleware - Middleware registration function
-	 */
-	function register(root, folder, useMiddleware) {
-		useMiddleware(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) =>
-			serve(req, res, req.parsed.pathname.substring(1), folder),
-		);
-	}
-
-	return { register, serve };
+	return {
+		register: (root, folder, useMiddleware) =>
+			register(app, root, folder, useMiddleware || app.use.bind(app)),
+		serve: (req, res, arg, folder) => serve(app, req, res, arg, folder),
+	};
 }
 
 /**
@@ -1521,7 +1495,6 @@ class Woodland extends node_events.EventEmitter {
 
 	/**
 	 * Initializes file server
-	 * @private
 	 */
 	initFileServer() {
 		this.fileServer = createFileServer(this);
@@ -1529,7 +1502,6 @@ class Woodland extends node_events.EventEmitter {
 
 	/**
 	 * Initializes middleware registry
-	 * @private
 	 */
 	initMiddleware() {
 		this.middlewareRegistry = createMiddlewareRegistry(

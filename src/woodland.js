@@ -174,7 +174,6 @@ export class Woodland extends EventEmitter {
 
 	/**
 	 * Initializes file server
-	 * @private
 	 */
 	initFileServer() {
 		this.fileServer = createFileServer(this);
@@ -182,7 +181,6 @@ export class Woodland extends EventEmitter {
 
 	/**
 	 * Initializes middleware registry
-	 * @private
 	 */
 	initMiddleware() {
 		this.middlewareRegistry = createMiddlewareRegistry(
