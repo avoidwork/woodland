@@ -874,10 +874,75 @@ describe("woodland", () => {
 					socket: null,
 					method: "OPTIONS",
 				};
+				let headersBatch = {};
 				const res = {
-					setHeader: () => {},
+					setHeader: (key, value) => {
+						headersBatch[key] = value;
+					},
 					on: () => {},
-					set: () => {},
+					set: (headers) => {
+						headersBatch = { ...headersBatch, ...headers };
+					},
+					send: () => {},
+				};
+
+				appWithCors.decorate(req, res);
+
+				assert.strictEqual(req.cors, true);
+				assert.strictEqual(headersBatch["access-control-allow-origin"], "http://example.com");
+				assert.strictEqual(headersBatch["access-control-allow-headers"], "x-custom");
+			});
+
+			it("should set CORS headers for non-OPTIONS request", () => {
+				const appWithCors = woodland({ origins: ["http://example.com"] });
+				const req = {
+					headers: {
+						host: "different.com",
+						origin: "http://example.com",
+						"access-control-request-headers": "x-custom",
+					},
+					url: "/test",
+					socket: null,
+					method: "GET",
+				};
+				let headersBatch = {};
+				const res = {
+					setHeader: (key, value) => {
+						headersBatch[key] = value;
+					},
+					on: () => {},
+					set: (headers) => {
+						headersBatch = { ...headersBatch, ...headers };
+					},
+					send: () => {},
+				};
+
+				appWithCors.decorate(req, res);
+
+				assert.strictEqual(req.cors, true);
+				assert.strictEqual(headersBatch["access-control-expose-headers"], "x-custom");
+			});
+
+			it("should set CORS headers without access-control-request-headers", () => {
+				const appWithCors = woodland({ origins: ["http://example.com"] });
+				const req = {
+					headers: {
+						host: "different.com",
+						origin: "http://example.com",
+					},
+					url: "/test",
+					socket: null,
+					method: "GET",
+				};
+				let headersBatch = {};
+				const res = {
+					setHeader: (key, value) => {
+						headersBatch[key] = value;
+					},
+					on: () => {},
+					set: (headers) => {
+						headersBatch = { ...headersBatch, ...headers };
+					},
 					send: () => {},
 				};
 
