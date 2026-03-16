@@ -1,6 +1,16 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
-import { mime, getStatusText, error, json, redirect, send } from "../../src/response.js";
+import {
+	mime,
+	getStatusText,
+	error,
+	json,
+	redirect,
+	send,
+	set,
+	status,
+	stream,
+} from "../../src/response.js";
 
 describe("response", () => {
 	describe("mime", () => {
@@ -405,6 +415,553 @@ describe("response", () => {
 			);
 
 			assert.strictEqual(onDoneCalled, false);
+		});
+
+		it("should pipe stream when pipeable and no range", () => {
+			let piped = false;
+			const streamObj = {
+				on: (event, handler) => {
+					if (event === "error") {
+						streamObj._errorHandler = handler;
+					}
+					return streamObj;
+				},
+				pipe: () => {
+					piped = true;
+				},
+			};
+			const req = { method: "GET", headers: {} };
+			const res = {
+				headersSent: false,
+				statusCode: 200,
+				header: () => {},
+				removeHeader: () => {},
+				writeHead: () => {},
+			};
+
+			send(
+				req,
+				res,
+				streamObj,
+				200,
+				{},
+				(_req, _res, body, status, headers) => [body, status, headers],
+				() => {},
+			);
+
+			assert.strictEqual(piped, true);
+		});
+
+		it("should handle pipeable stream error", () => {
+			let errorHandlerCalled = false;
+			const streamObj = {
+				on: (event, handler) => {
+					if (event === "error") {
+						streamObj._errorHandler = handler;
+						errorHandlerCalled = true;
+						handler(new Error("Stream error"));
+					}
+					return streamObj;
+				},
+				pipe: () => {},
+			};
+			const req = { method: "GET", headers: {} };
+			const res = {
+				headersSent: false,
+				statusCode: 200,
+				header: () => {},
+				removeHeader: () => {},
+				writeHead: () => {},
+			};
+
+			send(
+				req,
+				res,
+				streamObj,
+				200,
+				{},
+				(_req, _res, body, status, headers) => [body, status, headers],
+				() => {},
+			);
+
+			assert.strictEqual(errorHandlerCalled, true);
+		});
+
+		it("should handle range with req.range defined", () => {
+			let onDoneCalled = false;
+			const req = {
+				method: "GET",
+				headers: { range: "bytes=0-4" },
+				range: { start: 0, end: 4 },
+			};
+			const res = {
+				headersSent: false,
+				statusCode: 200,
+				header: () => {},
+				removeHeader: () => {},
+				writeHead: () => {},
+			};
+
+			send(
+				req,
+				res,
+				"0123456789",
+				200,
+				{},
+				(_req, _res, body, status, headers) => [body, status, headers],
+				(_req, _res, body, _headers) => {
+					onDoneCalled = true;
+					assert.strictEqual(body, "01234");
+				},
+			);
+
+			assert.strictEqual(onDoneCalled, true);
+		});
+	});
+
+	describe("set", () => {
+		it("should set headers from plain object", () => {
+			const headersSet = {};
+			const res = {
+				setHeader: (key, value) => {
+					headersSet[key] = value;
+				},
+			};
+
+			set(res, { "content-type": "text/html", "x-custom": "value" });
+
+			assert.strictEqual(headersSet["content-type"], "text/html");
+			assert.strictEqual(headersSet["x-custom"], "value");
+		});
+
+		it("should set headers from Map", () => {
+			const headersSet = {};
+			const res = {
+				setHeader: (key, value) => {
+					headersSet[key] = value;
+				},
+			};
+
+			const map = new Map([
+				["content-length", "100"],
+				["x-map", "test"],
+			]);
+			set(res, map);
+
+			assert.strictEqual(headersSet["content-length"], "100");
+			assert.strictEqual(headersSet["x-map"], "test");
+		});
+
+		it("should set headers from Headers object", () => {
+			const headersSet = {};
+			const res = {
+				setHeader: (key, value) => {
+					headersSet[key] = value;
+				},
+			};
+
+			const headers = new Headers([["authorization", "Bearer token"]]);
+			set(res, headers);
+
+			assert.strictEqual(headersSet["authorization"], "Bearer token");
+		});
+
+		it("should return res object", () => {
+			const res = { setHeader: () => {} };
+			const result = set(res, {});
+
+			assert.strictEqual(result, res);
+		});
+
+		it("should handle empty headers object", () => {
+			let called = false;
+			const res = {
+				setHeader: () => {
+					called = true;
+				},
+			};
+
+			set(res);
+
+			assert.strictEqual(called, false);
+		});
+	});
+
+	describe("status", () => {
+		it("should set status code", () => {
+			const res = { statusCode: 200 };
+			const result = status(res, 404);
+
+			assert.strictEqual(res.statusCode, 404);
+			assert.strictEqual(result, res);
+		});
+
+		it("should default to 200", () => {
+			const res = { statusCode: 500 };
+			status(res);
+
+			assert.strictEqual(res.statusCode, 200);
+		});
+
+		it("should return res object", () => {
+			const res = { statusCode: 200 };
+			const result = status(res, 201);
+
+			assert.strictEqual(result, res);
+		});
+	});
+
+	describe("stream", () => {
+		it("should throw for invalid file descriptor", () => {
+			const req = { method: "GET", headers: {} };
+			const res = { header: () => {}, removeHeader: () => {}, send: () => {} };
+			const file = { path: "", stats: { size: 100 }, charset: "", etag: "" };
+
+			assert.throws(() => {
+				stream(
+					req,
+					res,
+					file,
+					() => {},
+					() => {},
+					true,
+				);
+			}, TypeError);
+		});
+
+		it("should throw for empty file", () => {
+			const req = { method: "GET", headers: {} };
+			const res = { header: () => {}, removeHeader: () => {}, send: () => {} };
+			const file = { path: "/test.txt", stats: { size: 0 }, charset: "", etag: "" };
+
+			assert.throws(() => {
+				stream(
+					req,
+					res,
+					file,
+					() => {},
+					() => {},
+					true,
+				);
+			}, TypeError);
+		});
+
+		it("should serve file with GET request", () => {
+			let headerCalls = [];
+			let sendCalled = false;
+			const req = { method: "GET", headers: {} };
+			const res = {
+				header: (key, value) => {
+					headerCalls.push([key, value]);
+				},
+				removeHeader: () => {},
+				send: () => {
+					sendCalled = true;
+				},
+			};
+			const file = {
+				path: "/test.txt",
+				stats: { size: 1024, mtime: new Date("2024-01-01") },
+				charset: "utf-8",
+				etag: "abc123",
+			};
+
+			stream(
+				req,
+				res,
+				file,
+				() => {},
+				() => "stream",
+				true,
+			);
+
+			assert.ok(headerCalls.some(([k]) => k === "content-length"));
+			assert.ok(headerCalls.some(([k]) => k === "content-type"));
+			assert.ok(headerCalls.some(([k]) => k === "last-modified"));
+			assert.ok(sendCalled);
+		});
+
+		it("should serve file with HEAD request", () => {
+			let sendCalled = false;
+			const req = { method: "HEAD", headers: {} };
+			const res = {
+				header: () => {},
+				removeHeader: () => {},
+				send: () => {
+					sendCalled = true;
+				},
+			};
+			const file = {
+				path: "/test.txt",
+				stats: { size: 1024, mtime: new Date("2024-01-01") },
+				charset: "",
+				etag: "",
+			};
+
+			stream(
+				req,
+				res,
+				file,
+				() => {},
+				() => "stream",
+				false,
+			);
+
+			assert.ok(sendCalled);
+		});
+
+		it("should handle OPTIONS request", () => {
+			let sendBody = null;
+			const req = { method: "OPTIONS", headers: {} };
+			const res = {
+				header: () => {},
+				removeHeader: () => {},
+				send: (body) => {
+					sendBody = body;
+				},
+			};
+			const file = {
+				path: "/test.txt",
+				stats: { size: 1024, mtime: new Date("2024-01-01") },
+				charset: "",
+				etag: "",
+			};
+
+			stream(
+				req,
+				res,
+				file,
+				() => {},
+				() => "stream",
+				false,
+			);
+
+			assert.ok(sendBody !== null);
+		});
+
+		it("should handle range request with partial headers", () => {
+			let removeHeaderCalled = false;
+			let headerCalls = {};
+			const req = {
+				method: "GET",
+				headers: { range: "bytes=0-99" },
+				range: { start: 0, end: 99 },
+			};
+			const res = {
+				header: (key, value) => {
+					headerCalls[key] = value;
+				},
+				removeHeader: (_key) => {
+					removeHeaderCalled = true;
+				},
+				send: () => {},
+			};
+			const file = {
+				path: "/test.txt",
+				stats: { size: 1024, mtime: new Date("2024-01-01") },
+				charset: "",
+				etag: "",
+			};
+
+			stream(
+				req,
+				res,
+				file,
+				() => {},
+				(_path, _options) => "stream",
+				false,
+			);
+
+			assert.ok(removeHeaderCalled);
+			assert.ok("content-range" in headerCalls);
+		});
+
+		it("should not include etag when disabled", () => {
+			let etagSet = false;
+			const req = { method: "GET", headers: {} };
+			const res = {
+				header: (key) => {
+					if (key === "etag") {
+						etagSet = true;
+					}
+				},
+				removeHeader: () => {},
+				send: () => {},
+			};
+			const file = {
+				path: "/test.txt",
+				stats: { size: 1024, mtime: new Date("2024-01-01") },
+				charset: "",
+				etag: "abc123",
+			};
+
+			stream(
+				req,
+				res,
+				file,
+				() => {},
+				() => "stream",
+				false,
+			);
+
+			assert.strictEqual(etagSet, false);
+		});
+
+		it("should remove cache-control when etag enabled", () => {
+			let cacheControlRemoved = false;
+			const req = { method: "GET", headers: {} };
+			const res = {
+				header: () => {},
+				removeHeader: (key) => {
+					if (key === "cache-control") {
+						cacheControlRemoved = true;
+					}
+				},
+				send: () => {},
+			};
+			const file = {
+				path: "/test.txt",
+				stats: { size: 1024, mtime: new Date("2024-01-01") },
+				charset: "",
+				etag: "abc123",
+			};
+
+			stream(
+				req,
+				res,
+				file,
+				() => {},
+				() => "stream",
+				true,
+			);
+
+			assert.strictEqual(cacheControlRemoved, true);
+		});
+
+		it("should call emitStream after sending", () => {
+			let emitStreamCalled = false;
+			const req = { method: "GET", headers: {} };
+			const res = {
+				header: () => {},
+				removeHeader: () => {},
+				send: () => {},
+			};
+			const file = {
+				path: "/test.txt",
+				stats: { size: 1024, mtime: new Date("2024-01-01") },
+				charset: "",
+				etag: "",
+			};
+
+			stream(
+				req,
+				res,
+				file,
+				() => {
+					emitStreamCalled = true;
+				},
+				() => "stream",
+				false,
+			);
+
+			assert.strictEqual(emitStreamCalled, true);
+		});
+
+		it("should include charset in content-type when present", () => {
+			let contentType = "";
+			const req = { method: "GET", headers: {} };
+			const res = {
+				header: (key, value) => {
+					if (key === "content-type") {
+						contentType = value;
+					}
+				},
+				removeHeader: () => {},
+				send: () => {},
+			};
+			const file = {
+				path: "/test.txt",
+				stats: { size: 1024, mtime: new Date("2024-01-01") },
+				charset: "utf-8",
+				etag: "",
+			};
+
+			stream(
+				req,
+				res,
+				file,
+				() => {},
+				() => "stream",
+				false,
+			);
+
+			assert.ok(contentType.includes("charset=utf-8"));
+		});
+
+		it("should handle range request when partialHeaders returns empty options", () => {
+			let sendCalled = false;
+			const req = {
+				method: "GET",
+				headers: { range: "bytes=9999-10000" },
+			};
+			const res = {
+				header: () => {},
+				removeHeader: () => {},
+				send: () => {
+					sendCalled = true;
+				},
+			};
+			const file = {
+				path: "/test.txt",
+				stats: { size: 1024, mtime: new Date("2024-01-01") },
+				charset: "",
+				etag: "",
+			};
+
+			stream(
+				req,
+				res,
+				file,
+				() => {},
+				() => "stream",
+				false,
+			);
+
+			assert.ok(sendCalled);
+		});
+
+		it("should handle invalid range where start exceeds end", () => {
+			let contentRangeSet = false;
+			const req = {
+				method: "GET",
+				headers: { range: "bytes=500-100" },
+			};
+			const res = {
+				header: (key, _value) => {
+					if (key === "content-range") {
+						contentRangeSet = true;
+					}
+				},
+				removeHeader: () => {},
+				send: () => {},
+			};
+			const file = {
+				path: "/test.txt",
+				stats: { size: 1024, mtime: new Date("2024-01-01") },
+				charset: "",
+				etag: "",
+			};
+
+			stream(
+				req,
+				res,
+				file,
+				() => {},
+				() => "stream",
+				false,
+			);
+
+			assert.ok(contentRangeSet);
 		});
 	});
 });
