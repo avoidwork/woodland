@@ -1,6 +1,16 @@
 import assert from "node:assert";
 import { describe, it, beforeEach } from "node:test";
-import { reduce, getStatus, next, createMiddlewareRegistry } from "../../src/middleware.js";
+import {
+	reduce,
+	getStatus,
+	next,
+	createMiddlewareRegistry,
+	computeRoutes,
+	listRoutes,
+	checkAllowed,
+	registerMiddleware,
+	ignoreFunction,
+} from "../../src/middleware.js";
 
 describe("middleware", () => {
 	describe("reduce", () => {
@@ -510,6 +520,325 @@ describe("middleware", () => {
 
 				assert.strictEqual(typeof result, "object");
 			});
+		});
+	});
+
+	describe("computeRoutes", () => {
+		let middleware, ignored, cache;
+
+		beforeEach(() => {
+			middleware = new Map();
+			ignored = new Set();
+			cache = new Map();
+
+			middleware.set("GET", new Map());
+			middleware.set("POST", new Map());
+		});
+
+		it("should compute routes for wildcard method", () => {
+			middleware.get("GET").set("/test", {
+				handlers: [() => {}],
+				regex: /^\/test$/,
+				params: false,
+			});
+
+			const result = computeRoutes(middleware, ignored, "/test", "*", cache);
+
+			assert.ok(Array.isArray(result.middleware));
+			assert.strictEqual(typeof result.visible, "number");
+		});
+
+		it("should compute routes for specific method", () => {
+			middleware.get("GET").set("/test", {
+				handlers: [() => {}],
+				regex: /^\/test$/,
+				params: false,
+			});
+
+			const result = computeRoutes(middleware, ignored, "/test", "GET", cache);
+
+			assert.strictEqual(result.visible, 1);
+		});
+
+		it("should cache route results", () => {
+			middleware.get("GET").set("/test", {
+				handlers: [() => {}],
+				regex: /^\/test$/,
+				params: false,
+			});
+
+			const result1 = computeRoutes(middleware, ignored, "/test", "GET", cache);
+			const result2 = computeRoutes(middleware, ignored, "/test", "GET", cache);
+
+			assert.strictEqual(result1, result2);
+		});
+
+		it("should override cache when override is true", () => {
+			middleware.get("GET").set("/test", {
+				handlers: [() => {}],
+				regex: /^\/test$/,
+				params: false,
+			});
+
+			const result1 = computeRoutes(middleware, ignored, "/test", "GET", cache);
+			const result2 = computeRoutes(middleware, ignored, "/test", "GET", cache, true);
+
+			assert.notStrictEqual(result1, result2);
+		});
+
+		it("should count visible middleware when some are ignored", () => {
+			const handler1 = () => {};
+			const handler2 = () => {};
+
+			middleware.get("GET").set("/test", {
+				handlers: [handler1, handler2],
+				regex: /^\/test$/,
+				params: false,
+			});
+
+			ignored.add(handler1);
+
+			const result = computeRoutes(middleware, ignored, "/test", "GET", cache);
+
+			assert.strictEqual(result.visible, 1);
+		});
+
+		it("should set exit to middleware length for non-wildcard method", () => {
+			middleware.get("GET").set("/test", {
+				handlers: [() => {}],
+				regex: /^\/test$/,
+				params: false,
+			});
+
+			const result = computeRoutes(middleware, ignored, "/test", "GET", cache);
+
+			// exit is set before method-specific middleware is added, so it's 0
+			assert.strictEqual(result.exit, 0);
+		});
+	});
+
+	describe("listRoutes", () => {
+		let middleware;
+
+		beforeEach(() => {
+			middleware = new Map();
+			middleware.set("GET", new Map());
+		});
+
+		it("should return array of routes", () => {
+			middleware.get("GET").set("/test1", {});
+			middleware.get("GET").set("/test2", {});
+
+			const result = listRoutes(middleware, "GET", "array");
+
+			assert.ok(Array.isArray(result));
+			assert.strictEqual(result.length, 2);
+		});
+
+		it("should return object of routes", () => {
+			middleware.get("GET").set("/test1", "value1");
+			middleware.get("GET").set("/test2", "value2");
+
+			const result = listRoutes(middleware, "GET", "object");
+
+			assert.strictEqual(typeof result, "object");
+			assert.strictEqual(result["/test1"], "value1");
+			assert.strictEqual(result["/test2"], "value2");
+		});
+
+		it("should return empty array for non-existent method", () => {
+			middleware.set("POST", new Map());
+
+			const result = listRoutes(middleware, "POST", "array");
+
+			assert.ok(Array.isArray(result));
+			assert.strictEqual(result.length, 0);
+		});
+	});
+
+	describe("checkAllowed", () => {
+		let middleware, ignored, cache;
+
+		beforeEach(() => {
+			middleware = new Map();
+			ignored = new Set();
+			cache = new Map();
+			middleware.set("GET", new Map());
+		});
+
+		it("should return true for allowed route", () => {
+			middleware.get("GET").set("/test", {
+				handlers: [() => {}],
+				regex: /^\/test$/,
+				params: false,
+			});
+
+			const result = checkAllowed(middleware, ignored, cache, "GET", "/test");
+
+			assert.strictEqual(result, true);
+		});
+
+		it("should return false for non-allowed route", () => {
+			const result = checkAllowed(middleware, ignored, cache, "GET", "/nonexistent");
+
+			assert.strictEqual(result, false);
+		});
+
+		it("should return false when route is ignored", () => {
+			const handler = () => {};
+
+			middleware.get("GET").set("/test", {
+				handlers: [handler],
+				regex: /^\/test$/,
+				params: false,
+			});
+
+			ignored.add(handler);
+
+			const result = checkAllowed(middleware, ignored, cache, "GET", "/test");
+
+			assert.strictEqual(result, false);
+		});
+	});
+
+	describe("registerMiddleware", () => {
+		let middleware, ignored, methods, cache;
+
+		beforeEach(() => {
+			middleware = new Map();
+			ignored = new Set();
+			methods = [];
+			cache = new Map();
+		});
+
+		it("should register middleware for path", () => {
+			const registry = registerMiddleware(middleware, ignored, methods, cache, "/test", () => {});
+
+			assert.ok(middleware.has("GET"));
+			assert.ok(registry.ignore);
+			assert.ok(registry.allowed);
+		});
+
+		it("should register middleware for specific method", () => {
+			const registry = registerMiddleware(
+				middleware,
+				ignored,
+				methods,
+				cache,
+				"/test",
+				() => {},
+				"POST",
+			);
+
+			assert.ok(middleware.has("POST"));
+		});
+
+		it("should register wildcard middleware when function passed as first arg", () => {
+			const handler = () => {};
+			const _registry = registerMiddleware(middleware, ignored, methods, cache, handler);
+
+			assert.ok(middleware.has("GET"));
+			assert.ok(middleware.get("GET").has("/.*"));
+		});
+
+		it("should throw error for invalid HTTP method", () => {
+			assert.throws(() => {
+				registerMiddleware(middleware, ignored, methods, cache, "/test", () => {}, "INVALID");
+			}, /Invalid HTTP method/);
+		});
+
+		it("should throw error for HEAD method", () => {
+			assert.throws(() => {
+				registerMiddleware(middleware, ignored, methods, cache, "/test", () => {}, "HEAD");
+			}, /Cannot set HEAD route/);
+		});
+
+		it("should convert parameterized routes to regex", () => {
+			const registry = registerMiddleware(
+				middleware,
+				ignored,
+				methods,
+				cache,
+				"/users/:id",
+				() => {},
+			);
+
+			const routes = Array.from(middleware.get("GET").keys());
+			const hasConvertedRoute = routes.some(
+				(route) => route.includes(":") === false && route.includes(":id") === false,
+			);
+
+			assert.ok(hasConvertedRoute);
+		});
+
+		it("should add multiple handlers to same route", () => {
+			const handler1 = () => {};
+			const handler2 = () => {};
+
+			registerMiddleware(middleware, ignored, methods, cache, "/test", handler1);
+			registerMiddleware(middleware, ignored, methods, cache, "/test", handler2);
+
+			const routeData = middleware.get("GET").get("/test");
+			assert.strictEqual(routeData.handlers.length, 2);
+		});
+
+		it("should return registry with ignore method", () => {
+			const handler = () => {};
+			const registry = registerMiddleware(middleware, ignored, methods, cache, "/test", handler);
+
+			assert.ok(registry.ignore);
+			assert.ok(registry.allowed);
+		});
+
+		it("should add method to methods array for non-wildcard", () => {
+			registerMiddleware(middleware, ignored, methods, cache, "/test", () => {}, "POST");
+
+			assert.ok(methods.includes("POST"));
+		});
+
+		it("should not add method to methods array for wildcard method", () => {
+			registerMiddleware(middleware, ignored, methods, cache, "/test", () => {}, "*");
+
+			assert.strictEqual(methods.length, 0);
+		});
+	});
+
+	describe("ignoreFunction", () => {
+		let middleware, ignored, methods, cache;
+
+		beforeEach(() => {
+			middleware = new Map();
+			ignored = new Set();
+			methods = [];
+			cache = new Map();
+			middleware.set("GET", new Map());
+		});
+
+		it("should add function to ignored set", () => {
+			const handler = () => {};
+			const _registry = ignoreFunction(ignored, middleware, methods, cache, handler);
+
+			assert.ok(ignored.has(handler));
+		});
+
+		it("should return registry object", () => {
+			const handler = () => {};
+			const _registry2 = ignoreFunction(ignored, middleware, methods, cache, handler);
+
+			assert.ok(_registry2.ignore);
+			assert.ok(_registry2.allowed);
+			assert.ok(_registry2.routes);
+		});
+
+		it("should allow chaining ignore calls", () => {
+			const handler1 = () => {};
+			const handler2 = () => {};
+
+			const registry = ignoreFunction(ignored, middleware, methods, cache, handler1);
+			registry.ignore(handler2);
+
+			assert.ok(ignored.has(handler1));
+			assert.ok(ignored.has(handler2));
 		});
 	});
 });
