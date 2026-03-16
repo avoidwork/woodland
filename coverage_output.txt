@@ -1,4 +1,0 @@
-
-> woodland@20.2.10 coverage
-> node --test --experimental-test-coverage --test-coverage-exclude=dist/** --test-coverage-exclude=tests/** --test-reporter=spec tests/**/*.test.js 2>&1 | grep -A 1000 "start of coverage report" > coverage.txt
-
