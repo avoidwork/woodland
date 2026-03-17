@@ -951,6 +951,85 @@ describe("woodland", () => {
 				assert.strictEqual(req.cors, true);
 			});
 		});
+
+		describe("route with disallowed origin", () => {
+			it("should return 403 for disallowed origin", async () => {
+				const app = woodland({ origins: ["http://allowed.com"] });
+				app.use(() => {});
+
+				const req = {
+					method: "GET",
+					headers: {
+						host: "example.com",
+						origin: "http://evil.com",
+					},
+					url: "/test",
+					socket: null,
+				};
+				let errorCalled = false;
+				const res = {
+					setHeader: () => {},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+					getHeader: () => void 0,
+					writeHead: () => {},
+					end: () => {},
+					statusCode: 200,
+					headersSent: false,
+					removeHeader: () => {},
+					header: () => {},
+				};
+
+				app.on("error", () => {
+					errorCalled = true;
+				});
+
+				app.route(req, res);
+
+				await new Promise((resolve) => setTimeout(resolve, 50));
+				assert.strictEqual(errorCalled, true);
+				assert.strictEqual(req.valid, false);
+			});
+		});
+
+		describe("route with disallowed method", () => {
+			it("should return error for disallowed method", async () => {
+				const app = woodland();
+				app.get("/test", () => {});
+
+				const req = {
+					method: "POST",
+					headers: { host: "example.com" },
+					url: "/test",
+					socket: null,
+				};
+				let errorCalled = false;
+				const res = {
+					setHeader: () => {},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+					getHeader: () => void 0,
+					writeHead: () => {},
+					end: () => {},
+					statusCode: 405,
+					headersSent: false,
+					removeHeader: () => {},
+					header: () => {},
+				};
+
+				app.on("error", () => {
+					errorCalled = true;
+				});
+
+				app.route(req, res);
+
+				await new Promise((resolve) => setTimeout(resolve, 50));
+				assert.strictEqual(errorCalled, true);
+				assert.strictEqual(req.valid, false);
+			});
+		});
 	});
 
 	describe("Woodland with config", () => {

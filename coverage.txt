@@ -1,7 +1,7 @@
 ℹ start of coverage report
-ℹ -----------------------------------------------------------------------------------------------------------
+ℹ -------------------------------------------------------------------------------------------
 ℹ file           | line % | branch % | funcs % | uncovered lines
-ℹ -----------------------------------------------------------------------------------------------------------
+ℹ -------------------------------------------------------------------------------------------
 ℹ src            |        |          |         | 
 ℹ  cli.js        | 100.00 |   100.00 |  100.00 | 
 ℹ  config.js     | 100.00 |    90.91 |  100.00 | 
@@ -12,32 +12,8 @@
 ℹ  request.js    |  97.71 |    91.55 |   90.91 | 96-97 101-102 114-115
 ℹ  response.js   | 100.00 |   100.00 |  100.00 | 
 ℹ  utility.js    |  99.29 |    98.60 |   96.15 | 531-532 546-547
-ℹ  woodland.js   |  95.84 |    88.89 |   88.68 | 320 579-582 656-657 660-661 669-670 682-684 707-708 723-740
-ℹ -----------------------------------------------------------------------------------------------------------
-ℹ all files      |  98.54 |    94.92 |   89.16 | 
-ℹ -----------------------------------------------------------------------------------------------------------
+ℹ  woodland.js   |  96.43 |    94.12 |   88.68 | 314 573-576 650-651 654-655 701-702 717-734
+ℹ -------------------------------------------------------------------------------------------
+ℹ all files      |  98.70 |    95.95 |   89.16 | 
+ℹ -------------------------------------------------------------------------------------------
 ℹ end of coverage report
-
-✖ failing tests:
-
-test at tests\unit\woodland.test.js:781:4
-✖ should handle direct set call (0.9027ms)
-  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-  + actual - expected
-  
-  + undefined
-  - 'text/html'
-  
-      at TestContext.<anonymous> (file:///C:/Users/jason/Projects/woodland/tests/unit/woodland.test.js:792:12)
-      at Test.runInAsyncScope (node:async_hooks:226:14)
-      at Test.run (node:internal/test_runner/test:1201:25)
-      at async Promise.all (index 0)
-      at async Suite.run (node:internal/test_runner/test:1619:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
-    generatedMessage: true,
-    code: 'ERR_ASSERTION',
-    actual: undefined,
-    expected: 'text/html',
-    operator: 'strictEqual',
-    diff: 'simple'
-  }
