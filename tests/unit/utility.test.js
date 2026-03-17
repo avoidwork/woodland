@@ -935,6 +935,21 @@ describe("utility", () => {
 		it("should reject full IPv6 with invalid hex group triggering loop check", () => {
 			assert.strictEqual(isValidIP("2001:0db8:85a3:0000:0000:0000:0000:gggg"), false);
 		});
+
+		it("should reject compressed IPv6 with invalid hex in right side loop iteration", () => {
+			// Ensures nonEmptyRight loop coverage for lines 539-540
+			assert.strictEqual(isValidIP("1:2:3::4:zzzz:6"), false);
+		});
+
+		it("should reject compressed IPv6 with invalid character in right side", () => {
+			// Uses 12345 (5 chars, valid hex chars but too long) to trigger HEX_GROUP_PATTERN failure
+			assert.strictEqual(isValidIP("1:2:3::4:5:12345"), false);
+		});
+
+		it("should reject full IPv6 with leading empty group", () => {
+			// Tests groups[i] || check for empty group in full notation (line 554)
+			assert.strictEqual(isValidIP(":db8:85a3:0:0:8a2e:370:7334"), false);
+		});
 	});
 
 	describe("extractPath", () => {

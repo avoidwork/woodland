@@ -14,9 +14,10 @@
 ## Development workflow
 
 1. Make changes to source files
-2. Run tests: `npm test` (ensure 499 tests still pass)
+2. Run tests: `npm test` (ensure all tests pass)
 3. Fix lint errors: `npm run fix`
 4. Build: `npm run build`
+5. Run coverage: `npm run coverage` (target 100% line coverage)
 
 ## Tooling
 
@@ -52,7 +53,7 @@
 - `src/fileserver.js` - File server handler with `createFileServer` factory
 - `src/middleware.js` - Middleware registry with `createMiddlewareRegistry` factory
 - `src/tpl/autoindex.html` - Template for autoindex directory listings
-- `tests/unit/` - Unit tests with Node.js test runner (comprehensive coverage, 499 tests)
+- `tests/unit/` - Unit tests with Node.js test runner (comprehensive coverage, 503 tests)
 
 **Note:** Integration tests are optional when unit tests provide comprehensive coverage of all exported functions.
 
@@ -89,7 +90,8 @@
 
 ## Test count
 
-- 499 tests passing
+- 503 tests passing
+- 100% line coverage target
 
 ## Key implementation details
 

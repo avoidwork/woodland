@@ -841,5 +841,15 @@ describe("middleware", () => {
 			assert.ok(ignored.has(handler1));
 			assert.ok(ignored.has(handler2));
 		});
+
+		it("should return registry when called without rpath", () => {
+			const registry = registerMiddleware(middleware, ignored, methods, cache);
+
+			assert.ok(registry.register);
+			assert.ok(registry.ignore);
+			assert.ok(registry.allowed);
+			assert.ok(registry.routes);
+			assert.ok(registry.list);
+		});
 	});
 });
