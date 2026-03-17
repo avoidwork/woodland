@@ -75,6 +75,10 @@ describe("request", () => {
 				assert.strictEqual(isValidIP("2001:0db8:85a3:0000:0000:8a2e:0370:7334"), true);
 			});
 
+			it("should reject full IPv6 with invalid hex", () => {
+				assert.strictEqual(isValidIP("2001:0db8:85a3:0000:0000:8a2e:0370:zzzz"), false);
+			});
+
 			it("should validate compressed IPv6", () => {
 				assert.strictEqual(isValidIP("2001:db8::1"), true);
 			});

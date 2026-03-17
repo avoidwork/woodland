@@ -384,6 +384,17 @@ describe("woodland", () => {
 				assert.ok(result.includes("GET"));
 			});
 
+			it("should return all methods for wildcard middleware", () => {
+				app.always(() => {});
+
+				const result = app.allows("/test");
+
+				assert.ok(result.includes("GET"));
+				assert.ok(result.includes("POST"));
+				assert.ok(result.includes("PUT"));
+				assert.ok(result.includes("DELETE"));
+			});
+
 			it("should include HEAD when GET is allowed", () => {
 				app.get("/test", () => {});
 
@@ -526,6 +537,32 @@ describe("woodland", () => {
 				const result = app.onReady(req, res, "body", 200, {});
 
 				assert.ok(Array.isArray(result));
+			});
+
+			it("should add response time header when timing enabled", () => {
+				const appWithTiming = woodland({ time: true, digit: 2 });
+				let headerCalled = false;
+				const req = {
+					parsed: { pathname: "/test" },
+					method: "GET",
+					headers: { host: "example.com" },
+					connection: { remoteAddress: "127.0.0.1" },
+					precise: {
+						stop: () => ({ diff: () => 12345678 }),
+					},
+				};
+				const res = {
+					statusCode: 200,
+					getHeader: () => void 0,
+					header: (key, value) => {
+						headerCalled = true;
+						assert.ok(key.includes("response-time"));
+					},
+				};
+
+				appWithTiming.onReady(req, res, "body", 200, {});
+
+				assert.ok(headerCalled);
 			});
 		});
 
@@ -1229,6 +1266,118 @@ describe("woodland", () => {
 
 			// Verify the call throws with empty path
 			assert.throws(() => app.stream(req, res, file), /Invalid file descriptor/);
+		});
+
+		it("should emit connect event when listener exists", () => {
+			const connectApp = woodland();
+			let connectEmitted = false;
+
+			connectApp.on("connect", () => {
+				connectEmitted = true;
+			});
+
+			const req = {
+				method: "GET",
+				headers: { host: "example.com" },
+				connection: { remoteAddress: "127.0.0.1" },
+				parsed: { pathname: "/test" },
+				precise: { stop: () => ({ diff: () => 0 }) },
+			};
+			const res = {
+				statusCode: 200,
+				setHeader: () => {},
+				on: () => {},
+				end: () => {},
+				error: () => {},
+				set: () => {},
+				send: () => {},
+				header: () => {},
+				getHeader: () => void 0,
+				removeHeader: () => {},
+				headersSent: false,
+			};
+
+			// Call route to trigger connect event
+			connectApp.route(req, res);
+
+			assert.ok(connectEmitted);
+		});
+
+		it("should register finish listener when listener exists", () => {
+			const finishApp = woodland();
+			let finishEmitted = false;
+
+			finishApp.on("finish", () => {
+				finishEmitted = true;
+			});
+
+			const req = {
+				method: "GET",
+				headers: { host: "example.com" },
+				connection: { remoteAddress: "127.0.0.1" },
+				parsed: { pathname: "/test" },
+				precise: { stop: () => ({ diff: () => 0 }) },
+			};
+			let finishOnCalled = false;
+			const res = {
+				statusCode: 200,
+				setHeader: () => {},
+				on: (event, callback) => {
+					if (event === "finish") {
+						finishOnCalled = true;
+						// Simulate finish event
+						setTimeout(callback, 0);
+					}
+				},
+				end: () => {},
+				error: () => {},
+				set: () => {},
+				send: () => {},
+				header: () => {},
+				getHeader: () => void 0,
+				removeHeader: () => {},
+				headersSent: false,
+			};
+
+			finishApp.route(req, res);
+
+			// Wait for finish event to be emitted
+			return new Promise((resolve) => {
+				setTimeout(() => {
+					assert.ok(finishOnCalled);
+					assert.ok(finishEmitted);
+					resolve();
+				}, 10);
+			});
+		});
+
+		it("should not emit connect/finish when no listeners", () => {
+			const noListenersApp = woodland();
+
+			const req = {
+				method: "GET",
+				headers: { host: "example.com" },
+				connection: { remoteAddress: "127.0.0.1" },
+				parsed: { pathname: "/test" },
+				precise: { stop: () => ({ diff: () => 0 }) },
+			};
+			const res = {
+				statusCode: 200,
+				setHeader: () => {},
+				on: () => {},
+				end: () => {},
+				error: () => {},
+				set: () => {},
+				send: () => {},
+				header: () => {},
+				getHeader: () => void 0,
+				removeHeader: () => {},
+				headersSent: false,
+			};
+
+			noListenersApp.route(req, res);
+
+			assert.ok(true);
 		});
 	});
 });

@@ -872,8 +872,22 @@ describe("utility", () => {
 			assert.strictEqual(isValidIP("1:2:3:4:5:6:7::8:9"), false);
 		});
 
+		it("should reject compressed IPv6 with invalid hex group on left", () => {
+			assert.strictEqual(isValidIP("gggg::2001"), false);
+		});
+
+		it("should reject compressed IPv6 with invalid hex as first left group", () => {
+			// Ensures loop iteration 0 on left side is covered
+			assert.strictEqual(isValidIP("gggg::1"), false);
+		});
+
 		it("should reject compressed IPv6 with invalid hex group on right", () => {
 			assert.strictEqual(isValidIP("2001::gggg"), false);
+		});
+
+		it("should reject compressed IPv6 with invalid hex as first right group", () => {
+			// Ensures loop iteration 0 on right side is covered
+			assert.strictEqual(isValidIP("::gggg"), false);
 		});
 
 		it("should reject compressed IPv6 with invalid hex group in middle of right side", () => {
