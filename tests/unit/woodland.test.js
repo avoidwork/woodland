@@ -99,6 +99,38 @@ describe("woodland", () => {
 
 			assert.ok(app.middlewareRegistry);
 		});
+
+		it("should have initFileServer method", () => {
+			const app = new Woodland();
+
+			assert.strictEqual(typeof app.initFileServer, "function");
+		});
+
+		it("should have initMiddleware method", () => {
+			const app = new Woodland();
+
+			assert.strictEqual(typeof app.initMiddleware, "function");
+		});
+
+		it("should reinitialize file server with initFileServer", () => {
+			const app = new Woodland();
+			const originalFileServer = app.fileServer;
+
+			app.initFileServer();
+
+			assert.ok(app.fileServer);
+			assert.notStrictEqual(app.fileServer, originalFileServer);
+		});
+
+		it("should reinitialize middleware registry with initMiddleware", () => {
+			const app = new Woodland();
+			const originalRegistry = app.middlewareRegistry;
+
+			app.initMiddleware();
+
+			assert.ok(app.middlewareRegistry);
+			assert.notStrictEqual(app.middlewareRegistry, originalRegistry);
+		});
 	});
 
 	describe("Woodland methods", () => {
