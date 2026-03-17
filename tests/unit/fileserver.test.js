@@ -1,6 +1,6 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
-import { createFileServer } from "../../src/fileserver.js";
+import { createFileServer, serve, register } from "../../src/fileserver.js";
 
 describe("fileserver", () => {
 	describe("createFileServer", () => {
@@ -237,6 +237,133 @@ describe("fileserver", () => {
 
 				assert.strictEqual(registeredPath, "/files/(.*)?");
 			});
+
+			it("should use app.use.bind when useMiddleware is not provided", () => {
+				let registeredPath = null;
+				let registeredHandler = null;
+
+				const app = createMockApp();
+				app.logger.logServe = () => ({ log: () => {} });
+				app.use = (path, handler) => {
+					registeredPath = path;
+					registeredHandler = handler;
+				};
+
+				const server = createFileServer(app);
+				server.register("/files", "/tmp");
+
+				assert.strictEqual(registeredPath, "/files/(.*)?");
+				assert.ok(typeof registeredHandler === "function");
+			});
+		});
+	});
+
+	describe("serve", () => {
+		const testFilesDir = process.cwd() + "/test-files";
+
+		it("should be a function", () => {
+			assert.strictEqual(typeof serve, "function");
+		});
+
+		it("should serve file with custom app", async () => {
+			let streamed = false;
+			const app = {
+				charset: "utf-8",
+				indexes: ["index.html"],
+				autoindex: true,
+				logger: { logServe: () => ({ log: () => {} }) },
+				etag: () => "test-etag",
+				stream: () => {
+					streamed = true;
+				},
+			};
+
+			await serve(
+				app,
+				{ method: "GET", parsed: { pathname: "/small.txt" } },
+				{ error: () => {}, redirect: () => {} },
+				"small.txt",
+				testFilesDir,
+			);
+
+			assert.strictEqual(streamed, true);
+		});
+
+		it("should handle path traversal with custom app", async () => {
+			let errorStatus = null;
+			const app = {
+				charset: "utf-8",
+				indexes: ["index.html"],
+				autoindex: true,
+				logger: { logServe: () => {} },
+				etag: () => "test-etag",
+				stream: () => {},
+			};
+
+			await serve(
+				app,
+				{ method: "GET", parsed: { pathname: "/test" } },
+				{
+					error: (status) => {
+						errorStatus = status;
+					},
+				},
+				"../../../etc/passwd",
+				testFilesDir,
+			);
+
+			assert.strictEqual(errorStatus, 403);
+		});
+	});
+
+	describe("register", () => {
+		it("should be a function", () => {
+			assert.strictEqual(typeof register, "function");
+		});
+
+		it("should register middleware with custom useMiddleware", () => {
+			let registeredPath = null;
+			let registeredHandler = null;
+
+			const app = {
+				charset: "utf-8",
+				indexes: ["index.html"],
+				autoindex: true,
+				logger: { logServe: () => ({ log: () => {} }) },
+				etag: () => "test-etag",
+				stream: () => {},
+			};
+
+			const useMiddleware = (path, handler) => {
+				registeredPath = path;
+				registeredHandler = handler;
+			};
+
+			register(app, "/test", "/tmp", useMiddleware);
+
+			assert.strictEqual(registeredPath, "/test/(.*)?");
+			assert.strictEqual(typeof registeredHandler, "function");
+		});
+
+		it("should handle root path without trailing slash", () => {
+			let registeredPath = null;
+
+			const app = {
+				charset: "utf-8",
+				indexes: ["index.html"],
+				autoindex: true,
+				logger: { logServe: () => ({ log: () => {} }) },
+				etag: () => "test-etag",
+				stream: () => {},
+			};
+
+			const useMiddleware = (path) => {
+				registeredPath = path;
+			};
+
+			register(app, "/", "/tmp", useMiddleware);
+
+			assert.strictEqual(registeredPath, "/(.*)?");
 		});
 	});
 });

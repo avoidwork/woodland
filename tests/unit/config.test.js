@@ -120,6 +120,31 @@ describe("config", () => {
 			const config = {
 				enabled: false,
 				format: "custom format",
+			};
+
+			const result = validateLogging(config);
+
+			assert.strictEqual(result.enabled, false);
+			assert.strictEqual(result.format, "custom format");
+		});
+
+		it("should handle logging object without enabled property", () => {
+			const config = {
+				format: "custom format",
+				level: "warn",
+			};
+
+			const result = validateLogging(config);
+
+			assert.strictEqual(result.enabled, true);
+			assert.strictEqual(result.format, "custom format");
+			assert.strictEqual(result.level, "warn");
+		});
+
+		it("should accept custom logging config", () => {
+			const config = {
+				enabled: false,
+				format: "custom format",
 				level: "debug",
 			};
 
@@ -150,6 +175,15 @@ describe("config", () => {
 			const result = validateLogging({});
 
 			assert.strictEqual(result.enabled, false);
+
+			delete process.env.WOODLAND_LOG_ENABLED;
+		});
+
+		it("should use environment variable true for enabled", () => {
+			process.env.WOODLAND_LOG_ENABLED = "true";
+			const result = validateLogging({});
+
+			assert.strictEqual(result.enabled, true);
 
 			delete process.env.WOODLAND_LOG_ENABLED;
 		});

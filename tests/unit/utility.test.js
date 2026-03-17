@@ -2,6 +2,7 @@ import assert from "node:assert";
 import { describe, it } from "node:test";
 import {
 	autoindex,
+	escapeHtml,
 	getStatus,
 	mime,
 	ms,
@@ -70,6 +71,48 @@ describe("utility", () => {
 			const result = autoindex("Test", files);
 
 			assert.ok(result.includes("file%20with%20spaces.txt"));
+		});
+	});
+
+	describe("escapeHtml", () => {
+		it("should escape ampersand", () => {
+			const result = escapeHtml("&");
+			assert.strictEqual(result, "&amp;");
+		});
+
+		it("should escape less than", () => {
+			const result = escapeHtml("<");
+			assert.strictEqual(result, "&lt;");
+		});
+
+		it("should escape greater than", () => {
+			const result = escapeHtml(">");
+			assert.strictEqual(result, "&gt;");
+		});
+
+		it("should escape double quote", () => {
+			const result = escapeHtml('"');
+			assert.strictEqual(result, "&quot;");
+		});
+
+		it("should escape single quote", () => {
+			const result = escapeHtml("'");
+			assert.strictEqual(result, "&#39;");
+		});
+
+		it("should escape multiple characters", () => {
+			const result = escapeHtml("<script>&");
+			assert.strictEqual(result, "&lt;script&gt;&amp;");
+		});
+
+		it("should return empty string for empty input", () => {
+			const result = escapeHtml();
+			assert.strictEqual(result, "");
+		});
+
+		it("should return unchanged string with no special characters", () => {
+			const result = escapeHtml("hello world");
+			assert.strictEqual(result, "hello world");
 		});
 	});
 
