@@ -635,6 +635,76 @@ describe("request", () => {
 
 			assert.strictEqual(req.precise, 123.456);
 		});
+
+		it("should use ACCESS_CONTROL_ALLOW_HEADERS for OPTIONS method", () => {
+			const req = {
+				method: "OPTIONS",
+				url: "/test",
+				headers: {
+					origin: "https://example.com",
+					"access-control-request-headers": "x-custom",
+				},
+			};
+			const headersSet = new Map();
+			const res = {
+				set: (headers) => {
+					for (const [key, value] of Object.entries(headers)) {
+						headersSet.set(key, value);
+					}
+				},
+				on: () => {},
+			};
+
+			decorate(req, res, {
+				parsed: { pathname: "/test", hostname: "localhost", search: "" },
+				allowString: "GET",
+				timing: null,
+				corsHostCheck: () => true,
+				corsCheck: () => true,
+				ipExtractor: () => "127.0.0.1",
+				defaultHeaders: [],
+				corsExpose: "x-custom",
+				logDecorator: () => {},
+				logClose,
+			});
+
+			assert.ok(headersSet.has("access-control-allow-headers"));
+			assert.strictEqual(headersSet.get("access-control-allow-headers"), "x-custom");
+		});
+
+		it("should not set CORS headers when corsHeaders is undefined", () => {
+			const req = {
+				method: "GET",
+				url: "/test",
+				headers: {
+					origin: "https://example.com",
+				},
+			};
+			const headersSet = new Map();
+			const res = {
+				set: (headers) => {
+					for (const [key, value] of Object.entries(headers)) {
+						headersSet.set(key, value);
+					}
+				},
+				on: () => {},
+			};
+
+			decorate(req, res, {
+				parsed: { pathname: "/test", hostname: "localhost", search: "" },
+				allowString: "GET",
+				timing: null,
+				corsHostCheck: () => true,
+				corsCheck: () => true,
+				ipExtractor: () => "127.0.0.1",
+				defaultHeaders: [],
+				corsExpose: void 0,
+				logDecorator: () => {},
+				logClose,
+			});
+
+			assert.ok(!headersSet.has("access-control-expose-headers"));
+		});
 	});
 
 	describe("logClose", () => {
