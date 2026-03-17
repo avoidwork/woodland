@@ -301,6 +301,5 @@ export function registerMiddleware(middleware, ignored, methods, cache, rpath, .
  */
 export function ignoreFunction(ignored, middleware, methods, cache, fn) {
 	ignored.add(fn);
-
 	return createMiddlewareRegistry(middleware, ignored, methods, cache);
 }
