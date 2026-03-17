@@ -1,14 +1,7 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
-import {
-	isValidIP,
-	cors,
-	corsHost,
-	corsRequest,
-	extractIP,
-	decorate,
-	logClose,
-} from "../../src/request.js";
+import { cors, corsHost, corsRequest, extractIP, decorate, logClose } from "../../src/request.js";
+import { isValidIP } from "../../src/utility.js";
 
 describe("request", () => {
 	describe("isValidIP", () => {
@@ -185,6 +178,26 @@ describe("request", () => {
 
 			it("should reject full IPv6 with invalid hex group", () => {
 				assert.strictEqual(isValidIP("2001:0db8:85a3:0000:8a2e:0370:733g"), false);
+			});
+
+			it("should reject compressed IPv6 with invalid hex in left groups during loop", () => {
+				assert.strictEqual(isValidIP("zzzz::1"), false);
+			});
+
+			it("should reject compressed IPv6 with invalid hex in right groups during loop", () => {
+				assert.strictEqual(isValidIP("::zzzz"), false);
+			});
+
+			it("should reject compressed IPv6 with invalid hex in middle of left side", () => {
+				assert.strictEqual(isValidIP("1:zzzz:2::1"), false);
+			});
+
+			it("should reject compressed IPv6 with invalid hex in middle of right side", () => {
+				assert.strictEqual(isValidIP("::1:zzzz:2"), false);
+			});
+
+			it("should reject full IPv6 with empty group triggering loop check", () => {
+				assert.strictEqual(isValidIP("2001:0db8:85a3:0000:::7334"), false);
 			});
 		});
 	});

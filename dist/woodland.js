@@ -1689,7 +1689,21 @@ class Woodland extends EventEmitter {
 			headersBatch[key] = value;
 		}
 
-		if (this.cors(req)) {
+		req.parsed = parsed;
+		req.allow = allowString;
+		req.body = EMPTY;
+		req.host = parsed.hostname;
+		req.params = {};
+		req.valid = true;
+
+		if (timing) {
+			req.precise = timing;
+		}
+
+		req.corsHost = this.corsHost(req);
+		req.cors = this.cors(req);
+
+		if (req.cors) {
 			const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
 			const origin = req.headers.origin;
 
@@ -1705,19 +1719,6 @@ class Woodland extends EventEmitter {
 			}
 		}
 
-		req.parsed = parsed;
-		req.allow = allowString;
-		req.body = EMPTY;
-		req.host = parsed.hostname;
-		req.params = {};
-		req.valid = true;
-
-		if (timing) {
-			req.precise = timing;
-		}
-
-		req.corsHost = this.corsHost(req);
-		req.cors = this.cors(req);
 		req.ip = clientIP;
 
 		res.locals = {};

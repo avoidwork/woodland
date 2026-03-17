@@ -915,6 +915,26 @@ describe("utility", () => {
 			assert.strictEqual(isValidIP("::ffff:127.0.0.1"), true);
 			assert.strictEqual(isValidIP("::FFFF:192.168.1.1"), true);
 		});
+
+		it("should reject compressed IPv6 with invalid hex in left groups during loop", () => {
+			assert.strictEqual(isValidIP("zzzz::1"), false);
+		});
+
+		it("should reject compressed IPv6 with invalid hex in right groups during loop", () => {
+			assert.strictEqual(isValidIP("::zzzz"), false);
+		});
+
+		it("should reject compressed IPv6 with invalid hex in middle of left side", () => {
+			assert.strictEqual(isValidIP("1:zzzz:2::1"), false);
+		});
+
+		it("should reject compressed IPv6 with invalid hex in middle of right side", () => {
+			assert.strictEqual(isValidIP("::1:zzzz:2"), false);
+		});
+
+		it("should reject full IPv6 with invalid hex group triggering loop check", () => {
+			assert.strictEqual(isValidIP("2001:0db8:85a3:0000:0000:0000:0000:gggg"), false);
+		});
 	});
 
 	describe("extractPath", () => {

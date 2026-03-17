@@ -504,6 +504,14 @@ export function isValidIP(ip) {
 			return false;
 		}
 
+		// Check for ":::" which is invalid (:: followed by extra colon)
+		if (
+			(doubleColonIndex > 0 && ip.charAt(doubleColonIndex - 1) === ":") ||
+			(doubleColonIndex + 2 < ip.length && ip.charAt(doubleColonIndex + 2) === ":")
+		) {
+			return false;
+		}
+
 		const beforeDoubleColon = ip.substring(0, doubleColonIndex);
 		const afterDoubleColon = ip.substring(doubleColonIndex + 2);
 

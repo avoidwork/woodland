@@ -14,7 +14,7 @@
 ## Development workflow
 
 1. Make changes to source files
-2. Run tests: `npm test` (ensure 406 tests still pass)
+2. Run tests: `npm test` (ensure 499 tests still pass)
 3. Fix lint errors: `npm run fix`
 4. Build: `npm run build`
 
@@ -44,15 +44,15 @@
 - `src/config.js` - Configuration validation using jsonschema (JSON Schema Draft-07) (`validateConfig`, `validateValue`, `validateLogging`, `validateOrigins`, `mergeEnvLogging`)
 - `src/woodland.js` - Main framework file, exports `Woodland` class and `woodland` factory function
 - `src/response.js` - Response handlers (`mime`, `getStatusText`, `error`, `json`, `redirect`, `send`, `set`, `status`, `stream`)
-- `src/request.js` - Request handlers (`isValidIP`, `cors`, `corsHost`, `corsRequest`, `extractIP`, `decorate`, `logClose`)
+- `src/request.js` - Request handlers (`cors`, `corsHost`, `corsRequest`, `extractIP`, `decorate`, `logClose`) - imports `isValidIP` from utility.js
 - `src/logger.js` - Logger factory and functions (`createLogger`, `log`, `clfm`, `extractIP`, `logRoute`, `logMiddleware`, `logDecoration`, `logError`, `logServe`)
-- `src/utility.js` - Utility functions (559 lines), all named exports
+- `src/utility.js` - Utility functions (559 lines), all named exports, including `isValidIP` for IP validation
 - `src/constants.js` - All constants and regex patterns used throughout framework
 - `src/cli.js` - CLI entry point for running the server
 - `src/fileserver.js` - File server handler with `createFileServer` factory
 - `src/middleware.js` - Middleware registry with `createMiddlewareRegistry` factory
 - `src/tpl/autoindex.html` - Template for autoindex directory listings
-- `tests/unit/` - Unit tests with Node.js test runner (comprehensive coverage, 406 tests)
+- `tests/unit/` - Unit tests with Node.js test runner (comprehensive coverage, 499 tests)
 
 **Note:** Integration tests are optional when unit tests provide comprehensive coverage of all exported functions.
 
@@ -89,7 +89,7 @@
 
 ## Test count
 
-- 406 tests passing
+- 499 tests passing
 
 ## Key implementation details
 
@@ -98,7 +98,8 @@
 - `params` uses `coerce()` to convert numeric strings to numbers
 - `partialHeaders` uses lowercase header names (e.g., `content-range`)
 - `timeOffset` uses JavaScript timezone offset convention: positive input (e.g., 300 for EST) returns `-0500`, negative input (e.g., -330 for IST) returns `0530`
-- IPv6 validation accepts incomplete compressed addresses (e.g., `2001:db8:::`)
+- IPv6 validation rejects `:::` patterns (double colon followed by another colon is invalid)
+- `isValidIP` is defined in `utility.js` and imported by `request.js` (DRY principle)
 - Middleware execution is async via `process.nextTick`, tests need to wait
 - CORS check (`req.cors`) only true when origin host differs from request host
 - Unknown file extensions may have MIME types in mime-db; use unique extensions for octet-stream
