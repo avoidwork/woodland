@@ -365,5 +365,47 @@ describe("fileserver", () => {
 
 			assert.strictEqual(registeredPath, "/(.*)?");
 		});
+
+		it("should execute registered middleware handler", async () => {
+			let handlerExecuted = false;
+
+			const app = {
+				charset: "utf-8",
+				indexes: ["index.html"],
+				autoindex: true,
+				logger: {
+					logServe: () => ({ log: () => {} }),
+				},
+				etag: () => "test-etag",
+				stream: () => {
+					handlerExecuted = true;
+				},
+			};
+
+			const useMiddleware = (path, handler) => {
+				const result = handler(
+					{
+						method: "GET",
+						parsed: { pathname: "/test/file.txt", search: "" },
+					},
+					{
+						error: () => {
+							handlerExecuted = true;
+						},
+						redirect: () => {},
+					},
+				);
+
+				if (result && typeof result.then === "function") {
+					result.catch(() => {});
+				}
+			};
+
+			register(app, "/files", "/tmp", useMiddleware);
+
+			await new Promise((resolve) => setTimeout(resolve, 10));
+
+			assert.strictEqual(handlerExecuted, true);
+		});
 	});
 });

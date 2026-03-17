@@ -296,6 +296,23 @@ describe("utility", () => {
 			assert.strictEqual(typeof fn, "function");
 		});
 
+		it("should execute immediately with error in immediate mode", () => {
+			let errorHandlerCalled = false;
+			const req = { allow: [], method: "GET" };
+			const res = { statusCode: 500, error: () => {} };
+			const errorHandler = (_err, _req, _res, _fn) => {
+				errorHandlerCalled = true;
+			};
+			const middleware = {
+				next: () => ({ done: false, value: errorHandler }),
+			};
+
+			const fn = next(req, res, middleware, true);
+			fn(new Error("test"));
+
+			assert.strictEqual(errorHandlerCalled, true);
+		});
+
 		it("should find error handler when error is passed", async () => {
 			let errorHandlerCalled = false;
 			const req = { allow: [], method: "GET" };

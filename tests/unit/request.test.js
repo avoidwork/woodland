@@ -705,6 +705,39 @@ describe("request", () => {
 
 			assert.ok(!headersSet.has("access-control-expose-headers"));
 		});
+
+		it("should execute close listener when triggered", () => {
+			const req = createMockReq();
+			let closeListener = null;
+			let closeListenerExecuted = false;
+			const res = {
+				set: () => {},
+				on: (event, fn) => {
+					if (event === "close") {
+						closeListener = fn;
+					}
+				},
+			};
+
+			decorate(req, res, {
+				parsed: { pathname: "/test", hostname: "localhost", search: "" },
+				allowString: "GET",
+				timing: null,
+				corsHostCheck: () => false,
+				corsCheck: () => false,
+				ipExtractor: () => "127.0.0.1",
+				defaultHeaders: [],
+				corsExpose: "",
+				logDecorator: () => {},
+				logClose: () => {
+					closeListenerExecuted = true;
+				},
+			});
+
+			assert.ok(closeListener);
+			closeListener();
+			assert.strictEqual(closeListenerExecuted, true);
+		});
 	});
 
 	describe("logClose", () => {

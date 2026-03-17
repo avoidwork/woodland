@@ -254,6 +254,57 @@ describe("config", () => {
 
 			delete process.env.WOODLAND_LOG_ENABLED;
 		});
+
+		it("should normalize invalid level while preserving enabled true", () => {
+			const result = validateLogging({ enabled: true, level: "badlevel" });
+
+			assert.strictEqual(result.enabled, true);
+			assert.strictEqual(result.level, "info");
+		});
+
+		it("should use env level when config level is undefined", () => {
+			process.env.WOODLAND_LOG_LEVEL = "error";
+			const result = validateLogging({ enabled: true });
+
+			assert.strictEqual(result.enabled, true);
+			assert.strictEqual(result.level, "error");
+
+			delete process.env.WOODLAND_LOG_LEVEL;
+		});
+
+		it("should use config level over env level", () => {
+			process.env.WOODLAND_LOG_LEVEL = "error";
+			const result = validateLogging({ enabled: true, level: "warn" });
+
+			assert.strictEqual(result.enabled, true);
+			assert.strictEqual(result.level, "warn");
+
+			delete process.env.WOODLAND_LOG_LEVEL;
+		});
+
+		it("should use env enabled true with env level", () => {
+			process.env.WOODLAND_LOG_ENABLED = "true";
+			process.env.WOODLAND_LOG_LEVEL = "warn";
+			const result = validateLogging({});
+
+			assert.strictEqual(result.enabled, true);
+			assert.strictEqual(result.level, "warn");
+
+			delete process.env.WOODLAND_LOG_ENABLED;
+			delete process.env.WOODLAND_LOG_LEVEL;
+		});
+
+		it("should use env format with env level", () => {
+			process.env.WOODLAND_LOG_FORMAT = "env-fmt";
+			process.env.WOODLAND_LOG_LEVEL = "debug";
+			const result = validateLogging({});
+
+			assert.strictEqual(result.format, "env-fmt");
+			assert.strictEqual(result.level, "debug");
+
+			delete process.env.WOODLAND_LOG_FORMAT;
+			delete process.env.WOODLAND_LOG_LEVEL;
+		});
 	});
 
 	describe("validateOrigins", () => {

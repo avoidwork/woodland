@@ -628,6 +628,60 @@ describe("woodland", () => {
 				assert.ok(headersWritten);
 				assert.ok(ended);
 			});
+
+			it("should skip content-length for 204 status", () => {
+				let contentLengthSet = false;
+
+				const res = {
+					statusCode: 204,
+					getHeader: () => void 0,
+					header: () => {
+						contentLengthSet = true;
+					},
+					writeHead: () => {},
+					end: () => {},
+				};
+
+				app.onDone({}, res, "body", {});
+
+				assert.strictEqual(contentLengthSet, false);
+			});
+
+			it("should skip content-length for 304 status", () => {
+				let contentLengthSet = false;
+
+				const res = {
+					statusCode: 304,
+					getHeader: () => void 0,
+					header: () => {
+						contentLengthSet = true;
+					},
+					writeHead: () => {},
+					end: () => {},
+				};
+
+				app.onDone({}, res, "body", {});
+
+				assert.strictEqual(contentLengthSet, false);
+			});
+
+			it("should skip content-length when already set", () => {
+				let headerCalled = false;
+
+				const res = {
+					statusCode: 200,
+					getHeader: () => 100,
+					header: () => {
+						headerCalled = true;
+					},
+					writeHead: () => {},
+					end: () => {},
+				};
+
+				app.onDone({}, res, "body", {});
+
+				assert.strictEqual(headerCalled, false);
+			});
 		});
 
 		describe("error", () => {
@@ -815,6 +869,20 @@ describe("woodland", () => {
 				const result = app.redirect({});
 
 				assert.strictEqual(typeof result, "function");
+			});
+
+			it("should execute curried redirect function", () => {
+				let redirected = false;
+				const res = {
+					header: () => {},
+					send: () => {
+						redirected = true;
+					},
+				};
+				const curried = app.redirect(res);
+				curried("/target", false);
+
+				assert.strictEqual(redirected, true);
 			});
 		});
 
@@ -1019,6 +1087,37 @@ describe("woodland", () => {
 
 				assert.strictEqual(req.cors, true);
 			});
+
+			it("should use corsExpose when access-control-request-headers is undefined", () => {
+				const appWithCors = woodland({
+					origins: ["http://example.com"],
+					corsExpose: "x-custom-header",
+				});
+				const req = {
+					headers: {
+						host: "different.com",
+						origin: "http://example.com",
+					},
+					url: "/test",
+					socket: null,
+					method: "GET",
+				};
+				let headersBatch = {};
+				const res = {
+					setHeader: (key, value) => {
+						headersBatch[key] = value;
+					},
+					on: () => {},
+					set: (headers) => {
+						headersBatch = { ...headersBatch, ...headers };
+					},
+					send: () => {},
+				};
+
+				appWithCors.decorate(req, res);
+
+				assert.strictEqual(headersBatch["access-control-expose-headers"], "x-custom-header");
+			});
 		});
 
 		describe("route with disallowed origin", () => {
@@ -1059,6 +1158,46 @@ describe("woodland", () => {
 				await new Promise((resolve) => setTimeout(resolve, 50));
 				assert.strictEqual(errorCalled, true);
 				assert.strictEqual(req.valid, false);
+			});
+
+			it("should return 403 when origin header present but not in allowed list", async () => {
+				const app = woodland({ origins: ["http://allowed.com"] });
+				app.use(() => {});
+
+				const req = {
+					method: "GET",
+					headers: {
+						host: "different.com",
+						origin: "http://notallowed.com",
+					},
+					url: "/test",
+					socket: null,
+				};
+				let errorEmitted = false;
+				const res = {
+					setHeader: () => {},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+					getHeader: () => void 0,
+					writeHead: () => {},
+					end: () => {},
+					statusCode: 200,
+					headersSent: false,
+					removeHeader: () => {},
+					header: () => {},
+				};
+
+				app.on("error", () => {
+					errorEmitted = true;
+				});
+
+				app.route(req, res);
+
+				await new Promise((resolve) => setTimeout(resolve, 50));
+				assert.strictEqual(errorEmitted, true);
+				assert.strictEqual(req.valid, false);
+				assert.strictEqual(res.statusCode, 403);
 			});
 		});
 
