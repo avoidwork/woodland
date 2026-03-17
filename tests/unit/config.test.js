@@ -237,6 +237,23 @@ describe("config", () => {
 
 			delete process.env.WOODLAND_LOG_LEVEL;
 		});
+
+		it("should normalize invalid level while preserving enabled false", () => {
+			const result = validateLogging({ enabled: false, level: "bogus" });
+
+			assert.strictEqual(result.enabled, false);
+			assert.strictEqual(result.level, "info");
+		});
+
+		it("should use env enabled false with invalid level from config", () => {
+			process.env.WOODLAND_LOG_ENABLED = "false";
+			const result = validateLogging({ level: "invalid" });
+
+			assert.strictEqual(result.enabled, false);
+			assert.strictEqual(result.level, "info");
+
+			delete process.env.WOODLAND_LOG_ENABLED;
+		});
 	});
 
 	describe("validateOrigins", () => {

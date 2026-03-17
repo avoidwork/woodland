@@ -84,6 +84,27 @@ describe("logger", () => {
 				});
 			});
 
+			it("should use console.error for warn level", async () => {
+				const logger = createLogger({ level: "debug" });
+				const consoleLog = console.log;
+				const consoleError = console.error;
+				let errorCalled = false;
+
+				console.log = () => {};
+				console.error = () => {
+					errorCalled = true;
+				};
+
+				logger.log("warn message", "warn");
+
+				await new Promise((resolve) => setTimeout(resolve, 10));
+
+				assert.strictEqual(errorCalled, true);
+
+				console.log = consoleLog;
+				console.error = consoleError;
+			});
+
 			it("should use console.log for debug level", async () => {
 				const logger = createLogger({ level: "debug" });
 				const consoleLog = console.log;
@@ -139,6 +160,27 @@ describe("logger", () => {
 				assert.strictEqual(called, false);
 
 				console.log = consoleLog;
+			});
+
+			it("should use console.error for crit level", async () => {
+				const logger = createLogger({ level: "debug" });
+				const consoleLog = console.log;
+				const consoleError = console.error;
+				let errorCalled = false;
+
+				console.log = () => {};
+				console.error = () => {
+					errorCalled = true;
+				};
+
+				logger.log("crit message", "crit");
+
+				await new Promise((resolve) => setTimeout(resolve, 10));
+
+				assert.strictEqual(errorCalled, true);
+
+				console.log = consoleLog;
+				console.error = consoleError;
 			});
 		});
 
