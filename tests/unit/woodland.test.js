@@ -1201,7 +1201,7 @@ describe("woodland", () => {
 
 			try {
 				await result;
-			} catch (err) {
+			} catch (_) {
 				// Expected to fail since file doesn't exist
 			}
 
@@ -1218,7 +1218,7 @@ describe("woodland", () => {
 				error: () => {},
 				set: () => {},
 				send: () => {},
-				header: (key, value) => {},
+				header: () => {},
 				getHeader: () => void 0,
 				removeHeader: () => {},
 				headersSent: false,
