@@ -919,6 +919,13 @@ describe("utility", () => {
 			assert.strictEqual(isValidIP("gggg::2001"), false);
 		});
 
+		it("should reject IPv6 with ::: pattern", () => {
+			assert.strictEqual(isValidIP(":::"), false);
+			assert.strictEqual(isValidIP("2001:::1"), false);
+			assert.strictEqual(isValidIP(":::1"), false);
+			assert.strictEqual(isValidIP("1:::1"), false);
+		});
+
 		it("should reject compressed IPv6 with invalid hex as first left group", () => {
 			// Ensures loop iteration 0 on left side is covered
 			assert.strictEqual(isValidIP("gggg::1"), false);
