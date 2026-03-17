@@ -83,6 +83,63 @@ describe("logger", () => {
 					logger.log("warn message", "warn");
 				});
 			});
+
+			it("should use console.log for debug level", async () => {
+				const logger = createLogger({ level: "debug" });
+				const consoleLog = console.log;
+				let called = false;
+
+				console.log = () => {
+					called = true;
+				};
+
+				logger.log("debug message", "debug");
+
+				await new Promise((resolve) => setTimeout(resolve, 10));
+
+				assert.strictEqual(called, true);
+
+				console.log = consoleLog;
+			});
+
+			it("should use console.error for error level", async () => {
+				const logger = createLogger({ level: "debug" });
+				const consoleLog = console.log;
+				const consoleError = console.error;
+				let errorCalled = false;
+
+				console.log = () => {};
+				console.error = () => {
+					errorCalled = true;
+				};
+
+				logger.log("error message", "error");
+
+				await new Promise((resolve) => setTimeout(resolve, 10));
+
+				assert.strictEqual(errorCalled, true);
+
+				console.log = consoleLog;
+				console.error = consoleError;
+			});
+
+			it("should not log debug when level is info", async () => {
+				const logger = createLogger({ level: "info" });
+				const consoleLog = console.log;
+				let called = false;
+
+				console.log = () => {
+					called = true;
+				};
+
+				logger.log("debug message", "debug");
+
+				await new Promise((resolve) => setTimeout(resolve, 10));
+
+				assert.strictEqual(called, false);
+
+				console.log = consoleLog;
+			});
 		});
 
 		describe("clfm", () => {
@@ -147,6 +204,145 @@ describe("logger", () => {
 				const result = logger.clfm(req, res);
 
 				assert.ok(typeof result === "string");
+			});
+
+			it("should handle missing getHeader", () => {
+				const logger = createLogger({ format: "%h %t %r %>s %b" });
+				const req = {
+					method: "GET",
+					headers: { host: "example.com" },
+					connection: { remoteAddress: "192.168.1.1" },
+				};
+
+				const res = {
+					statusCode: 200,
+				};
+
+				const result = logger.clfm(req, res);
+
+				assert.ok(typeof result === "string");
+			});
+
+			it("should handle missing statusCode", () => {
+				const logger = createLogger({ format: "%h %t %r %>s %b" });
+				const req = {
+					method: "GET",
+					headers: { host: "example.com" },
+					connection: { remoteAddress: "192.168.1.1" },
+				};
+
+				const res = {};
+
+				const result = logger.clfm(req, res);
+
+				assert.ok(typeof result === "string");
+			});
+
+			it("should handle missing username in parsed", () => {
+				const logger = createLogger({ format: "%h %t %r %>s %b %u" });
+				const req = {
+					method: "GET",
+					headers: { host: "example.com" },
+					connection: { remoteAddress: "192.168.1.1" },
+					parsed: {
+						pathname: "/test",
+						search: "?q=1",
+					},
+				};
+
+				const res = {
+					statusCode: 200,
+					getHeader: () => 1234,
+				};
+
+				const result = logger.clfm(req, res);
+
+				assert.ok(typeof result === "string");
+			});
+
+			it("should handle missing search in parsed", () => {
+				const logger = createLogger({ format: "%h %t %r %>s %b" });
+				const req = {
+					method: "GET",
+					headers: { host: "example.com" },
+					connection: { remoteAddress: "192.168.1.1" },
+					parsed: {
+						pathname: "/test",
+					},
+				};
+
+				const res = {
+					statusCode: 200,
+					getHeader: () => 1234,
+				};
+
+				const result = logger.clfm(req, res);
+
+				assert.ok(typeof result === "string");
+			});
+
+			it("should handle missing method", () => {
+				const logger = createLogger({ format: "%h %t %r %>s %b" });
+				const req = {
+					headers: { host: "example.com" },
+					connection: { remoteAddress: "192.168.1.1" },
+					parsed: {
+						pathname: "/test",
+						search: "?q=1",
+					},
+				};
+
+				const res = {
+					statusCode: 200,
+					getHeader: () => 1234,
+				};
+
+				const result = logger.clfm(req, res);
+
+				assert.ok(typeof result === "string");
+			});
+
+			it("should handle missing referer and user-agent", () => {
+				const logger = createLogger({ format: "%h %t %r %>s %b %{Referer}i %{User-agent}i" });
+				const req = {
+					method: "GET",
+					headers: { host: "example.com" },
+					connection: { remoteAddress: "192.168.1.1" },
+					parsed: {
+						pathname: "/test",
+						search: "?q=1",
+					},
+				};
+
+				const res = {
+					statusCode: 200,
+					getHeader: () => 1234,
+				};
+
+				const result = logger.clfm(req, res);
+
+				assert.ok(typeof result === "string");
+			});
+
+			it("should use req.ip when available", () => {
+				const logger = createLogger({ format: "%h" });
+				const req = {
+					ip: "203.0.113.1",
+					headers: { host: "example.com" },
+					parsed: {
+						pathname: "/test",
+						search: "?q=1",
+					},
+				};
+
+				const res = {
+					statusCode: 200,
+					getHeader: () => 1234,
+				};
+
+				const result = logger.clfm(req, res);
+
+				assert.ok(result.includes("203.0.113.1"));
 			});
 		});
 

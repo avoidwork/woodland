@@ -155,9 +155,23 @@ describe("config", () => {
 			assert.strictEqual(result.level, "debug");
 		});
 
+		it("should use logging.enabled false when defined", () => {
+			const result = validateLogging({ enabled: false });
+
+			assert.strictEqual(result.enabled, false);
+		});
+
 		it("should normalize invalid log level to info", () => {
 			const result = validateLogging({ level: "invalid-level" });
 
+			assert.strictEqual(result.level, "info");
+		});
+
+		it("should preserve enabled and format when normalizing invalid level", () => {
+			const result = validateLogging({ enabled: false, format: "custom", level: "invalid" });
+
+			assert.strictEqual(result.enabled, false);
+			assert.strictEqual(result.format, "custom");
 			assert.strictEqual(result.level, "info");
 		});
 
@@ -214,6 +228,15 @@ describe("config", () => {
 
 			delete process.env.WOODLAND_LOG_LEVEL;
 		});
+
+		it("should normalize invalid environment variable level to info", () => {
+			process.env.WOODLAND_LOG_LEVEL = "invalid-env-level";
+			const result = validateLogging({});
+
+			assert.strictEqual(result.level, "info");
+
+			delete process.env.WOODLAND_LOG_LEVEL;
+		});
 	});
 
 	describe("validateOrigins", () => {
@@ -249,6 +272,12 @@ describe("config", () => {
 
 		it("should reject origins without protocol", () => {
 			const result = validateOrigins(["//example.com"]);
+
+			assert.deepStrictEqual(result, []);
+		});
+
+		it("should reject origins with trailing slash", () => {
+			const result = validateOrigins(["https://example.com/"]);
 
 			assert.deepStrictEqual(result, []);
 		});
