@@ -23,8 +23,12 @@ export function reduce(uri, map = new Map(), arg = {}) {
 
 	const middlewareArray = arg.middleware;
 	let paramsFound = arg.params;
+	const values = map.values();
+	const valuesArray = Array.from(values);
+	const valueCount = valuesArray.length;
 
-	for (const middleware of map.values()) {
+	for (let i = 0; i < valueCount; i++) {
+		const middleware = valuesArray[i];
 		middleware.regex.lastIndex = 0;
 
 		if (middleware.regex.test(uri)) {
@@ -160,13 +164,17 @@ export function computeRoutes(middleware, ignored, uri, method, cache, override 
  */
 export function listRoutes(middleware, method = GET.toLowerCase(), type = "array") {
 	let result;
+	const methodMap = middleware.get(method.toUpperCase());
 
 	if (type === "array") {
-		result = Array.from(middleware.get(method.toUpperCase()).keys());
+		result = Array.from(methodMap.keys());
 	} else if (type === "object") {
 		result = {};
+		const entries = Array.from(methodMap.entries());
+		const entryCount = entries.length;
 
-		for (const [key, value] of middleware.get(method.toUpperCase()).entries()) {
+		for (let i = 0; i < entryCount; i++) {
+			const [key, value] = entries[i];
 			result[key] = value;
 		}
 	}
@@ -189,6 +197,29 @@ export function checkAllowed(middleware, ignored, cache, method, uri, override =
 }
 
 /**
+ * Creates a registry object with middleware management methods
+ * @param {Map} middleware - Map of middleware by method
+ * @param {Set} ignored - Set of ignored middleware functions
+ * @param {Array} methods - Array of registered HTTP methods
+ * @param {Map} cache - Cache for route results
+ * @returns {Object} Registry object with ignore, allowed, routes, register, list methods
+ */
+export function createMiddlewareRegistry(middleware, ignored, methods, cache) {
+	const registry = {
+		ignore: (f) => {
+			ignored.add(f);
+			return registry;
+		},
+		allowed: (m, u, o) => checkAllowed(middleware, ignored, cache, m, u, o),
+		routes: (u, m, o) => computeRoutes(middleware, ignored, u, m, cache, o),
+		register: (p, ...fns) => registerMiddleware(middleware, ignored, methods, cache, p, ...fns),
+		list: (m, t) => listRoutes(middleware, m, t),
+	};
+
+	return registry;
+}
+
+/**
  * Registers middleware for a route
  * @param {Map} middleware - Map of middleware by method
  * @param {Set} ignored - Set of ignored middleware functions
@@ -199,6 +230,10 @@ export function checkAllowed(middleware, ignored, cache, method, uri, override =
  * @returns {Object} Registry object for chaining
  */
 export function registerMiddleware(middleware, ignored, methods, cache, rpath, ...fn) {
+	if (rpath === void 0) {
+		return createMiddlewareRegistry(middleware, ignored, methods, cache);
+	}
+
 	if (typeof rpath === FUNCTION) {
 		fn = [rpath, ...fn];
 		rpath = `/.${WILDCARD}`;
@@ -252,13 +287,7 @@ export function registerMiddleware(middleware, ignored, methods, cache, rpath, .
 		regex: new RegExp(`^${lrpath}$`),
 	});
 
-	return {
-		ignore: (f) => ignoreFunction(ignored, f),
-		allowed: (m, u, o) => checkAllowed(middleware, ignored, cache, m, u, o),
-		routes: (u, m, o) => computeRoutes(middleware, ignored, u, m, cache, o),
-		register: (p, ...fns) => registerMiddleware(middleware, ignored, methods, cache, p, ...fns),
-		list: (m, t) => listRoutes(middleware, m, t),
-	};
+	return createMiddlewareRegistry(middleware, ignored, methods, cache);
 }
 
 /**
@@ -273,91 +302,5 @@ export function registerMiddleware(middleware, ignored, methods, cache, rpath, .
 export function ignoreFunction(ignored, middleware, methods, cache, fn) {
 	ignored.add(fn);
 
-	return {
-		ignore: (f) => ignoreFunction(ignored, middleware, methods, cache, f),
-		allowed: (m, u, o) => checkAllowed(middleware, ignored, cache, m, u, o),
-		routes: (u, m, o) => computeRoutes(middleware, ignored, u, m, cache, o),
-		register: (p, ...fns) => registerMiddleware(middleware, ignored, methods, cache, p, ...fns),
-		list: (m, t) => listRoutes(middleware, m, t),
-	};
-}
-
-/**
- * Creates a middleware registry for managing routes and handlers
- * @param {Map} middleware - Map of middleware by method
- * @param {Set} ignored - Set of ignored middleware functions
- * @param {Array} methods - Array of registered HTTP methods
- * @param {Map} cache - Cache for route results
- * @returns {Object} Registry object with ignore, allowed, routes, register, list methods
- */
-export function createMiddlewareRegistry(middleware, ignored, methods, cache) {
-	const registry = {
-		ignore: (fn) => {
-			ignored.add(fn);
-			return registry;
-		},
-		allowed: (method, uri, override = false) =>
-			checkAllowed(middleware, ignored, cache, method, uri, override),
-		routes: (uri, method, override = false) =>
-			computeRoutes(middleware, ignored, uri, method, cache, override),
-		register: (rpath, ...fn) => {
-			if (typeof rpath === FUNCTION) {
-				fn = [rpath, ...fn];
-				rpath = `/.${WILDCARD}`;
-			}
-
-			const method = typeof fn[fn.length - 1] === STRING ? fn.pop().toUpperCase() : GET;
-
-			const nodeMethods = [
-				"CONNECT",
-				"DELETE",
-				"GET",
-				"HEAD",
-				"OPTIONS",
-				"PATCH",
-				"POST",
-				"PUT",
-				"TRACE",
-			];
-
-			if (method !== WILDCARD && nodeMethods.includes(method) === false) {
-				throw new TypeError("Invalid HTTP method");
-			}
-
-			if (method === HEAD) {
-				throw new TypeError("Cannot set HEAD route, use GET");
-			}
-
-			if (middleware.has(method) === false) {
-				if (method !== WILDCARD) {
-					methods.push(method);
-				}
-
-				middleware.set(method, new Map());
-			}
-
-			const mmethod = middleware.get(method);
-			let lrpath = rpath,
-				lparams = false;
-
-			if (lrpath.includes(`${SLASH}${LEFT_PAREN}`) === false && lrpath.includes(`${SLASH}:`)) {
-				lparams = true;
-				lrpath = pathFn(lrpath);
-			}
-
-			const current = mmethod.get(lrpath) ?? { handlers: [] };
-
-			current.handlers.push(...fn);
-			mmethod.set(lrpath, {
-				handlers: current.handlers,
-				params: lparams,
-				regex: new RegExp(`^${lrpath}$`),
-			});
-
-			return registry;
-		},
-		list: (method = GET.toLowerCase(), type = "array") => listRoutes(middleware, method, type),
-	};
-
-	return registry;
+	return createMiddlewareRegistry(middleware, ignored, methods, cache);
 }

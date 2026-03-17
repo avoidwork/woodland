@@ -3,6 +3,7 @@
 import { createServer } from "node:http";
 import { coerce } from "tiny-coerce";
 import { woodland } from "woodland";
+import { isValidIP } from "./utility.js";
 import {
 	CACHE_CONTROL,
 	CHAR_SET,
@@ -13,7 +14,6 @@ import {
 	INT_0,
 	INT_8000,
 	INT_65535,
-	IPV4_REGEX,
 	LOCALHOST,
 	NO_CACHE,
 	TEXT_PLAIN,
@@ -45,7 +45,7 @@ if (!Number.isInteger(validPort) || validPort < INT_0 || validPort > INT_65535) 
 	console.error("Invalid port: must be an integer between 0 and 65535.");
 	process.exit(1);
 }
-let validIP = typeof ip === "string" && IPV4_REGEX.test(ip);
+let validIP = isValidIP(ip);
 if (!validIP) {
 	console.error("Invalid IP: must be a valid IPv4 address.");
 	process.exit(1);

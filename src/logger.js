@@ -44,22 +44,25 @@ export function clfm(req, res, format) {
 	const timezone = timeOffset(date.getTimezoneOffset());
 	const dateStr = `[${day}/${month}/${year}:${hours}:${minutes}:${seconds} ${timezone}]`;
 
-	const host = req.headers?.host ?? HYPHEN;
+	const headers = req.headers;
+	const host = headers && headers.host ? headers.host : HYPHEN;
 	const clientIP = req.ip || extractIP(req);
 	const ip = clientIP || HYPHEN;
 	const logname = HYPHEN;
-	const username = req?.parsed?.username ?? HYPHEN;
+	const parsed = req.parsed;
+	const username = parsed && parsed.username ? parsed.username : HYPHEN;
+	const pathname = parsed && parsed.pathname ? parsed.pathname : req.url ? req.url : HYPHEN;
+	const search = parsed && parsed.search ? parsed.search : HYPHEN;
+	const method = req.method ? req.method : HYPHEN;
+	const requestLine = `${method} ${pathname}${search} HTTP/1.1`;
 
-	const parsed = req?.parsed;
-	const pathname = parsed?.pathname ?? req.url ?? HYPHEN;
-	const search = parsed?.search ?? HYPHEN;
-	const requestLine = `${req.method ?? HYPHEN} ${pathname}${search} HTTP/1.1`;
+	const resStatusCode = res.statusCode;
+	const statusCode = resStatusCode ? resStatusCode : 500;
+	const getHeader = res.getHeader;
+	const contentLength = getHeader ? getHeader.call(res, "content-length") : HYPHEN;
 
-	const statusCode = res?.statusCode ?? 500;
-	const contentLength = res?.getHeader("content-length") ?? HYPHEN;
-
-	const referer = req.headers?.referer ?? HYPHEN;
-	const userAgent = req.headers?.["user-agent"] ?? HYPHEN;
+	const referer = headers && headers.referer ? headers.referer : HYPHEN;
+	const userAgent = headers && headers["user-agent"] ? headers["user-agent"] : HYPHEN;
 
 	let logEntry = format;
 

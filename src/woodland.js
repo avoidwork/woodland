@@ -511,13 +511,17 @@ export class Woodland extends EventEmitter {
 	 */
 	list(method = GET.toLowerCase(), type = "array") {
 		let result;
+		const methodMap = this.middleware.get(method.toUpperCase());
 
 		if (type === "array") {
-			result = Array.from(this.middleware.get(method.toUpperCase()).keys());
+			result = Array.from(methodMap.keys());
 		} else if (type === "object") {
 			result = {};
+			const entries = Array.from(methodMap.entries());
+			const entryCount = entries.length;
 
-			for (const [key, value] of this.middleware.get(method.toUpperCase()).entries()) {
+			for (let i = 0; i < entryCount; i++) {
+				const [key, value] = entries[i];
 				result[key] = value;
 			}
 		}

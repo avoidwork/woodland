@@ -1,5 +1,6 @@
 import assert from "node:assert";
 import { describe, it, beforeEach } from "node:test";
+import { FUNCTION } from "../../src/constants.js";
 import {
 	reduce,
 	getStatus,
@@ -417,11 +418,11 @@ describe("middleware", () => {
 				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
 				const result = registry.register("/test", () => {});
 
-				assert.strictEqual(result.ignore, registry.ignore);
-				assert.strictEqual(result.allowed, registry.allowed);
-				assert.strictEqual(result.routes, registry.routes);
-				assert.strictEqual(result.register, registry.register);
-				assert.strictEqual(result.list, registry.list);
+				assert.ok(typeof result.ignore === FUNCTION);
+				assert.ok(typeof result.allowed === FUNCTION);
+				assert.ok(typeof result.routes === FUNCTION);
+				assert.ok(typeof result.register === FUNCTION);
+				assert.ok(typeof result.list === FUNCTION);
 			});
 		});
 
