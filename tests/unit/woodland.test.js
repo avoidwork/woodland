@@ -554,7 +554,7 @@ describe("woodland", () => {
 				const res = {
 					statusCode: 200,
 					getHeader: () => void 0,
-					header: (key, value) => {
+					header: (key, _value) => {
 						headerCalled = true;
 						assert.ok(key.includes("response-time"));
 					},
