@@ -1199,11 +1199,8 @@ describe("woodland", () => {
 
 			const result = app.serve(req, res, "/test.txt", "/tmp");
 
-			try {
-				await result;
-			} catch (_) {
-				// Expected to fail since file doesn't exist
-			}
+			// Await to prevent async activity after test
+			await result.catch(() => {});
 
 			assert.ok(true);
 		});
