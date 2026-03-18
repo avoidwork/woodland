@@ -93,7 +93,16 @@ export function validateConfig(config = {}) {
 	return validated;
 }
 
-const VALID_LOG_LEVELS = [DEBUG, INFO, "warn", "error", "critical", "alert", "emerg", "notice"];
+const VALID_LOG_LEVELS = new Set([
+	DEBUG,
+	INFO,
+	"warn",
+	"error",
+	"critical",
+	"alert",
+	"emerg",
+	"notice",
+]);
 
 function resolveLoggingValue(configValue, envValue, defaultValue) {
 	if (configValue !== void 0) {
@@ -110,17 +119,12 @@ export function validateLogging(logging = {}) {
 	const envLogFormat = process.env.WOODLAND_LOG_FORMAT;
 	const envLogLevel = process.env.WOODLAND_LOG_LEVEL;
 
-	const enabled =
-		logging.enabled !== void 0
-			? logging.enabled
-			: envLogEnabled !== void 0
-				? envLogEnabled !== "false"
-				: true;
+	const enabled = logging.enabled ?? (envLogEnabled ?? "true") !== "false";
 
 	const format = resolveLoggingValue(logging.format, envLogFormat, LOG_FORMAT);
 	const level = resolveLoggingValue(logging.level, envLogLevel, INFO);
 
-	if (!VALID_LOG_LEVELS.includes(level)) {
+	if (!VALID_LOG_LEVELS.has(level)) {
 		return { enabled, format, level: INFO };
 	}
 
@@ -159,12 +163,7 @@ export function mergeEnvLogging(logging = {}) {
 	const envLogFormat = process.env.WOODLAND_LOG_FORMAT;
 	const envLogLevel = process.env.WOODLAND_LOG_LEVEL;
 
-	const enabled =
-		logging.enabled !== void 0
-			? logging.enabled
-			: envLogEnabled !== void 0
-				? envLogEnabled !== "false"
-				: true;
+	const enabled = logging.enabled ?? (envLogEnabled ?? "true") !== "false";
 
 	const format = resolveLoggingValue(logging.format, envLogFormat, LOG_FORMAT);
 	const level = resolveLoggingValue(logging.level, envLogLevel, INFO);
