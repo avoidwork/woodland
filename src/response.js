@@ -19,6 +19,14 @@ import {
 } from "./constants.js";
 import { partialHeaders, writeHead, pipeable, mimeExtensions } from "./utility.js";
 
+const htmlEscapes = {
+	"&": "&amp;",
+	"<": "&lt;",
+	">": "&gt;",
+	'"': "&quot;",
+	"'": "&#39;",
+};
+
 /**
  * Gets MIME type for file extension
  * @param {string} [arg=""] - File path or extension
@@ -259,4 +267,13 @@ export function stream(req, res, file, emitStream, createReadStream, etags) {
 	}
 
 	emitStream(req, res);
+}
+
+/**
+ * Escapes HTML special characters to prevent XSS attacks
+ * @param {string} [str=""] - The string to escape
+ * @returns {string} The escaped string with HTML entities
+ */
+export function escapeHtml(str = EMPTY) {
+	return str.replace(/[&<>"']/g, (match) => htmlEscapes[match]);
 }

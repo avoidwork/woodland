@@ -1,4 +1,15 @@
-import { DEBUG, ERROR, HYPHEN, INFO, MONTHS } from "./constants.js";
+import {
+	DEBUG,
+	ERROR,
+	HYPHEN,
+	INFO,
+	MONTHS,
+	INT_0,
+	INT_3,
+	INT_1e6,
+	TIME_MS,
+	TOKEN_N,
+} from "./constants.js";
 import { timeOffset } from "./utility.js";
 
 const LEVELS = {
@@ -206,4 +217,14 @@ export function createLogger(config = {}) {
 		logServe: (req, message) =>
 			logServe(req, message, (msg, lvl) => log(msg, lvl, enabled, actualLevel)),
 	};
+}
+
+/**
+ * Formats a time value in milliseconds with specified precision
+ * @param {number} [arg=0] - The time value in nanoseconds
+ * @param {number} [digits=3] - Number of decimal places for precision
+ * @returns {string} Formatted time string with "ms" suffix
+ */
+export function ms(arg = INT_0, digits = INT_3) {
+	return TIME_MS.replace(TOKEN_N, Number(arg / INT_1e6).toFixed(digits));
 }

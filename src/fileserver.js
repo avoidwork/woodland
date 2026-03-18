@@ -1,7 +1,50 @@
 import { readdir, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { readFileSync } from "node:fs";
 import { EMPTY, INT_0, INT_403, INT_404, SLASH, UTF8 } from "./constants.js";
-import { autoindex } from "./utility.js";
+import { escapeHtml } from "./response.js";
+
+const html = readFileSync(join(import.meta.dirname, "..", "tpl", "autoindex.html"), {
+	encoding: UTF8,
+});
+
+/**
+ * Generates an HTML autoindex page for directory listings
+ * @param {string} [title=""] - The title for the autoindex page
+ * @param {Array} [files=[]] - Array of file objects from fs.readdir with withFileTypes: true
+ * @returns {string} The complete HTML string for the autoindex page
+ */
+export function autoindex(title = EMPTY, files = []) {
+	const safeTitle = escapeHtml(title);
+
+	if (files.length === 0) {
+		return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) => {
+			return key === "TITLE" ? safeTitle : '    <li><a href=".." rel="collection">../</a></li>';
+		});
+	}
+
+	const listItems = Array.from({ length: files.length + 1 });
+	listItems[0] = '    <li><a href=".." rel="collection">../</a></li>';
+
+	const fileCount = files.length;
+	for (let i = 0; i < fileCount; i++) {
+		const file = files[i];
+		const fileName = file.name;
+		const safeName = escapeHtml(fileName);
+		const safeHref = encodeURIComponent(fileName);
+		const isDir = file.isDirectory();
+
+		listItems[i + 1] = isDir
+			? `    <li><a href="${safeHref}/" rel="collection">${safeName}/</a></li>`
+			: `    <li><a href="${safeHref}" rel="item">${safeName}</a></li>`;
+	}
+
+	const safeFiles = listItems.join("\n");
+
+	const replaceCallback = (match, key) => (key === "TITLE" ? safeTitle : safeFiles);
+
+	return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, replaceCallback);
+}
 
 /**
  * Serves files from filesystem

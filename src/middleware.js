@@ -9,7 +9,8 @@ import {
 	STRING,
 	WILDCARD,
 } from "./constants.js";
-import { extractPath as pathFn } from "./utility.js";
+
+const extractPath = (arg = "") => arg.replace(/\/:([^/]+)/g, "/(?<$1>[^/]+)");
 
 /**
  * Processes middleware map for a given URI and populates middleware array
@@ -279,7 +280,7 @@ export function registerMiddleware(middleware, ignored, methods, cache, rpath, .
 
 	if (lrpath.includes(`${SLASH}${LEFT_PAREN}`) === false && lrpath.includes(`${SLASH}:`)) {
 		lparams = true;
-		lrpath = pathFn(lrpath);
+		lrpath = extractPath(lrpath);
 	}
 
 	const current = mmethod.get(lrpath) ?? { handlers: [] };

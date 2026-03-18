@@ -5,7 +5,7 @@
  * @license BSD-3-Clause
  * @version 20.2.10
  */
-import {STATUS_CODES,METHODS}from'node:http';import {EventEmitter}from'node:events';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {createRequire}from'node:module';import {join,extname,resolve}from'node:path';import {fileURLToPath,URL}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';import {Validator}from'jsonschema';import {stat,readdir}from'node:fs/promises';const __dirname$2 = fileURLToPath(new URL(".", import.meta.url));
+import {STATUS_CODES,METHODS}from'node:http';import {EventEmitter}from'node:events';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {coerce}from'tiny-coerce';import {createRequire}from'node:module';import {join,extname,resolve}from'node:path';import {fileURLToPath,URL as URL$1}from'node:url';import mimeDb from'mime-db';import {Validator}from'jsonschema';import {stat,readdir}from'node:fs/promises';const __dirname$2 = fileURLToPath(new URL$1(".", import.meta.url));
 const require$1 = createRequire(import.meta.url);
 const { name, version } = require$1(join(__dirname$2, "..", "package.json"));
 
@@ -137,9 +137,9 @@ const MONTHS = Object.freeze(
 
 		return Object.freeze(d.toLocaleString(EN_US, { month: SHORT }));
 	}),
-);const __dirname$1 = fileURLToPath(new URL(".", import.meta.url)),
-	html = readFileSync(join(__dirname$1, "..", "tpl", "autoindex.html"), { encoding: UTF8 }),
-	valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
+);const __dirname$1 = fileURLToPath(new URL$1(".", import.meta.url));
+	readFileSync(join(__dirname$1, "..", "tpl", "autoindex.html"), { encoding: UTF8 });
+	const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
 	mimeExtensions = valid.reduce((a, v) => {
 		const result = Object.assign({ type: v[0] }, v[1]);
 
@@ -149,130 +149,6 @@ const MONTHS = Object.freeze(
 
 		return a;
 	}, {});
-
-/**
- * Escapes HTML special characters to prevent XSS attacks
- * @param {string} [str=""] - The string to escape
- * @returns {string} The escaped string with HTML entities
- */
-function escapeHtml(str = EMPTY) {
-	// Use lookup table for single-pass replacement
-	const htmlEscapes = {
-		"&": "&amp;",
-		"<": "&lt;",
-		">": "&gt;",
-		'"': "&quot;",
-		"'": "&#39;",
-	};
-
-	return str.replace(/[&<>"']/g, (match) => htmlEscapes[match]);
-}
-
-/**
- * Generates an HTML autoindex page for directory listings
- * @param {string} [title=""] - The title for the autoindex page
- * @param {Array} [files=[]] - Array of file objects from fs.readdir with withFileTypes: true
- * @returns {string} The complete HTML string for the autoindex page
- */
-function autoindex(title = EMPTY, files = []) {
-	const safeTitle = escapeHtml(title);
-
-	// Optimized: Fast path for empty files array
-	if (files.length === 0) {
-		return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) => {
-			return key === "TITLE" ? safeTitle : '    <li><a href=".." rel="collection">../</a></li>';
-		});
-	}
-
-	// Pre-allocate array for better performance
-	const listItems = Array.from({ length: files.length + 1 });
-	listItems[0] = '    <li><a href=".." rel="collection">../</a></li>';
-
-	// Optimized: Cache file count and optimize loop
-	const fileCount = files.length;
-	for (let i = 0; i < fileCount; i++) {
-		const file = files[i];
-		const fileName = file.name;
-		const safeName = escapeHtml(fileName);
-		const safeHref = encodeURIComponent(fileName);
-		const isDir = file.isDirectory();
-
-		// Optimized: Use ternary operator for better performance
-		listItems[i + 1] = isDir
-			? `    <li><a href="${safeHref}/" rel="collection">${safeName}/</a></li>`
-			: `    <li><a href="${safeHref}" rel="item">${safeName}</a></li>`;
-	}
-
-	const safeFiles = listItems.join("\n");
-
-	// Optimized: Cache replace callback for reuse
-	const replaceCallback = (match, key) => (key === "TITLE" ? safeTitle : safeFiles);
-
-	return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, replaceCallback);
-}
-
-/**
- * Extracts and processes URL parameters from request path
- * @param {Object} req - The HTTP request object
- * @param {RegExp} getParams - Regular expression for parameter extraction
- */
-function params(req, getParams) {
-	getParams.lastIndex = INT_0;
-	const match = getParams.exec(req.parsed.pathname);
-	const groups = match?.groups;
-
-	if (!groups) {
-		req.params = {};
-
-		return;
-	}
-
-	// Optimized: Use Object.create(null) for faster parameter object
-	const processedParams = Object.create(null);
-	const keys = Object.keys(groups);
-	const keyCount = keys.length;
-
-	// Optimized: Use standard for loop for better performance
-	for (let i = 0; i < keyCount; i++) {
-		const key = keys[i];
-		const value = groups[key];
-
-		// Optimized: Avoid repeated calls to escapeHtml and coerce
-		if (value === null || value === undefined) {
-			processedParams[key] = coerce(null);
-		} else {
-			// Optimized URL decoding with fast path for common cases
-			let decoded;
-			if (value.indexOf("%") === -1) {
-				// Fast path: no URL encoding
-				decoded = value;
-			} else {
-				try {
-					decoded = decodeURIComponent(value);
-				} catch {
-					decoded = value;
-				}
-			}
-
-			processedParams[key] = coerce(escapeHtml(decoded));
-		}
-	}
-
-	req.params = processedParams;
-}
-
-/**
- * Parses a URL string or request object into a URL object with security checks
- * @param {string|Object} arg - URL string or request object to parse
- * @returns {URL} Parsed URL object
- */
-function parse(arg) {
-	return new URL(
-		typeof arg === STRING
-			? arg
-			: `http://${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || "8000"}`}${arg.url}`,
-	);
-}
 
 /**
  * Handles partial content headers for HTTP range requests
@@ -401,16 +277,9 @@ function timeOffset(arg = INT_0) {
  */
 function writeHead(res, headers = {}) {
 	res.writeHead(res.statusCode, STATUS_CODES[res.statusCode], headers);
-}
+}const extractPath = (arg = "") => arg.replace(/\/:([^/]+)/g, "/(?<$1>[^/]+)");
 
 /**
- * Converts a route path with parameters to a regex pattern
- * @param {string} [arg=''] - Route path with parameter placeholders
- * @returns {string} Regex pattern string
- */
-function extractPath(arg = EMPTY) {
-	return arg.replace(/\/:([^/]+)/g, "/(?<$1>[^/]+)");
-}/**
  * Processes middleware map for a given URI and populates middleware array
  * @param {string} uri - The URI to match against
  * @param {Map} [map=new Map()] - Map of middleware handlers
@@ -690,7 +559,15 @@ function registerMiddleware(middleware, ignored, methods, cache, rpath, ...fn) {
 		regex: new RegExp(`^${lrpath}$`),
 	});
 	return;
-}/**
+}const htmlEscapes = {
+	"&": "&amp;",
+	"<": "&lt;",
+	">": "&gt;",
+	'"': "&quot;",
+	"'": "&#39;",
+};
+
+/**
  * Gets MIME type for file extension
  * @param {string} [arg=""] - File path or extension
  * @returns {string} MIME type string
@@ -930,6 +807,15 @@ function stream(req, res, file, emitStream, createReadStream, etags) {
 	}
 
 	emitStream(req, res);
+}
+
+/**
+ * Escapes HTML special characters to prevent XSS attacks
+ * @param {string} [str=""] - The string to escape
+ * @returns {string} The escaped string with HTML entities
+ */
+function escapeHtml(str = EMPTY) {
+	return str.replace(/[&<>"']/g, (match) => htmlEscapes[match]);
 }const DEFAULTS = {
 	autoindex: false,
 	cacheSize: INT_1e3,
@@ -1290,7 +1176,49 @@ function corsHost(req) {
  */
 function corsRequest() {
 	return (req, res) => res.status(204).send(EMPTY);
-}/**
+}const html = readFileSync(join(import.meta.dirname, "..", "tpl", "autoindex.html"), {
+	encoding: UTF8,
+});
+
+/**
+ * Generates an HTML autoindex page for directory listings
+ * @param {string} [title=""] - The title for the autoindex page
+ * @param {Array} [files=[]] - Array of file objects from fs.readdir with withFileTypes: true
+ * @returns {string} The complete HTML string for the autoindex page
+ */
+function autoindex(title = EMPTY, files = []) {
+	const safeTitle = escapeHtml(title);
+
+	if (files.length === 0) {
+		return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) => {
+			return key === "TITLE" ? safeTitle : '    <li><a href=".." rel="collection">../</a></li>';
+		});
+	}
+
+	const listItems = Array.from({ length: files.length + 1 });
+	listItems[0] = '    <li><a href=".." rel="collection">../</a></li>';
+
+	const fileCount = files.length;
+	for (let i = 0; i < fileCount; i++) {
+		const file = files[i];
+		const fileName = file.name;
+		const safeName = escapeHtml(fileName);
+		const safeHref = encodeURIComponent(fileName);
+		const isDir = file.isDirectory();
+
+		listItems[i + 1] = isDir
+			? `    <li><a href="${safeHref}/" rel="collection">${safeName}/</a></li>`
+			: `    <li><a href="${safeHref}" rel="item">${safeName}</a></li>`;
+	}
+
+	const safeFiles = listItems.join("\n");
+
+	const replaceCallback = (match, key) => (key === "TITLE" ? safeTitle : safeFiles);
+
+	return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, replaceCallback);
+}
+
+/**
  * Serves files from filesystem
  * @param {Object} app - Woodland application instance
  * @param {Object} req - Request object
@@ -1922,15 +1850,6 @@ class Woodland extends EventEmitter {
 	}
 
 	/**
-	 * Converts parameterized route to regex
-	 * @param {string} [arg=''] - Route path
-	 * @returns {string} Regex pattern string
-	 */
-	extractPath(arg = EMPTY) {
-		return arg.replace(/\/:([^/]+)/g, "/(?<$1>[^/]+)");
-	}
-
-	/**
 	 * Registers POST middleware
 	 * @param {...*} args - Middleware function(s)
 	 * @returns {Woodland} Returns self for chaining
@@ -2068,6 +1987,72 @@ class Woodland extends EventEmitter {
 
 		return this;
 	}
+
+	/**
+	 * Converts parameterized route path to regex pattern
+	 * @param {string} path - Route path with parameters (e.g., "/users/:id")
+	 * @returns {string} Regex pattern string
+	 */
+	extractPath(path) {
+		return path.replace(/:([a-zA-Z_]\w*)/g, "(?<$1>[^/]+)");
+	}
+}
+
+/**
+ * Extracts URL parameters from request pathname using regex groups
+ * @param {Object} req - HTTP request object with parsed pathname
+ * @param {RegExp} getParams - Regular expression with named capture groups
+ */
+function params(req, getParams) {
+	getParams.lastIndex = INT_0;
+	const match = getParams.exec(req.parsed.pathname);
+	const groups = match?.groups;
+
+	if (!groups) {
+		req.params = {};
+		return;
+	}
+
+	const processedParams = Object.create(null);
+	const keys = Object.keys(groups);
+	const keyCount = keys.length;
+
+	for (let i = 0; i < keyCount; i++) {
+		const key = keys[i];
+		const value = groups[key];
+
+		if (value === null || value === undefined) {
+			processedParams[key] = coerce(null);
+		} else {
+			let decoded;
+			if (value.indexOf("%") === -1) {
+				decoded = value;
+			} else {
+				try {
+					decoded = decodeURIComponent(value);
+				} catch {
+					decoded = value;
+				}
+			}
+
+			processedParams[key] = coerce(escapeHtml(decoded));
+		}
+	}
+
+	req.params = processedParams;
+}
+
+/**
+ * Parses a URL string or request object into a URL object with security checks
+ * @param {string|Object} arg - URL string or request object to parse
+ * @returns {URL} Parsed URL object
+ */
+function parse(arg) {
+	return new URL(
+		typeof arg === STRING
+			? arg
+			: `http://${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || "8000"}`}${arg.url}`,
+	);
 }
 
 /**
@@ -2081,4 +2066,4 @@ function woodland(arg) {
 	app.route = app.route.bind(app);
 
 	return app;
-}export{Woodland,woodland};
+}export{Woodland,params,parse,woodland};
