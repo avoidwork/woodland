@@ -395,7 +395,8 @@ export class Woodland extends EventEmitter {
 		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
 
 		const defaultHeaders = this.defaultHeaders;
-		for (let i = 0; i < defaultHeaders.length; i++) {
+		const headerCount = defaultHeaders.length;
+		for (let i = 0; i < headerCount; i++) {
 			const [key, value] = defaultHeaders[i];
 			headersBatch[key] = value;
 		}

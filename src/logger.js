@@ -14,16 +14,15 @@ import {
 	STRING_0,
 } from "./constants.js";
 
-const LEVELS = {
-	emerg: 0,
-	alert: 1,
-	crit: 2,
-	error: 3,
-	warn: 4,
-	notice: 5,
-	info: 6,
-	debug: 7,
-};
+const LEVELS = Object.create(null);
+LEVELS.emerg = 0;
+LEVELS.alert = 1;
+LEVELS.crit = 2;
+LEVELS.error = 3;
+LEVELS.warn = 4;
+LEVELS.notice = 5;
+LEVELS.info = 6;
+LEVELS.debug = 7;
 
 /**
  * Extracts IP address from request object

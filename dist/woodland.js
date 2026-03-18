@@ -168,7 +168,6 @@ const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
  */
 function partialHeaders(req, res, size, status, headers = {}, options = {}) {
 	const rangeHeader = req.headers.range;
-
 	if (!rangeHeader || !rangeHeader.startsWith(KEY_BYTES)) {
 		return [headers, options];
 	}
@@ -177,7 +176,6 @@ function partialHeaders(req, res, size, status, headers = {}, options = {}) {
 	const commaIndex = rangePart.indexOf(COMMA);
 	const rangeSpec = commaIndex === -1 ? rangePart : rangePart.substring(0, commaIndex);
 	const hyphenIndex = rangeSpec.indexOf(HYPHEN);
-
 	if (hyphenIndex === -1) {
 		return [headers, options];
 	}
@@ -387,7 +385,7 @@ function send(
 				error(req, res, noop, noop, INT_416);
 			}
 		} else {
-			if (typeof body !== STRING && body && typeof body[TO_STRING] === "function") {
+			if (body !== null && typeof body !== STRING && typeof body[TO_STRING] === "function") {
 				body = body.toString();
 			}
 
@@ -884,16 +882,15 @@ function validateLogging(logging = {}) {
 	}
 
 	return { enabled, format, level };
-}const LEVELS = {
-	emerg: 0,
-	alert: 1,
-	crit: 2,
-	error: 3,
-	warn: 4,
-	notice: 5,
-	info: 6,
-	debug: 7,
-};
+}const LEVELS = Object.create(null);
+LEVELS.emerg = 0;
+LEVELS.alert = 1;
+LEVELS.crit = 2;
+LEVELS.error = 3;
+LEVELS.warn = 4;
+LEVELS.notice = 5;
+LEVELS.info = 6;
+LEVELS.debug = 7;
 
 /**
  * Extracts IP address from request object
@@ -1130,7 +1127,8 @@ function cors(req, origins) {
 		return false;
 	}
 
-	return req.corsHost && (origins.includes(WILDCARD) || origins.includes(req.headers.origin));
+	const origin = req.headers.origin;
+	return req.corsHost && (origins.includes(WILDCARD) || origins.includes(origin));
 }
 
 /**
@@ -1694,7 +1692,8 @@ class Woodland extends EventEmitter {
 		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
 
 		const defaultHeaders = this.defaultHeaders;
-		for (let i = 0; i < defaultHeaders.length; i++) {
+		const headerCount = defaultHeaders.length;
+		for (let i = 0; i < headerCount; i++) {
 			const [key, value] = defaultHeaders[i];
 			headersBatch[key] = value;
 		}

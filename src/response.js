@@ -59,7 +59,6 @@ const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
  */
 export function partialHeaders(req, res, size, status, headers = {}, options = {}) {
 	const rangeHeader = req.headers.range;
-
 	if (!rangeHeader || !rangeHeader.startsWith(KEY_BYTES)) {
 		return [headers, options];
 	}
@@ -68,7 +67,6 @@ export function partialHeaders(req, res, size, status, headers = {}, options = {
 	const commaIndex = rangePart.indexOf(COMMA);
 	const rangeSpec = commaIndex === -1 ? rangePart : rangePart.substring(0, commaIndex);
 	const hyphenIndex = rangeSpec.indexOf(HYPHEN);
-
 	if (hyphenIndex === -1) {
 		return [headers, options];
 	}
@@ -278,7 +276,7 @@ export function send(
 				error(req, res, noop, noop, INT_416);
 			}
 		} else {
-			if (typeof body !== STRING && body && typeof body[TO_STRING] === "function") {
+			if (body !== null && typeof body !== STRING && typeof body[TO_STRING] === "function") {
 				body = body.toString();
 			}
 

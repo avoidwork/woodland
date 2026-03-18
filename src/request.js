@@ -31,7 +31,8 @@ export function cors(req, origins) {
 		return false;
 	}
 
-	return req.corsHost && (origins.includes(WILDCARD) || origins.includes(req.headers.origin));
+	const origin = req.headers.origin;
+	return req.corsHost && (origins.includes(WILDCARD) || origins.includes(origin));
 }
 
 /**
@@ -126,7 +127,8 @@ export function decorate(req, res, config) {
 	headersBatch[ALLOW] = allowString;
 	headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
 
-	for (let i = 0; i < defaultHeaders.length; i++) {
+	const headerCount = defaultHeaders.length;
+	for (let i = 0; i < headerCount; i++) {
 		const [key, value] = defaultHeaders[i];
 		headersBatch[key] = value;
 	}
