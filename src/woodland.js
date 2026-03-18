@@ -344,6 +344,9 @@ export class Woodland extends EventEmitter {
 	 * @returns {Woodland} Returns self for chaining
 	 */
 	always(...args) {
+		for (let i = 0; i < args.length; i++) {
+			this.middleware.ignore(args[i]);
+		}
 		return this.use(...args, WILDCARD);
 	}
 

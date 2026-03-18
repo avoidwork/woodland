@@ -5,9 +5,9 @@
  * @license BSD-3-Clause
  * @version 20.2.10
  */
-import {STATUS_CODES,METHODS}from'node:http';import {EventEmitter}from'node:events';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {createRequire}from'node:module';import {join,extname,resolve}from'node:path';import {fileURLToPath,URL as URL$1}from'node:url';import mimeDb from'mime-db';import {Validator}from'jsonschema';import {coerce}from'tiny-coerce';import {stat,readdir}from'node:fs/promises';const __dirname$2 = fileURLToPath(new URL$1(".", import.meta.url));
+import {STATUS_CODES,METHODS}from'node:http';import {EventEmitter}from'node:events';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {createRequire}from'node:module';import {join,extname,resolve}from'node:path';import {fileURLToPath,URL as URL$1}from'node:url';import mimeDb from'mime-db';import {Validator}from'jsonschema';import {coerce}from'tiny-coerce';import {stat,readdir}from'node:fs/promises';const __dirname$1 = fileURLToPath(new URL$1(".", import.meta.url));
 const require$1 = createRequire(import.meta.url);
-const { name, version } = require$1(join(__dirname$2, "..", "package.json"));
+const { name, version } = require$1(join(__dirname$1, "..", "package.json"));
 
 // =============================================================================
 // HTTP METHODS
@@ -145,8 +145,8 @@ const MONTHS = Object.freeze(
 	"'": "&#39;",
 };
 
-const valid$1 = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
-	mimeExtensions = valid$1.reduce((a, v) => {
+const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
+	mimeExtensions = valid.reduce((a, v) => {
 		const result = Object.assign({ type: v[0] }, v[1]);
 
 		for (const key of result.extensions) {
@@ -1145,18 +1145,7 @@ function timeOffset(arg = INT_0) {
 	const minutesStr = String(minutes).padStart(INT_2, STRING_0);
 
 	return `${sign}${hoursStr}${minutesStr}`;
-}const __dirname$1 = fileURLToPath(new URL$1(".", import.meta.url));
-	readFileSync(join(__dirname$1, "..", "tpl", "autoindex.html"), { encoding: UTF8 });
-	const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]);
-	valid.reduce((a, v) => {
-		const result = Object.assign({ type: v[0] }, v[1]);
-
-		for (const key of result.extensions) {
-			a[`.${key}`] = result;
-		}
-
-		return a;
-	}, {});/**
+}/**
  * Checks if request origin is allowed for CORS
  * @param {Object} req - Request object
  * @param {Array} origins - Array of allowed origins
@@ -1680,6 +1669,9 @@ class Woodland extends EventEmitter {
 	 * @returns {Woodland} Returns self for chaining
 	 */
 	always(...args) {
+		for (let i = 0; i < args.length; i++) {
+			this.middleware.ignore(args[i]);
+		}
 		return this.use(...args, WILDCARD);
 	}
 

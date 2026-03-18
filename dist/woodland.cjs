@@ -21,9 +21,9 @@ var tinyCoerce = require('tiny-coerce');
 var promises = require('node:fs/promises');
 
 var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
-const __dirname$2 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href))));
+const __dirname$1 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href))));
 const require$1 = node_module.createRequire((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href)));
-const { name, version } = require$1(node_path.join(__dirname$2, "..", "package.json"));
+const { name, version } = require$1(node_path.join(__dirname$1, "..", "package.json"));
 
 // =============================================================================
 // HTTP METHODS
@@ -163,8 +163,8 @@ const htmlEscapes = {
 	"'": "&#39;",
 };
 
-const valid$1 = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
-	mimeExtensions = valid$1.reduce((a, v) => {
+const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
+	mimeExtensions = valid.reduce((a, v) => {
 		const result = Object.assign({ type: v[0] }, v[1]);
 
 		for (const key of result.extensions) {
@@ -1171,19 +1171,6 @@ function timeOffset(arg = INT_0) {
 	return `${sign}${hoursStr}${minutesStr}`;
 }
 
-const __dirname$1 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href))));
-	node_fs.readFileSync(node_path.join(__dirname$1, "..", "tpl", "autoindex.html"), { encoding: UTF8 });
-	const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]);
-	valid.reduce((a, v) => {
-		const result = Object.assign({ type: v[0] }, v[1]);
-
-		for (const key of result.extensions) {
-			a[`.${key}`] = result;
-		}
-
-		return a;
-	}, {});
-
 /**
  * Checks if request origin is allowed for CORS
  * @param {Object} req - Request object
@@ -1712,6 +1699,9 @@ class Woodland extends node_events.EventEmitter {
 	 * @returns {Woodland} Returns self for chaining
 	 */
 	always(...args) {
+		for (let i = 0; i < args.length; i++) {
+			this.middleware.ignore(args[i]);
+		}
 		return this.use(...args, WILDCARD);
 	}
 

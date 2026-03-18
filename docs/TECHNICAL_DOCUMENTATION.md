@@ -518,7 +518,7 @@ I(headers, fallback) = \begin{cases}
 \end{cases}
 $$
 
-IP validation function (implemented in `src/utility.js`):
+IP validation function (implemented in `src/request.js`):
 
 $$
 I_{\text{valid}}(ip) = \begin{cases}
@@ -941,7 +941,7 @@ function escapeHtml(str = "") {
   return str.replace(/[&<>"']/g, (match) => htmlEscapes[match]);
 }
 
-// IP validation (see src/utility.js for full implementation)
+// IP validation (see src/request.js for full implementation)
 // Supports IPv4, IPv6, IPv4-mapped IPv6, and :: compression
 export function isValidIP(ip) {
   // Full implementation: 96 lines with optimized regex patterns
@@ -1165,7 +1165,7 @@ logger.js       |     100 |      100 |     100 |     100 | 🎯 Perfect
 middleware.js   |     100 |      100 |     100 |     100 | 🎯 Perfect
 request.js      |     100 |      100 |     100 |     100 | 🎯 Perfect
 response.js     |     100 |      100 |     100 |     100 | 🎯 Perfect
-utility.js      |     100 |      100 |     100 |     100 | 🎯 Perfect
+
 woodland.js     |     100 |      100 |     100 |     100 | 🎯 Perfect
 ```
 
@@ -1532,7 +1532,7 @@ app.connect("/path", handler);
 // Note: HEAD requests are automatically handled when GET routes are defined
 // Cannot register HEAD routes directly - use GET instead
 
-// Middleware for all methods
+// Middleware for all methods (auto-ignored for route visibility)
 app.always("/path", middleware);
 app.always(middleware); // All routes
 ```
@@ -1564,6 +1564,8 @@ app.serve(req, res, path, folder);
 // Middleware management
 app.ignore(middleware);
 app.list(method, type);
+
+// Note: always() middleware is automatically ignored
 ```
 
 ---

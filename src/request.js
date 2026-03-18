@@ -17,7 +17,6 @@ import {
 	STRING,
 	INT_0,
 } from "./constants.js";
-import { isValidIP } from "./utility.js";
 import { escapeHtml } from "./response.js";
 import { coerce } from "tiny-coerce";
 
@@ -227,4 +226,106 @@ export function parse(arg) {
  */
 export function extractPath(path) {
 	return path.replace(/:([a-zA-Z_]\w*)/g, "(?<$1>[^/]+)");
+}
+
+const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/,
+	IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/,
+	IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i,
+	HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
+
+/**
+ * Validates if an IP address is properly formatted
+ * @param {string} ip - IP address to validate
+ * @returns {boolean} True if IP is valid format
+ */
+export function isValidIP(ip) {
+	if (!ip || typeof ip !== "string") {
+		return false;
+	}
+
+	if (ip.indexOf(":") === -1) {
+		const match = IPV4_PATTERN.exec(ip);
+
+		if (!match) {
+			return false;
+		}
+
+		for (let i = 1; i < 5; i++) {
+			const num = parseInt(match[i], 10);
+			if (num > 255) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	if (!IPV6_CHAR_PATTERN.test(ip)) {
+		return false;
+	}
+
+	const ipv4MappedMatch = IPV4_MAPPED_PATTERN.exec(ip);
+	if (ipv4MappedMatch) {
+		return isValidIP(ipv4MappedMatch[1]);
+	}
+
+	if (ip === "::") {
+		return true;
+	}
+
+	const doubleColonIndex = ip.indexOf("::");
+	const isCompressed = doubleColonIndex !== -1;
+
+	if (isCompressed) {
+		if (ip.indexOf("::", doubleColonIndex + 2) !== -1) {
+			return false;
+		}
+
+		if (
+			(doubleColonIndex > 0 && ip.charAt(doubleColonIndex - 1) === ":") ||
+			(doubleColonIndex + 2 < ip.length && ip.charAt(doubleColonIndex + 2) === ":")
+		) {
+			return false;
+		}
+
+		const beforeDoubleColon = ip.substring(0, doubleColonIndex);
+		const afterDoubleColon = ip.substring(doubleColonIndex + 2);
+
+		const leftGroups = beforeDoubleColon ? beforeDoubleColon.split(":") : [];
+		const rightGroups = afterDoubleColon ? afterDoubleColon.split(":") : [];
+
+		const nonEmptyLeft = leftGroups.filter((g) => g !== "");
+		const nonEmptyRight = rightGroups.filter((g) => g !== "");
+		const totalGroups = nonEmptyLeft.length + nonEmptyRight.length;
+
+		if (totalGroups >= 8) {
+			return false;
+		}
+
+		for (let i = 0; i < nonEmptyLeft.length; i++) {
+			if (!HEX_GROUP_PATTERN.test(nonEmptyLeft[i])) {
+				return false;
+			}
+		}
+		for (let i = 0; i < nonEmptyRight.length; i++) {
+			if (!HEX_GROUP_PATTERN.test(nonEmptyRight[i])) {
+				return false;
+			}
+		}
+
+		return true;
+	} else {
+		const groups = ip.split(":");
+		if (groups.length !== 8) {
+			return false;
+		}
+
+		for (let i = 0; i < 8; i++) {
+			if (!groups[i] || !HEX_GROUP_PATTERN.test(groups[i])) {
+				return false;
+			}
+		}
+
+		return true;
+	}
 }

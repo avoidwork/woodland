@@ -3,7 +3,7 @@
 import { createServer } from "node:http";
 import { coerce } from "tiny-coerce";
 import { woodland } from "woodland";
-import { isValidIP } from "./utility.js";
+import { isValidIP } from "./request.js";
 import {
 	CACHE_CONTROL,
 	CHAR_SET,

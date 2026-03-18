@@ -163,7 +163,7 @@ app.delete("/users/:id", deleteUser);
 
 #### `always(...handlers)`
 
-Register middleware that runs for ALL HTTP methods on every request.
+Register middleware that runs for ALL HTTP methods on every request. Automatically ignored for route visibility calculations (does not affect `req.allow`), simplifying developer implementations by removing the need to manually call `ignore()`.
 
 ```javascript
 app.always((req, res, next) => {
@@ -179,6 +179,12 @@ app.always((req, res, next) => {
 | `handlers` | `Function[]` | Middleware functions |
 
 **Returns:** `Woodland` instance (chainable)
+
+**Notes:**
+
+- Middleware registered via `always()` is automatically added to the ignored set
+- Does not contribute to `req.allow` header calculations
+- Executes on every request regardless of HTTP method or route match
 
 #### `use(path, ...handlers)`
 
@@ -716,28 +722,24 @@ const app = woodland({
 
 The framework is organized into the following internal modules:
 
-### `src/woodland.js` (600 lines)
+### `src/woodland.js` (603 lines)
 
 Main framework file exporting the `Woodland` class and `woodland` factory function.
 
-### `src/utility.js` (561 lines)
+### `src/request.js` (235 lines)
 
-Utility functions including:
-- `autoindex()` - Generate HTML directory listings
-- `escapeHtml()` - HTML escaping for XSS prevention
-- `getStatus()` - Determine appropriate HTTP status codes
-- `mime()` - MIME type detection
-- `ms()` - Time formatting
-- `next()` - Middleware chain iterator
-- `params()` - URL parameter extraction
-- `parse()` - URL parsing
-- `partialHeaders()` - Range request handling
-- `pipeable()` - Stream detection
-- `reduce()` - Middleware matching
-- `timeOffset()` - Timezone offset formatting
-- `writeHead()` - Response header writing
+Request handling utilities:
 - `isValidIP()` - IP address validation
-- `extractPath()` - Route pattern conversion
+- `extractPath()` - Route pattern conversion to regex
+- `params()` - URL parameter extraction with XSS prevention
+- `parse()` - URL parsing with security fallback
+- `extractIP()` - IP extraction from request
+- `createCorsHandler()` - CORS handler creation
+- `cors()` - CORS validation
+- `corsHost()` - Origin host detection
+- `decorate()` - Request/response decoration
+- `logClose()` - Close event logging
+- `logDecoration()` - Decoration logging
 
 ### `src/constants.js` (219 lines)
 
@@ -763,13 +765,19 @@ Response handler creation:
 - `createStatusHandler()` - Status code handler
 - `stream()` - File streaming handler
 
-### `src/request.js` (235 lines)
+### `src/request.js` (321 lines)
 
 Request handling utilities:
-- `isValidIP()` - IP address validation
-- `createCorsHandler()` - CORS handler creation
-- `createIpExtractor()` - IP extraction logic
-- `createRequestDecorator()` - Request/response decoration
+- `isValidIP()` - IP address validation (IPv4/IPv6)
+- `cors()` - CORS origin validation
+- `corsHost()` - Cross-origin host detection
+- `corsRequest()` - CORS preflight handler
+- `extractIP()` - Extract client IP from request
+- `decorate()` - Request/response decoration
+- `logClose()` - Request close logging
+- `params()` - URL parameter extraction
+- `parse()` - URL parsing
+- `extractPath()` - Route pattern to regex conversion
 
 ### `src/fileserver.js` (80 lines)
 

@@ -278,12 +278,13 @@ describe("woodland", () => {
 		});
 
 		describe("always", () => {
-			it("should register wildcard middleware", () => {
+			it("should register wildcard middleware and ignore it for visible count", () => {
 				const handler = () => {};
 
 				app.always(handler);
 
-				assert.ok(app.middleware.allowed("GET", "/.*"));
+				assert.ok(app.middleware.routes("/.*", "GET").middleware.includes(handler));
+				assert.strictEqual(app.middleware.routes("/.*", "GET").visible, 0);
 			});
 
 			it("should return app instance for chaining", () => {
@@ -430,6 +431,8 @@ describe("woodland", () => {
 				assert.ok(result.includes("POST"));
 				assert.ok(result.includes("PUT"));
 				assert.ok(result.includes("DELETE"));
+				assert.ok(result.includes("HEAD"));
+				assert.ok(result.includes("OPTIONS"));
 			});
 
 			it("should include HEAD when GET is allowed", () => {

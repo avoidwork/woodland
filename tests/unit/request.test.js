@@ -11,7 +11,7 @@ import {
 	parse,
 	extractPath,
 } from "../../src/request.js";
-import { isValidIP } from "../../src/utility.js";
+import { isValidIP } from "../../src/request.js";
 
 describe("request", () => {
 	describe("isValidIP", () => {

@@ -46,10 +46,9 @@
 |------|---------|---------|
 | `src/woodland.js` | Main framework (only class) | `Woodland` class, `woodland` factory |
 | `src/config.js` | Configuration validation | `validateConfig`, `validateLogging`, `validateOrigins`, `mergeEnvLogging` |
-| `src/response.js` | Response handlers | `mime`, `getStatusText`, `error`, `json`, `redirect`, `send`, `set`, `status`, `stream`, `noop`, `escapeHtml`, `partialHeaders`, `pipeable`, `writeHead` |
-| `src/request.js` | Request handlers | `cors`, `corsHost`, `corsRequest`, `extractIP`, `decorate`, `logClose`, `params`, `parse`, `extractPath` |
+| `src/response.js` | Response handlers | `mime`, `getStatusText`, `error`, `json`, `redirect`, `send`, `set`, `status`, `stream`, `noop`, `escapeHtml`, `partialHeaders`, `pipeable`, `writeHead`, `mimeExtensions` |
+| `src/request.js` | Request handlers | `cors`, `corsHost`, `corsRequest`, `extractIP`, `decorate`, `logClose`, `params`, `parse`, `extractPath`, `isValidIP` |
 | `src/logger.js` | Logging | `createLogger`, `log`, `clfm`, `extractIP`, `logRoute`, `logMiddleware`, `logDecoration`, `logError`, `logServe`, `ms`, `timeOffset` |
-| `src/utility.js` | Utility functions (136 lines) | `autoindex`, `isValidIP`, `mimeExtensions` |
 | `src/middleware.js` | Middleware registry | `reduce`, `getStatus`, `next`, `computeRoutes`, `listRoutes`, `checkAllowed`, `createMiddlewareRegistry`, `registerMiddleware` |
 | `src/fileserver.js` | File server | `serve`, `register`, `createFileServer`, `autoindex` |
 | `src/constants.js` | Constants & patterns | All framework constants (HTTP methods, headers, status codes, etc.) |
@@ -82,6 +81,7 @@ res.send = this.send(req, res); // Returns function: res.send(body, status, head
 - Middleware executes via `process.nextTick` (async by default)
 - Tests need to await or use `done` callbacks
 - `immediate: true` in `next()` bypasses nextTick for sync execution
+- `always()` middleware is automatically ignored for route visibility calculations
 
 ### CORS behavior
 - `req.cors` is `true` when origin host differs from request host AND origin is allowed
@@ -108,7 +108,7 @@ res.send = this.send(req, res); // Returns function: res.send(body, status, head
 
 ## Security considerations
 
-- Validate all IP addresses before use (use `isValidIP` from utility.js)
+- Validate all IP addresses before use (use `isValidIP` from request.js)
 - Block path traversal attempts in file serving (resolve() + startsWith check)
 - Deny CORS by default (empty origins array)
 - Escape HTML in autoindex to prevent XSS (escapeHtml function)
@@ -117,7 +117,7 @@ res.send = this.send(req, res); // Returns function: res.send(body, status, head
 
 ## Test count
 
-- 601 tests passing
+- 509 tests passing
 - 100% line coverage target
 
 ## Key implementation details
@@ -134,13 +134,6 @@ res.send = this.send(req, res); // Returns function: res.send(body, status, head
 - `timeOffset` convention: positive input (minutes) returns negative string (e.g., 300 → "-0500")
 - `ms` - formats nanoseconds to milliseconds with configurable precision
 - Log levels: emerg, alert, crit, error, warn, notice, info, debug (0-7, lower = more severe)
-
-### Utility functions (`utility.js`)
-- `autoindex` - uses lowercase doctype `<!doctype html>`, generates directory listing HTML
-- `isValidIP` - validates IPv4 and IPv6, rejects `:::` patterns (multiple colons invalid)
-- `mimeExtensions` - populated from mime-db, keyed by extension (e.g., ".json")
-- **Refactored**: `escapeHtml` moved to `response.js`, `params`/`parse`/`extractPath` moved to `request.js`, `partialHeaders`/`pipeable`/`writeHead` moved to `response.js`, `ms`/`timeOffset` moved to `logger.js`
-- **DRY principle**: `mime` function lives in `response.js` only
 
 ### Request handlers (`request.js`)
 - `cors` - returns true if origins array non-empty AND (wildcard OR origin in list)

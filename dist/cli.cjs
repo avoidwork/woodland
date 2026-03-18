@@ -11,21 +11,19 @@
 var node_http = require('node:http');
 var tinyCoerce = require('tiny-coerce');
 var woodland = require('woodland');
+var node_module = require('node:module');
 var node_path = require('node:path');
-var node_fs = require('node:fs');
 var node_url = require('node:url');
 var mimeDb = require('mime-db');
-var node_module = require('node:module');
 
 var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
-const __dirname$2 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('cli.cjs', document.baseURI).href))));
+const __dirname$1 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('cli.cjs', document.baseURI).href))));
 const require$1 = node_module.createRequire((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('cli.cjs', document.baseURI).href)));
-const { name, version } = require$1(node_path.join(__dirname$2, "..", "package.json"));
+const { name, version } = require$1(node_path.join(__dirname$1, "..", "package.json"));
 const CACHE_CONTROL = "cache-control";
 const CONTENT_TYPE = "content-type";
 const TEXT_PLAIN = "text/plain";
 const CHAR_SET = "charset=utf-8";
-const UTF8 = "utf8";
 `nodejs/${process.version}, ${process.platform}/${process.arch}`;
 const LOCALHOST = "127.0.0.1";
 const INT_8000 = 8000;
@@ -56,9 +54,7 @@ Object.freeze(
 	}),
 );
 
-const __dirname$1 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('cli.cjs', document.baseURI).href))));
-	node_fs.readFileSync(node_path.join(__dirname$1, "..", "tpl", "autoindex.html"), { encoding: UTF8 });
-	const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]);
+const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]);
 	valid.reduce((a, v) => {
 		const result = Object.assign({ type: v[0] }, v[1]);
 
@@ -69,11 +65,10 @@ const __dirname$1 = node_url.fileURLToPath(new node_url.URL(".", (typeof documen
 		return a;
 	}, {});
 
-// Pre-compiled regex patterns for better performance
-const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-const IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/;
-const IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i;
-const HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
+const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/,
+	IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/,
+	IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i,
+	HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
 
 /**
  * Validates if an IP address is properly formatted
@@ -85,7 +80,6 @@ function isValidIP(ip) {
 		return false;
 	}
 
-	// IPv4 validation - optimize with early character check
 	if (ip.indexOf(":") === -1) {
 		const match = IPV4_PATTERN.exec(ip);
 
@@ -93,7 +87,6 @@ function isValidIP(ip) {
 			return false;
 		}
 
-		// Optimized octet validation - avoid array methods
 		for (let i = 1; i < 5; i++) {
 			const num = parseInt(match[i], 10);
 			if (num > 255) {
@@ -104,34 +97,27 @@ function isValidIP(ip) {
 		return true;
 	}
 
-	// IPv6 validation
-	// Quick character validation
 	if (!IPV6_CHAR_PATTERN.test(ip)) {
 		return false;
 	}
 
-	// Handle IPv4-mapped IPv6 addresses
 	const ipv4MappedMatch = IPV4_MAPPED_PATTERN.exec(ip);
 	if (ipv4MappedMatch) {
 		return isValidIP(ipv4MappedMatch[1]);
 	}
 
-	// Special case for "::" alone
 	if (ip === "::") {
 		return true;
 	}
 
-	// Handle "::" compression - optimize split operations
 	const doubleColonIndex = ip.indexOf("::");
 	const isCompressed = doubleColonIndex !== -1;
 
 	if (isCompressed) {
-		// Check for multiple "::" which is invalid
 		if (ip.indexOf("::", doubleColonIndex + 2) !== -1) {
 			return false;
 		}
 
-		// Check for ":::" which is invalid (:: followed by extra colon)
 		if (
 			(doubleColonIndex > 0 && ip.charAt(doubleColonIndex - 1) === ":") ||
 			(doubleColonIndex + 2 < ip.length && ip.charAt(doubleColonIndex + 2) === ":")
@@ -145,17 +131,14 @@ function isValidIP(ip) {
 		const leftGroups = beforeDoubleColon ? beforeDoubleColon.split(":") : [];
 		const rightGroups = afterDoubleColon ? afterDoubleColon.split(":") : [];
 
-		// Filter out empty groups and validate total count
 		const nonEmptyLeft = leftGroups.filter((g) => g !== "");
 		const nonEmptyRight = rightGroups.filter((g) => g !== "");
 		const totalGroups = nonEmptyLeft.length + nonEmptyRight.length;
 
-		// Must be compressed (less than 8 groups)
 		if (totalGroups >= 8) {
 			return false;
 		}
 
-		// Validate each group
 		for (let i = 0; i < nonEmptyLeft.length; i++) {
 			if (!HEX_GROUP_PATTERN.test(nonEmptyLeft[i])) {
 				return false;
@@ -170,12 +153,10 @@ function isValidIP(ip) {
 		return true;
 	} else {
 		const groups = ip.split(":");
-		// Full notation must have exactly 8 groups
 		if (groups.length !== 8) {
 			return false;
 		}
 
-		// Validate each group
 		for (let i = 0; i < 8; i++) {
 			if (!groups[i] || !HEX_GROUP_PATTERN.test(groups[i])) {
 				return false;
