@@ -78,6 +78,11 @@ const ERROR_HANDLER_LENGTH = 4;
  * @returns {Function} The next function for middleware chain
  */
 export function next(req, res, middleware, immediate = false) {
+	/**
+	 * Handles errors by finding error handler middleware
+	 * @param {Error} err - The error to handle
+	 * @param {Function} nextFn - Next function for chain
+	 */
 	const handleError = (err, nextFn) => {
 		let obj = middleware.next();
 
@@ -92,6 +97,10 @@ export function next(req, res, middleware, immediate = false) {
 		}
 	};
 
+	/**
+	 * Handles regular middleware execution
+	 * @param {Function} nextFn - Next function for chain
+	 */
 	const handleMiddleware = (nextFn) => {
 		const obj = middleware.next();
 
@@ -107,6 +116,10 @@ export function next(req, res, middleware, immediate = false) {
 		}
 	};
 
+	/**
+	 * Executes middleware chain with error handling
+	 * @param {Error} [err] - Optional error to trigger error handling
+	 */
 	const execute = (err) => {
 		if (err !== void 0) {
 			handleError(err, execute);
