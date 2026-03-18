@@ -195,3 +195,16 @@ res.send = this.send(req, res); // Returns function: res.send(body, status, head
 - Status codes: INT_200, INT_204, INT_206, INT_304, INT_307, INT_308, INT_400, INT_403, INT_404, INT_405, INT_416, INT_500
 - Headers: CONTENT_TYPE, CONTENT_LENGTH, CACHE_CONTROL, ETAG, LOCATION, ALLOW, etc.
 - Patterns: TOKEN_N, TIME_MS, KEY_BYTES, etc. for regex generation
+
+## Iteration 2 Optimizations
+
+**Performance improvements:**
+- **woodland.js**: Cached `METHODS` array at module level to avoid repeated spread operations in `allows()`
+- **woodland.js**: Simplified `allows()` by removing redundant `Array.from()` - now uses spread operator
+- **logger.js**: Changed `validLevels` from array to `Set` for O(1) lookup in `createLogger()`
+- **fileserver.js**: Simplified `autoindex()` by removing redundant `replaceCallback` variable
+
+**Results:**
+- 507 tests passing
+- Coverage: 99.25% line (pre-existing gaps)
+- Code reduced by ~5 lines

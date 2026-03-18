@@ -199,10 +199,20 @@ export function log(msg, logLevel = DEBUG, enabled = true, actualLevel = INFO) {
  * @param {string} [config.level='info'] - Log level
  * @returns {Object} Logger with log, clfm, extractIP, logRoute, logMiddleware, logDecoration, logError, logServe methods
  */
+const VALID_LEVELS = new Set([
+	DEBUG,
+	INFO,
+	"warn",
+	"error",
+	"critical",
+	"alert",
+	"emerg",
+	"notice",
+]);
+
 export function createLogger(config = {}) {
 	const { enabled = true, format, level = INFO } = config;
-	const validLevels = [DEBUG, INFO, "warn", "error", "critical", "alert", "emerg", "notice"];
-	const actualLevel = validLevels.includes(level) ? level : INFO;
+	const actualLevel = VALID_LEVELS.has(level) ? level : INFO;
 
 	return {
 		log: (msg, logLevel = DEBUG) => log(msg, logLevel, enabled, actualLevel),

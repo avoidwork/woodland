@@ -1123,10 +1123,20 @@ function log(msg, logLevel = DEBUG, enabled = true, actualLevel = INFO) {
  * @param {string} [config.level='info'] - Log level
  * @returns {Object} Logger with log, clfm, extractIP, logRoute, logMiddleware, logDecoration, logError, logServe methods
  */
+const VALID_LEVELS = new Set([
+	DEBUG,
+	INFO,
+	"warn",
+	"error",
+	"critical",
+	"alert",
+	"emerg",
+	"notice",
+]);
+
 function createLogger(config = {}) {
 	const { enabled = true, format, level = INFO } = config;
-	const validLevels = [DEBUG, INFO, "warn", "error", "critical", "alert", "emerg", "notice"];
-	const actualLevel = validLevels.includes(level) ? level : INFO;
+	const actualLevel = VALID_LEVELS.has(level) ? level : INFO;
 
 	return {
 		log: (msg, logLevel = DEBUG) => log(msg, logLevel, enabled, actualLevel),
@@ -1301,9 +1311,9 @@ function autoindex(title = EMPTY, files = []) {
 
 	const safeFiles = listItems.join("\n");
 
-	const replaceCallback = (match, key) => (key === "TITLE" ? safeTitle : safeFiles);
-
-	return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, replaceCallback);
+	return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) =>
+		key === "TITLE" ? safeTitle : safeFiles,
+	);
 }
 
 /**
@@ -1405,6 +1415,8 @@ function createFileServer(app) {
 		serve: (req, res, arg, folder) => serve(app, req, res, arg, folder),
 	};
 }
+
+const METHODS_ARRAY = [...node_http.METHODS];
 
 /**
  * Woodland HTTP server framework class extending EventEmitter
@@ -1654,18 +1666,17 @@ class Woodland extends node_events.EventEmitter {
 			let list;
 
 			if (allMethods) {
-				list = [...node_http.METHODS];
+				list = [...METHODS_ARRAY];
 			} else {
 				const methodSet = new Set();
 
 				for (let i = 0; i < this.methods.length; i++) {
-					const method = this.methods[i];
-					if (this.allowed(method, uri, override)) {
-						methodSet.add(method);
+					if (this.allowed(this.methods[i], uri, override)) {
+						methodSet.add(this.methods[i]);
 					}
 				}
 
-				list = Array.from(methodSet);
+				list = [...methodSet];
 			}
 
 			const methodSet = new Set(list);

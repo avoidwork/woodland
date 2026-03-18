@@ -41,9 +41,9 @@ export function autoindex(title = EMPTY, files = []) {
 
 	const safeFiles = listItems.join("\n");
 
-	const replaceCallback = (match, key) => (key === "TITLE" ? safeTitle : safeFiles);
-
-	return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, replaceCallback);
+	return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) =>
+		key === "TITLE" ? safeTitle : safeFiles,
+	);
 }
 
 /**

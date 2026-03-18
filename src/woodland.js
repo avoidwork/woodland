@@ -1,5 +1,7 @@
 import { METHODS } from "node:http";
 import { EventEmitter } from "node:events";
+
+const METHODS_ARRAY = [...METHODS];
 import { createReadStream } from "node:fs";
 import { etag } from "tiny-etag";
 import { precise } from "precise";
@@ -305,18 +307,17 @@ export class Woodland extends EventEmitter {
 			let list;
 
 			if (allMethods) {
-				list = [...METHODS];
+				list = [...METHODS_ARRAY];
 			} else {
 				const methodSet = new Set();
 
 				for (let i = 0; i < this.methods.length; i++) {
-					const method = this.methods[i];
-					if (this.allowed(method, uri, override)) {
-						methodSet.add(method);
+					if (this.allowed(this.methods[i], uri, override)) {
+						methodSet.add(this.methods[i]);
 					}
 				}
 
-				list = Array.from(methodSet);
+				list = [...methodSet];
 			}
 
 			const methodSet = new Set(list);
