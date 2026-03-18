@@ -23,6 +23,7 @@ export default [
 			"node:fs/promises",
 			"node:module",
 			"node:url",
+			"jsonschema",
 			"mime-db",
 			"precise",
 			"tiny-etag",
@@ -42,7 +43,16 @@ export default [
 		],
 	},
 	{
-		external: ["node:http", "node:module", "node:path", "node:url", "tiny-coerce", "woodland"],
+		external: [
+			"node:http",
+			"node:fs",
+			"node:module",
+			"node:path",
+			"node:url",
+			"mime-db",
+			"tiny-coerce",
+			"woodland",
+		],
 		input: "./src/cli.js",
 		output: [
 			{
