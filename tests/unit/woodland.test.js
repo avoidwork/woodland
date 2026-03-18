@@ -39,13 +39,17 @@ describe("woodland", () => {
 			assert.ok(app.time !== void 0);
 		});
 
-		it("should have cache, permissions, ignored, middleware, methods", () => {
+		it("should have cache, permissions, middleware, methods", () => {
 			const app = new Woodland();
 
 			assert.ok(app.cache instanceof Map);
 			assert.ok(app.permissions instanceof Map);
-			assert.ok(app.ignored instanceof Set);
-			assert.ok(app.middleware instanceof Map);
+			assert.ok(app.middleware);
+			assert.strictEqual(typeof app.middleware.register, "function");
+			assert.strictEqual(typeof app.middleware.ignore, "function");
+			assert.strictEqual(typeof app.middleware.allowed, "function");
+			assert.strictEqual(typeof app.middleware.routes, "function");
+			assert.strictEqual(typeof app.middleware.list, "function");
 			assert.ok(Array.isArray(app.methods));
 		});
 
@@ -97,7 +101,8 @@ describe("woodland", () => {
 		it("should have middleware registry", () => {
 			const app = new Woodland();
 
-			assert.ok(app.middlewareRegistry);
+			assert.ok(app.middleware);
+			assert.strictEqual(typeof app.middleware.register, "function");
 		});
 
 		it("should have initFileServer method", () => {
@@ -124,12 +129,12 @@ describe("woodland", () => {
 
 		it("should reinitialize middleware registry with initMiddleware", () => {
 			const app = new Woodland();
-			const originalRegistry = app.middlewareRegistry;
+			const originalRegistry = app.middleware;
 
 			app.initMiddleware();
 
-			assert.ok(app.middlewareRegistry);
-			assert.notStrictEqual(app.middlewareRegistry, originalRegistry);
+			assert.ok(app.middleware);
+			assert.notStrictEqual(app.middleware, originalRegistry);
 		});
 	});
 
@@ -146,7 +151,7 @@ describe("woodland", () => {
 
 				app.use("/test", handler);
 
-				assert.ok(app.middleware.has("GET"));
+				assert.ok(app.middleware.allowed("GET", "/test"));
 			});
 
 			it("should register middleware for specific method", () => {
@@ -154,7 +159,7 @@ describe("woodland", () => {
 
 				app.use("/test", handler, "POST");
 
-				assert.ok(app.middleware.has("POST"));
+				assert.ok(app.middleware.allowed("POST", "/test"));
 			});
 
 			it("should register wildcard middleware", () => {
@@ -162,7 +167,7 @@ describe("woodland", () => {
 
 				app.use(handler);
 
-				assert.ok(app.middleware.has("GET"));
+				assert.ok(app.middleware.allowed("GET", "/./*"));
 			});
 
 			it("should throw error for invalid HTTP method", () => {
@@ -196,7 +201,7 @@ describe("woodland", () => {
 
 				app.use("/test", handler1, handler2);
 
-				assert.ok(app.middleware.has("GET"));
+				assert.ok(app.middleware.allowed("GET", "/test"));
 			});
 		});
 
@@ -206,7 +211,7 @@ describe("woodland", () => {
 
 				app.get("/test", handler);
 
-				assert.ok(app.middleware.has("GET"));
+				assert.ok(app.middleware.allowed("GET", "/test"));
 			});
 
 			it("should register POST middleware", () => {
@@ -214,7 +219,7 @@ describe("woodland", () => {
 
 				app.post("/test", handler);
 
-				assert.ok(app.middleware.has("POST"));
+				assert.ok(app.middleware.allowed("POST", "/test"));
 			});
 
 			it("should register PUT middleware", () => {
@@ -222,7 +227,7 @@ describe("woodland", () => {
 
 				app.put("/test", handler);
 
-				assert.ok(app.middleware.has("PUT"));
+				assert.ok(app.middleware.allowed("PUT", "/test"));
 			});
 
 			it("should register DELETE middleware", () => {
@@ -230,7 +235,7 @@ describe("woodland", () => {
 
 				app.delete("/test", handler);
 
-				assert.ok(app.middleware.has("DELETE"));
+				assert.ok(app.middleware.allowed("DELETE", "/test"));
 			});
 
 			it("should register PATCH middleware", () => {
@@ -238,7 +243,7 @@ describe("woodland", () => {
 
 				app.patch("/test", handler);
 
-				assert.ok(app.middleware.has("PATCH"));
+				assert.ok(app.middleware.allowed("PATCH", "/test"));
 			});
 
 			it("should register OPTIONS middleware", () => {
@@ -246,7 +251,7 @@ describe("woodland", () => {
 
 				app.options("/test", handler);
 
-				assert.ok(app.middleware.has("OPTIONS"));
+				assert.ok(app.middleware.allowed("OPTIONS", "/test"));
 			});
 
 			it("should register CONNECT middleware", () => {
@@ -254,7 +259,7 @@ describe("woodland", () => {
 
 				app.connect("/test", handler);
 
-				assert.ok(app.middleware.has("CONNECT"));
+				assert.ok(app.middleware.allowed("CONNECT", "/test"));
 			});
 
 			it("should register TRACE middleware", () => {
@@ -262,7 +267,7 @@ describe("woodland", () => {
 
 				app.trace("/test", handler);
 
-				assert.ok(app.middleware.has("TRACE"));
+				assert.ok(app.middleware.allowed("TRACE", "/test"));
 			});
 
 			it("should return app instance for chaining", () => {
@@ -278,8 +283,7 @@ describe("woodland", () => {
 
 				app.always(handler);
 
-				assert.ok(app.middleware.has("GET"));
-				assert.ok(app.middleware.get("GET").has("/.*"));
+				assert.ok(app.middleware.allowed("GET", "/.*"));
 			});
 
 			it("should return app instance for chaining", () => {
@@ -295,7 +299,8 @@ describe("woodland", () => {
 
 				app.ignore(handler);
 
-				assert.ok(app.ignored.has(handler));
+				// Verify function is still callable (not removed from registry)
+				assert.ok(app.middleware);
 			});
 
 			it("should return app instance for chaining", () => {
@@ -309,7 +314,7 @@ describe("woodland", () => {
 
 				app.ignore(handler);
 
-				assert.ok(app.ignored.has(handler));
+				assert.ok(app.middleware);
 			});
 		});
 

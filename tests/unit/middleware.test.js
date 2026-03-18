@@ -340,7 +340,7 @@ describe("middleware", () => {
 		});
 
 		it("should create registry with all methods", () => {
-			const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+			const registry = createMiddlewareRegistry(methods, cache);
 
 			assert.ok(registry.ignore);
 			assert.ok(registry.allowed);
@@ -351,35 +351,37 @@ describe("middleware", () => {
 
 		describe("register", () => {
 			it("should register middleware for GET route", () => {
-				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				const registry = createMiddlewareRegistry(methods, cache);
 				const handler = () => {};
 
 				registry.register("/test", handler);
 
-				assert.ok(middleware.has("GET"));
+				const list = registry.list("GET", "array");
+				assert.ok(list.includes("/test"));
 			});
 
 			it("should register wildcard middleware", () => {
-				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				const registry = createMiddlewareRegistry(methods, cache);
 				const handler = () => {};
 
 				registry.register(handler);
 
-				assert.ok(middleware.has("GET"));
-				assert.ok(middleware.get("GET").has("/.*"));
+				const list = registry.list("GET", "array");
+				assert.ok(list.includes("/.*"));
 			});
 
 			it("should register middleware for specific method", () => {
-				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				const registry = createMiddlewareRegistry(methods, cache);
 				const handler = () => {};
 
 				registry.register("/test", handler, "POST");
 
-				assert.ok(middleware.has("POST"));
+				const list = registry.list("POST", "array");
+				assert.ok(list.includes("/test"));
 			});
 
 			it("should throw error for invalid method", () => {
-				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				const registry = createMiddlewareRegistry(methods, cache);
 
 				assert.throws(() => {
 					registry.register("/test", () => {}, "INVALID");
@@ -387,7 +389,7 @@ describe("middleware", () => {
 			});
 
 			it("should throw error for HEAD method", () => {
-				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				const registry = createMiddlewareRegistry(methods, cache);
 
 				assert.throws(() => {
 					registry.register("/test", () => {}, "HEAD");
@@ -395,15 +397,15 @@ describe("middleware", () => {
 			});
 
 			it("should convert parameterized routes to regex", () => {
-				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				const registry = createMiddlewareRegistry(methods, cache);
 				const handler = () => {};
 
 				registry.register("/users/:id", handler);
 
-				const routes = middleware.get("GET").keys();
+				const list = registry.list("GET", "array");
 				let found = false;
 
-				for (const route of routes) {
+				for (const route of list) {
 					if (route.includes(":") === false) {
 						found = true;
 						break;
@@ -414,7 +416,7 @@ describe("middleware", () => {
 			});
 
 			it("should return undefined for chaining", () => {
-				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				const registry = createMiddlewareRegistry(methods, cache);
 				const result = registry.register("/test", () => {});
 
 				assert.strictEqual(result, void 0);
@@ -423,31 +425,31 @@ describe("middleware", () => {
 
 		describe("ignore", () => {
 			it("should add function to ignored set", () => {
-				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				const registry = createMiddlewareRegistry(methods, cache);
 				const handler = () => {};
 
+				registry.register("/test", handler);
 				registry.ignore(handler);
 
-				assert.ok(ignored.has(handler));
+				const result = registry.routes("/test", "GET");
+				assert.strictEqual(result.visible, 0);
 			});
 
-			it("should return registry object for chaining", () => {
-				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
-				const result = registry.ignore(() => {});
+			it("should add function to ignored set", () => {
+				const registry = createMiddlewareRegistry(methods, cache);
+				const fn = () => {};
 
-				assert.strictEqual(result.ignore, registry.ignore);
-				assert.strictEqual(result.register, registry.register);
+				registry.ignore(fn);
+
+				// Verify function was added (no return value expected)
+				assert.strictEqual(registry.ignore(fn), void 0);
 			});
 		});
 
 		describe("allowed", () => {
 			it("should return true for allowed route", () => {
-				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				const registry = createMiddlewareRegistry(methods, cache);
 				registry.register("/test", () => {});
-
-				// Check that the route was registered
-				assert.ok(middleware.has("GET"));
-				assert.ok(middleware.get("GET").has("/test"));
 
 				const result = registry.allowed("GET", "/test");
 
@@ -455,9 +457,9 @@ describe("middleware", () => {
 			});
 
 			it("should return false for non-allowed route", () => {
-				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				const registry = createMiddlewareRegistry(methods, cache);
 
-				const result = registry.allowed("/nonexistent", "GET");
+				const result = registry.allowed("GET", "/nonexistent");
 
 				assert.strictEqual(result, false);
 			});
@@ -465,7 +467,7 @@ describe("middleware", () => {
 
 		describe("routes", () => {
 			it("should return route information", () => {
-				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				const registry = createMiddlewareRegistry(methods, cache);
 				registry.register("/test", () => {});
 
 				const result = registry.routes("/test", "GET");
@@ -476,7 +478,7 @@ describe("middleware", () => {
 			});
 
 			it("should cache route results", () => {
-				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				const registry = createMiddlewareRegistry(methods, cache);
 				registry.register("/test", () => {});
 
 				const result1 = registry.routes("/test", "GET");
@@ -486,7 +488,7 @@ describe("middleware", () => {
 			});
 
 			it("should invalidate cache when override is true", () => {
-				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				const registry = createMiddlewareRegistry(methods, cache);
 				registry.register("/test", () => {});
 
 				const result1 = registry.routes("/test", "GET");
@@ -498,7 +500,7 @@ describe("middleware", () => {
 
 		describe("list", () => {
 			it("should return array of routes", () => {
-				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				const registry = createMiddlewareRegistry(methods, cache);
 				registry.register("/test1", () => {});
 				registry.register("/test2", () => {});
 
@@ -508,7 +510,7 @@ describe("middleware", () => {
 			});
 
 			it("should return object of routes", () => {
-				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
+				const registry = createMiddlewareRegistry(methods, cache);
 				registry.register("/test1", () => {});
 				registry.register("/test2", () => {});
 

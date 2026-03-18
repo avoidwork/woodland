@@ -3,6 +3,7 @@ import {
 	FUNCTION,
 	GET,
 	HEAD,
+	INT_0,
 	LEFT_PAREN,
 	SLASH,
 	STRING,
@@ -129,7 +130,7 @@ export function next(req, res, middleware, immediate = false) {
  * @param {Set} ignored - Set of ignored middleware functions
  * @param {string} uri - The URI to match
  * @param {string} method - HTTP method
- * @param {Map} cache - Cache for route results
+ * @param {Object|Map} cache - Cache for route results
  * @param {boolean} [override=false] - Whether to override cache
  * @returns {Object} Route information object
  */
@@ -146,7 +147,7 @@ export function computeRoutes(middleware, ignored, uri, method, cache, override 
 
 		if (method !== WILDCARD) {
 			result.exit = result.middleware.length;
-			reduce(uri, middleware.get(method) ?? new Map(), result, true);
+			reduce(uri, middleware.get(method) ?? new Map(), result);
 		}
 
 		result.visible = 0;
@@ -192,37 +193,35 @@ export function listRoutes(middleware, method = GET.toLowerCase(), type = "array
  * Checks if a method is allowed for a given URI
  * @param {Map} middleware - Map of middleware by method
  * @param {Set} ignored - Set of ignored middleware functions
- * @param {Map} cache - Cache for route results
+ * @param {Object|Map} cache - Cache for route results
  * @param {string} method - HTTP method
  * @param {string} uri - The URI to check
  * @param {boolean} [override=false] - Whether to override cache
  * @returns {boolean} True if allowed
  */
 export function checkAllowed(middleware, ignored, cache, method, uri, override = false) {
-	return computeRoutes(middleware, ignored, uri, method, cache, override).visible > 0;
+	return computeRoutes(middleware, ignored, uri, method, cache, override).visible > INT_0;
 }
 
 /**
  * Creates a registry object with middleware management methods
- * @param {Map} middleware - Map of middleware by method
- * @param {Set} ignored - Set of ignored middleware functions
  * @param {Array} methods - Array of registered HTTP methods
- * @param {Map} cache - Cache for route results
+ * @param {Object|Map} cache - Cache for route results
  * @returns {Object} Registry object with ignore, allowed, routes, register, list methods
  */
-export function createMiddlewareRegistry(middleware, ignored, methods, cache) {
-	const registry = {
+export function createMiddlewareRegistry(methods, cache) {
+	const middleware = new Map();
+	const ignored = new Set();
+
+	return {
 		ignore: (f) => {
 			ignored.add(f);
-			return registry;
 		},
 		allowed: (m, u, o) => checkAllowed(middleware, ignored, cache, m, u, o),
 		routes: (u, m, o) => computeRoutes(middleware, ignored, u, m, cache, o),
 		register: (p, ...fns) => registerMiddleware(middleware, ignored, methods, cache, p, ...fns),
 		list: (m, t) => listRoutes(middleware, m, t),
 	};
-
-	return registry;
 }
 
 /**
@@ -230,7 +229,7 @@ export function createMiddlewareRegistry(middleware, ignored, methods, cache) {
  * @param {Map} middleware - Map of middleware by method
  * @param {Set} ignored - Set of ignored middleware functions
  * @param {Array} methods - Array of registered HTTP methods
- * @param {Map} cache - Cache for route results
+ * @param {Object|Map} cache - Cache for route results
  * @param {string|Function} rpath - Route path or middleware function
  * @param {...Function} fn - Middleware functions to register
  */

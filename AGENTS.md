@@ -162,10 +162,22 @@ res.send = this.send(req, res); // Returns function: res.send(body, status, head
 
 ### Middleware registry (`middleware.js`)
 - `createMiddlewareRegistry` returns object with: `ignore`, `allowed`, `routes`, `register`, `list`
+- `createMiddlewareRegistry(methods, cache)` - takes only methods array and cache, creates internal `middleware` Map and `ignored` Set
+- `allowed(method, uri, override)` - checks if a method is allowed for a URI (method comes BEFORE uri)
+- `routes(uri, method, override)` - returns route information (uri comes BEFORE method)
+- Cache key format: `${method}${DELIMITER}${uri}` (e.g., `"GET|/test"`)
 - `computeRoutes` caches results in Map with key `${method}${DELIMITER}${uri}`
 - `next` - creates iterator-based middleware executor with error handler detection (ERROR_HANDLER_LENGTH = 4)
 - `getStatus` - determines 404/405/500 based on `req.allow` and method
 - HEAD routes cannot be registered directly; GET routes implicitly allow HEAD
+
+### Middleware state management
+- `this.middleware` on Woodland instance is the registry object (not a Map)
+- `this.middleware.ignore(fn)` - adds function to internal ignored Set
+- `this.middleware.allowed(method, uri, override)` - returns boolean
+- `this.middleware.routes(uri, method, override)` - returns route info object
+- `this.middleware.register(path, ...fns, method)` - registers middleware
+- `this.middleware.list(method, type)` - lists routes for a method
 
 ### File server (`fileserver.js`)
 - `serve` - resolves path, checks path traversal (startsWith), handles directories

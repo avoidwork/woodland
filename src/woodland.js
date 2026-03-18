@@ -124,8 +124,6 @@ export class Woodland extends EventEmitter {
 
 		this.cache = new Map();
 		this.permissions = new Map();
-		this.ignored = new Set();
-		this.middleware = new Map();
 		this.methods = [];
 
 		const { log, clfm, extractIP, logRoute, logMiddleware, logDecoration, logError, logServe } =
@@ -183,12 +181,7 @@ export class Woodland extends EventEmitter {
 	 * Initializes middleware registry
 	 */
 	initMiddleware() {
-		this.middlewareRegistry = createMiddlewareRegistry(
-			this.middleware,
-			this.ignored,
-			this.methods,
-			this.cache,
-		);
+		this.middleware = createMiddlewareRegistry(this.methods, this.cache);
 	}
 
 	/**
@@ -294,7 +287,7 @@ export class Woodland extends EventEmitter {
 	 * @returns {boolean} True if method is allowed
 	 */
 	allowed(method, uri, override = false) {
-		return this.middlewareRegistry.allowed(method, uri, override);
+		return this.middleware.allowed(method, uri, override);
 	}
 
 	/**
@@ -307,7 +300,7 @@ export class Woodland extends EventEmitter {
 		let result = override === false ? this.permissions.get(uri) : void 0;
 
 		if (override || result === void 0) {
-			const allMethods = this.middlewareRegistry.routes(uri, WILDCARD, override).visible > INT_0;
+			const allMethods = this.middleware.routes(uri, WILDCARD, override).visible > INT_0;
 			let list;
 
 			if (allMethods) {
@@ -497,7 +490,7 @@ export class Woodland extends EventEmitter {
 	 * @returns {Woodland} Returns self for chaining
 	 */
 	ignore(fn) {
-		this.ignored.add(fn);
+		this.middleware.ignore(fn);
 		this.logger.log(`type=ignore, message="Added function to ignored Set", name="${fn.name}"`);
 
 		return this;
@@ -510,24 +503,8 @@ export class Woodland extends EventEmitter {
 	 * @returns {Array|Object} List of routes
 	 */
 	list(method = GET.toLowerCase(), type = "array") {
-		let result;
-		const methodMap = this.middleware.get(method.toUpperCase());
-
-		if (type === "array") {
-			result = Array.from(methodMap.keys());
-		} else if (type === "object") {
-			result = {};
-			const entries = Array.from(methodMap.entries());
-			const entryCount = entries.length;
-
-			for (let i = 0; i < entryCount; i++) {
-				const [key, value] = entries[i];
-				result[key] = value;
-			}
-		}
-
+		const result = this.middleware.list(method, type);
 		this.logger.log(`type=list, method=${method}, type=${type}`);
-
 		return result;
 	}
 
@@ -667,7 +644,7 @@ export class Woodland extends EventEmitter {
 			req.valid = false;
 			res.error(INT_403);
 		} else if (req.allow.includes(method)) {
-			const result = this.middlewareRegistry.routes(req.parsed.pathname, method);
+			const result = this.middleware.routes(req.parsed.pathname, method);
 
 			if (result.params) {
 				params(req, result.getParams);
@@ -690,7 +667,7 @@ export class Woodland extends EventEmitter {
 	 * @returns {Object} Route information
 	 */
 	routes(uri, method, override = false) {
-		return this.middlewareRegistry.routes(uri, method, override);
+		return this.middleware.routes(uri, method, override);
 	}
 
 	/**
@@ -752,51 +729,11 @@ export class Woodland extends EventEmitter {
 	 * @param {...Function} fn - Middleware function(s)
 	 * @param {string} [method='GET'] - HTTP method
 	 * @returns {Woodland} Returns self for chaining
-	 * @throws {TypeError} When invalid HTTP method or HEAD method is used
 	 */
 	use(rpath, ...fn) {
-		if (typeof rpath === "function") {
-			fn = [rpath, ...fn];
-			rpath = `/.${WILDCARD}`;
-		}
+		this.middleware.register(rpath, ...fn);
 
-		const method = typeof fn[fn.length - 1] === STRING ? fn.pop().toUpperCase() : GET;
-
-		if (method !== WILDCARD && METHODS.includes(method) === false) {
-			throw new TypeError("Invalid HTTP method");
-		}
-
-		if (method === HEAD) {
-			throw new TypeError("Cannot set HEAD route, use GET");
-		}
-
-		if (this.middleware.has(method) === false) {
-			if (method !== WILDCARD) {
-				this.methods.push(method);
-			}
-
-			this.middleware.set(method, new Map());
-		}
-
-		const mmethod = this.middleware.get(method);
-		let lrpath = rpath,
-			lparams = false;
-
-		if (lrpath.includes(`${SLASH}:`) && lrpath.includes("(") === false) {
-			lparams = true;
-			lrpath = this.extractPath(lrpath);
-		}
-
-		const current = mmethod.get(lrpath) ?? { handlers: [] };
-
-		current.handlers.push(...fn);
-		mmethod.set(lrpath, {
-			handlers: current.handlers,
-			params: lparams,
-			regex: new RegExp(`^${lrpath}$`),
-		});
-
-		this.logger.logMiddleware(rpath, method);
+		this.logger.logMiddleware(rpath, fn[fn.length - 1]);
 
 		return this;
 	}
