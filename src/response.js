@@ -306,8 +306,11 @@ export function send(
  */
 export function set(res, arg = {}) {
 	const headers = arg instanceof Map || arg instanceof Headers ? arg : new Headers(arg);
+	const entries = Array.from(headers);
+	const entryCount = entries.length;
 
-	for (const [key, value] of headers) {
+	for (let i = 0; i < entryCount; i++) {
+		const [key, value] = entries[i];
 		res.setHeader(key, value);
 	}
 

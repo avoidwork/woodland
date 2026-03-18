@@ -169,7 +169,7 @@ export function listRoutes(middleware, method = GET.toLowerCase(), type = "array
 	const methodMap = middleware.get(method.toUpperCase());
 
 	if (type === "array") {
-		result = Array.from(methodMap.keys());
+		result = [...methodMap.keys()];
 	} else if (type === "object") {
 		result = {};
 		const entries = Array.from(methodMap.entries());

@@ -433,8 +433,11 @@ function send(
  */
 function set(res, arg = {}) {
 	const headers = arg instanceof Map || arg instanceof Headers ? arg : new Headers(arg);
+	const entries = Array.from(headers);
+	const entryCount = entries.length;
 
-	for (const [key, value] of headers) {
+	for (let i = 0; i < entryCount; i++) {
+		const [key, value] = entries[i];
 		res.setHeader(key, value);
 	}
 
@@ -681,7 +684,7 @@ function listRoutes(middleware, method = GET.toLowerCase(), type = "array") {
 	const methodMap = middleware.get(method.toUpperCase());
 
 	if (type === "array") {
-		result = Array.from(methodMap.keys());
+		result = [...methodMap.keys()];
 	} else if (type === "object") {
 		result = {};
 		const entries = Array.from(methodMap.entries());
