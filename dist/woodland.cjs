@@ -411,7 +411,6 @@ function send(
 				const byteLength = buffered.length;
 
 				[headers] = partialHeaders(req, res, byteLength, status, headers);
-
 				if (req.range !== void 0) {
 					const rangeBuffer = buffered.slice(req.range.start, req.range.end + 1);
 					onDone(req, res, rangeBuffer.toString(), headers);
@@ -1314,7 +1313,7 @@ async function serve(app, req, res, arg, folder = process.cwd()) {
 			path: fp,
 			stats: stats,
 		});
-	} else if (req.parsed.pathname.endsWith(SLASH) === false) {
+	} else if (!req.parsed.pathname.endsWith(SLASH)) {
 		res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
 	} else {
 		const files = await promises.readdir(fp, { encoding: UTF8, withFileTypes: true });
@@ -1329,7 +1328,7 @@ async function serve(app, req, res, arg, folder = process.cwd()) {
 			}
 		}
 
-		if (result.length === INT_0) {
+		if (!result.length) {
 			if (app.autoindex === false) {
 				res.error(INT_404);
 			} else {

@@ -284,7 +284,6 @@ export function send(
 				const byteLength = buffered.length;
 
 				[headers] = partialHeaders(req, res, byteLength, status, headers);
-
 				if (req.range !== void 0) {
 					const rangeBuffer = buffered.slice(req.range.start, req.range.end + 1);
 					onDone(req, res, rangeBuffer.toString(), headers);

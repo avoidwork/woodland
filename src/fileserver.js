@@ -1,7 +1,7 @@
 import { readdir, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { readFileSync } from "node:fs";
-import { EMPTY, INT_0, INT_403, INT_404, SLASH, UTF8 } from "./constants.js";
+import { EMPTY, INT_403, INT_404, SLASH, UTF8 } from "./constants.js";
 import { escapeHtml } from "./response.js";
 
 const html = readFileSync(join(import.meta.dirname, "..", "tpl", "autoindex.html"), {
@@ -85,7 +85,7 @@ export async function serve(app, req, res, arg, folder = process.cwd()) {
 			path: fp,
 			stats: stats,
 		});
-	} else if (req.parsed.pathname.endsWith(SLASH) === false) {
+	} else if (!req.parsed.pathname.endsWith(SLASH)) {
 		res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
 	} else {
 		const files = await readdir(fp, { encoding: UTF8, withFileTypes: true });
@@ -100,7 +100,7 @@ export async function serve(app, req, res, arg, folder = process.cwd()) {
 			}
 		}
 
-		if (result.length === INT_0) {
+		if (!result.length) {
 			if (app.autoindex === false) {
 				res.error(INT_404);
 			} else {
