@@ -5,6 +5,7 @@ import {
 	validateLogging,
 	validateOrigins,
 	mergeEnvLogging,
+	resolveLoggingValue,
 } from "../../src/config.js";
 
 describe("config", () => {
@@ -578,6 +579,62 @@ describe("config", () => {
 			delete process.env.WOODLAND_LOG_ENABLED;
 			delete process.env.WOODLAND_LOG_FORMAT;
 			delete process.env.WOODLAND_LOG_LEVEL;
+		});
+	});
+
+	describe("resolveLoggingValue", () => {
+		it("should return config value when defined", () => {
+			const result = resolveLoggingValue("config-value", "env-value", "default-value");
+
+			assert.strictEqual(result, "config-value");
+		});
+
+		it("should return env value when config is undefined", () => {
+			const result = resolveLoggingValue(void 0, "env-value", "default-value");
+
+			assert.strictEqual(result, "env-value");
+		});
+
+		it("should return default value when both config and env are undefined", () => {
+			const result = resolveLoggingValue(void 0, void 0, "default-value");
+
+			assert.strictEqual(result, "default-value");
+		});
+
+		it("should return config value over default", () => {
+			const result = resolveLoggingValue("config", void 0, "default");
+
+			assert.strictEqual(result, "config");
+		});
+
+		it("should return env value over default", () => {
+			const result = resolveLoggingValue(void 0, "env", "default");
+
+			assert.strictEqual(result, "env");
+		});
+
+		it("should handle false boolean values correctly", () => {
+			const result = resolveLoggingValue(false, true, "default");
+
+			assert.strictEqual(result, false);
+		});
+
+		it("should handle null values correctly", () => {
+			const result = resolveLoggingValue(null, "env", "default");
+
+			assert.strictEqual(result, null);
+		});
+
+		it("should handle zero number values correctly", () => {
+			const result = resolveLoggingValue(0, 100, "default");
+
+			assert.strictEqual(result, 0);
+		});
+
+		it("should handle empty string values correctly", () => {
+			const result = resolveLoggingValue("", "env", "default");
+
+			assert.strictEqual(result, "");
 		});
 	});
 });

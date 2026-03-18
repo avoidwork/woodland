@@ -104,7 +104,14 @@ const VALID_LOG_LEVELS = new Set([
 	"notice",
 ]);
 
-function resolveLoggingValue(configValue, envValue, defaultValue) {
+/**
+ * Resolves logging value from config, environment, or default
+ * @param {*} configValue - Value from configuration object
+ * @param {*} envValue - Value from environment variable
+ * @param {*} defaultValue - Default fallback value
+ * @returns {*} Resolved value following priority: config > env > default
+ */
+export function resolveLoggingValue(configValue, envValue, defaultValue) {
 	if (configValue !== void 0) {
 		return configValue;
 	}
@@ -114,6 +121,14 @@ function resolveLoggingValue(configValue, envValue, defaultValue) {
 	return defaultValue;
 }
 
+/**
+ * Validates and normalizes logging configuration
+ * @param {Object} [logging={}] - Logging configuration object
+ * @param {boolean} [logging.enabled] - Whether logging is enabled
+ * @param {string} [logging.format] - Custom log format string
+ * @param {string} [logging.level] - Log level (debug, info, warn, error, etc.)
+ * @returns {Object} Validated logging configuration with resolved values
+ */
 export function validateLogging(logging = {}) {
 	const envLogEnabled = process.env.WOODLAND_LOG_ENABLED;
 	const envLogFormat = process.env.WOODLAND_LOG_FORMAT;
@@ -158,6 +173,11 @@ export function validateOrigins(origins = []) {
 	});
 }
 
+/**
+ * Merges logging configuration with environment variables
+ * @param {Object} [logging={}] - Logging configuration object
+ * @returns {Object} Merged logging configuration with enabled, format, and level
+ */
 export function mergeEnvLogging(logging = {}) {
 	const envLogEnabled = process.env.WOODLAND_LOG_ENABLED;
 	const envLogFormat = process.env.WOODLAND_LOG_FORMAT;
