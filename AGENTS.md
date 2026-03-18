@@ -90,7 +90,7 @@
 
 ## Test count
 
-- 503 tests passing
+- 582 tests passing (111 in woodland.test.js)
 - 100% line coverage target
 
 ## Key implementation details
@@ -108,3 +108,6 @@
 - Response handler functions (`error`, `json`, `redirect`, `send`, `set`, `status`) are exported directly and support curried calls when passed to `res.*` decorators (e.g., `res.json = this.json(res)` returns a function that can be called later with data)
 - Request handler functions (`cors`, `corsHost`, `corsRequest`, `extractIP`) are exported directly instead of being wrapped in factory functions
 - Logger functions (`log`, `clfm`, `logRoute`, `logMiddleware`, `logDecoration`, `logError`, `logServe`) are exported directly with `createLogger` returning an object with bound methods
+- **Only one class exists**: `Woodland` in `woodland.js` (extends `EventEmitter`)
+- **Factory pattern used throughout**: `createLogger`, `createMiddlewareRegistry`, `createFileServer` for encapsulation and closure-based state
+- **HTTP method shortcuts**: `get`, `post`, `put`, `delete`, `patch`, `options`, `connect`, `trace`, `always` all delegate to `use()`

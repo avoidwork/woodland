@@ -534,6 +534,20 @@ describe("woodland", () => {
 
 				assert.strictEqual(result, "");
 			});
+
+			it("should generate etag for HEAD methods", () => {
+				const appWithEtags = woodland({ etags: true });
+				const result = appWithEtags.etag("HEAD", "test");
+
+				assert.ok(typeof result === "string");
+			});
+
+			it("should generate etag for OPTIONS methods", () => {
+				const appWithEtags = woodland({ etags: true });
+				const result = appWithEtags.etag("OPTIONS", "test");
+
+				assert.ok(typeof result === "string");
+			});
 		});
 
 		describe("clf", () => {

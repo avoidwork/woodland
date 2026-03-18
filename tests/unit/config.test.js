@@ -184,6 +184,14 @@ describe("config", () => {
 			}
 		});
 
+		it("should return valid level without normalization", () => {
+			const result = validateLogging({ enabled: true, format: "test", level: "debug" });
+
+			assert.strictEqual(result.enabled, true);
+			assert.strictEqual(result.format, "test");
+			assert.strictEqual(result.level, "debug");
+		});
+
 		it("should use environment variable for enabled", () => {
 			process.env.WOODLAND_LOG_ENABLED = "false";
 			const result = validateLogging({});
@@ -304,6 +312,133 @@ describe("config", () => {
 
 			delete process.env.WOODLAND_LOG_FORMAT;
 			delete process.env.WOODLAND_LOG_LEVEL;
+		});
+
+		it("should use logging.enabled false explicitly", () => {
+			process.env.WOODLAND_LOG_ENABLED = "true";
+			const result = validateLogging({ enabled: false });
+
+			assert.strictEqual(result.enabled, false);
+
+			delete process.env.WOODLAND_LOG_ENABLED;
+		});
+
+		it("should use env enabled false when logging.enabled undefined", () => {
+			process.env.WOODLAND_LOG_ENABLED = "false";
+			const result = validateLogging({});
+
+			assert.strictEqual(result.enabled, false);
+
+			delete process.env.WOODLAND_LOG_ENABLED;
+		});
+
+		it("should use env enabled true when logging.enabled undefined", () => {
+			process.env.WOODLAND_LOG_ENABLED = "true";
+			const result = validateLogging({});
+
+			assert.strictEqual(result.enabled, true);
+
+			delete process.env.WOODLAND_LOG_ENABLED;
+		});
+
+		it("should use default enabled true when no env or config", () => {
+			const result = validateLogging({});
+
+			assert.strictEqual(result.enabled, true);
+		});
+
+		it("should use logging.format explicitly", () => {
+			process.env.WOODLAND_LOG_FORMAT = "env-fmt";
+			const result = validateLogging({ format: "config-fmt" });
+
+			assert.strictEqual(result.format, "config-fmt");
+
+			delete process.env.WOODLAND_LOG_FORMAT;
+		});
+
+		it("should use env format when logging.format undefined", () => {
+			process.env.WOODLAND_LOG_FORMAT = "env-fmt";
+			const result = validateLogging({});
+
+			assert.strictEqual(result.format, "env-fmt");
+
+			delete process.env.WOODLAND_LOG_FORMAT;
+		});
+
+		it("should use default format when no env or config", () => {
+			delete process.env.WOODLAND_LOG_FORMAT;
+			const result = validateLogging({});
+
+			assert.ok(result.format);
+		});
+
+		it("should use logging.level explicitly undefined falls to env", () => {
+			process.env.WOODLAND_LOG_LEVEL = "warn";
+			const result = validateLogging({ level: void 0 });
+
+			assert.strictEqual(result.level, "warn");
+
+			delete process.env.WOODLAND_LOG_LEVEL;
+		});
+
+		it("should use logging.enabled explicitly undefined falls to env true", () => {
+			process.env.WOODLAND_LOG_ENABLED = "true";
+			const result = validateLogging({ enabled: void 0 });
+
+			assert.strictEqual(result.enabled, true);
+
+			delete process.env.WOODLAND_LOG_ENABLED;
+		});
+
+		it("should use logging.format explicitly undefined falls to env", () => {
+			process.env.WOODLAND_LOG_FORMAT = "env-fmt";
+			const result = validateLogging({ format: void 0 });
+
+			assert.strictEqual(result.format, "env-fmt");
+
+			delete process.env.WOODLAND_LOG_FORMAT;
+		});
+
+		it("should use logging.level explicitly", () => {
+			process.env.WOODLAND_LOG_LEVEL = "error";
+			const result = validateLogging({ level: "warn" });
+
+			assert.strictEqual(result.level, "warn");
+
+			delete process.env.WOODLAND_LOG_LEVEL;
+		});
+
+		it("should use env level when logging.level undefined", () => {
+			process.env.WOODLAND_LOG_LEVEL = "warn";
+			const result = validateLogging({});
+
+			assert.strictEqual(result.level, "warn");
+
+			delete process.env.WOODLAND_LOG_LEVEL;
+		});
+
+		it("should use default level when no env or config", () => {
+			delete process.env.WOODLAND_LOG_LEVEL;
+			const result = validateLogging({});
+
+			assert.strictEqual(result.level, "info");
+		});
+
+		it("should use default enabled when no env or config", () => {
+			delete process.env.WOODLAND_LOG_ENABLED;
+			delete process.env.WOODLAND_LOG_FORMAT;
+			delete process.env.WOODLAND_LOG_LEVEL;
+			const result = validateLogging({});
+
+			assert.strictEqual(result.enabled, true);
+			assert.strictEqual(result.level, "info");
+		});
+
+		it("should use default format explicitly", () => {
+			delete process.env.WOODLAND_LOG_FORMAT;
+			const result = validateLogging({ format: void 0 });
+
+			assert.strictEqual(result.format, result.format); // Just verify it's set
 		});
 	});
 

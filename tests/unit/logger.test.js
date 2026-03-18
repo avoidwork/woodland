@@ -393,13 +393,122 @@ describe("logger", () => {
 					connection: { remoteAddress: "192.168.1.1" },
 					parsed: {
 						pathname: "/test",
-						search: "?q=1",
 					},
 				};
 
 				const res = {
 					statusCode: 200,
 					getHeader: () => 1234,
+				};
+
+				const result = logger.clfm(req, res);
+
+				assert.ok(typeof result === "string");
+			});
+
+			it("should handle null headers", () => {
+				const logger = createLogger({ format: "%h %t %r %>s %b" });
+				const req = {
+					method: "GET",
+					headers: null,
+					connection: { remoteAddress: "192.168.1.1" },
+				};
+
+				const res = {
+					statusCode: 200,
+					getHeader: () => 1234,
+				};
+
+				const result = logger.clfm(req, res);
+
+				assert.ok(typeof result === "string");
+			});
+
+			it("should handle undefined headers", () => {
+				const logger = createLogger({ format: "%h %t %r %>s %b" });
+				const req = {
+					method: "GET",
+					headers: undefined,
+					connection: { remoteAddress: "192.168.1.1" },
+				};
+
+				const res = {
+					statusCode: 200,
+					getHeader: () => 1234,
+				};
+
+				const result = logger.clfm(req, res);
+
+				assert.ok(typeof result === "string");
+			});
+
+			it("should handle null parsed", () => {
+				const logger = createLogger({ format: "%h %t %r %>s %b" });
+				const req = {
+					method: "GET",
+					headers: { host: "example.com" },
+					connection: { remoteAddress: "192.168.1.1" },
+					parsed: null,
+				};
+
+				const res = {
+					statusCode: 200,
+					getHeader: () => 1234,
+				};
+
+				const result = logger.clfm(req, res);
+
+				assert.ok(typeof result === "string");
+			});
+
+			it("should handle undefined parsed", () => {
+				const logger = createLogger({ format: "%h %t %r %>s %b" });
+				const req = {
+					method: "GET",
+					headers: { host: "example.com" },
+					connection: { remoteAddress: "192.168.1.1" },
+					parsed: undefined,
+				};
+
+				const res = {
+					statusCode: 200,
+					getHeader: () => 1234,
+				};
+
+				const result = logger.clfm(req, res);
+
+				assert.ok(typeof result === "string");
+			});
+
+			it("should handle null getHeader", () => {
+				const logger = createLogger({ format: "%h %t %r %>s %b" });
+				const req = {
+					method: "GET",
+					headers: { host: "example.com" },
+					connection: { remoteAddress: "192.168.1.1" },
+				};
+
+				const res = {
+					statusCode: 200,
+					getHeader: null,
+				};
+
+				const result = logger.clfm(req, res);
+
+				assert.ok(typeof result === "string");
+			});
+
+			it("should handle undefined getHeader", () => {
+				const logger = createLogger({ format: "%h %t %r %>s %b" });
+				const req = {
+					method: "GET",
+					headers: { host: "example.com" },
+					connection: { remoteAddress: "192.168.1.1" },
+				};
+
+				const res = {
+					statusCode: 200,
+					getHeader: undefined,
 				};
 
 				const result = logger.clfm(req, res);

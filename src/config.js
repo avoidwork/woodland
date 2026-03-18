@@ -103,9 +103,32 @@ export function validateLogging(logging = {}) {
 	const envLogFormat = process.env.WOODLAND_LOG_FORMAT;
 	const envLogLevel = process.env.WOODLAND_LOG_LEVEL;
 
-	const enabled = logging?.enabled ?? (envLogEnabled ? envLogEnabled !== "false" : true);
-	const format = logging?.format ?? envLogFormat ?? LOG_FORMAT;
-	const level = logging?.level ?? envLogLevel ?? INFO;
+	let enabled;
+	if (logging.enabled !== void 0) {
+		enabled = logging.enabled;
+	} else if (envLogEnabled !== void 0) {
+		enabled = envLogEnabled !== "false";
+	} else {
+		enabled = true;
+	}
+
+	let format;
+	if (logging.format !== void 0) {
+		format = logging.format;
+	} else if (envLogFormat !== void 0) {
+		format = envLogFormat;
+	} else {
+		format = LOG_FORMAT;
+	}
+
+	let level;
+	if (logging.level !== void 0) {
+		level = logging.level;
+	} else if (envLogLevel !== void 0) {
+		level = envLogLevel;
+	} else {
+		level = INFO;
+	}
 
 	const validLevels = [DEBUG, INFO, "warn", "error", "critical", "alert", "emerg", "notice"];
 	if (!validLevels.includes(level)) {
@@ -152,9 +175,32 @@ export function mergeEnvLogging(logging = {}) {
 	const envLogFormat = process.env.WOODLAND_LOG_FORMAT;
 	const envLogLevel = process.env.WOODLAND_LOG_LEVEL;
 
-	return {
-		enabled: logging?.enabled ?? (envLogEnabled ? envLogEnabled !== "false" : true),
-		format: logging?.format ?? envLogFormat ?? LOG_FORMAT,
-		level: logging?.level ?? envLogLevel ?? INFO,
-	};
+	let enabled;
+	if (logging.enabled !== void 0) {
+		enabled = logging.enabled;
+	} else if (envLogEnabled !== void 0) {
+		enabled = envLogEnabled !== "false";
+	} else {
+		enabled = true;
+	}
+
+	let format;
+	if (logging.format !== void 0) {
+		format = logging.format;
+	} else if (envLogFormat !== void 0) {
+		format = envLogFormat;
+	} else {
+		format = LOG_FORMAT;
+	}
+
+	let level;
+	if (logging.level !== void 0) {
+		level = logging.level;
+	} else if (envLogLevel !== void 0) {
+		level = envLogLevel;
+	} else {
+		level = INFO;
+	}
+
+	return { enabled, format, level };
 }
