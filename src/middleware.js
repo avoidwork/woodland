@@ -72,6 +72,8 @@ export function getStatus(req, res) {
 	return res.statusCode > 500 ? res.statusCode : 500;
 }
 
+const ERROR_HANDLER_LENGTH = 4;
+
 /**
  * Creates a next function for middleware processing with error handling
  * @param {Object} req - The HTTP request object
@@ -81,40 +83,44 @@ export function getStatus(req, res) {
  * @returns {Function} The next function for middleware chain
  */
 export function next(req, res, middleware, immediate = false) {
-	const errorStatus = getStatus(req, res);
-
-	const internalFn = (err, fn) => {
+	const handleError = (err, nextFn) => {
 		let obj = middleware.next();
 
-		if (obj.done === false) {
-			if (err !== void 0) {
-				while (obj.done === false && obj.value && obj.value.length < 4) {
-					obj = middleware.next();
-				}
+		while (obj.done === false && obj.value && obj.value.length !== ERROR_HANDLER_LENGTH) {
+			obj = middleware.next();
+		}
 
-				if (obj.done === false && obj.value) {
-					obj.value(err, req, res, fn);
-				} else {
-					res.error(errorStatus);
-				}
-			} else {
-				const value = obj.value;
-				if (typeof value === FUNCTION) {
-					value(req, res, fn);
-				} else {
-					res.send(value);
-				}
-			}
+		if (obj.done === false && obj.value) {
+			obj.value(err, req, res, nextFn);
 		} else {
-			res.error(errorStatus);
+			res.error(getStatus(req, res));
 		}
 	};
 
-	const fn = immediate
-		? (err) => internalFn(err, fn)
-		: (err) => process.nextTick(() => internalFn(err, fn));
+	const handleMiddleware = (nextFn) => {
+		const obj = middleware.next();
 
-	return fn;
+		if (obj.done === false) {
+			const value = obj.value;
+			if (typeof value === FUNCTION) {
+				value(req, res, nextFn);
+			} else {
+				res.send(value);
+			}
+		} else {
+			res.error(getStatus(req, res));
+		}
+	};
+
+	const execute = (err) => {
+		if (err !== void 0) {
+			handleError(err, execute);
+		} else {
+			handleMiddleware(execute);
+		}
+	};
+
+	return immediate ? execute : (err) => process.nextTick(() => execute(err));
 }
 
 /**
