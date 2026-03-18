@@ -1,6 +1,5 @@
 import assert from "node:assert";
 import { describe, it, beforeEach } from "node:test";
-import { FUNCTION } from "../../src/constants.js";
 import {
 	reduce,
 	getStatus,
@@ -330,11 +329,9 @@ describe("middleware", () => {
 	});
 
 	describe("createMiddlewareRegistry", () => {
-		let middleware, ignored, methods, cache;
+		let methods, cache;
 
 		beforeEach(() => {
-			middleware = new Map();
-			ignored = new Set();
 			methods = [];
 			cache = new Map();
 		});
