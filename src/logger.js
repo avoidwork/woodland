@@ -5,12 +5,14 @@ import {
 	INFO,
 	MONTHS,
 	INT_0,
+	INT_2,
 	INT_3,
+	INT_60,
 	INT_1e6,
 	TIME_MS,
 	TOKEN_N,
+	STRING_0,
 } from "./constants.js";
-import { timeOffset } from "./utility.js";
 
 const LEVELS = {
 	emerg: 0,
@@ -227,4 +229,24 @@ export function createLogger(config = {}) {
  */
 export function ms(arg = INT_0, digits = INT_3) {
 	return TIME_MS.replace(TOKEN_N, Number(arg / INT_1e6).toFixed(digits));
+}
+
+/**
+ * Formats a time offset value into a string representation
+ * @param {number} [arg=0] - Time offset value
+ * @returns {string} Formatted time offset string
+ */
+export function timeOffset(arg = INT_0) {
+	const isNegative = arg < INT_0;
+	const absValue = isNegative ? -arg : arg;
+	const offsetMinutes = absValue / INT_60;
+
+	const hours = Math.floor(offsetMinutes);
+	const minutes = Math.floor((offsetMinutes - hours) * INT_60);
+
+	const sign = isNegative ? HYPHEN : "";
+	const hoursStr = String(hours).padStart(INT_2, STRING_0);
+	const minutesStr = String(minutes).padStart(INT_2, STRING_0);
+
+	return `${sign}${hoursStr}${minutesStr}`;
 }

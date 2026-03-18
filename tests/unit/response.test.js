@@ -11,6 +11,9 @@ import {
 	status,
 	stream,
 	escapeHtml,
+	partialHeaders,
+	pipeable,
+	writeHead,
 } from "../../src/response.js";
 
 describe("response", () => {
@@ -1005,6 +1008,126 @@ describe("response", () => {
 		it("should return unchanged string with no special characters", () => {
 			const result = escapeHtml("hello world");
 			assert.strictEqual(result, "hello world");
+		});
+	});
+
+	describe("partialHeaders", () => {
+		it("should return headers unchanged when no range header", () => {
+			const req = { headers: {} };
+			const res = { removeHeader: () => {}, header: () => {} };
+			const headers = { "content-type": "text/html" };
+
+			const [resultHeaders] = partialHeaders(req, res, 1000, 200, headers);
+
+			assert.deepStrictEqual(resultHeaders, headers);
+		});
+
+		it("should set partial content headers for valid range", () => {
+			const req = { headers: { range: "bytes=0-499" } };
+			const res = {
+				removeHeader: () => {},
+				header: () => {},
+				statusCode: 200,
+			};
+			const headers = {};
+
+			const [resultHeaders, options] = partialHeaders(req, res, 1000, 200, headers);
+
+			assert.strictEqual(resultHeaders["content-range"], "bytes 0-499/1000");
+			assert.strictEqual(resultHeaders["content-length"], 500);
+			assert.strictEqual(res.statusCode, 206);
+			assert.deepStrictEqual(options, { start: 0, end: 499 });
+		});
+
+		it("should handle suffix range", () => {
+			const req = { headers: { range: "bytes=-500" } };
+			let capturedRange = null;
+			const res = {
+				removeHeader: () => {},
+				header: (key, val) => {
+					if (key === "content-range") {
+						capturedRange = val;
+					}
+				},
+				statusCode: 200,
+			};
+			const headers = {};
+
+			partialHeaders(req, res, 1000, 200, headers);
+
+			assert.strictEqual(capturedRange, "bytes 500-999/1000");
+		});
+
+		it("should set content range for invalid range", () => {
+			const req = { headers: { range: "bytes=0-99999" } };
+			let capturedRange = null;
+			const res = {
+				removeHeader: () => {},
+				header: (key, val) => {
+					capturedRange = val;
+				},
+				statusCode: 200,
+			};
+			const headers = {};
+
+			partialHeaders(req, res, 1000, 200, headers);
+
+			assert.strictEqual(capturedRange, "bytes */1000");
+		});
+	});
+
+	describe("pipeable", () => {
+		it("should return true for object with on method", () => {
+			const obj = { on: () => {} };
+			assert.strictEqual(pipeable("GET", obj), true);
+		});
+
+		it("should return false for HEAD method", () => {
+			const obj = { on: () => {} };
+			assert.strictEqual(pipeable("HEAD", obj), false);
+		});
+
+		it("should return false for null", () => {
+			assert.strictEqual(pipeable("GET", null), false);
+		});
+
+		it("should return false for undefined", () => {
+			assert.strictEqual(pipeable("GET", undefined), false);
+		});
+
+		it("should return false for object without on method", () => {
+			const obj = { foo: "bar" };
+			assert.strictEqual(pipeable("GET", obj), false);
+		});
+	});
+
+	describe("writeHead", () => {
+		it("should call writeHead with status and headers", () => {
+			let capturedHeaders = null;
+			const res = {
+				statusCode: 200,
+				writeHead: (status, text, headers) => {
+					capturedHeaders = headers;
+				},
+			};
+
+			writeHead(res, { "content-type": "application/json" });
+
+			assert.deepStrictEqual(capturedHeaders, { "content-type": "application/json" });
+		});
+
+		it("should handle empty headers", () => {
+			let called = false;
+			const res = {
+				statusCode: 200,
+				writeHead: () => {
+					called = true;
+				},
+			};
+
+			writeHead(res, {});
+
+			assert.strictEqual(called, true);
 		});
 	});
 });

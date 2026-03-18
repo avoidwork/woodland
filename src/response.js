@@ -1,4 +1,6 @@
 import { extname } from "node:path";
+import { STATUS_CODES } from "node:http";
+import mimeDb from "mime-db";
 import {
 	APPLICATION_JSON,
 	APPLICATION_OCTET_STREAM,
@@ -6,10 +8,18 @@ import {
 	CONTENT_LENGTH,
 	CONTENT_RANGE,
 	CONTENT_TYPE,
+	COMMA,
 	EMPTY,
 	ETAG,
+	EXTENSIONS,
+	FUNCTION,
+	HEAD,
+	HYPHEN,
+	INT_10,
 	INT_200,
+	INT_206,
 	INT_416,
+	KEY_BYTES,
 	LOCATION,
 	OPTIONS,
 	OPTIONS_BODY,
@@ -17,7 +27,6 @@ import {
 	STRING,
 	TO_STRING,
 } from "./constants.js";
-import { partialHeaders, writeHead, pipeable, mimeExtensions } from "./utility.js";
 
 const htmlEscapes = {
 	"&": "&amp;",
@@ -26,6 +35,126 @@ const htmlEscapes = {
 	'"': "&quot;",
 	"'": "&#39;",
 };
+
+const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
+	mimeExtensions = valid.reduce((a, v) => {
+		const result = Object.assign({ type: v[0] }, v[1]);
+
+		for (const key of result.extensions) {
+			a[`.${key}`] = result;
+		}
+
+		return a;
+	}, {});
+
+/**
+ * Handles partial content headers for HTTP range requests
+ * @param {Object} req - The HTTP request object
+ * @param {Object} res - The HTTP response object
+ * @param {number} size - Total size of the content
+ * @param {number} status - HTTP status code
+ * @param {Object} [headers={}] - Response headers object
+ * @param {Object} [options={}] - Options for range processing
+ * @returns {Array} Array containing [headers, options]
+ */
+export function partialHeaders(req, res, size, status, headers = {}, options = {}) {
+	const rangeHeader = req.headers.range;
+
+	if (!rangeHeader || !rangeHeader.startsWith(KEY_BYTES)) {
+		return [headers, options];
+	}
+
+	// Optimized range parsing - avoid multiple splits
+	const rangePart = rangeHeader.substring(KEY_BYTES.length);
+	const commaIndex = rangePart.indexOf(COMMA);
+	const rangeSpec = commaIndex === -1 ? rangePart : rangePart.substring(0, commaIndex);
+	const hyphenIndex = rangeSpec.indexOf(HYPHEN);
+
+	let start, end;
+
+	if (hyphenIndex === -1) {
+		// No hyphen found, invalid range
+		return [headers, options];
+	}
+
+	const startStr = rangeSpec.substring(0, hyphenIndex);
+	const endStr = rangeSpec.substring(hyphenIndex + 1);
+
+	// Parse numbers with optimized logic
+	if (startStr === EMPTY) {
+		// Suffix-byte-range-spec (e.g., "-500")
+		if (endStr === EMPTY) {
+			return [headers, options];
+		}
+		end = parseInt(endStr, INT_10);
+		if (isNaN(end)) {
+			return [headers, options];
+		}
+		start = size - end;
+		end = size - 1;
+	} else {
+		start = parseInt(startStr, INT_10);
+		if (isNaN(start)) {
+			return [headers, options];
+		}
+
+		if (endStr === EMPTY) {
+			end = size - 1;
+		} else {
+			end = parseInt(endStr, INT_10);
+			if (isNaN(end)) {
+				return [headers, options];
+			}
+		}
+	}
+
+	// Clean up headers once
+	res.removeHeader(CONTENT_RANGE);
+	res.removeHeader(CONTENT_LENGTH);
+	res.removeHeader(ETAG);
+	delete headers.etag;
+
+	// Validate range
+	if (!isNaN(start) && !isNaN(end) && start <= end && start >= 0 && end < size) {
+		const rangeOptions = { start, end };
+		req.range = rangeOptions;
+		const contentLength = end - start + 1;
+
+		headers[CONTENT_RANGE] = `bytes ${start}-${end}/${size}`;
+		headers[CONTENT_LENGTH] = contentLength;
+
+		res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
+		res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
+		res.statusCode = INT_206;
+
+		return [headers, rangeOptions];
+	} else {
+		// Invalid range
+		headers[CONTENT_RANGE] = `bytes */${size}`;
+		res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
+
+		return [headers, options];
+	}
+}
+
+/**
+ * Checks if an object is pipeable (has 'on' method and is not null)
+ * @param {string} method - HTTP method
+ * @param {*} arg - Object to check for pipeability
+ * @returns {boolean} True if the object is pipeable
+ */
+export function pipeable(method, arg) {
+	return method !== HEAD && arg !== null && arg !== undefined && typeof arg.on === FUNCTION;
+}
+
+/**
+ * Writes HTTP response headers using writeHead method
+ * @param {Object} res - The HTTP response object
+ * @param {Object} [headers={}] - Headers object to write
+ */
+export function writeHead(res, headers = {}) {
+	res.writeHead(res.statusCode, STATUS_CODES[res.statusCode], headers);
+}
 
 /**
  * Gets MIME type for file extension

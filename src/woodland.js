@@ -48,7 +48,7 @@ import {
 	X_POWERED_BY_VALUE,
 	X_RESPONSE_TIME,
 } from "./constants.js";
-import { writeHead } from "./utility.js";
+import { writeHead } from "./response.js";
 import { createMiddlewareRegistry, getStatus, next } from "./middleware.js";
 import { error, json, redirect, send, set, status, stream as responseStream } from "./response.js";
 import { validateConfig, validateLogging } from "./config.js";

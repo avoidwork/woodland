@@ -46,12 +46,12 @@
 |------|---------|---------|
 | `src/woodland.js` | Main framework (only class) | `Woodland` class, `woodland` factory |
 | `src/config.js` | Configuration validation | `validateConfig`, `validateLogging`, `validateOrigins`, `mergeEnvLogging` |
-| `src/response.js` | Response handlers | `mime`, `getStatusText`, `error`, `json`, `redirect`, `send`, `set`, `status`, `stream`, `noop` |
-| `src/request.js` | Request handlers | `cors`, `corsHost`, `corsRequest`, `extractIP`, `decorate`, `logClose` |
-| `src/logger.js` | Logging | `createLogger`, `log`, `clfm`, `extractIP`, `logRoute`, `logMiddleware`, `logDecoration`, `logError`, `logServe` |
-| `src/utility.js` | Utility functions (435 lines) | `escapeHtml`, `autoindex`, `ms`, `params`, `parse`, `partialHeaders`, `pipeable`, `timeOffset`, `writeHead`, `isValidIP`, `extractPath`, `mimeExtensions` |
+| `src/response.js` | Response handlers | `mime`, `getStatusText`, `error`, `json`, `redirect`, `send`, `set`, `status`, `stream`, `noop`, `escapeHtml`, `partialHeaders`, `pipeable`, `writeHead` |
+| `src/request.js` | Request handlers | `cors`, `corsHost`, `corsRequest`, `extractIP`, `decorate`, `logClose`, `params`, `parse`, `extractPath` |
+| `src/logger.js` | Logging | `createLogger`, `log`, `clfm`, `extractIP`, `logRoute`, `logMiddleware`, `logDecoration`, `logError`, `logServe`, `ms`, `timeOffset` |
+| `src/utility.js` | Utility functions (136 lines) | `autoindex`, `isValidIP`, `mimeExtensions` |
 | `src/middleware.js` | Middleware registry | `reduce`, `getStatus`, `next`, `computeRoutes`, `listRoutes`, `checkAllowed`, `createMiddlewareRegistry`, `registerMiddleware` |
-| `src/fileserver.js` | File server | `serve`, `register`, `createFileServer` |
+| `src/fileserver.js` | File server | `serve`, `register`, `createFileServer`, `autoindex` |
 | `src/constants.js` | Constants & patterns | All framework constants (HTTP methods, headers, status codes, etc.) |
 | `src/cli.js` | CLI entry point | CLI server runner |
 | `tpl/autoindex.html` | Directory listing template | HTML template for autoindex |
@@ -117,7 +117,7 @@ res.send = this.send(req, res); // Returns function: res.send(body, status, head
 
 ## Test count
 
-- 564 tests passing
+- 601 tests passing
 - 100% line coverage target
 
 ## Key implementation details
@@ -132,18 +132,24 @@ res.send = this.send(req, res); // Returns function: res.send(body, status, head
 - `createLogger` returns object with bound methods via closures
 - `clfm` generates common log format with `timeOffset` for timezone
 - `timeOffset` convention: positive input (minutes) returns negative string (e.g., 300 → "-0500")
+- `ms` - formats nanoseconds to milliseconds with configurable precision
 - Log levels: emerg, alert, crit, error, warn, notice, info, debug (0-7, lower = more severe)
 
 ### Utility functions (`utility.js`)
-- `escapeHtml` - private helper used by `autoindex`, escapes `&<>"'`
-- `autoindex` - uses lowercase doctype `<!doctype html>`
-- `params` - uses `coerce()` from tiny-coerce to convert numeric strings to numbers
-- `partialHeaders` - uses lowercase header names (e.g., "content-range", "content-length")
-- `timeOffset` - JavaScript timezone convention: input is timezone offset in minutes, output is ±HHMM string
+- `autoindex` - uses lowercase doctype `<!doctype html>`, generates directory listing HTML
 - `isValidIP` - validates IPv4 and IPv6, rejects `:::` patterns (multiple colons invalid)
-- `extractPath` - converts `/:param` to regex `/(?<param>[^/]+)`
 - `mimeExtensions` - populated from mime-db, keyed by extension (e.g., ".json")
-- **DRY principle**: `mime` function lives in `response.js` only (removed from utility.js to avoid duplication)
+- **Refactored**: `escapeHtml` moved to `response.js`, `params`/`parse`/`extractPath` moved to `request.js`, `partialHeaders`/`pipeable`/`writeHead` moved to `response.js`, `ms`/`timeOffset` moved to `logger.js`
+- **DRY principle**: `mime` function lives in `response.js` only
+
+### Request handlers (`request.js`)
+- `cors` - returns true if origins array non-empty AND (wildcard OR origin in list)
+- `corsHost` - true if origin header exists and hostname differs from request host
+- `corsRequest` - returns function that sends 204 No Content
+- `extractIP` - checks x-forwarded-for first, then connection.remoteAddress, then socket.remoteAddress
+- `params` - extracts URL parameters using regex named groups, uses `coerce()` to convert numeric strings, applies `escapeHtml()` for XSS prevention
+- `parse` - parses URL string or request object into URL object with security fallback
+- `extractPath` - converts `/:param` to regex `/(?<param>[^/]+)` for route matching
 
 ### Response handlers (`response.js`)
 - `error` - removes "allow" header on 404, removes CORS headers if `req.cors` is true
@@ -153,6 +159,11 @@ res.send = this.send(req, res); // Returns function: res.send(body, status, head
 - `set` - accepts Object, Map, or Headers; converts to Headers for iteration
 - `status` - simple statusCode setter
 - `stream` - handles GET, HEAD, OPTIONS methods for file serving
+- `escapeHtml` - escapes HTML special characters (`&<>"'`) for XSS prevention
+- `partialHeaders` - handles HTTP range requests, sets `content-range` and `content-length` headers
+- `pipeable` - checks if object is stream-like (has `on` method and not HEAD method)
+- `writeHead` - writes response headers using `writeHead()` method
+- `mimeExtensions` - MIME type database keyed by file extension
 
 ### Request handlers (`request.js`)
 - `cors` - returns true if origins array non-empty AND (wildcard OR origin in list)
@@ -184,6 +195,7 @@ res.send = this.send(req, res); // Returns function: res.send(body, status, head
 - Directories redirect to add trailing slash, or serve autoindex if enabled
 - Looks for index files (index.htm, index.html) before autoindex
 - `createFileServer` returns object with `register` and `serve` methods
+- `autoindex` - generates HTML directory listing using `escapeHtml` for XSS prevention
 
 ### Constants (`constants.js`)
 - HTTP methods: GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD, CONNECT, TRACE
