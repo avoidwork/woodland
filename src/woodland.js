@@ -300,7 +300,8 @@ export class Woodland extends EventEmitter {
 		let result = override === false ? this.permissions.get(uri) : void 0;
 
 		if (override || result === void 0) {
-			const allMethods = this.middleware.routes(uri, WILDCARD, override).visible > INT_0;
+			const routes = this.middleware.routes(uri, WILDCARD, override);
+			const allMethods = routes.middleware.length > INT_0;
 			let list;
 
 			if (allMethods) {
@@ -347,6 +348,7 @@ export class Woodland extends EventEmitter {
 		for (let i = 0; i < args.length; i++) {
 			this.middleware.ignore(args[i]);
 		}
+
 		return this.use(...args, WILDCARD);
 	}
 

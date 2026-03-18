@@ -25,25 +25,20 @@ export function reduce(uri, map = new Map(), arg = {}) {
 
 	const middlewareArray = arg.middleware;
 	let paramsFound = arg.params;
-	const values = map.values();
-	const valuesArray = Array.from(values);
-	const valueCount = valuesArray.length;
 
-	for (let i = 0; i < valueCount; i++) {
-		const middleware = valuesArray[i];
+	for (const middleware of map.values()) {
 		middleware.regex.lastIndex = 0;
 
 		if (middleware.regex.test(uri)) {
 			const handlers = middleware.handlers;
-			const handlerCount = handlers.length;
 
-			if (handlerCount === 1) {
+			if (handlers.length === 1) {
 				middlewareArray.push(handlers[0]);
-			} else if (handlerCount > 1) {
-				middlewareArray.push.apply(middlewareArray, handlers);
+			} else {
+				middlewareArray.push(...handlers);
 			}
 
-			if (middleware.params && paramsFound === false) {
+			if (middleware.params && !paramsFound) {
 				arg.params = true;
 				arg.getParams = middleware.regex;
 				paramsFound = true;
@@ -152,8 +147,8 @@ export function computeRoutes(middleware, ignored, uri, method, cache, override 
 		}
 
 		result.visible = 0;
-		for (let i = 0; i < result.middleware.length; i++) {
-			if (ignored.has(result.middleware[i]) === false) {
+		for (const fn of result.middleware) {
+			if (!ignored.has(fn)) {
 				result.visible++;
 			}
 		}
@@ -291,5 +286,4 @@ export function registerMiddleware(middleware, ignored, methods, cache, rpath, .
 		params: lparams,
 		regex: new RegExp(`^${lrpath}$`),
 	});
-	return;
 }
