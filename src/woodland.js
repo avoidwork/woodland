@@ -380,10 +380,7 @@ export class Woodland extends EventEmitter {
 	 * @param {Object} res - HTTP response object
 	 */
 	decorate(req, res) {
-		let timing = null;
-		if (this.time) {
-			timing = precise().start();
-		}
+		const timing = this.time ? precise().start() : null;
 
 		const parsed = parse(req);
 		const allowString = this.allows(parsed.pathname);
@@ -416,8 +413,8 @@ export class Woodland extends EventEmitter {
 		req.cors = this.cors(req);
 
 		if (req.cors) {
-			const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
 			const origin = req.headers.origin;
+			const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
 
 			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
 			headersBatch[TIMING_ALLOW_ORIGIN] = origin;

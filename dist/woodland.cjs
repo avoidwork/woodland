@@ -166,11 +166,10 @@ const htmlEscapes = {
 const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
 	mimeExtensions = valid.reduce((a, v) => {
 		const result = Object.assign({ type: v[0] }, v[1]);
-
-		for (const key of result.extensions) {
-			a[`.${key}`] = result;
+		const extCount = result.extensions.length;
+		for (let i = 0; i < extCount; i++) {
+			a[`.${result.extensions[i]}`] = result;
 		}
-
 		return a;
 	}, {});
 
@@ -1700,10 +1699,7 @@ class Woodland extends node_events.EventEmitter {
 	 * @param {Object} res - HTTP response object
 	 */
 	decorate(req, res) {
-		let timing = null;
-		if (this.time) {
-			timing = precise.precise().start();
-		}
+		const timing = this.time ? precise.precise().start() : null;
 
 		const parsed = parse(req);
 		const allowString = this.allows(parsed.pathname);
@@ -1736,8 +1732,8 @@ class Woodland extends node_events.EventEmitter {
 		req.cors = this.cors(req);
 
 		if (req.cors) {
-			const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
 			const origin = req.headers.origin;
+			const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
 
 			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
 			headersBatch[TIMING_ALLOW_ORIGIN] = origin;

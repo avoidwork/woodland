@@ -39,11 +39,10 @@ const htmlEscapes = {
 const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
 	mimeExtensions = valid.reduce((a, v) => {
 		const result = Object.assign({ type: v[0] }, v[1]);
-
-		for (const key of result.extensions) {
-			a[`.${key}`] = result;
+		const extCount = result.extensions.length;
+		for (let i = 0; i < extCount; i++) {
+			a[`.${result.extensions[i]}`] = result;
 		}
-
 		return a;
 	}, {});
 

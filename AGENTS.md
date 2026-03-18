@@ -273,3 +273,15 @@ res.send = this.send(req, res); // Returns function: res.send(body, status, head
 - 507 tests passing
 - Coverage: 99.24% line (no regressions)
 - Code reduced by ~8 lines, improved DRY compliance
+
+## Iteration 8 Optimizations
+
+**Performance improvements:**
+- **response.js**: Replaced `for...of` with indexed `for` loop in `mimeExtensions` initialization
+- **woodland.js**: Simplified timing initialization in `decorate()` using ternary
+- **woodland.js**: Cached `origin` variable before CORS headers check
+
+**Results:**
+- 507 tests passing
+- Coverage: 99.24% line (no regressions)
+- Code reduced by ~5 lines, consistent with `for` loop pattern
