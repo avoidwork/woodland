@@ -320,14 +320,16 @@ export class Woodland extends EventEmitter {
 				list = [...methodSet];
 			}
 
-			const methodSet = new Set(list);
+			if (list.length > INT_0) {
+				const methodSet = new Set(list);
 
-			if (methodSet.has(GET) && !methodSet.has(HEAD)) {
-				list.push(HEAD);
-			}
+				if (methodSet.has(GET) && !methodSet.has(HEAD)) {
+					list.push(HEAD);
+				}
 
-			if (list.length > INT_0 && !methodSet.has(OPTIONS)) {
-				list.push(OPTIONS);
+				if (!methodSet.has(OPTIONS)) {
+					list.push(OPTIONS);
+				}
 			}
 
 			result = list.sort().join(", ");
@@ -392,7 +394,9 @@ export class Woodland extends EventEmitter {
 		headersBatch[ALLOW] = allowString;
 		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
 
-		for (const [key, value] of this.defaultHeaders) {
+		const defaultHeaders = this.defaultHeaders;
+		for (let i = 0; i < defaultHeaders.length; i++) {
+			const [key, value] = defaultHeaders[i];
 			headersBatch[key] = value;
 		}
 

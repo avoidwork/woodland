@@ -221,3 +221,17 @@ res.send = this.send(req, res); // Returns function: res.send(body, status, head
 - 507 tests passing
 - Coverage: 99.24% line (no regressions)
 - Code reduced by ~15 lines, improved DRY compliance
+
+## Iteration 4 Optimizations
+
+**Performance improvements:**
+- **woodland.js**: Replaced `for...of` loop in `decorate()` with indexed `for` loop per performance patterns
+- **woodland.js**: Cached `defaultHeaders` in local variable before loop iteration
+- **woodland.js**: Optimized `allows()` to only create `Set` when list has items
+- **middleware.js**: Cached `nodeMethods` array as module-level constant `NODE_METHODS`
+- **response.js**: Simplified `partialHeaders()` by removing redundant comments and consolidating early returns
+
+**Results:**
+- 507 tests passing
+- Coverage: 99.24% line (no regressions)
+- Code reduced by ~10 lines, improved hot path performance

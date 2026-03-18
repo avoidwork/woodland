@@ -173,25 +173,20 @@ function partialHeaders(req, res, size, status, headers = {}, options = {}) {
 		return [headers, options];
 	}
 
-	// Optimized range parsing - avoid multiple splits
 	const rangePart = rangeHeader.substring(KEY_BYTES.length);
 	const commaIndex = rangePart.indexOf(COMMA);
 	const rangeSpec = commaIndex === -1 ? rangePart : rangePart.substring(0, commaIndex);
 	const hyphenIndex = rangeSpec.indexOf(HYPHEN);
 
-	let start, end;
-
 	if (hyphenIndex === -1) {
-		// No hyphen found, invalid range
 		return [headers, options];
 	}
 
 	const startStr = rangeSpec.substring(0, hyphenIndex);
 	const endStr = rangeSpec.substring(hyphenIndex + 1);
+	let start, end;
 
-	// Parse numbers with optimized logic
 	if (startStr === EMPTY) {
-		// Suffix-byte-range-spec (e.g., "-500")
 		if (endStr === EMPTY) {
 			return [headers, options];
 		}
@@ -207,23 +202,21 @@ function partialHeaders(req, res, size, status, headers = {}, options = {}) {
 			return [headers, options];
 		}
 
-		if (endStr === EMPTY) {
-			end = size - 1;
-		} else {
+		if (endStr !== EMPTY) {
 			end = parseInt(endStr, INT_10);
 			if (isNaN(end)) {
 				return [headers, options];
 			}
+		} else {
+			end = size - 1;
 		}
 	}
 
-	// Clean up headers once
 	res.removeHeader(CONTENT_RANGE);
 	res.removeHeader(CONTENT_LENGTH);
 	res.removeHeader(ETAG);
 	delete headers.etag;
 
-	// Validate range
 	if (!isNaN(start) && !isNaN(end) && start <= end && start >= 0 && end < size) {
 		const rangeOptions = { start, end };
 		req.range = rangeOptions;
@@ -237,13 +230,12 @@ function partialHeaders(req, res, size, status, headers = {}, options = {}) {
 		res.statusCode = INT_206;
 
 		return [headers, rangeOptions];
-	} else {
-		// Invalid range
-		headers[CONTENT_RANGE] = `bytes */${size}`;
-		res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
-
-		return [headers, options];
 	}
+
+	headers[CONTENT_RANGE] = `bytes */${size}`;
+	res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
+
+	return [headers, options];
 }
 
 /**
@@ -514,7 +506,8 @@ function stream(req, res, file, emitStream, createReadStream, etags) {
  */
 function escapeHtml(str = EMPTY) {
 	return str.replace(/[&<>"']/g, (match) => htmlEscapes[match]);
-}const extractPath$1 = (arg = "") => arg.replace(/\/:([^/]+)/g, "/(?<$1>[^/]+)");
+}const extractPath$1 = (arg = "") => arg.replace(/\/:([^/]+)/g, "/(?<$1>[^/]+)"),
+	NODE_METHODS = ["CONNECT", "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT", "TRACE"];
 
 /**
  * Processes middleware map for a given URI and populates middleware array
@@ -745,19 +738,7 @@ function registerMiddleware(middleware, ignored, methods, cache, rpath, ...fn) {
 
 	const method = typeof fn[fn.length - 1] === STRING ? fn.pop().toUpperCase() : GET;
 
-	const nodeMethods = [
-		"CONNECT",
-		"DELETE",
-		"GET",
-		"HEAD",
-		"OPTIONS",
-		"PATCH",
-		"POST",
-		"PUT",
-		"TRACE",
-	];
-
-	if (method !== WILDCARD && nodeMethods.includes(method) === false) {
+	if (method !== WILDCARD && NODE_METHODS.includes(method) === false) {
 		throw new TypeError("Invalid HTTP method");
 	}
 
@@ -1638,14 +1619,16 @@ class Woodland extends EventEmitter {
 				list = [...methodSet];
 			}
 
-			const methodSet = new Set(list);
+			if (list.length > INT_0) {
+				const methodSet = new Set(list);
 
-			if (methodSet.has(GET) && !methodSet.has(HEAD)) {
-				list.push(HEAD);
-			}
+				if (methodSet.has(GET) && !methodSet.has(HEAD)) {
+					list.push(HEAD);
+				}
 
-			if (list.length > INT_0 && !methodSet.has(OPTIONS)) {
-				list.push(OPTIONS);
+				if (!methodSet.has(OPTIONS)) {
+					list.push(OPTIONS);
+				}
 			}
 
 			result = list.sort().join(", ");
@@ -1710,7 +1693,9 @@ class Woodland extends EventEmitter {
 		headersBatch[ALLOW] = allowString;
 		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
 
-		for (const [key, value] of this.defaultHeaders) {
+		const defaultHeaders = this.defaultHeaders;
+		for (let i = 0; i < defaultHeaders.length; i++) {
+			const [key, value] = defaultHeaders[i];
 			headersBatch[key] = value;
 		}
 

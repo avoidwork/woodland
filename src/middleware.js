@@ -10,7 +10,8 @@ import {
 	WILDCARD,
 } from "./constants.js";
 
-const extractPath = (arg = "") => arg.replace(/\/:([^/]+)/g, "/(?<$1>[^/]+)");
+const extractPath = (arg = "") => arg.replace(/\/:([^/]+)/g, "/(?<$1>[^/]+)"),
+	NODE_METHODS = ["CONNECT", "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT", "TRACE"];
 
 /**
  * Processes middleware map for a given URI and populates middleware array
@@ -241,19 +242,7 @@ export function registerMiddleware(middleware, ignored, methods, cache, rpath, .
 
 	const method = typeof fn[fn.length - 1] === STRING ? fn.pop().toUpperCase() : GET;
 
-	const nodeMethods = [
-		"CONNECT",
-		"DELETE",
-		"GET",
-		"HEAD",
-		"OPTIONS",
-		"PATCH",
-		"POST",
-		"PUT",
-		"TRACE",
-	];
-
-	if (method !== WILDCARD && nodeMethods.includes(method) === false) {
+	if (method !== WILDCARD && NODE_METHODS.includes(method) === false) {
 		throw new TypeError("Invalid HTTP method");
 	}
 

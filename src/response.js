@@ -64,25 +64,20 @@ export function partialHeaders(req, res, size, status, headers = {}, options = {
 		return [headers, options];
 	}
 
-	// Optimized range parsing - avoid multiple splits
 	const rangePart = rangeHeader.substring(KEY_BYTES.length);
 	const commaIndex = rangePart.indexOf(COMMA);
 	const rangeSpec = commaIndex === -1 ? rangePart : rangePart.substring(0, commaIndex);
 	const hyphenIndex = rangeSpec.indexOf(HYPHEN);
 
-	let start, end;
-
 	if (hyphenIndex === -1) {
-		// No hyphen found, invalid range
 		return [headers, options];
 	}
 
 	const startStr = rangeSpec.substring(0, hyphenIndex);
 	const endStr = rangeSpec.substring(hyphenIndex + 1);
+	let start, end;
 
-	// Parse numbers with optimized logic
 	if (startStr === EMPTY) {
-		// Suffix-byte-range-spec (e.g., "-500")
 		if (endStr === EMPTY) {
 			return [headers, options];
 		}
@@ -98,23 +93,21 @@ export function partialHeaders(req, res, size, status, headers = {}, options = {
 			return [headers, options];
 		}
 
-		if (endStr === EMPTY) {
-			end = size - 1;
-		} else {
+		if (endStr !== EMPTY) {
 			end = parseInt(endStr, INT_10);
 			if (isNaN(end)) {
 				return [headers, options];
 			}
+		} else {
+			end = size - 1;
 		}
 	}
 
-	// Clean up headers once
 	res.removeHeader(CONTENT_RANGE);
 	res.removeHeader(CONTENT_LENGTH);
 	res.removeHeader(ETAG);
 	delete headers.etag;
 
-	// Validate range
 	if (!isNaN(start) && !isNaN(end) && start <= end && start >= 0 && end < size) {
 		const rangeOptions = { start, end };
 		req.range = rangeOptions;
@@ -128,13 +121,12 @@ export function partialHeaders(req, res, size, status, headers = {}, options = {
 		res.statusCode = INT_206;
 
 		return [headers, rangeOptions];
-	} else {
-		// Invalid range
-		headers[CONTENT_RANGE] = `bytes */${size}`;
-		res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
-
-		return [headers, options];
 	}
+
+	headers[CONTENT_RANGE] = `bytes */${size}`;
+	res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
+
+	return [headers, options];
 }
 
 /**
