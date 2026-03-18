@@ -295,17 +295,3 @@ export function registerMiddleware(middleware, ignored, methods, cache, rpath, .
 
 	return createMiddlewareRegistry(middleware, ignored, methods, cache);
 }
-
-/**
- * Adds function to ignored set
- * @param {Set} ignored - Set of ignored middleware functions
- * @param {Map} middleware - Map of middleware by method
- * @param {Array} methods - Array of registered HTTP methods
- * @param {Map} cache - Cache for route results
- * @param {Function} fn - Function to ignore
- * @returns {Object} Registry object for chaining
- */
-export function ignoreFunction(ignored, middleware, methods, cache, fn) {
-	ignored.add(fn);
-	return createMiddlewareRegistry(middleware, ignored, methods, cache);
-}

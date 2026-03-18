@@ -10,7 +10,6 @@ import {
 	listRoutes,
 	checkAllowed,
 	registerMiddleware,
-	ignoreFunction,
 } from "../../src/middleware.js";
 
 describe("middleware", () => {
@@ -801,55 +800,6 @@ describe("middleware", () => {
 			registerMiddleware(middleware, ignored, methods, cache, "/test", () => {}, "*");
 
 			assert.strictEqual(methods.length, 0);
-		});
-	});
-
-	describe("ignoreFunction", () => {
-		let middleware, ignored, methods, cache;
-
-		beforeEach(() => {
-			middleware = new Map();
-			ignored = new Set();
-			methods = [];
-			cache = new Map();
-			middleware.set("GET", new Map());
-		});
-
-		it("should add function to ignored set", () => {
-			const handler = () => {};
-			const _registry = ignoreFunction(ignored, middleware, methods, cache, handler);
-
-			assert.ok(ignored.has(handler));
-		});
-
-		it("should return registry object", () => {
-			const handler = () => {};
-			const _registry2 = ignoreFunction(ignored, middleware, methods, cache, handler);
-
-			assert.ok(_registry2.ignore);
-			assert.ok(_registry2.allowed);
-			assert.ok(_registry2.routes);
-		});
-
-		it("should allow chaining ignore calls", () => {
-			const handler1 = () => {};
-			const handler2 = () => {};
-
-			const registry = ignoreFunction(ignored, middleware, methods, cache, handler1);
-			registry.ignore(handler2);
-
-			assert.ok(ignored.has(handler1));
-			assert.ok(ignored.has(handler2));
-		});
-
-		it("should return registry when called without rpath", () => {
-			const registry = registerMiddleware(middleware, ignored, methods, cache);
-
-			assert.ok(registry.register);
-			assert.ok(registry.ignore);
-			assert.ok(registry.allowed);
-			assert.ok(registry.routes);
-			assert.ok(registry.list);
 		});
 	});
 });

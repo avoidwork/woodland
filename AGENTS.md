@@ -50,7 +50,7 @@
 | `src/request.js` | Request handlers | `cors`, `corsHost`, `corsRequest`, `extractIP`, `decorate`, `logClose` |
 | `src/logger.js` | Logging | `createLogger`, `log`, `clfm`, `extractIP`, `logRoute`, `logMiddleware`, `logDecoration`, `logError`, `logServe` |
 | `src/utility.js` | Utility functions (435 lines) | `escapeHtml`, `autoindex`, `ms`, `params`, `parse`, `partialHeaders`, `pipeable`, `timeOffset`, `writeHead`, `isValidIP`, `extractPath`, `mimeExtensions` |
-| `src/middleware.js` | Middleware registry | `reduce`, `getStatus`, `next`, `computeRoutes`, `listRoutes`, `checkAllowed`, `createMiddlewareRegistry`, `registerMiddleware`, `ignoreFunction` |
+| `src/middleware.js` | Middleware registry | `reduce`, `getStatus`, `next`, `computeRoutes`, `listRoutes`, `checkAllowed`, `createMiddlewareRegistry`, `registerMiddleware` |
 | `src/fileserver.js` | File server | `serve`, `register`, `createFileServer` |
 | `src/constants.js` | Constants & patterns | All framework constants (HTTP methods, headers, status codes, etc.) |
 | `src/cli.js` | CLI entry point | CLI server runner |
@@ -163,7 +163,7 @@ res.send = this.send(req, res); // Returns function: res.send(body, status, head
 ### Middleware registry (`middleware.js`)
 - `createMiddlewareRegistry` returns object with: `ignore`, `allowed`, `routes`, `register`, `list`
 - `computeRoutes` caches results in Map with key `${method}${DELIMITER}${uri}`
-- `next` - creates iterator-based middleware executor, supports error handling
+- `next` - creates iterator-based middleware executor with error handler detection (ERROR_HANDLER_LENGTH = 4)
 - `getStatus` - determines 404/405/500 based on `req.allow` and method
 - HEAD routes cannot be registered directly; GET routes implicitly allow HEAD
 
