@@ -413,15 +413,11 @@ describe("middleware", () => {
 				assert.ok(found);
 			});
 
-			it("should return registry object for chaining", () => {
+			it("should return undefined for chaining", () => {
 				const registry = createMiddlewareRegistry(middleware, ignored, methods, cache);
 				const result = registry.register("/test", () => {});
 
-				assert.ok(typeof result.ignore === FUNCTION);
-				assert.ok(typeof result.allowed === FUNCTION);
-				assert.ok(typeof result.routes === FUNCTION);
-				assert.ok(typeof result.register === FUNCTION);
-				assert.ok(typeof result.list === FUNCTION);
+				assert.strictEqual(result, void 0);
 			});
 		});
 
@@ -712,15 +708,14 @@ describe("middleware", () => {
 		});
 
 		it("should register middleware for path", () => {
-			const registry = registerMiddleware(middleware, ignored, methods, cache, "/test", () => {});
+			const result = registerMiddleware(middleware, ignored, methods, cache, "/test", () => {});
 
 			assert.ok(middleware.has("GET"));
-			assert.ok(registry.ignore);
-			assert.ok(registry.allowed);
+			assert.strictEqual(result, void 0);
 		});
 
 		it("should register middleware for specific method", () => {
-			const _registry = registerMiddleware(
+			const result = registerMiddleware(
 				middleware,
 				ignored,
 				methods,
@@ -731,14 +726,16 @@ describe("middleware", () => {
 			);
 
 			assert.ok(middleware.has("POST"));
+			assert.strictEqual(result, void 0);
 		});
 
 		it("should register wildcard middleware when function passed as first arg", () => {
 			const handler = () => {};
-			const _registry = registerMiddleware(middleware, ignored, methods, cache, handler);
+			const result = registerMiddleware(middleware, ignored, methods, cache, handler);
 
 			assert.ok(middleware.has("GET"));
 			assert.ok(middleware.get("GET").has("/.*"));
+			assert.strictEqual(result, void 0);
 		});
 
 		it("should throw error for invalid HTTP method", () => {
@@ -754,7 +751,7 @@ describe("middleware", () => {
 		});
 
 		it("should convert parameterized routes to regex", () => {
-			const _registry2 = registerMiddleware(
+			const result = registerMiddleware(
 				middleware,
 				ignored,
 				methods,
@@ -769,6 +766,7 @@ describe("middleware", () => {
 			);
 
 			assert.ok(hasConvertedRoute);
+			assert.strictEqual(result, void 0);
 		});
 
 		it("should add multiple handlers to same route", () => {
@@ -782,12 +780,11 @@ describe("middleware", () => {
 			assert.strictEqual(routeData.handlers.length, 2);
 		});
 
-		it("should return registry with ignore method", () => {
+		it("should return undefined", () => {
 			const handler = () => {};
-			const registry = registerMiddleware(middleware, ignored, methods, cache, "/test", handler);
+			const result = registerMiddleware(middleware, ignored, methods, cache, "/test", handler);
 
-			assert.ok(registry.ignore);
-			assert.ok(registry.allowed);
+			assert.strictEqual(result, void 0);
 		});
 
 		it("should add method to methods array for non-wildcard", () => {

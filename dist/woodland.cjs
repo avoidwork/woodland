@@ -653,11 +653,10 @@ function createMiddlewareRegistry(middleware, ignored, methods, cache) {
  * @param {Map} cache - Cache for route results
  * @param {string|Function} rpath - Route path or middleware function
  * @param {...Function} fn - Middleware functions to register
- * @returns {Object} Registry object for chaining
  */
 function registerMiddleware(middleware, ignored, methods, cache, rpath, ...fn) {
 	if (rpath === void 0) {
-		return createMiddlewareRegistry(middleware, ignored, methods, cache);
+		return;
 	}
 
 	if (typeof rpath === FUNCTION) {
@@ -712,8 +711,7 @@ function registerMiddleware(middleware, ignored, methods, cache, rpath, ...fn) {
 		params: lparams,
 		regex: new RegExp(`^${lrpath}$`),
 	});
-
-	return createMiddlewareRegistry(middleware, ignored, methods, cache);
+	return;
 }
 
 /**
