@@ -12,10 +12,10 @@ var node_events = require('node:events');
 var node_fs = require('node:fs');
 var tinyEtag = require('tiny-etag');
 var precise = require('precise');
-var tinyCoerce = require('tiny-coerce');
 var node_module = require('node:module');
 var node_path = require('node:path');
 var node_url = require('node:url');
+var tinyCoerce = require('tiny-coerce');
 var mimeDb = require('mime-db');
 var jsonschema = require('jsonschema');
 var promises = require('node:fs/promises');
@@ -297,7 +297,7 @@ function writeHead(res, headers = {}) {
 	res.writeHead(res.statusCode, node_http.STATUS_CODES[res.statusCode], headers);
 }
 
-const extractPath = (arg = "") => arg.replace(/\/:([^/]+)/g, "/(?<$1>[^/]+)");
+const extractPath$1 = (arg = "") => arg.replace(/\/:([^/]+)/g, "/(?<$1>[^/]+)");
 
 /**
  * Processes middleware map for a given URI and populates middleware array
@@ -567,7 +567,7 @@ function registerMiddleware(middleware, ignored, methods, cache, rpath, ...fn) {
 
 	if (lrpath.includes(`${SLASH}${LEFT_PAREN}`) === false && lrpath.includes(`${SLASH}:`)) {
 		lparams = true;
-		lrpath = extractPath(lrpath);
+		lrpath = extractPath$1(lrpath);
 	}
 
 	const current = mmethod.get(lrpath) ?? { handlers: [] };
@@ -1204,6 +1204,72 @@ function corsHost(req) {
  */
 function corsRequest() {
 	return (req, res) => res.status(204).send(EMPTY);
+}
+
+/**
+ * Extracts URL parameters from request pathname using regex groups
+ * @param {Object} req - HTTP request object with parsed pathname
+ * @param {RegExp} getParams - Regular expression with named capture groups
+ */
+function params(req, getParams) {
+	getParams.lastIndex = INT_0;
+	const match = getParams.exec(req.parsed.pathname);
+	const groups = match?.groups;
+
+	if (!groups) {
+		req.params = {};
+		return;
+	}
+
+	const processedParams = Object.create(null);
+	const keys = Object.keys(groups);
+	const keyCount = keys.length;
+
+	for (let i = 0; i < keyCount; i++) {
+		const key = keys[i];
+		const value = groups[key];
+
+		if (value === null || value === undefined) {
+			processedParams[key] = tinyCoerce.coerce(null);
+		} else {
+			let decoded;
+			if (value.indexOf("%") === -1) {
+				decoded = value;
+			} else {
+				try {
+					decoded = decodeURIComponent(value);
+				} catch {
+					decoded = value;
+				}
+			}
+
+			processedParams[key] = tinyCoerce.coerce(escapeHtml(decoded));
+		}
+	}
+
+	req.params = processedParams;
+}
+
+/**
+ * Parses a URL string or request object into a URL object with security checks
+ * @param {string|Object} arg - URL string or request object to parse
+ * @returns {URL} Parsed URL object
+ */
+function parse(arg) {
+	return new URL(
+		typeof arg === STRING
+			? arg
+			: `http://${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || "8000"}`}${arg.url}`,
+	);
+}
+
+/**
+ * Converts parameterized route path to regex pattern
+ * @param {string} path - Route path with parameters (e.g., "/users/:id")
+ * @returns {string} Regex pattern string
+ */
+function extractPath(path) {
+	return path.replace(/:([a-zA-Z_]\w*)/g, "(?<$1>[^/]+)");
 }
 
 const html = node_fs.readFileSync(node_path.join(undefined, "..", "tpl", "autoindex.html"), {
@@ -2026,65 +2092,8 @@ class Woodland extends node_events.EventEmitter {
 	 * @returns {string} Regex pattern string
 	 */
 	extractPath(path) {
-		return path.replace(/:([a-zA-Z_]\w*)/g, "(?<$1>[^/]+)");
+		return extractPath(path);
 	}
-}
-
-/**
- * Extracts URL parameters from request pathname using regex groups
- * @param {Object} req - HTTP request object with parsed pathname
- * @param {RegExp} getParams - Regular expression with named capture groups
- */
-function params(req, getParams) {
-	getParams.lastIndex = INT_0;
-	const match = getParams.exec(req.parsed.pathname);
-	const groups = match?.groups;
-
-	if (!groups) {
-		req.params = {};
-		return;
-	}
-
-	const processedParams = Object.create(null);
-	const keys = Object.keys(groups);
-	const keyCount = keys.length;
-
-	for (let i = 0; i < keyCount; i++) {
-		const key = keys[i];
-		const value = groups[key];
-
-		if (value === null || value === undefined) {
-			processedParams[key] = tinyCoerce.coerce(null);
-		} else {
-			let decoded;
-			if (value.indexOf("%") === -1) {
-				decoded = value;
-			} else {
-				try {
-					decoded = decodeURIComponent(value);
-				} catch {
-					decoded = value;
-				}
-			}
-
-			processedParams[key] = tinyCoerce.coerce(escapeHtml(decoded));
-		}
-	}
-
-	req.params = processedParams;
-}
-
-/**
- * Parses a URL string or request object into a URL object with security checks
- * @param {string|Object} arg - URL string or request object to parse
- * @returns {URL} Parsed URL object
- */
-function parse(arg) {
-	return new URL(
-		typeof arg === STRING
-			? arg
-			: `http://${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || "8000"}`}${arg.url}`,
-	);
 }
 
 /**
@@ -2101,6 +2110,4 @@ function woodland(arg) {
 }
 
 exports.Woodland = Woodland;
-exports.params = params;
-exports.parse = parse;
 exports.woodland = woodland;

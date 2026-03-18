@@ -10,6 +10,7 @@ import {
 	set,
 	status,
 	stream,
+	escapeHtml,
 } from "../../src/response.js";
 
 describe("response", () => {
@@ -962,6 +963,48 @@ describe("response", () => {
 			);
 
 			assert.ok(contentRangeSet);
+		});
+	});
+
+	describe("escapeHtml", () => {
+		it("should escape ampersand", () => {
+			const result = escapeHtml("&");
+			assert.strictEqual(result, "&amp;");
+		});
+
+		it("should escape less than", () => {
+			const result = escapeHtml("<");
+			assert.strictEqual(result, "&lt;");
+		});
+
+		it("should escape greater than", () => {
+			const result = escapeHtml(">");
+			assert.strictEqual(result, "&gt;");
+		});
+
+		it("should escape double quote", () => {
+			const result = escapeHtml('"');
+			assert.strictEqual(result, "&quot;");
+		});
+
+		it("should escape single quote", () => {
+			const result = escapeHtml("'");
+			assert.strictEqual(result, "&#39;");
+		});
+
+		it("should escape multiple characters", () => {
+			const result = escapeHtml("<script>&");
+			assert.strictEqual(result, "&lt;script&gt;&amp;");
+		});
+
+		it("should return empty string for empty input", () => {
+			const result = escapeHtml();
+			assert.strictEqual(result, "");
+		});
+
+		it("should return unchanged string with no special characters", () => {
+			const result = escapeHtml("hello world");
+			assert.strictEqual(result, "hello world");
 		});
 	});
 });

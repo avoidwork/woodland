@@ -1,6 +1,16 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
-import { cors, corsHost, corsRequest, extractIP, decorate, logClose } from "../../src/request.js";
+import {
+	cors,
+	corsHost,
+	corsRequest,
+	extractIP,
+	decorate,
+	logClose,
+	params,
+	parse,
+	extractPath,
+} from "../../src/request.js";
 import { isValidIP } from "../../src/utility.js";
 
 describe("request", () => {
@@ -745,6 +755,127 @@ describe("request", () => {
 			assert.doesNotThrow(() => {
 				logClose({}, {});
 			});
+		});
+	});
+
+	describe("params", () => {
+		it("should extract parameters from pathname", () => {
+			const req = {
+				parsed: { pathname: "/users/123" },
+				params: {},
+			};
+			const pattern = /\/users\/(?<id>[^/]+)/;
+
+			params(req, pattern);
+
+			assert.strictEqual(req.params.id, 123);
+		});
+
+		it("should handle multiple parameters", () => {
+			const req = {
+				parsed: { pathname: "/users/456/posts/789" },
+				params: {},
+			};
+			const pattern = /\/users\/(?<userId>[^/]+)\/posts\/(?<postId>[^/]+)/;
+
+			params(req, pattern);
+
+			assert.strictEqual(req.params.userId, 456);
+			assert.strictEqual(req.params.postId, 789);
+		});
+
+		it("should decode URI components", () => {
+			const req = {
+				parsed: { pathname: "/users/john%20doe" },
+				params: {},
+			};
+			const pattern = /\/users\/(?<name>[^/]+)/;
+
+			params(req, pattern);
+
+			assert.strictEqual(req.params.name, "john doe");
+		});
+
+		it("should handle null/undefined values", () => {
+			const req = {
+				parsed: { pathname: "/test" },
+				params: {},
+			};
+			const pattern = /\/test(?:\/(?<id>[^/]+))?/;
+
+			params(req, pattern);
+
+			assert.strictEqual(req.params.id, null);
+		});
+
+		it("should reset params when no match", () => {
+			const req = {
+				parsed: { pathname: "/other" },
+				params: { old: "value" },
+			};
+			const pattern = /\/users\/(?<id>[^/]+)/;
+
+			params(req, pattern);
+
+			assert.deepStrictEqual(req.params, {});
+		});
+	});
+
+	describe("parse", () => {
+		it("should parse URL string", () => {
+			const result = parse("http://localhost:3000/test");
+
+			assert.strictEqual(result.pathname, "/test");
+			assert.strictEqual(result.hostname, "localhost");
+		});
+
+		it("should parse request object", () => {
+			const req = {
+				headers: { host: "localhost:3000" },
+				url: "/test?foo=bar",
+			};
+
+			const result = parse(req);
+
+			assert.strictEqual(result.pathname, "/test");
+			assert.strictEqual(result.search, "?foo=bar");
+		});
+
+		it("should handle missing host header", () => {
+			const req = {
+				headers: {},
+				url: "/test",
+				socket: {
+					server: {
+						_connectionKey: "::8000",
+					},
+				},
+			};
+
+			const result = parse(req);
+
+			assert.strictEqual(result.hostname, "localhost");
+			assert.strictEqual(result.port, "8000");
+		});
+	});
+
+	describe("extractPath", () => {
+		it("should convert parameterized route to regex", () => {
+			const result = extractPath("/users/:id");
+
+			assert.strictEqual(result, "/users/(?<id>[^/]+)");
+		});
+
+		it("should handle multiple parameters", () => {
+			const result = extractPath("/users/:userId/posts/:postId");
+
+			assert.strictEqual(result, "/users/(?<userId>[^/]+)/posts/(?<postId>[^/]+)");
+		});
+
+		it("should handle complex parameter names", () => {
+			const result = extractPath("/api/:version/users/:userId");
+
+			assert.strictEqual(result, "/api/(?<version>[^/]+)/users/(?<userId>[^/]+)");
 		});
 	});
 });

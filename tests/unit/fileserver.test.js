@@ -1,6 +1,6 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
-import { createFileServer, serve, register } from "../../src/fileserver.js";
+import { createFileServer, serve, register, autoindex } from "../../src/fileserver.js";
 
 describe("fileserver", () => {
 	describe("createFileServer", () => {
@@ -406,6 +406,60 @@ describe("fileserver", () => {
 			await new Promise((resolve) => setTimeout(resolve, 10));
 
 			assert.strictEqual(handlerExecuted, true);
+		});
+	});
+
+	describe("autoindex", () => {
+		it("should generate HTML for empty directory", () => {
+			const result = autoindex("Test Directory", []);
+
+			assert.ok(result.includes("<!doctype html>"));
+			assert.ok(result.includes("Test Directory"));
+			assert.ok(result.includes("../"));
+		});
+
+		it("should generate HTML for directory with files", () => {
+			const files = [
+				{ name: "file1.txt", isDirectory: () => false },
+				{ name: "dir1", isDirectory: () => true },
+			];
+
+			const result = autoindex("Test", files);
+
+			assert.ok(result.includes("file1.txt"));
+			assert.ok(result.includes("dir1/"));
+		});
+
+		it("should escape HTML in filenames", () => {
+			const files = [{ name: '<script>alert("xss")</script>', isDirectory: () => false }];
+
+			const result = autoindex("Test", files);
+
+			assert.ok(result.includes("&lt;script&gt;"));
+			assert.ok(result.includes('rel="item"'));
+		});
+
+		it("should escape HTML in title", () => {
+			const result = autoindex('<script>alert("xss")</script>', []);
+
+			assert.ok(result.includes("&lt;script&gt;"));
+		});
+
+		it("should handle directory entries with trailing slash", () => {
+			const files = [{ name: "folder", isDirectory: () => true }];
+
+			const result = autoindex("Test", files);
+
+			assert.ok(result.includes("folder/"));
+			assert.ok(result.includes('href="folder/"'));
+		});
+
+		it("should handle files with special characters in names", () => {
+			const files = [{ name: "file with spaces.txt", isDirectory: () => false }];
+
+			const result = autoindex("Test", files);
+
+			assert.ok(result.includes("file%20with%20spaces.txt"));
 		});
 	});
 });

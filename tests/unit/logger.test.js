@@ -1,6 +1,6 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
-import { createLogger } from "../../src/logger.js";
+import { createLogger, ms } from "../../src/logger.js";
 
 describe("logger", () => {
 	describe("createLogger", () => {
@@ -725,6 +725,38 @@ describe("logger", () => {
 				assert.ok(result);
 				assert.ok(result.log);
 			});
+		});
+	});
+
+	describe("ms", () => {
+		it("should format nanoseconds to milliseconds with default precision", () => {
+			const result = ms(1000000);
+
+			assert.strictEqual(result, "1.000 ms");
+		});
+
+		it("should format with custom precision", () => {
+			const result = ms(1000000, 2);
+
+			assert.strictEqual(result, "1.00 ms");
+		});
+
+		it("should format with zero precision", () => {
+			const result = ms(1000000, 0);
+
+			assert.strictEqual(result, "1 ms");
+		});
+
+		it("should handle zero input", () => {
+			const result = ms(0);
+
+			assert.strictEqual(result, "0.000 ms");
+		});
+
+		it("should handle fractional milliseconds", () => {
+			const result = ms(1500);
+
+			assert.strictEqual(result, "0.002 ms");
 		});
 	});
 });

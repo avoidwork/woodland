@@ -5,7 +5,7 @@
  * @license BSD-3-Clause
  * @version 20.2.10
  */
-import {STATUS_CODES,METHODS}from'node:http';import {EventEmitter}from'node:events';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {coerce}from'tiny-coerce';import {createRequire}from'node:module';import {join,extname,resolve}from'node:path';import {fileURLToPath,URL as URL$1}from'node:url';import mimeDb from'mime-db';import {Validator}from'jsonschema';import {stat,readdir}from'node:fs/promises';const __dirname$2 = fileURLToPath(new URL$1(".", import.meta.url));
+import {STATUS_CODES,METHODS}from'node:http';import {EventEmitter}from'node:events';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {createRequire}from'node:module';import {join,extname,resolve}from'node:path';import {fileURLToPath,URL as URL$1}from'node:url';import {coerce}from'tiny-coerce';import mimeDb from'mime-db';import {Validator}from'jsonschema';import {stat,readdir}from'node:fs/promises';const __dirname$2 = fileURLToPath(new URL$1(".", import.meta.url));
 const require$1 = createRequire(import.meta.url);
 const { name, version } = require$1(join(__dirname$2, "..", "package.json"));
 
@@ -277,7 +277,7 @@ function timeOffset(arg = INT_0) {
  */
 function writeHead(res, headers = {}) {
 	res.writeHead(res.statusCode, STATUS_CODES[res.statusCode], headers);
-}const extractPath = (arg = "") => arg.replace(/\/:([^/]+)/g, "/(?<$1>[^/]+)");
+}const extractPath$1 = (arg = "") => arg.replace(/\/:([^/]+)/g, "/(?<$1>[^/]+)");
 
 /**
  * Processes middleware map for a given URI and populates middleware array
@@ -547,7 +547,7 @@ function registerMiddleware(middleware, ignored, methods, cache, rpath, ...fn) {
 
 	if (lrpath.includes(`${SLASH}${LEFT_PAREN}`) === false && lrpath.includes(`${SLASH}:`)) {
 		lparams = true;
-		lrpath = extractPath(lrpath);
+		lrpath = extractPath$1(lrpath);
 	}
 
 	const current = mmethod.get(lrpath) ?? { handlers: [] };
@@ -1176,6 +1176,72 @@ function corsHost(req) {
  */
 function corsRequest() {
 	return (req, res) => res.status(204).send(EMPTY);
+}
+
+/**
+ * Extracts URL parameters from request pathname using regex groups
+ * @param {Object} req - HTTP request object with parsed pathname
+ * @param {RegExp} getParams - Regular expression with named capture groups
+ */
+function params(req, getParams) {
+	getParams.lastIndex = INT_0;
+	const match = getParams.exec(req.parsed.pathname);
+	const groups = match?.groups;
+
+	if (!groups) {
+		req.params = {};
+		return;
+	}
+
+	const processedParams = Object.create(null);
+	const keys = Object.keys(groups);
+	const keyCount = keys.length;
+
+	for (let i = 0; i < keyCount; i++) {
+		const key = keys[i];
+		const value = groups[key];
+
+		if (value === null || value === undefined) {
+			processedParams[key] = coerce(null);
+		} else {
+			let decoded;
+			if (value.indexOf("%") === -1) {
+				decoded = value;
+			} else {
+				try {
+					decoded = decodeURIComponent(value);
+				} catch {
+					decoded = value;
+				}
+			}
+
+			processedParams[key] = coerce(escapeHtml(decoded));
+		}
+	}
+
+	req.params = processedParams;
+}
+
+/**
+ * Parses a URL string or request object into a URL object with security checks
+ * @param {string|Object} arg - URL string or request object to parse
+ * @returns {URL} Parsed URL object
+ */
+function parse(arg) {
+	return new URL(
+		typeof arg === STRING
+			? arg
+			: `http://${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || "8000"}`}${arg.url}`,
+	);
+}
+
+/**
+ * Converts parameterized route path to regex pattern
+ * @param {string} path - Route path with parameters (e.g., "/users/:id")
+ * @returns {string} Regex pattern string
+ */
+function extractPath(path) {
+	return path.replace(/:([a-zA-Z_]\w*)/g, "(?<$1>[^/]+)");
 }const html = readFileSync(join(import.meta.dirname, "..", "tpl", "autoindex.html"), {
 	encoding: UTF8,
 });
@@ -1994,65 +2060,8 @@ class Woodland extends EventEmitter {
 	 * @returns {string} Regex pattern string
 	 */
 	extractPath(path) {
-		return path.replace(/:([a-zA-Z_]\w*)/g, "(?<$1>[^/]+)");
+		return extractPath(path);
 	}
-}
-
-/**
- * Extracts URL parameters from request pathname using regex groups
- * @param {Object} req - HTTP request object with parsed pathname
- * @param {RegExp} getParams - Regular expression with named capture groups
- */
-function params(req, getParams) {
-	getParams.lastIndex = INT_0;
-	const match = getParams.exec(req.parsed.pathname);
-	const groups = match?.groups;
-
-	if (!groups) {
-		req.params = {};
-		return;
-	}
-
-	const processedParams = Object.create(null);
-	const keys = Object.keys(groups);
-	const keyCount = keys.length;
-
-	for (let i = 0; i < keyCount; i++) {
-		const key = keys[i];
-		const value = groups[key];
-
-		if (value === null || value === undefined) {
-			processedParams[key] = coerce(null);
-		} else {
-			let decoded;
-			if (value.indexOf("%") === -1) {
-				decoded = value;
-			} else {
-				try {
-					decoded = decodeURIComponent(value);
-				} catch {
-					decoded = value;
-				}
-			}
-
-			processedParams[key] = coerce(escapeHtml(decoded));
-		}
-	}
-
-	req.params = processedParams;
-}
-
-/**
- * Parses a URL string or request object into a URL object with security checks
- * @param {string|Object} arg - URL string or request object to parse
- * @returns {URL} Parsed URL object
- */
-function parse(arg) {
-	return new URL(
-		typeof arg === STRING
-			? arg
-			: `http://${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || "8000"}`}${arg.url}`,
-	);
 }
 
 /**
@@ -2066,4 +2075,4 @@ function woodland(arg) {
 	app.route = app.route.bind(app);
 
 	return app;
-}export{Woodland,params,parse,woodland};
+}export{Woodland,woodland};
