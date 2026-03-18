@@ -249,3 +249,15 @@ res.send = this.send(req, res); // Returns function: res.send(body, status, head
 - 507 tests passing
 - Coverage: 99.24% line (no regressions)
 - Code reduced by ~5 lines, improved hot path performance
+
+## Iteration 6 Optimizations
+
+**Performance improvements:**
+- **middleware.js**: Changed `map.size === 0` to `!map.size` for shorter boolean check
+- **logger.js**: Condensed return object in `log()` function to single line
+- **fileserver.js**: Cached `app.indexes` in local variable before loop iteration
+
+**Results:**
+- 507 tests passing
+- Coverage: 99.24% line (no regressions)
+- Code reduced by ~3 lines

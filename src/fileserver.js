@@ -91,9 +91,10 @@ export async function serve(app, req, res, arg, folder = process.cwd()) {
 		const files = await readdir(fp, { encoding: UTF8, withFileTypes: true });
 		let result = EMPTY;
 
+		const indexes = app.indexes;
 		for (let i = 0; i < files.length; i++) {
 			const file = files[i];
-			if (app.indexes.includes(file.name)) {
+			if (indexes.includes(file.name)) {
 				result = join(fp, file.name);
 				break;
 			}

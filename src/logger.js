@@ -177,17 +177,7 @@ export function log(msg, logLevel = DEBUG, enabled = true, actualLevel = INFO) {
 			});
 		}
 	}
-
-	return {
-		log,
-		clfm,
-		extractIP,
-		logRoute,
-		logMiddleware,
-		logDecoration,
-		logError,
-		logServe,
-	};
+	return { log, clfm, extractIP, logRoute, logMiddleware, logDecoration, logError, logServe };
 }
 
 /**

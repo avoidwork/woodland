@@ -534,7 +534,7 @@ const extractPath$1 = (arg = "") => arg.replace(/\/:([^/]+)/g, "/(?<$1>[^/]+)"),
  * @param {Object} [arg={}] - Object containing middleware array and parameters
  */
 function reduce(uri, map = new Map(), arg = {}) {
-	if (map.size === 0) {
+	if (!map.size) {
 		return;
 	}
 
@@ -572,15 +572,12 @@ function getStatus(req, res) {
 	if (req.allow.length === 0) {
 		return 404;
 	}
-
 	if (req.method !== "GET") {
 		return 405;
 	}
-
 	if (req.allow.includes("GET") === false) {
 		return 404;
 	}
-
 	return res.statusCode > 500 ? res.statusCode : 500;
 }
 
@@ -661,12 +658,13 @@ function computeRoutes(middleware, ignored, uri, method, cache, override = false
 			reduce(uri, middleware.get(method) ?? new Map(), result);
 		}
 
-		result.visible = 0;
-		for (const fn of result.middleware) {
-			if (!ignored.has(fn)) {
-				result.visible++;
+		let visible = 0;
+		for (let i = 0; i < result.middleware.length; i++) {
+			if (!ignored.has(result.middleware[i])) {
+				visible++;
 			}
 		}
+		result.visible = visible;
 		cache.set(key, result);
 	}
 
@@ -1069,17 +1067,7 @@ function log(msg, logLevel = DEBUG, enabled = true, actualLevel = INFO) {
 			});
 		}
 	}
-
-	return {
-		log,
-		clfm,
-		extractIP,
-		logRoute,
-		logMiddleware,
-		logDecoration,
-		logError,
-		logServe,
-	};
+	return { log, clfm, extractIP, logRoute, logMiddleware, logDecoration, logError, logServe };
 }
 
 /**
@@ -1329,9 +1317,10 @@ async function serve(app, req, res, arg, folder = process.cwd()) {
 		const files = await promises.readdir(fp, { encoding: UTF8, withFileTypes: true });
 		let result = EMPTY;
 
+		const indexes = app.indexes;
 		for (let i = 0; i < files.length; i++) {
 			const file = files[i];
-			if (app.indexes.includes(file.name)) {
+			if (indexes.includes(file.name)) {
 				result = node_path.join(fp, file.name);
 				break;
 			}
