@@ -210,7 +210,7 @@ export const TO_STRING = "toString";
 export const TRUE = "true";
 
 export const MONTHS = Object.freeze(
-	Array.from(Array(12).values()).map((i, idx) => {
+	Array.from({ length: 12 }, (_, idx) => {
 		const d = new Date();
 		d.setMonth(idx);
 

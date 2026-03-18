@@ -147,7 +147,7 @@ const TO_STRING = "toString";
 const TRUE = "true";
 
 const MONTHS = Object.freeze(
-	Array.from(Array(12).values()).map((i, idx) => {
+	Array.from({ length: 12 }, (_, idx) => {
 		const d = new Date();
 		d.setMonth(idx);
 
@@ -893,45 +893,34 @@ function validateConfig(config = {}) {
 	return validated;
 }
 
-/**
- * Validates and merges logging configuration with environment variables
- * @param {Object} [logging={}] - Logging configuration object
- * @returns {Object} Logging configuration with enabled, format, level
- */
+const VALID_LOG_LEVELS = [DEBUG, INFO, "warn", "error", "critical", "alert", "emerg", "notice"];
+
+function resolveLoggingValue(configValue, envValue, defaultValue) {
+	if (configValue !== void 0) {
+		return configValue;
+	}
+	if (envValue !== void 0) {
+		return envValue;
+	}
+	return defaultValue;
+}
+
 function validateLogging(logging = {}) {
 	const envLogEnabled = process.env.WOODLAND_LOG_ENABLED;
 	const envLogFormat = process.env.WOODLAND_LOG_FORMAT;
 	const envLogLevel = process.env.WOODLAND_LOG_LEVEL;
 
-	let enabled;
-	if (logging.enabled !== void 0) {
-		enabled = logging.enabled;
-	} else if (envLogEnabled !== void 0) {
-		enabled = envLogEnabled !== "false";
-	} else {
-		enabled = true;
-	}
+	const enabled =
+		logging.enabled !== void 0
+			? logging.enabled
+			: envLogEnabled !== void 0
+				? envLogEnabled !== "false"
+				: true;
 
-	let format;
-	if (logging.format !== void 0) {
-		format = logging.format;
-	} else if (envLogFormat !== void 0) {
-		format = envLogFormat;
-	} else {
-		format = LOG_FORMAT;
-	}
+	const format = resolveLoggingValue(logging.format, envLogFormat, LOG_FORMAT);
+	const level = resolveLoggingValue(logging.level, envLogLevel, INFO);
 
-	let level;
-	if (logging.level !== void 0) {
-		level = logging.level;
-	} else if (envLogLevel !== void 0) {
-		level = envLogLevel;
-	} else {
-		level = INFO;
-	}
-
-	const validLevels = [DEBUG, INFO, "warn", "error", "critical", "alert", "emerg", "notice"];
-	if (!validLevels.includes(level)) {
+	if (!VALID_LOG_LEVELS.includes(level)) {
 		return { enabled, format, level: INFO };
 	}
 
@@ -1751,8 +1740,7 @@ class Woodland extends node_events.EventEmitter {
 		headersBatch[ALLOW] = allowString;
 		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
 
-		for (let i = 0; i < this.defaultHeaders.length; i++) {
-			const [key, value] = this.defaultHeaders[i];
+		for (const [key, value] of this.defaultHeaders) {
 			headersBatch[key] = value;
 		}
 
@@ -1994,7 +1982,8 @@ class Woodland extends node_events.EventEmitter {
 		this.logger.logRoute(req.parsed.pathname, req.method, req.ip);
 
 		const hasOriginHeader = ORIGIN in req.headers;
-		const isOriginAllowed = hasOriginHeader && this.origins.includes(req.headers.origin);
+		const origin = hasOriginHeader ? req.headers.origin : EMPTY;
+		const isOriginAllowed = hasOriginHeader && this.origins.includes(origin);
 
 		if (req.cors === false && hasOriginHeader && req.corsHost && !isOriginAllowed) {
 			req.valid = false;

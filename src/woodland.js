@@ -392,8 +392,7 @@ export class Woodland extends EventEmitter {
 		headersBatch[ALLOW] = allowString;
 		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
 
-		for (let i = 0; i < this.defaultHeaders.length; i++) {
-			const [key, value] = this.defaultHeaders[i];
+		for (const [key, value] of this.defaultHeaders) {
 			headersBatch[key] = value;
 		}
 
@@ -635,7 +634,8 @@ export class Woodland extends EventEmitter {
 		this.logger.logRoute(req.parsed.pathname, req.method, req.ip);
 
 		const hasOriginHeader = ORIGIN in req.headers;
-		const isOriginAllowed = hasOriginHeader && this.origins.includes(req.headers.origin);
+		const origin = hasOriginHeader ? req.headers.origin : EMPTY;
+		const isOriginAllowed = hasOriginHeader && this.origins.includes(origin);
 
 		if (req.cors === false && hasOriginHeader && req.corsHost && !isOriginAllowed) {
 			req.valid = false;

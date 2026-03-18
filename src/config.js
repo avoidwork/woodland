@@ -93,45 +93,34 @@ export function validateConfig(config = {}) {
 	return validated;
 }
 
-/**
- * Validates and merges logging configuration with environment variables
- * @param {Object} [logging={}] - Logging configuration object
- * @returns {Object} Logging configuration with enabled, format, level
- */
+const VALID_LOG_LEVELS = [DEBUG, INFO, "warn", "error", "critical", "alert", "emerg", "notice"];
+
+function resolveLoggingValue(configValue, envValue, defaultValue) {
+	if (configValue !== void 0) {
+		return configValue;
+	}
+	if (envValue !== void 0) {
+		return envValue;
+	}
+	return defaultValue;
+}
+
 export function validateLogging(logging = {}) {
 	const envLogEnabled = process.env.WOODLAND_LOG_ENABLED;
 	const envLogFormat = process.env.WOODLAND_LOG_FORMAT;
 	const envLogLevel = process.env.WOODLAND_LOG_LEVEL;
 
-	let enabled;
-	if (logging.enabled !== void 0) {
-		enabled = logging.enabled;
-	} else if (envLogEnabled !== void 0) {
-		enabled = envLogEnabled !== "false";
-	} else {
-		enabled = true;
-	}
+	const enabled =
+		logging.enabled !== void 0
+			? logging.enabled
+			: envLogEnabled !== void 0
+				? envLogEnabled !== "false"
+				: true;
 
-	let format;
-	if (logging.format !== void 0) {
-		format = logging.format;
-	} else if (envLogFormat !== void 0) {
-		format = envLogFormat;
-	} else {
-		format = LOG_FORMAT;
-	}
+	const format = resolveLoggingValue(logging.format, envLogFormat, LOG_FORMAT);
+	const level = resolveLoggingValue(logging.level, envLogLevel, INFO);
 
-	let level;
-	if (logging.level !== void 0) {
-		level = logging.level;
-	} else if (envLogLevel !== void 0) {
-		level = envLogLevel;
-	} else {
-		level = INFO;
-	}
-
-	const validLevels = [DEBUG, INFO, "warn", "error", "critical", "alert", "emerg", "notice"];
-	if (!validLevels.includes(level)) {
+	if (!VALID_LOG_LEVELS.includes(level)) {
 		return { enabled, format, level: INFO };
 	}
 
@@ -165,42 +154,20 @@ export function validateOrigins(origins = []) {
 	});
 }
 
-/**
- * Merges logging configuration with environment variables
- * @param {Object} [logging={}] - Logging configuration object
- * @returns {Object} Merged logging configuration
- */
 export function mergeEnvLogging(logging = {}) {
 	const envLogEnabled = process.env.WOODLAND_LOG_ENABLED;
 	const envLogFormat = process.env.WOODLAND_LOG_FORMAT;
 	const envLogLevel = process.env.WOODLAND_LOG_LEVEL;
 
-	let enabled;
-	if (logging.enabled !== void 0) {
-		enabled = logging.enabled;
-	} else if (envLogEnabled !== void 0) {
-		enabled = envLogEnabled !== "false";
-	} else {
-		enabled = true;
-	}
+	const enabled =
+		logging.enabled !== void 0
+			? logging.enabled
+			: envLogEnabled !== void 0
+				? envLogEnabled !== "false"
+				: true;
 
-	let format;
-	if (logging.format !== void 0) {
-		format = logging.format;
-	} else if (envLogFormat !== void 0) {
-		format = envLogFormat;
-	} else {
-		format = LOG_FORMAT;
-	}
-
-	let level;
-	if (logging.level !== void 0) {
-		level = logging.level;
-	} else if (envLogLevel !== void 0) {
-		level = envLogLevel;
-	} else {
-		level = INFO;
-	}
+	const format = resolveLoggingValue(logging.format, envLogFormat, LOG_FORMAT);
+	const level = resolveLoggingValue(logging.level, envLogLevel, INFO);
 
 	return { enabled, format, level };
 }
