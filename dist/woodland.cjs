@@ -47,9 +47,7 @@ const INT_206 = 206;
 const INT_304 = 304;
 const INT_403 = 403;
 const INT_404 = 404;
-const INT_405 = 405;
 const INT_416 = 416;
-const INT_500 = 500;
 
 // =============================================================================
 // HTTP HEADERS
@@ -229,81 +227,6 @@ function autoindex(title = EMPTY, files = []) {
 	const replaceCallback = (match, key) => (key === "TITLE" ? safeTitle : safeFiles);
 
 	return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, replaceCallback);
-}
-
-/**
- * Determines the appropriate HTTP status code based on request and response state
- * @param {Object} req - The HTTP request object
- * @param {Object} res - The HTTP response object
- * @returns {number} The appropriate HTTP status code
- */
-function getStatus(req, res) {
-	// No allowed methods - always 404
-	if (req.allow.length === INT_0) {
-		return INT_404;
-	}
-
-	// Method not allowed
-	if (req.method !== GET) {
-		return INT_405;
-	}
-
-	// GET method not allowed
-	if (!req.allow.includes(GET)) {
-		return INT_404;
-	}
-
-	// Return existing error status or default 500
-	return res.statusCode > INT_500 ? res.statusCode : INT_500;
-}
-
-/**
- * Creates a next function for middleware processing with error handling
- * @param {Object} req - The HTTP request object
- * @param {Object} res - The HTTP response object
- * @param {Iterator} middleware - The middleware iterator
- * @param {boolean} [immediate=false] - Whether to execute immediately or on next tick
- * @returns {Function} The next function for middleware chain
- */
-function next(req, res, middleware, immediate = false) {
-	// Optimized: Pre-calculate getStatus to avoid repeated function calls
-	const errorStatus = getStatus(req, res);
-
-	const internalFn = (err, fn) => {
-		let obj = middleware.next();
-
-		if (obj.done === false) {
-			if (err !== void 0) {
-				// Optimized: Find error handler more efficiently
-				while (obj.done === false && obj.value && obj.value.length < 4) {
-					obj = middleware.next();
-				}
-
-				if (obj.done === false && obj.value) {
-					obj.value(err, req, res, fn);
-				} else {
-					res.error(errorStatus);
-				}
-			} else {
-				const value = obj.value;
-				// Optimized: Check function type once and reuse result
-				if (typeof value === FUNCTION) {
-					value(req, res, fn);
-				} else {
-					res.send(value);
-				}
-			}
-		} else {
-			res.error(errorStatus);
-		}
-	};
-
-	// Optimized: Create function based on immediate flag without conditional in hot path
-	const fn = immediate
-		? (err) => internalFn(err, fn)
-		: (err) => process.nextTick(() => internalFn(err, fn));
-
-	return fn;
 }
 
 /**
@@ -545,6 +468,73 @@ function reduce(uri, map = new Map(), arg = {}) {
 			}
 		}
 	}
+}
+
+/**
+ * Determines the appropriate HTTP status code based on request and response state
+ * @param {Object} req - The HTTP request object
+ * @param {Object} res - The HTTP response object
+ * @returns {number} The appropriate HTTP status code
+ */
+function getStatus(req, res) {
+	if (req.allow.length === 0) {
+		return 404;
+	}
+
+	if (req.method !== "GET") {
+		return 405;
+	}
+
+	if (req.allow.includes("GET") === false) {
+		return 404;
+	}
+
+	return res.statusCode > 500 ? res.statusCode : 500;
+}
+
+/**
+ * Creates a next function for middleware processing with error handling
+ * @param {Object} req - The HTTP request object
+ * @param {Object} res - The HTTP response object
+ * @param {Iterator} middleware - The middleware iterator
+ * @param {boolean} [immediate=false] - Whether to execute immediately or on next tick
+ * @returns {Function} The next function for middleware chain
+ */
+function next(req, res, middleware, immediate = false) {
+	const errorStatus = getStatus(req, res);
+
+	const internalFn = (err, fn) => {
+		let obj = middleware.next();
+
+		if (obj.done === false) {
+			if (err !== void 0) {
+				while (obj.done === false && obj.value && obj.value.length < 4) {
+					obj = middleware.next();
+				}
+
+				if (obj.done === false && obj.value) {
+					obj.value(err, req, res, fn);
+				} else {
+					res.error(errorStatus);
+				}
+			} else {
+				const value = obj.value;
+				if (typeof value === FUNCTION) {
+					value(req, res, fn);
+				} else {
+					res.send(value);
+				}
+			}
+		} else {
+			res.error(errorStatus);
+		}
+	};
+
+	const fn = immediate
+		? (err) => internalFn(err, fn)
+		: (err) => process.nextTick(() => internalFn(err, fn));
+
+	return fn;
 }
 
 /**
@@ -1053,9 +1043,32 @@ function validateLogging(logging = {}) {
 	const envLogFormat = process.env.WOODLAND_LOG_FORMAT;
 	const envLogLevel = process.env.WOODLAND_LOG_LEVEL;
 
-	const enabled = logging?.enabled ?? (envLogEnabled ? envLogEnabled !== "false" : true);
-	const format = logging?.format ?? envLogFormat ?? LOG_FORMAT;
-	const level = logging?.level ?? envLogLevel ?? INFO;
+	let enabled;
+	if (logging.enabled !== void 0) {
+		enabled = logging.enabled;
+	} else if (envLogEnabled !== void 0) {
+		enabled = envLogEnabled !== "false";
+	} else {
+		enabled = true;
+	}
+
+	let format;
+	if (logging.format !== void 0) {
+		format = logging.format;
+	} else if (envLogFormat !== void 0) {
+		format = envLogFormat;
+	} else {
+		format = LOG_FORMAT;
+	}
+
+	let level;
+	if (logging.level !== void 0) {
+		level = logging.level;
+	} else if (envLogLevel !== void 0) {
+		level = envLogLevel;
+	} else {
+		level = INFO;
+	}
 
 	const validLevels = [DEBUG, INFO, "warn", "error", "critical", "alert", "emerg", "notice"];
 	if (!validLevels.includes(level)) {

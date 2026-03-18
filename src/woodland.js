@@ -48,8 +48,8 @@ import {
 	X_POWERED_BY_VALUE,
 	X_RESPONSE_TIME,
 } from "./constants.js";
-import { getStatus, next, params, parse, writeHead } from "./utility.js";
-import { createMiddlewareRegistry } from "./middleware.js";
+import { params, parse, writeHead } from "./utility.js";
+import { createMiddlewareRegistry, getStatus, next } from "./middleware.js";
 import { error, json, redirect, send, set, status, stream as responseStream } from "./response.js";
 import { validateConfig, validateLogging } from "./config.js";
 import { createLogger } from "./logger.js";

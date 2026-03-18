@@ -49,7 +49,7 @@
 | `src/response.js` | Response handlers | `mime`, `getStatusText`, `error`, `json`, `redirect`, `send`, `set`, `status`, `stream`, `noop` |
 | `src/request.js` | Request handlers | `cors`, `corsHost`, `corsRequest`, `extractIP`, `decorate`, `logClose` |
 | `src/logger.js` | Logging | `createLogger`, `log`, `clfm`, `extractIP`, `logRoute`, `logMiddleware`, `logDecoration`, `logError`, `logServe` |
-| `src/utility.js` | Utility functions (569 lines) | `escapeHtml`, `autoindex`, `getStatus`, `mime`, `ms`, `next`, `params`, `parse`, `partialHeaders`, `pipeable`, `reduce`, `timeOffset`, `writeHead`, `isValidIP`, `extractPath`, `mimeExtensions` |
+| `src/utility.js` | Utility functions (435 lines) | `escapeHtml`, `autoindex`, `ms`, `params`, `parse`, `partialHeaders`, `pipeable`, `timeOffset`, `writeHead`, `isValidIP`, `extractPath`, `mimeExtensions` |
 | `src/middleware.js` | Middleware registry | `reduce`, `getStatus`, `next`, `computeRoutes`, `listRoutes`, `checkAllowed`, `createMiddlewareRegistry`, `registerMiddleware`, `ignoreFunction` |
 | `src/fileserver.js` | File server | `serve`, `register`, `createFileServer` |
 | `src/constants.js` | Constants & patterns | All framework constants (HTTP methods, headers, status codes, etc.) |
@@ -117,7 +117,7 @@ res.send = this.send(req, res); // Returns function: res.send(body, status, head
 
 ## Test count
 
-- 582 tests passing (111 in woodland.test.js)
+- 564 tests passing
 - 100% line coverage target
 
 ## Key implementation details
@@ -143,6 +143,7 @@ res.send = this.send(req, res); // Returns function: res.send(body, status, head
 - `isValidIP` - validates IPv4 and IPv6, rejects `:::` patterns (multiple colons invalid)
 - `extractPath` - converts `/:param` to regex `/(?<param>[^/]+)`
 - `mimeExtensions` - populated from mime-db, keyed by extension (e.g., ".json")
+- **DRY principle**: `mime` function lives in `response.js` only (removed from utility.js to avoid duplication)
 
 ### Response handlers (`response.js`)
 - `error` - removes "allow" header on 404, removes CORS headers if `req.cors` is true
