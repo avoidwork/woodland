@@ -1074,6 +1074,97 @@ describe("response", () => {
 
 			assert.strictEqual(capturedRange, "bytes */1000");
 		});
+
+		it("should return unchanged when hyphen not found in range spec", () => {
+			const req = { headers: { range: "bytes=0to99" } };
+			const res = {
+				removeHeader: () => {},
+				header: () => {},
+				statusCode: 200,
+			};
+			const headers = { "content-type": "text/html" };
+			const options = { custom: "option" };
+
+			const [resultHeaders, resultOptions] = partialHeaders(req, res, 1000, 200, headers, options);
+
+			assert.deepStrictEqual(resultHeaders, headers);
+			assert.deepStrictEqual(resultOptions, options);
+		});
+
+		it("should return unchanged when suffix range has empty end", () => {
+			const req = { headers: { range: "bytes=-" } };
+			const res = {
+				removeHeader: () => {},
+				header: () => {},
+				statusCode: 200,
+			};
+			const headers = { "content-type": "text/html" };
+
+			const [resultHeaders] = partialHeaders(req, res, 1000, 200, headers);
+
+			assert.deepStrictEqual(resultHeaders, headers);
+		});
+
+		it("should return unchanged when suffix range has invalid end", () => {
+			const req = { headers: { range: "bytes=-abc" } };
+			const res = {
+				removeHeader: () => {},
+				header: () => {},
+				statusCode: 200,
+			};
+			const headers = { "content-type": "text/html" };
+
+			const [resultHeaders] = partialHeaders(req, res, 1000, 200, headers);
+
+			assert.deepStrictEqual(resultHeaders, headers);
+		});
+
+		it("should return unchanged when regular range has invalid start", () => {
+			const req = { headers: { range: "bytes=abc-99" } };
+			const res = {
+				removeHeader: () => {},
+				header: () => {},
+				statusCode: 200,
+			};
+			const headers = { "content-type": "text/html" };
+
+			const [resultHeaders] = partialHeaders(req, res, 1000, 200, headers);
+
+			assert.deepStrictEqual(resultHeaders, headers);
+		});
+
+		it("should return unchanged when range has invalid end", () => {
+			const req = { headers: { range: "bytes=0-abc" } };
+			const res = {
+				removeHeader: () => {},
+				header: () => {},
+				statusCode: 200,
+			};
+			const headers = { "content-type": "text/html" };
+
+			const [resultHeaders] = partialHeaders(req, res, 1000, 200, headers);
+
+			assert.deepStrictEqual(resultHeaders, headers);
+		});
+
+		it("should set end to size-1 when end is empty string", () => {
+			const req = { headers: { range: "bytes=500-" } };
+			let capturedRange = null;
+			const res = {
+				removeHeader: () => {},
+				header: (key, val) => {
+					if (key === "content-range") {
+						capturedRange = val;
+					}
+				},
+				statusCode: 200,
+			};
+			const headers = {};
+
+			partialHeaders(req, res, 1000, 200, headers);
+
+			assert.strictEqual(capturedRange, "bytes 500-999/1000");
+		});
 	});
 
 	describe("pipeable", () => {

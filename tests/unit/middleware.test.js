@@ -797,5 +797,12 @@ describe("middleware", () => {
 
 			assert.strictEqual(methods.length, 0);
 		});
+
+		it("should return early when rpath is undefined", () => {
+			const result = registerMiddleware(middleware, ignored, methods, cache, void 0, () => {});
+
+			assert.strictEqual(result, void 0);
+			assert.strictEqual(middleware.size, 0);
+		});
 	});
 });
