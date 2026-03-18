@@ -209,6 +209,94 @@ describe("request", () => {
 			it("should reject full IPv6 with empty group triggering loop check", () => {
 				assert.strictEqual(isValidIP("2001:0db8:85a3:0000:::7334"), false);
 			});
+
+			it("should reject compressed IPv6 with second left group invalid", () => {
+				assert.strictEqual(isValidIP("2001:zzzz:3:4::1"), false);
+			});
+
+			it("should reject compressed IPv6 with second right group invalid", () => {
+				assert.strictEqual(isValidIP("::1:2:zzzz:4"), false);
+			});
+
+			it("should reject full IPv6 with second group invalid in loop", () => {
+				assert.strictEqual(isValidIP("2001:zzzz:85a3:0000:8a2e:0370:7334"), false);
+			});
+
+			it("should reject full IPv6 with third group invalid in loop", () => {
+				assert.strictEqual(isValidIP("2001:0db8:zzzz:0000:8a2e:0370:7334"), false);
+			});
+
+			it("should reject full IPv6 with fourth group invalid in loop", () => {
+				assert.strictEqual(isValidIP("2001:0db8:85a3:zzzz:8a2e:0370:7334"), false);
+			});
+
+			it("should reject full IPv6 with fifth group invalid in loop", () => {
+				assert.strictEqual(isValidIP("2001:0db8:85a3:0000:zzzz:0370:7334"), false);
+			});
+
+			it("should reject full IPv6 with sixth group invalid in loop", () => {
+				assert.strictEqual(isValidIP("2001:0db8:85a3:0000:8a2e:zzzz:7334"), false);
+			});
+
+			it("should reject full IPv6 with seventh group invalid in loop", () => {
+				assert.strictEqual(isValidIP("2001:0db8:85a3:0000:8a2e:0370:zzzz"), false);
+			});
+
+			it("should reject compressed IPv6 with third left group invalid", () => {
+				assert.strictEqual(isValidIP("1:2:zzzz:4:5::1"), false);
+			});
+
+			it("should reject compressed IPv6 with third right group invalid", () => {
+				assert.strictEqual(isValidIP("::1:2:3:zzzz:5"), false);
+			});
+
+			it("should accept IPv6 with only left groups (trailing ::)", () => {
+				assert.strictEqual(isValidIP("2001:db8::"), true);
+			});
+
+			it("should accept IPv6 with only right groups (leading ::)", () => {
+				assert.strictEqual(isValidIP("::1"), true);
+			});
+
+			it("should reject IPv6 position 1 invalid hex", () => {
+				assert.strictEqual(isValidIP("zzzz:0db8:85a3:0000:8a2e:0370:7334"), false);
+			});
+
+			it("should reject IPv6 position 2 invalid hex", () => {
+				assert.strictEqual(isValidIP("2001:zzzz:85a3:0000:8a2e:0370:7334"), false);
+			});
+
+			it("should reject IPv6 position 3 invalid hex", () => {
+				assert.strictEqual(isValidIP("2001:0db8:zzzz:0000:8a2e:0370:7334"), false);
+			});
+
+			it("should reject IPv6 position 4 invalid hex", () => {
+				assert.strictEqual(isValidIP("2001:0db8:85a3:zzzz:8a2e:0370:7334"), false);
+			});
+
+			it("should reject IPv6 position 5 invalid hex", () => {
+				assert.strictEqual(isValidIP("2001:0db8:85a3:0000:zzzz:0370:7334"), false);
+			});
+
+			it("should reject IPv6 position 6 invalid hex", () => {
+				assert.strictEqual(isValidIP("2001:0db8:85a3:0000:8a2e:zzzz:7334"), false);
+			});
+
+			it("should reject IPv6 position 7 invalid hex", () => {
+				assert.strictEqual(isValidIP("2001:0db8:85a3:0000:8a2e:0370:zzzz"), false);
+			});
+
+			it("should reject IPv6 position 8 invalid hex", () => {
+				assert.strictEqual(isValidIP("2001:0db8:85a3:0000:8a2e:0370:733g"), false);
+			});
+
+			it("should reject compressed IPv6 left position 2 invalid hex", () => {
+				assert.strictEqual(isValidIP("1:zzzz:3:4:5:6::"), false);
+			});
+
+			it("should reject compressed IPv6 right position 2 invalid hex", () => {
+				assert.strictEqual(isValidIP("::1:2:3:4:zzzz:6"), false);
+			});
 		});
 	});
 
@@ -818,6 +906,18 @@ describe("request", () => {
 			params(req, pattern);
 
 			assert.deepStrictEqual(req.params, {});
+		});
+
+		it("should handle invalid URI encoding gracefully", () => {
+			const req = {
+				parsed: { pathname: "/users/%ZZ" },
+				params: {},
+			};
+			const pattern = /\/users\/(?<name>[^/]+)/;
+
+			params(req, pattern);
+
+			assert.strictEqual(req.params.name, "%ZZ");
 		});
 	});
 
