@@ -8,11 +8,11 @@ import {
 	INT_0,
 	INT_2,
 	INT_3,
+	INT_4,
 	INT_60,
 	INT_1e6,
 	INT_500,
 	LEVELS,
-	LOCALHOST,
 	REFERER,
 	TIME_MS,
 	TOKEN_N,
@@ -22,19 +22,19 @@ import {
 	CONSOLE_LOG,
 	CONSOLE_ERROR,
 	VALID_LOG_LEVELS,
+	EMPTY,
+	LOG_B,
+	LOG_H,
+	LOG_L,
+	LOG_R,
+	LOG_REFERRER,
+	LOG_S,
+	LOG_T,
+	LOG_U,
+	LOG_USER_AGENT,
+	LOG_V,
 } from "./constants.js";
-
-/**
- * Extracts IP address from request object
- * @param {Object} req - Request object
- * @returns {string} IP address
- */
-export function extractIP(req) {
-	const connection = req.connection;
-	const socket = req.socket;
-
-	return (connection && connection.remoteAddress) || (socket && socket.remoteAddress) || LOCALHOST;
-}
+import { extractIP } from "./request.js";
 
 /**
  * Generates common log format entry
@@ -48,12 +48,11 @@ export function clfm(req, res, format) {
 	const month = MONTHS[date.getMonth()];
 	const day = date.getDate();
 	const year = date.getFullYear();
-	const hours = String(date.getHours()).padStart(2, "0");
-	const minutes = String(date.getMinutes()).padStart(2, "0");
-	const seconds = String(date.getSeconds()).padStart(2, "0");
+	const hours = String(date.getHours()).padStart(INT_2, STRING_0);
+	const minutes = String(date.getMinutes()).padStart(INT_2, STRING_0);
+	const seconds = String(date.getSeconds()).padStart(INT_2, STRING_0);
 	const timezone = timeOffset(date.getTimezoneOffset());
 	const dateStr = `[${day}/${month}/${year}:${hours}:${minutes}:${seconds} ${timezone}]`;
-
 	const headers = req.headers;
 	const host = headers && headers.host ? headers.host : HYPHEN;
 	const clientIP = req.ip || extractIP(req);
@@ -65,28 +64,26 @@ export function clfm(req, res, format) {
 	const search = parsed && parsed.search ? parsed.search : HYPHEN;
 	const method = req.method ? req.method : HYPHEN;
 	const requestLine = `${method} ${pathname}${search} ${HTTP_VERSION}`;
-
 	const resStatusCode = res.statusCode;
 	const statusCode = resStatusCode ? resStatusCode : INT_500;
 	const getHeader = res.getHeader;
 	const contentLength = getHeader ? getHeader.call(res, CONTENT_LENGTH) : HYPHEN;
-
 	const referer = headers && headers[REFERER] ? headers[REFERER] : HYPHEN;
 	const userAgent = headers && headers[USER_AGENT] ? headers[USER_AGENT] : HYPHEN;
 
 	let logEntry = format;
 
 	logEntry = logEntry
-		.replace("%v", host)
-		.replace("%h", ip)
-		.replace("%l", logname)
-		.replace("%u", username)
-		.replace("%t", dateStr)
-		.replace("%r", requestLine)
-		.replace("%>s", String(statusCode))
-		.replace("%b", contentLength)
-		.replace("%{Referer}i", referer)
-		.replace("%{User-agent}i", userAgent);
+		.replace(LOG_V, host)
+		.replace(LOG_H, ip)
+		.replace(LOG_L, logname)
+		.replace(LOG_U, username)
+		.replace(LOG_T, dateStr)
+		.replace(LOG_R, requestLine)
+		.replace(LOG_S, String(statusCode))
+		.replace(LOG_B, contentLength)
+		.replace(LOG_REFERRER, referer)
+		.replace(LOG_USER_AGENT, userAgent);
 
 	return logEntry;
 }
@@ -158,24 +155,23 @@ export function logServe(req, message, logFn) {
 }
 
 /**
- * Main logging function
- * @param {string} msg - Log message
- * @param {string} [logLevel='debug'] - Log level
- * @param {boolean} enabled - Enable/disable logging
- * @param {string} actualLevel - Actual log level
- * @returns {Object} Logger object for chaining
+ * Main logging function - outputs log messages to console
+ * @param {string} msg - Log message to output
+ * @param {string} [logLevel='debug'] - Log level for message
+ * @param {boolean} [enabled=true] - Enable/disable logging
+ * @param {string} [actualLevel='info'] - Minimum log level to output
+ * @returns {undefined} No return value (does not chain)
  */
 export function log(msg, logLevel = DEBUG, enabled = true, actualLevel = INFO) {
 	if (enabled) {
 		const idx = LEVELS[logLevel];
 		if (idx <= LEVELS[actualLevel]) {
 			process.nextTick(() => {
-				const consoleMethod = idx > 4 ? CONSOLE_LOG : CONSOLE_ERROR;
+				const consoleMethod = idx > INT_4 ? CONSOLE_LOG : CONSOLE_ERROR;
 				console[consoleMethod](msg);
 			});
 		}
 	}
-	return { log, clfm, extractIP, logRoute, logMiddleware, logDecoration, logError, logServe };
 }
 
 /**
@@ -184,7 +180,7 @@ export function log(msg, logLevel = DEBUG, enabled = true, actualLevel = INFO) {
  * @param {boolean} [config.enabled=true] - Enable/disable logging
  * @param {string} [config.format] - Custom log format string
  * @param {string} [config.level='info'] - Log level
- * @returns {Object} Logger with log, clfm, extractIP, logRoute, logMiddleware, logDecoration, logError, logServe methods
+ * @returns {Object} Logger with log, clfm, logRoute, logMiddleware, logDecoration, logError, logServe methods
  */
 export function createLogger(config = {}) {
 	const { enabled = true, format, level = INFO } = config;
@@ -193,7 +189,6 @@ export function createLogger(config = {}) {
 	return {
 		log: (msg, logLevel = DEBUG) => log(msg, logLevel, enabled, actualLevel),
 		clfm: (req, res) => clfm(req, res, format),
-		extractIP,
 		logRoute: (uri, method, ip) =>
 			logRoute(uri, method, ip, (msg, lvl) => log(msg, lvl, enabled, actualLevel)),
 		logMiddleware: (route, method) =>
@@ -226,11 +221,9 @@ export function timeOffset(arg = INT_0) {
 	const isNegative = arg < INT_0;
 	const absValue = isNegative ? -arg : arg;
 	const offsetMinutes = absValue / INT_60;
-
 	const hours = Math.floor(offsetMinutes);
 	const minutes = Math.floor((offsetMinutes - hours) * INT_60);
-
-	const sign = isNegative ? HYPHEN : "";
+	const sign = isNegative ? HYPHEN : EMPTY;
 	const hoursStr = String(hours).padStart(INT_2, STRING_0);
 	const minutesStr = String(minutes).padStart(INT_2, STRING_0);
 

@@ -55,7 +55,7 @@ import { createMiddlewareRegistry, getStatus, next } from "./middleware.js";
 import { error, json, redirect, send, set, status, stream as responseStream } from "./response.js";
 import { validateConfig, validateLogging } from "./config.js";
 import { createLogger } from "./logger.js";
-import { cors, corsHost, corsRequest, params, parse, extractPath } from "./request.js";
+import { cors, corsHost, corsRequest, params, parse, extractPath, extractIP } from "./request.js";
 import { createFileServer } from "./fileserver.js";
 import { APPLICATION_JSON } from "./constants.js";
 
@@ -123,33 +123,18 @@ export class Woodland extends EventEmitter {
 		this.logging = validateLogging(logging);
 		this.origins = [...origins];
 		this.time = time;
-
 		this.cache = new Map();
 		this.permissions = new Map();
 		this.methods = [];
-
-		const { log, clfm, extractIP, logRoute, logMiddleware, logDecoration, logError, logServe } =
-			createLogger({
-				enabled: this.logging.enabled,
-				format: this.logging.format,
-				level: this.logging.level,
-			});
-		this.logger = {
-			log,
-			clfm,
-			extractIP,
-			logRoute,
-			logMiddleware,
-			logDecoration,
-			logError,
-			logServe,
-		};
-
+		this.logger = createLogger({
+			enabled: this.logging.enabled,
+			format: this.logging.format,
+			level: this.logging.level,
+		});
 		this.cors = (req) => cors(req, this.origins);
 		this.corsHost = corsHost;
 		this.corsRequest = corsRequest;
 		this.ip = extractIP;
-
 		this.error = this.error.bind(this);
 		this.json = this.json.bind(this);
 		this.redirect = this.redirect.bind(this);

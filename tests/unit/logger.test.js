@@ -9,7 +9,6 @@ describe("logger", () => {
 
 			assert.ok(logger.log);
 			assert.ok(logger.clfm);
-			assert.ok(logger.extractIP);
 			assert.ok(logger.logRoute);
 			assert.ok(logger.logMiddleware);
 			assert.ok(logger.logDecoration);
@@ -41,7 +40,6 @@ describe("logger", () => {
 
 			assert.strictEqual(typeof logger.log, "function");
 			assert.strictEqual(typeof logger.clfm, "function");
-			assert.strictEqual(typeof logger.extractIP, "function");
 			assert.strictEqual(typeof logger.logRoute, "function");
 			assert.strictEqual(typeof logger.logMiddleware, "function");
 			assert.strictEqual(typeof logger.logDecoration, "function");
@@ -56,7 +54,6 @@ describe("logger", () => {
 
 				assert.ok(result.log);
 				assert.ok(result.clfm);
-				assert.ok(result.extractIP);
 			});
 
 			it("should not log when disabled", () => {
@@ -621,39 +618,6 @@ describe("logger", () => {
 				const result = logger.clfm(req, res);
 
 				assert.ok(typeof result === "string");
-			});
-		});
-
-		describe("extractIP", () => {
-			it("should extract IP from connection", () => {
-				const logger = createLogger();
-				const req = {
-					connection: { remoteAddress: "192.168.1.1" },
-				};
-
-				const result = logger.extractIP(req);
-
-				assert.strictEqual(result, "192.168.1.1");
-			});
-
-			it("should fallback to socket remoteAddress", () => {
-				const logger = createLogger();
-				const req = {
-					socket: { remoteAddress: "10.0.0.1" },
-				};
-
-				const result = logger.extractIP(req);
-
-				assert.strictEqual(result, "10.0.0.1");
-			});
-
-			it("should fallback to 127.0.0.1 when no IP available", () => {
-				const logger = createLogger();
-				const req = {};
-
-				const result = logger.extractIP(req);
-
-				assert.strictEqual(result, "127.0.0.1");
 			});
 		});
 

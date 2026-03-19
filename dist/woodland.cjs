@@ -77,6 +77,7 @@ const SERVER = "server";
 const TIMING_ALLOW_ORIGIN = "timing-allow-origin";
 const USER_AGENT = "user-agent";
 const X_CONTENT_TYPE_OPTIONS = "x-content-type-options";
+const X_FORWARDED_FOR = "x-forwarded-for";
 const X_POWERED_BY = "x-powered-by";
 const X_RESPONSE_TIME = "x-response-time";
 
@@ -110,6 +111,7 @@ const EXTENSIONS = "extensions";
 const INT_0 = 0;
 const INT_2 = 2;
 const INT_3 = 3;
+const INT_4 = 4;
 const INT_10 = 10;
 const INT_60 = 60;
 const INT_1e3 = 1e3;
@@ -143,7 +145,19 @@ const LEVELS = Object.freeze({
 	info: 6,
 	debug: 7,
 });
+
+// Log format tokens
+const LOG_B = "%b";
 const LOG_FORMAT = '%h %l %u %t "%r" %>s %b';
+const LOG_H = "%h";
+const LOG_L = "%l";
+const LOG_R = "%r";
+const LOG_REFERRER = "%{Referer}i";
+const LOG_S = "%>s";
+const LOG_T = "%t";
+const LOG_U = "%u";
+const LOG_USER_AGENT = "%{User-agent}i";
+const LOG_V = "%v";
 const MSG_ROUTING_FILE = "Routing request to file system";
 
 const MSG_CONFIG_FIELD = "Config ";
@@ -978,15 +992,248 @@ function validateLogging(logging = {}) {
 }
 
 /**
- * Extracts IP address from request object
+ * Checks if request origin is allowed for CORS
  * @param {Object} req - Request object
- * @returns {string} IP address
+ * @param {Array} origins - Array of allowed origins
+ * @returns {boolean} True if CORS is allowed
+ */
+function cors(req, origins) {
+	if (origins.length === 0) {
+		return false;
+	}
+
+	const origin = req.headers.origin;
+	return req.corsHost && (origins.includes(WILDCARD) || origins.includes(origin));
+}
+
+/**
+ * Checks if request origin host differs from request host
+ * @param {Object} req - Request object
+ * @returns {boolean} True if hosts differ
+ */
+function corsHost(req) {
+	return (
+		ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host
+	);
+}
+
+/**
+ * Creates CORS request handler that sends 204 No Content
+ * @returns {Function} Request handler function
+ */
+function corsRequest() {
+	return (req, res) => res.status(INT_204).send(EMPTY);
+}
+
+/**
+ * Extracts client IP address from request
+ * @param {Object} req - Request object
+ * @returns {string} Client IP address
  */
 function extractIP(req) {
 	const connection = req.connection;
 	const socket = req.socket;
+	const fallbackIP =
+		(connection && connection.remoteAddress) || (socket && socket.remoteAddress) || LOCALHOST;
 
-	return (connection && connection.remoteAddress) || (socket && socket.remoteAddress) || LOCALHOST;
+	const forwardedHeader = req.headers[X_FORWARDED_FOR];
+	if (!forwardedHeader || !forwardedHeader.trim()) {
+		return fallbackIP;
+	}
+
+	const forwardedIPs = forwardedHeader.split(",");
+
+	for (let i = 0; i < forwardedIPs.length; i++) {
+		const ip = forwardedIPs[i].trim();
+		if (isValidIP(ip)) {
+			return ip;
+		}
+	}
+
+	return fallbackIP;
+}
+
+/**
+ * Extracts URL parameters from request pathname using regex groups
+ * @param {Object} req - HTTP request object with parsed pathname
+ * @param {RegExp} getParams - Regular expression with named capture groups
+ */
+function params(req, getParams) {
+	getParams.lastIndex = INT_0;
+	const match = getParams.exec(req.parsed.pathname);
+	const groups = match?.groups;
+
+	if (!groups) {
+		req.params = {};
+		return;
+	}
+
+	const processedParams = Object.create(null);
+	const keys = Object.keys(groups);
+	const keyCount = keys.length;
+
+	for (let i = 0; i < keyCount; i++) {
+		const key = keys[i];
+		const value = groups[key];
+
+		if (value === null || value === undefined) {
+			processedParams[key] = tinyCoerce.coerce(null);
+		} else {
+			let decoded;
+			if (value.indexOf("%") === -1) {
+				decoded = value;
+			} else {
+				try {
+					decoded = decodeURIComponent(value);
+				} catch {
+					decoded = value;
+				}
+			}
+
+			processedParams[key] = tinyCoerce.coerce(escapeHtml(decoded));
+		}
+	}
+
+	req.params = processedParams;
+}
+
+/**
+ * Parses a URL string or request object into a URL object with security checks
+ * @param {string|Object} arg - URL string or request object to parse
+ * @returns {URL} Parsed URL object
+ */
+function parse(arg) {
+	return new URL(
+		typeof arg === STRING
+			? arg
+			: `http://${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || String(INT_8000)}`}${arg.url}`,
+	);
+}
+
+/**
+ * Converts parameterized route path to regex pattern
+ * @param {string} path - Route path with parameters (e.g., "/users/:id")
+ * @returns {string} Regex pattern string
+ */
+function extractPath(path) {
+	return path.replace(/:([a-zA-Z_]\w*)/g, "(?<$1>[^/]+)");
+}
+
+const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/,
+	IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/,
+	IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i,
+	HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
+
+/**
+ * Validates if an IP address is properly formatted
+ * @param {string} ip - IP address to validate
+ * @returns {boolean} True if IP is valid format
+ */
+function isValidIP(ip) {
+	if (!ip || typeof ip !== "string") {
+		return false;
+	}
+
+	if (ip.indexOf(":") === -1) {
+		const match = IPV4_PATTERN.exec(ip);
+
+		if (!match) {
+			return false;
+		}
+
+		for (let i = 1; i < 5; i++) {
+			const num = parseInt(match[i], 10);
+			if (num > 255) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	if (!IPV6_CHAR_PATTERN.test(ip)) {
+		return false;
+	}
+
+	const ipv4MappedMatch = IPV4_MAPPED_PATTERN.exec(ip);
+	if (ipv4MappedMatch) {
+		return isValidIP(ipv4MappedMatch[1]);
+	}
+
+	if (ip === "::") {
+		return true;
+	}
+
+	const doubleColonIndex = ip.indexOf("::");
+	const isCompressed = doubleColonIndex !== -1;
+
+	if (isCompressed) {
+		if (ip.indexOf("::", doubleColonIndex + 2) !== -1) {
+			return false;
+		}
+
+		if (
+			(doubleColonIndex > 0 && ip.charAt(doubleColonIndex - 1) === ":") ||
+			(doubleColonIndex + 2 < ip.length && ip.charAt(doubleColonIndex + 2) === ":")
+		) {
+			return false;
+		}
+
+		const beforeDoubleColon = ip.substring(0, doubleColonIndex);
+		const afterDoubleColon = ip.substring(doubleColonIndex + 2);
+
+		let leftGroups;
+		if (beforeDoubleColon) {
+			leftGroups = beforeDoubleColon.split(":");
+		} else {
+			leftGroups = [];
+		}
+
+		let rightGroups;
+		if (afterDoubleColon) {
+			rightGroups = afterDoubleColon.split(":");
+		} else {
+			rightGroups = [];
+		}
+
+		const nonEmptyLeft = leftGroups.filter((g) => g !== "");
+		const nonEmptyRight = rightGroups.filter((g) => g !== "");
+		const totalGroups = nonEmptyLeft.length + nonEmptyRight.length;
+
+		if (totalGroups >= 8) {
+			return false;
+		}
+
+		/* node:coverage ignore next 5 */
+		for (let i = 0; i < nonEmptyLeft.length; i++) {
+			if (!HEX_GROUP_PATTERN.test(nonEmptyLeft[i])) {
+				return false;
+			}
+		}
+
+		/* node:coverage ignore next 5 */
+		for (let i = 0; i < nonEmptyRight.length; i++) {
+			if (!HEX_GROUP_PATTERN.test(nonEmptyRight[i])) {
+				return false;
+			}
+		}
+
+		return true;
+	} else {
+		const groups = ip.split(":");
+		if (groups.length !== 8) {
+			return false;
+		}
+
+		/* node:coverage ignore next 5 */
+		for (let i = 0; i < 8; i++) {
+			if (!groups[i] || !HEX_GROUP_PATTERN.test(groups[i])) {
+				return false;
+			}
+		}
+
+		return true;
+	}
 }
 
 /**
@@ -1001,16 +1248,15 @@ function clfm(req, res, format) {
 	const month = MONTHS[date.getMonth()];
 	const day = date.getDate();
 	const year = date.getFullYear();
-	const hours = String(date.getHours()).padStart(2, "0");
-	const minutes = String(date.getMinutes()).padStart(2, "0");
-	const seconds = String(date.getSeconds()).padStart(2, "0");
+	const hours = String(date.getHours()).padStart(INT_2, STRING_0);
+	const minutes = String(date.getMinutes()).padStart(INT_2, STRING_0);
+	const seconds = String(date.getSeconds()).padStart(INT_2, STRING_0);
 	const timezone = timeOffset(date.getTimezoneOffset());
 	const dateStr = `[${day}/${month}/${year}:${hours}:${minutes}:${seconds} ${timezone}]`;
-
 	const headers = req.headers;
 	const host = headers && headers.host ? headers.host : HYPHEN;
 	const clientIP = req.ip || extractIP(req);
-	const ip = clientIP;
+	const ip = clientIP || HYPHEN;
 	const logname = HYPHEN;
 	const parsed = req.parsed;
 	const username = parsed && parsed.username ? parsed.username : HYPHEN;
@@ -1018,28 +1264,26 @@ function clfm(req, res, format) {
 	const search = parsed && parsed.search ? parsed.search : HYPHEN;
 	const method = req.method ? req.method : HYPHEN;
 	const requestLine = `${method} ${pathname}${search} ${HTTP_VERSION}`;
-
 	const resStatusCode = res.statusCode;
 	const statusCode = resStatusCode ? resStatusCode : INT_500;
 	const getHeader = res.getHeader;
 	const contentLength = getHeader ? getHeader.call(res, CONTENT_LENGTH) : HYPHEN;
-
 	const referer = headers && headers[REFERER] ? headers[REFERER] : HYPHEN;
 	const userAgent = headers && headers[USER_AGENT] ? headers[USER_AGENT] : HYPHEN;
 
 	let logEntry = format;
 
 	logEntry = logEntry
-		.replace("%v", host)
-		.replace("%h", ip)
-		.replace("%l", logname)
-		.replace("%u", username)
-		.replace("%t", dateStr)
-		.replace("%r", requestLine)
-		.replace("%>s", String(statusCode))
-		.replace("%b", contentLength)
-		.replace("%{Referer}i", referer)
-		.replace("%{User-agent}i", userAgent);
+		.replace(LOG_V, host)
+		.replace(LOG_H, ip)
+		.replace(LOG_L, logname)
+		.replace(LOG_U, username)
+		.replace(LOG_T, dateStr)
+		.replace(LOG_R, requestLine)
+		.replace(LOG_S, String(statusCode))
+		.replace(LOG_B, contentLength)
+		.replace(LOG_REFERRER, referer)
+		.replace(LOG_USER_AGENT, userAgent);
 
 	return logEntry;
 }
@@ -1111,24 +1355,23 @@ function logServe(req, message, logFn) {
 }
 
 /**
- * Main logging function
- * @param {string} msg - Log message
- * @param {string} [logLevel='debug'] - Log level
- * @param {boolean} enabled - Enable/disable logging
- * @param {string} actualLevel - Actual log level
- * @returns {Object} Logger object for chaining
+ * Main logging function - outputs log messages to console
+ * @param {string} msg - Log message to output
+ * @param {string} [logLevel='debug'] - Log level for message
+ * @param {boolean} [enabled=true] - Enable/disable logging
+ * @param {string} [actualLevel='info'] - Minimum log level to output
+ * @returns {undefined} No return value (does not chain)
  */
 function log(msg, logLevel = DEBUG, enabled = true, actualLevel = INFO) {
 	if (enabled) {
 		const idx = LEVELS[logLevel];
 		if (idx <= LEVELS[actualLevel]) {
 			process.nextTick(() => {
-				const consoleMethod = idx > 4 ? CONSOLE_LOG : CONSOLE_ERROR;
+				const consoleMethod = idx > INT_4 ? CONSOLE_LOG : CONSOLE_ERROR;
 				console[consoleMethod](msg);
 			});
 		}
 	}
-	return { log, clfm, extractIP, logRoute, logMiddleware, logDecoration, logError, logServe };
 }
 
 /**
@@ -1137,7 +1380,7 @@ function log(msg, logLevel = DEBUG, enabled = true, actualLevel = INFO) {
  * @param {boolean} [config.enabled=true] - Enable/disable logging
  * @param {string} [config.format] - Custom log format string
  * @param {string} [config.level='info'] - Log level
- * @returns {Object} Logger with log, clfm, extractIP, logRoute, logMiddleware, logDecoration, logError, logServe methods
+ * @returns {Object} Logger with log, clfm, logRoute, logMiddleware, logDecoration, logError, logServe methods
  */
 function createLogger(config = {}) {
 	const { enabled = true, format, level = INFO } = config;
@@ -1146,7 +1389,6 @@ function createLogger(config = {}) {
 	return {
 		log: (msg, logLevel = DEBUG) => log(msg, logLevel, enabled, actualLevel),
 		clfm: (req, res) => clfm(req, res, format),
-		extractIP,
 		logRoute: (uri, method, ip) =>
 			logRoute(uri, method, ip, (msg, lvl) => log(msg, lvl, enabled, actualLevel)),
 		logMiddleware: (route, method) =>
@@ -1169,115 +1411,13 @@ function timeOffset(arg = INT_0) {
 	const isNegative = arg < INT_0;
 	const absValue = isNegative ? -arg : arg;
 	const offsetMinutes = absValue / INT_60;
-
 	const hours = Math.floor(offsetMinutes);
 	const minutes = Math.floor((offsetMinutes - hours) * INT_60);
-
-	const sign = isNegative ? HYPHEN : "";
+	const sign = isNegative ? HYPHEN : EMPTY;
 	const hoursStr = String(hours).padStart(INT_2, STRING_0);
 	const minutesStr = String(minutes).padStart(INT_2, STRING_0);
 
 	return `${sign}${hoursStr}${minutesStr}`;
-}
-
-/**
- * Checks if request origin is allowed for CORS
- * @param {Object} req - Request object
- * @param {Array} origins - Array of allowed origins
- * @returns {boolean} True if CORS is allowed
- */
-function cors(req, origins) {
-	if (origins.length === 0) {
-		return false;
-	}
-
-	const origin = req.headers.origin;
-	return req.corsHost && (origins.includes(WILDCARD) || origins.includes(origin));
-}
-
-/**
- * Checks if request origin host differs from request host
- * @param {Object} req - Request object
- * @returns {boolean} True if hosts differ
- */
-function corsHost(req) {
-	return (
-		ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host
-	);
-}
-
-/**
- * Creates CORS request handler that sends 204 No Content
- * @returns {Function} Request handler function
- */
-function corsRequest() {
-	return (req, res) => res.status(INT_204).send(EMPTY);
-}
-
-/**
- * Extracts URL parameters from request pathname using regex groups
- * @param {Object} req - HTTP request object with parsed pathname
- * @param {RegExp} getParams - Regular expression with named capture groups
- */
-function params(req, getParams) {
-	getParams.lastIndex = INT_0;
-	const match = getParams.exec(req.parsed.pathname);
-	const groups = match?.groups;
-
-	if (!groups) {
-		req.params = {};
-		return;
-	}
-
-	const processedParams = Object.create(null);
-	const keys = Object.keys(groups);
-	const keyCount = keys.length;
-
-	for (let i = 0; i < keyCount; i++) {
-		const key = keys[i];
-		const value = groups[key];
-
-		if (value === null || value === undefined) {
-			processedParams[key] = tinyCoerce.coerce(null);
-		} else {
-			let decoded;
-			if (value.indexOf("%") === -1) {
-				decoded = value;
-			} else {
-				try {
-					decoded = decodeURIComponent(value);
-				} catch {
-					decoded = value;
-				}
-			}
-
-			processedParams[key] = tinyCoerce.coerce(escapeHtml(decoded));
-		}
-	}
-
-	req.params = processedParams;
-}
-
-/**
- * Parses a URL string or request object into a URL object with security checks
- * @param {string|Object} arg - URL string or request object to parse
- * @returns {URL} Parsed URL object
- */
-function parse(arg) {
-	return new URL(
-		typeof arg === STRING
-			? arg
-			: `http://${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || String(INT_8000)}`}${arg.url}`,
-	);
-}
-
-/**
- * Converts parameterized route path to regex pattern
- * @param {string} path - Route path with parameters (e.g., "/users/:id")
- * @returns {string} Regex pattern string
- */
-function extractPath(path) {
-	return path.replace(/:([a-zA-Z_]\w*)/g, "(?<$1>[^/]+)");
 }
 
 const html = node_fs.readFileSync(node_path.join(undefined, "..", "tpl", "autoindex.html"), {
@@ -1489,33 +1629,18 @@ class Woodland extends node_events.EventEmitter {
 		this.logging = validateLogging(logging);
 		this.origins = [...origins];
 		this.time = time;
-
 		this.cache = new Map();
 		this.permissions = new Map();
 		this.methods = [];
-
-		const { log, clfm, extractIP, logRoute, logMiddleware, logDecoration, logError, logServe } =
-			createLogger({
-				enabled: this.logging.enabled,
-				format: this.logging.format,
-				level: this.logging.level,
-			});
-		this.logger = {
-			log,
-			clfm,
-			extractIP,
-			logRoute,
-			logMiddleware,
-			logDecoration,
-			logError,
-			logServe,
-		};
-
+		this.logger = createLogger({
+			enabled: this.logging.enabled,
+			format: this.logging.format,
+			level: this.logging.level,
+		});
 		this.cors = (req) => cors(req, this.origins);
 		this.corsHost = corsHost;
 		this.corsRequest = corsRequest;
 		this.ip = extractIP;
-
 		this.error = this.error.bind(this);
 		this.json = this.json.bind(this);
 		this.redirect = this.redirect.bind(this);

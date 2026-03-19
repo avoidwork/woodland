@@ -48,7 +48,7 @@
 | `src/config.js` | Configuration validation | `validateConfig`, `validateLogging`, `validateOrigins`, `mergeEnvLogging` |
 | `src/response.js` | Response handlers | `mime`, `getStatusText`, `error`, `json`, `redirect`, `send`, `set`, `status`, `stream`, `noop`, `escapeHtml`, `partialHeaders`, `pipeable`, `writeHead`, `mimeExtensions` |
 | `src/request.js` | Request handlers | `cors`, `corsHost`, `corsRequest`, `extractIP`, `decorate`, `logClose`, `params`, `parse`, `extractPath`, `isValidIP` |
-| `src/logger.js` | Logging | `createLogger`, `log`, `clfm`, `extractIP`, `logRoute`, `logMiddleware`, `logDecoration`, `logError`, `logServe`, `ms`, `timeOffset` |
+| `src/logger.js` | Logging | `createLogger`, `log`, `clfm`, `logRoute`, `logMiddleware`, `logDecoration`, `logError`, `logServe`, `ms`, `timeOffset` |
 | `src/middleware.js` | Middleware registry | `reduce`, `getStatus`, `next`, `computeRoutes`, `listRoutes`, `checkAllowed`, `createMiddlewareRegistry`, `registerMiddleware` |
 | `src/fileserver.js` | File server | `serve`, `register`, `createFileServer`, `autoindex` |
 | `src/constants.js` | Constants & patterns | All framework constants (HTTP methods, headers, status codes, etc.) |
@@ -117,7 +117,7 @@ res.send = this.send(req, res); // Returns function: res.send(body, status, head
 
 ## Test count
 
-- 509 tests passing
+- 531 tests passing
 - 100% line coverage target
 
 ## Key implementation details
@@ -134,12 +134,14 @@ res.send = this.send(req, res); // Returns function: res.send(body, status, head
 - `timeOffset` convention: positive input (minutes) returns negative string (e.g., 300 → "-0500")
 - `ms` - formats nanoseconds to milliseconds with configurable precision
 - Log levels: emerg, alert, crit, error, warn, notice, info, debug (0-7, lower = more severe)
+- `log()` function outputs to console via `process.nextTick`, does not return chaining object
+- `extractIP` removed from logger, now only available from `request.js`
 
 ### Request handlers (`request.js`)
 - `cors` - returns true if origins array non-empty AND (wildcard OR origin in list)
 - `corsHost` - true if origin header exists and hostname differs from request host
 - `corsRequest` - returns function that sends 204 No Content
-- `extractIP` - checks x-forwarded-for first, then connection.remoteAddress, then socket.remoteAddress
+- `extractIP` - checks x-forwarded-for first, then connection.remoteAddress, then socket.remoteAddress; exported for use in other modules
 - `params` - extracts URL parameters using regex named groups, uses `coerce()` to convert numeric strings, applies `escapeHtml()` for XSS prevention
 - `parse` - parses URL string or request object into URL object with security fallback
 - `extractPath` - converts `/:param` to regex `/(?<param>[^/]+)` for route matching
@@ -157,12 +159,6 @@ res.send = this.send(req, res); // Returns function: res.send(body, status, head
 - `pipeable` - checks if object is stream-like (has `on` method and not HEAD method)
 - `writeHead` - writes response headers using `writeHead()` method
 - `mimeExtensions` - MIME type database keyed by file extension
-
-### Request handlers (`request.js`)
-- `cors` - returns true if origins array non-empty AND (wildcard OR origin in list)
-- `corsHost` - true if origin header exists and hostname differs from request host
-- `corsRequest` - returns function that sends 204 No Content
-- `extractIP` - checks x-forwarded-for first, then connection.remoteAddress, then socket.remoteAddress
 
 ### Middleware registry (`middleware.js`)
 - `createMiddlewareRegistry` returns object with: `ignore`, `allowed`, `routes`, `register`, `list`
@@ -195,116 +191,5 @@ res.send = this.send(req, res); // Returns function: res.send(body, status, head
 - Status codes: INT_200, INT_204, INT_206, INT_304, INT_307, INT_308, INT_400, INT_403, INT_404, INT_405, INT_416, INT_500
 - Headers: CONTENT_TYPE, CONTENT_LENGTH, CACHE_CONTROL, ETAG, LOCATION, ALLOW, etc.
 - Patterns: TOKEN_N, TIME_MS, KEY_BYTES, etc. for regex generation
+- All hardcoded strings/numbers in source files should use constants from this module
 
-## Iteration 2 Optimizations
-
-**Performance improvements:**
-- **woodland.js**: Cached `METHODS` array at module level to avoid repeated spread operations in `allows()`
-- **woodland.js**: Simplified `allows()` by removing redundant `Array.from()` - now uses spread operator
-- **logger.js**: Changed `validLevels` from array to `Set` for O(1) lookup in `createLogger()`
-- **fileserver.js**: Simplified `autoindex()` by removing redundant `replaceCallback` variable
-
-**Results:**
-- 507 tests passing
-- Coverage: 99.25% line (pre-existing gaps)
-- Code reduced by ~5 lines
-
-## Iteration 3 Optimizations
-
-**Performance improvements:**
-- **config.js**: Extracted `resolveLoggingValue()` helper to eliminate duplicated logic in `validateLogging()` and `mergeEnvLogging()`
-- **config.js**: Changed `VALID_LOG_LEVELS` from array to module-level constant to avoid recreation
-- **config.js**: Simplified ternary chains in both logging functions for better readability
-- **constants.js**: Replaced `Array.from(Array(12).values())` with `Array.from({length: 12})` in MONTHS generation
-
-**Results:**
-- 507 tests passing
-- Coverage: 99.24% line (no regressions)
-- Code reduced by ~15 lines, improved DRY compliance
-
-## Iteration 4 Optimizations
-
-**Performance improvements:**
-- **woodland.js**: Replaced `for...of` loop in `decorate()` with indexed `for` loop per performance patterns
-- **woodland.js**: Cached `defaultHeaders` in local variable before loop iteration
-- **woodland.js**: Optimized `allows()` to only create `Set` when list has items
-- **middleware.js**: Cached `nodeMethods` array as module-level constant `NODE_METHODS`
-- **response.js**: Simplified `partialHeaders()` by removing redundant comments and consolidating early returns
-
-**Results:**
-- 507 tests passing
-- Coverage: 99.24% line (no regressions)
-- Code reduced by ~10 lines, improved hot path performance
-
-## Iteration 5 Optimizations
-
-**Performance improvements:**
-- **request.js**: Cached `origin` variable in `cors()` to avoid repeated `req.headers.origin` access
-- **request.js**: Cached `headerCount` in `decorate()` to avoid repeated `defaultHeaders.length` access
-- **response.js**: Consolidated early return checks in `partialHeaders()` by removing redundant blank lines
-- **response.js**: Simplified body type check in `send()` - reordered conditions for better short-circuit evaluation
-- **woodland.js**: Cached `headerCount` in `decorate()` to avoid repeated `defaultHeaders.length` access
-
-**Results:**
-- 507 tests passing
-- Coverage: 99.24% line (no regressions)
-- Code reduced by ~5 lines, improved hot path performance
-
-## Iteration 6 Optimizations
-
-**Performance improvements:**
-- **middleware.js**: Changed `map.size === 0` to `!map.size` for shorter boolean check
-- **logger.js**: Condensed return object in `log()` function to single line
-- **fileserver.js**: Cached `app.indexes` in local variable before loop iteration
-
-**Results:**
-- 507 tests passing
-- Coverage: 99.24% line (no regressions)
-- Code reduced by ~3 lines
-
-## Iteration 7 Optimizations
-
-**Performance improvements:**
-- **config.js**: Changed `VALID_LOG_LEVELS` from array to `Set` for O(1) lookup
-- **config.js**: Simplified ternary chain in `validateLogging()` using nullish coalescing
-- **config.js**: Simplified ternary chain in `mergeEnvLogging()` using nullish coalescing
-
-**Results:**
-- 507 tests passing
-- Coverage: 99.24% line (no regressions)
-- Code reduced by ~8 lines, improved DRY compliance
-
-## Iteration 8 Optimizations
-
-**Performance improvements:**
-- **response.js**: Replaced `for...of` with indexed `for` loop in `mimeExtensions` initialization
-- **woodland.js**: Simplified timing initialization in `decorate()` using ternary
-- **woodland.js**: Cached `origin` variable before CORS headers check
-
-**Results:**
-- 507 tests passing
-- Coverage: 99.24% line (no regressions)
-- Code reduced by ~5 lines, consistent with `for` loop pattern
-
-## Iteration 9 Optimizations
-
-**Performance improvements:**
-- **fileserver.js**: Changed `endsWith(SLASH) === false` to `!endsWith(SLASH)` for shorter check
-- **fileserver.js**: Changed `result.length === INT_0` to `!result.length` for shorter check
-- **fileserver.js**: Removed unused `INT_0` import
-
-**Results:**
-- 507 tests passing
-- Coverage: 99.24% line (no regressions)
-- Code reduced by ~3 lines
-
-## Iteration 10 Optimizations
-
-**Performance improvements:**
-- **response.js**: Replaced `for...of` with indexed `for` loop in `set()` function
-- **middleware.js**: Replaced `Array.from(methodMap.keys())` with spread operator `[...methodMap.keys()]`
-
-**Results:**
-- 507 tests passing
-- Coverage: 99.24% line (no regressions)
-- Code reduced by ~4 lines, consistent with `for` loop pattern
