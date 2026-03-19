@@ -50,6 +50,7 @@
     "prepare": "husky",
     "prebuild": "npm run clean",
     "rollup": "rollup --config",
+    "sample": "node sample.js",
     "test": "npm run lint && node --test tests/**/*.test.js",
     "test:cli": "node --test tests/unit/cli.test.js",
     "test:watch": "node --test --watch tests/**/*.test.js"
