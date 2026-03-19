@@ -881,17 +881,23 @@ function reduce(uri, map = new Map(), arg = {}) {
 
 	const middlewareArray = arg.middleware;
 	let paramsFound = arg.params;
+	const values = Array.from(map.values());
+	const len = values.length;
 
-	for (const middleware of map.values()) {
+	for (let i = 0; i < len; i++) {
+		const middleware = values[i];
 		middleware.regex.lastIndex = 0;
 
 		if (middleware.regex.test(uri)) {
 			const handlers = middleware.handlers;
+			const handlerLen = handlers.length;
 
-			if (handlers.length === 1) {
+			if (handlerLen === 1) {
 				middlewareArray.push(handlers[0]);
 			} else {
-				middlewareArray.push(...handlers);
+				for (let j = 0; j < handlerLen; j++) {
+					middlewareArray.push(handlers[j]);
+				}
 			}
 
 			if (middleware.params && !paramsFound) {
