@@ -8,7 +8,6 @@ describe("logger", () => {
 			const logger = createLogger();
 
 			assert.ok(logger.log);
-			assert.ok(logger.clfm);
 			assert.ok(logger.logRoute);
 			assert.ok(logger.logMiddleware);
 			assert.ok(logger.logDecoration);
@@ -39,7 +38,6 @@ describe("logger", () => {
 			const logger = createLogger({ enabled: false });
 
 			assert.strictEqual(typeof logger.log, "function");
-			assert.strictEqual(typeof logger.clfm, "function");
 			assert.strictEqual(typeof logger.logRoute, "function");
 			assert.strictEqual(typeof logger.logMiddleware, "function");
 			assert.strictEqual(typeof logger.logDecoration, "function");
@@ -48,12 +46,11 @@ describe("logger", () => {
 		});
 
 		describe("log", () => {
-			it("should return logger object with chained methods", () => {
+			it("should return undefined (no chaining)", () => {
 				const logger = createLogger();
 				const result = logger.log("test message");
 
-				assert.ok(result.log);
-				assert.ok(result.clfm);
+				assert.strictEqual(result, undefined);
 			});
 
 			it("should not log when disabled", () => {
@@ -244,397 +241,19 @@ describe("logger", () => {
 			});
 		});
 
-		describe("clfm", () => {
-			it("should generate common log format entry", () => {
-				const logger = createLogger({ format: "%h %t %r %>s %b" });
-				const req = {
-					method: "GET",
-					headers: {
-						host: "example.com",
-						referer: "https://referrer.com",
-						"user-agent": "TestAgent",
-					},
-					connection: { remoteAddress: "192.168.1.1" },
-					parsed: {
-						pathname: "/test",
-						search: "?query=1",
-						username: "user",
-					},
-				};
-
-				const res = {
-					statusCode: 200,
-					getHeader: () => 1234,
-				};
-
-				const result = logger.clfm(req, res);
-
-				assert.ok(typeof result === "string");
-			});
-
-			it("should handle missing host header", () => {
-				const logger = createLogger({ format: "%h %t %r %>s %b" });
-				const req = {
-					method: "GET",
-					headers: {},
-					connection: { remoteAddress: "192.168.1.1" },
-				};
-
-				const res = {
-					statusCode: 200,
-					getHeader: () => 1234,
-				};
-
-				const result = logger.clfm(req, res);
-
-				assert.ok(typeof result === "string");
-			});
-
-			it("should handle missing parsed data", () => {
-				const logger = createLogger({ format: "%h %t %r %>s %b" });
-				const req = {
-					method: "GET",
-					url: "/test",
-					connection: { remoteAddress: "192.168.1.1" },
-				};
-
-				const res = {
-					statusCode: 200,
-					getHeader: () => 1234,
-				};
-
-				const result = logger.clfm(req, res);
-
-				assert.ok(typeof result === "string");
-			});
-
-			it("should handle missing getHeader", () => {
-				const logger = createLogger({ format: "%h %t %r %>s %b" });
-				const req = {
-					method: "GET",
-					headers: { host: "example.com" },
-					connection: { remoteAddress: "192.168.1.1" },
-				};
-
-				const res = {
-					statusCode: 200,
-				};
-
-				const result = logger.clfm(req, res);
-
-				assert.ok(typeof result === "string");
-			});
-
-			it("should handle missing statusCode", () => {
-				const logger = createLogger({ format: "%h %t %r %>s %b" });
-				const req = {
-					method: "GET",
-					headers: { host: "example.com" },
-					connection: { remoteAddress: "192.168.1.1" },
-				};
-
-				const res = {};
-
-				const result = logger.clfm(req, res);
-
-				assert.ok(typeof result === "string");
-			});
-
-			it("should handle missing username in parsed", () => {
-				const logger = createLogger({ format: "%h %t %r %>s %b %u" });
-				const req = {
-					method: "GET",
-					headers: { host: "example.com" },
-					connection: { remoteAddress: "192.168.1.1" },
-					parsed: {
-						pathname: "/test",
-						search: "?q=1",
-					},
-				};
-
-				const res = {
-					statusCode: 200,
-					getHeader: () => 1234,
-				};
-
-				const result = logger.clfm(req, res);
-
-				assert.ok(typeof result === "string");
-			});
-
-			it("should handle missing search in parsed", () => {
-				const logger = createLogger({ format: "%h %t %r %>s %b" });
-				const req = {
-					method: "GET",
-					headers: { host: "example.com" },
-					connection: { remoteAddress: "192.168.1.1" },
-					parsed: {
-						pathname: "/test",
-					},
-				};
-
-				const res = {
-					statusCode: 200,
-					getHeader: () => 1234,
-				};
-
-				const result = logger.clfm(req, res);
-
-				assert.ok(typeof result === "string");
-			});
-
-			it("should handle missing method", () => {
-				const logger = createLogger({ format: "%h %t %r %>s %b" });
-				const req = {
-					headers: { host: "example.com" },
-					connection: { remoteAddress: "192.168.1.1" },
-					parsed: {
-						pathname: "/test",
-					},
-				};
-
-				const res = {
-					statusCode: 200,
-					getHeader: () => 1234,
-				};
-
-				const result = logger.clfm(req, res);
-
-				assert.ok(typeof result === "string");
-			});
-
-			it("should handle null headers", () => {
-				const logger = createLogger({ format: "%h %t %r %>s %b" });
-				const req = {
-					method: "GET",
-					headers: null,
-					connection: { remoteAddress: "192.168.1.1" },
-				};
-
-				const res = {
-					statusCode: 200,
-					getHeader: () => 1234,
-				};
-
-				const result = logger.clfm(req, res);
-
-				assert.ok(typeof result === "string");
-			});
-
-			it("should handle undefined headers", () => {
-				const logger = createLogger({ format: "%h %t %r %>s %b" });
-				const req = {
-					method: "GET",
-					headers: undefined,
-					connection: { remoteAddress: "192.168.1.1" },
-				};
-
-				const res = {
-					statusCode: 200,
-					getHeader: () => 1234,
-				};
-
-				const result = logger.clfm(req, res);
-
-				assert.ok(typeof result === "string");
-			});
-
-			it("should handle null parsed", () => {
-				const logger = createLogger({ format: "%h %t %r %>s %b" });
-				const req = {
-					method: "GET",
-					headers: { host: "example.com" },
-					connection: { remoteAddress: "192.168.1.1" },
-					parsed: null,
-				};
-
-				const res = {
-					statusCode: 200,
-					getHeader: () => 1234,
-				};
-
-				const result = logger.clfm(req, res);
-
-				assert.ok(typeof result === "string");
-			});
-
-			it("should handle undefined parsed", () => {
-				const logger = createLogger({ format: "%h %t %r %>s %b" });
-				const req = {
-					method: "GET",
-					headers: { host: "example.com" },
-					connection: { remoteAddress: "192.168.1.1" },
-					parsed: undefined,
-				};
-
-				const res = {
-					statusCode: 200,
-					getHeader: () => 1234,
-				};
-
-				const result = logger.clfm(req, res);
-
-				assert.ok(typeof result === "string");
-			});
-
-			it("should handle null getHeader", () => {
-				const logger = createLogger({ format: "%h %t %r %>s %b" });
-				const req = {
-					method: "GET",
-					headers: { host: "example.com" },
-					connection: { remoteAddress: "192.168.1.1" },
-				};
-
-				const res = {
-					statusCode: 200,
-					getHeader: null,
-				};
-
-				const result = logger.clfm(req, res);
-
-				assert.ok(typeof result === "string");
-			});
-
-			it("should handle undefined getHeader", () => {
-				const logger = createLogger({ format: "%h %t %r %>s %b" });
-				const req = {
-					method: "GET",
-					headers: { host: "example.com" },
-					connection: { remoteAddress: "192.168.1.1" },
-				};
-
-				const res = {
-					statusCode: 200,
-					getHeader: undefined,
-				};
-
-				const result = logger.clfm(req, res);
-
-				assert.ok(typeof result === "string");
-			});
-
-			it("should handle missing referer and user-agent", () => {
-				const logger = createLogger({ format: "%h %t %r %>s %b %{Referer}i %{User-agent}i" });
-				const req = {
-					method: "GET",
-					headers: { host: "example.com" },
-					connection: { remoteAddress: "192.168.1.1" },
-					parsed: {
-						pathname: "/test",
-						search: "?q=1",
-					},
-				};
-
-				const res = {
-					statusCode: 200,
-					getHeader: () => 1234,
-				};
-
-				const result = logger.clfm(req, res);
-
-				assert.ok(typeof result === "string");
-			});
-
-			it("should use req.ip when available", () => {
-				const logger = createLogger({ format: "%h" });
-				const req = {
-					ip: "203.0.113.1",
-					headers: { host: "example.com" },
-					parsed: {
-						pathname: "/test",
-						search: "?q=1",
-					},
-				};
-
-				const res = {
-					statusCode: 200,
-					getHeader: () => 1234,
-				};
-
-				const result = logger.clfm(req, res);
-
-				assert.ok(result.includes("203.0.113.1"));
-			});
-
-			it("should handle headers without host", () => {
-				const logger = createLogger({ format: "%v" });
-				const req = {
-					method: "GET",
-					headers: {},
-					connection: { remoteAddress: "192.168.1.1" },
-					parsed: {
-						pathname: "/test",
-						search: "?q=1",
-					},
-				};
-
-				const res = {
-					statusCode: 200,
-					getHeader: () => 1234,
-				};
-
-				const result = logger.clfm(req, res);
-
-				assert.ok(result.includes("-"));
-			});
-
-			it("should handle parsed without username", () => {
-				const logger = createLogger({ format: "%u" });
-				const req = {
-					method: "GET",
-					headers: { host: "example.com" },
-					connection: { remoteAddress: "192.168.1.1" },
-					parsed: {
-						pathname: "/test",
-						search: "?q=1",
-					},
-				};
-
-				const res = {
-					statusCode: 200,
-					getHeader: () => 1234,
-				};
-
-				const result = logger.clfm(req, res);
-
-				assert.ok(result.includes("-"));
-			});
-
-			it("should handle parsed without pathname but with req.url", () => {
-				const logger = createLogger({ format: "%r" });
-				const req = {
-					method: "GET",
-					url: "/fallback-url",
-					headers: { host: "example.com" },
-					connection: { remoteAddress: "192.168.1.1" },
-					parsed: {},
-				};
-
-				const res = {
-					statusCode: 200,
-					getHeader: () => 1234,
-				};
-
-				const result = logger.clfm(req, res);
-
-				assert.ok(typeof result === "string");
-			});
-		});
-
 		describe("logRoute", () => {
 			it("should create route log message", () => {
 				const logger = createLogger();
 				const result = logger.logRoute("/test", "GET", "192.168.1.1");
 
-				assert.ok(result);
-				assert.ok(result.log);
+				assert.strictEqual(result, undefined);
 			});
 
 			it("should include uri in message", () => {
 				const logger = createLogger();
 				const result = logger.logRoute("/api/users", "POST", "10.0.0.1");
 
-				assert.ok(result);
+				assert.strictEqual(result, undefined);
 			});
 		});
 
@@ -643,15 +262,14 @@ describe("logger", () => {
 				const logger = createLogger();
 				const result = logger.logMiddleware("/.*", "GET");
 
-				assert.ok(result);
-				assert.ok(result.log);
+				assert.strictEqual(result, undefined);
 			});
 
 			it("should include route in message", () => {
 				const logger = createLogger();
 				const result = logger.logMiddleware("/api", "POST");
 
-				assert.ok(result);
+				assert.strictEqual(result, undefined);
 			});
 		});
 
@@ -660,8 +278,7 @@ describe("logger", () => {
 				const logger = createLogger();
 				const result = logger.logDecoration("/test", "GET", "192.168.1.1");
 
-				assert.ok(result);
-				assert.ok(result.log);
+				assert.strictEqual(result, undefined);
 			});
 		});
 
@@ -670,8 +287,7 @@ describe("logger", () => {
 				const logger = createLogger();
 				const result = logger.logError("/test", "GET", "192.168.1.1");
 
-				assert.ok(result);
-				assert.ok(result.log);
+				assert.strictEqual(result, undefined);
 			});
 		});
 
@@ -686,8 +302,7 @@ describe("logger", () => {
 
 				const result = logger.logServe(req, "Serving file");
 
-				assert.ok(result);
-				assert.ok(result.log);
+				assert.strictEqual(result, undefined);
 			});
 		});
 	});

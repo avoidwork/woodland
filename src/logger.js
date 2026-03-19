@@ -43,7 +43,7 @@ import { extractIP } from "./request.js";
  * @param {string} format - Log format string
  * @returns {string} Common log format string
  */
-export function clfm(req, res, format) {
+export function clf(req, res, format) {
 	const date = new Date();
 	const month = MONTHS[date.getMonth()];
 	const day = date.getDate();
@@ -180,7 +180,7 @@ export function log(msg, logLevel = DEBUG, enabled = true, actualLevel = INFO) {
  * @param {boolean} [config.enabled=true] - Enable/disable logging
  * @param {string} [config.format] - Custom log format string
  * @param {string} [config.level='info'] - Log level
- * @returns {Object} Logger with log, clfm, logRoute, logMiddleware, logDecoration, logError, logServe methods
+ * @returns {Object} Logger with log, clf, logRoute, logMiddleware, logDecoration, logError, logServe methods
  */
 export function createLogger(config = {}) {
 	const { enabled = true, format, level = INFO } = config;
@@ -188,7 +188,7 @@ export function createLogger(config = {}) {
 
 	return {
 		log: (msg, logLevel = DEBUG) => log(msg, logLevel, enabled, actualLevel),
-		clfm: (req, res) => clfm(req, res, format),
+		clf: (req, res) => clf(req, res, format),
 		logRoute: (uri, method, ip) =>
 			logRoute(uri, method, ip, (msg, lvl) => log(msg, lvl, enabled, actualLevel)),
 		logMiddleware: (route, method) =>

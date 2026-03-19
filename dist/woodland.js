@@ -1217,7 +1217,7 @@ function validateLogging(logging = {}) {
  * @param {string} format - Log format string
  * @returns {string} Common log format string
  */
-function clfm(req, res, format) {
+function clf(req, res, format) {
 	const date = new Date();
 	const month = MONTHS[date.getMonth()];
 	const day = date.getDate();
@@ -1354,7 +1354,7 @@ function log(msg, logLevel = DEBUG, enabled = true, actualLevel = INFO) {
  * @param {boolean} [config.enabled=true] - Enable/disable logging
  * @param {string} [config.format] - Custom log format string
  * @param {string} [config.level='info'] - Log level
- * @returns {Object} Logger with log, clfm, logRoute, logMiddleware, logDecoration, logError, logServe methods
+ * @returns {Object} Logger with log, clf, logRoute, logMiddleware, logDecoration, logError, logServe methods
  */
 function createLogger(config = {}) {
 	const { enabled = true, format, level = INFO } = config;
@@ -1362,7 +1362,7 @@ function createLogger(config = {}) {
 
 	return {
 		log: (msg, logLevel = DEBUG) => log(msg, logLevel, enabled, actualLevel),
-		clfm: (req, res) => clfm(req, res, format),
+		clf: (req, res) => clf(req, res, format),
 		logRoute: (uri, method, ip) =>
 			logRoute(uri, method, ip, (msg, lvl) => log(msg, lvl, enabled, actualLevel)),
 		logMiddleware: (route, method) =>
@@ -1607,137 +1607,19 @@ class Woodland extends EventEmitter {
 			format: this.logging.format,
 			level: this.logging.level,
 		});
-		this.cors = (req) => cors(req, this.origins);
-		this.corsHost = corsHost;
-		this.corsRequest = corsRequest;
-		this.error = this.error.bind(this);
-		this.json = this.json.bind(this);
-		this.redirect = this.redirect.bind(this);
-		this.send = this.send.bind(this);
-		this.set = this.set.bind(this);
-		this.status = this.status.bind(this);
-		this.initFileServer();
-		this.initMiddleware();
+		this.fileServer = createFileServer(this);
+		this.middleware = createMiddlewareRegistry(this.methods, this.cache);
 
 		if (this.etags !== null) {
 			this.get(this.etags.middleware).ignore(this.etags.middleware);
 		}
 
 		if (this.origins.length > INT_0) {
-			const fnCorsRequest = this.corsRequest();
+			const fnCorsRequest = corsRequest();
 			this.options(fnCorsRequest).ignore(fnCorsRequest);
 		}
 
 		this.on(ERROR, () => {});
-	}
-
-	/**
-	 * Initializes file server
-	 */
-	initFileServer() {
-		this.fileServer = createFileServer(this);
-	}
-
-	/**
-	 * Initializes middleware registry
-	 */
-	initMiddleware() {
-		this.middleware = createMiddlewareRegistry(this.methods, this.cache);
-	}
-
-	/**
-	 * Error response handler
-	 * @param {Object} req - HTTP request object
-	 * @param {Object} res - HTTP response object
-	 * @param {number} status - HTTP status code
-	 * @param {*} body - Response body
-	 */
-	error(req, res, status = 500, body) {
-		if (arguments.length === 2) {
-			return (s, b) =>
-				error(
-					req,
-					res,
-					(req, res, err) => this.emit(ERROR, req, res, err),
-					(req, _status) => this.logger.logError(req.parsed.pathname, req.method, req.ip),
-					s,
-					b,
-				);
-		}
-		error(
-			req,
-			res,
-			(req, res, err) => this.emit(ERROR, req, res, err),
-			(req, _status) => this.logger.logError(req.parsed.pathname, req.method, req.ip),
-			status,
-			body,
-		);
-	}
-
-	/**
-	 * JSON response handler
-	 * @param {Object} res - HTTP response object
-	 * @param {*} arg - Response data
-	 * @param {number} status - HTTP status code
-	 * @param {Object} headers - Response headers
-	 */
-	json(res, arg, status = 200, headers = { [CONTENT_TYPE]: `${APPLICATION_JSON}; charset=utf-8` }) {
-		if (arguments.length === 1) {
-			return (a, s, h) => json(res, a, s, h);
-		}
-		json(res, arg, status, headers);
-	}
-
-	/**
-	 * Redirect response handler
-	 * @param {Object} res - HTTP response object
-	 * @param {string} uri - Redirect URI
-	 * @param {boolean} perm - Permanent redirect
-	 */
-	redirect(res, uri, perm = true) {
-		if (arguments.length === 1) {
-			return (u, p) => redirect(res, u, p);
-		}
-		redirect(res, uri, perm);
-	}
-
-	/**
-	 * Send response handler
-	 * @param {Object} req - HTTP request object
-	 * @param {Object} res - HTTP response object
-	 * @param {*} body - Response body
-	 * @param {number} status - HTTP status code
-	 * @param {Object} headers - Response headers
-	 */
-	send(req, res, body = EMPTY, status = res.statusCode, headers = {}) {
-		if (arguments.length === 2) {
-			return (b, s, h) => send(req, res, b, s, h, this.onReady.bind(this), this.onDone.bind(this));
-		}
-		send(req, res, body, status, headers, this.onReady.bind(this), this.onDone.bind(this));
-	}
-
-	/**
-	 * Set headers handler
-	 * @param {Object} res - HTTP response object
-	 * @param {Object} arg - Headers object
-	 */
-	set(res, arg = {}) {
-		if (arguments.length === 1) {
-			return (a) => set(res, a);
-		}
-		set(res, arg);
-	}
-
-	/**
-	 * Status handler
-	 * @param {Object} res - HTTP response object
-	 * @param {number} arg - Status code
-	 */
-	status(res, arg = INT_200) {
-		if (arguments.length === 1) {
-			return (a) => status(res, a);
-		}
-		status(res, arg);
 	}
 
 	/**
@@ -1824,28 +1706,15 @@ class Woodland extends EventEmitter {
 	}
 
 	/**
-	 * Generates common log format entry
-	 * @param {Object} req - HTTP request object
-	 * @param {Object} res - HTTP response object
-	 * @returns {string} Common log format string
-	 */
-	clf(req, res) {
-		return this.logger.clfm(req, res);
-	}
-
-	/**
 	 * Decorates request and response objects with framework utilities
 	 * @param {Object} req - HTTP request object
 	 * @param {Object} res - HTTP response object
 	 */
 	decorate(req, res) {
 		const timing = this.time ? precise().start() : null;
-
 		const parsed = parse(req);
 		const allowString = this.allows(parsed.pathname);
-
 		const clientIP = extractIP(req);
-
 		const headersBatch = Object.create(null);
 		headersBatch[ALLOW] = allowString;
 		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
@@ -1857,8 +1726,11 @@ class Woodland extends EventEmitter {
 			headersBatch[key] = value;
 		}
 
+		req.corsHost = corsHost(req);
+		req.cors = cors(req, this.origins);
 		req.parsed = parsed;
 		req.allow = allowString;
+		req.ip = clientIP;
 		req.body = EMPTY;
 		req.host = parsed.hostname;
 		req.params = {};
@@ -1867,9 +1739,6 @@ class Woodland extends EventEmitter {
 		if (timing) {
 			req.precise = timing;
 		}
-
-		req.corsHost = this.corsHost(req);
-		req.cors = this.cors(req);
 
 		if (req.cors) {
 			const origin = req.headers.origin;
@@ -1887,23 +1756,33 @@ class Woodland extends EventEmitter {
 			}
 		}
 
-		req.ip = clientIP;
-
 		res.locals = {};
-		res.error = this.error(req, res);
+		res.error = (status = 500, body) =>
+			error(
+				req,
+				res,
+				(req, res, err) => this.emit(ERROR, req, res, err),
+				(req, _status) => this.logger.logError(req.parsed.pathname, req.method, req.ip),
+				status,
+				body,
+			);
 		res.header = res.setHeader;
-		res.json = this.json(res);
-		res.redirect = this.redirect(res);
-		res.send = this.send(req, res);
-		res.set = this.set(res);
-		res.status = this.status(res);
+		res.json = (
+			arg,
+			status = 200,
+			headers = { [CONTENT_TYPE]: `${APPLICATION_JSON}; charset=utf-8` },
+		) => json(res, arg, status, headers);
+		res.redirect = (uri, perm = true) => redirect(res, uri, perm);
+		res.send = (body = EMPTY, status = res.statusCode, headers = {}) =>
+			send(req, res, body, status, headers, this.onReady, this.onDone);
+		res.set = (arg = {}) => set(res, arg);
+		res.status = (arg = INT_200) => status(res, arg);
 
 		res.set(headersBatch);
-
+		res.on(CLOSE, () => this.log(this.logger.clf(req, res), INFO));
 		this.log(
 			`type=decorate, uri=${parsed.pathname}, method=${req.method}, ip=${clientIP}, message="Decorated request from ${clientIP}"`,
 		);
-		res.on(CLOSE, () => this.log(this.clf(req, res), INFO));
 	}
 
 	/**
@@ -1971,6 +1850,7 @@ class Woodland extends EventEmitter {
 	list(method = GET.toLowerCase(), type = "array") {
 		const result = this.middleware.list(method, type);
 		this.logger.log(`type=list, method=${method}, type=${type}`);
+
 		return result;
 	}
 
