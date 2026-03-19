@@ -417,24 +417,6 @@ const pattern = app.path("/users/:id"); // "/users/([^/]+)"
 
 **Returns:** `string` (regex pattern)
 
-#### `log(msg, level)`
-
-Log a message at the specified level.
-
-```javascript
-app.log("Custom message", "info");
-app.log("Debug data", "debug");
-```
-
-| Parameter | Type     | Default   | Description    |
-| --------- | -------- | --------- | -------------- |
-| `msg`     | `string` | Required  | Message to log |
-| `level`   | `string` | `"debug"` | Log level      |
-
-**Log Levels:** `error`, `warn`, `info`, `debug`
-
-**Returns:** `Woodland` instance (chainable)
-
 #### `ip(req)`
 
 Extract the client IP address from a request.

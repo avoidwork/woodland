@@ -117,7 +117,7 @@ res.send = this.send(req, res); // Returns function: res.send(body, status, head
 
 ## Test count
 
-- 481 tests passing
+- 478 tests passing
 - 100% line coverage target
 
 ## Key implementation details
@@ -136,6 +136,10 @@ res.send = this.send(req, res); // Returns function: res.send(body, status, head
 - Log levels: emerg, alert, crit, error, warn, notice, info, debug (0-7, lower = more severe)
 - `log()` function outputs to console via `process.nextTick`, does not return chaining object
 - `extractIP` removed from logger, now only available from `request.js`
+
+### Woodland class (`woodland.js`)
+- Logging delegated to `this.logger.log()` (no `app.log()` method exists)
+- CLI uses `app.logger.log()` for startup messages
 
 ### Request handlers (`request.js`)
 - `cors` - returns true if origins array non-empty AND (wildcard OR origin in list)

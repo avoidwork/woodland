@@ -53,7 +53,7 @@ if (!validIP) {
 
 app.files();
 createServer(app.route).listen(validPort, ip);
-app.log(
+app.logger.log(
 	`id=woodland, hostname=${process.env.HOSTNAME ?? "localhost"}, ip=${ip}, port=${validPort}`,
 	INFO,
 );

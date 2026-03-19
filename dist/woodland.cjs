@@ -1809,8 +1809,8 @@ class Woodland extends node_events.EventEmitter {
 		res.status = (arg = INT_200) => status(res, arg);
 
 		res.set(headersBatch);
-		res.on(CLOSE, () => this.log(this.logger.clf(req, res), INFO));
-		this.log(
+		res.on(CLOSE, () => this.logger.log(this.logger.clf(req, res), INFO));
+		this.logger.log(
 			`type=decorate, uri=${parsed.pathname}, method=${req.method}, ip=${clientIP}, message="Decorated request from ${clientIP}"`,
 		);
 	}
@@ -1882,18 +1882,6 @@ class Woodland extends node_events.EventEmitter {
 		this.logger.log(`type=list, method=${method}, type=${type}`);
 
 		return result;
-	}
-
-	/**
-	 * Logs a message
-	 * @param {string} msg - Message to log
-	 * @param {string} [level='debug'] - Log level
-	 * @returns {Woodland} Returns self for chaining
-	 */
-	log(msg, level = DEBUG) {
-		this.logger.log(msg, level);
-
-		return this;
 	}
 
 	/**

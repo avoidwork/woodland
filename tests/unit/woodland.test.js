@@ -298,20 +298,6 @@ describe("woodland", () => {
 			});
 		});
 
-		describe("log", () => {
-			it("should log message", () => {
-				const result = app.log("test message");
-
-				assert.strictEqual(result, app);
-			});
-
-			it("should accept log level", () => {
-				const result = app.log("test message", "info");
-
-				assert.strictEqual(result, app);
-			});
-		});
-
 		describe("files", () => {
 			it("should register file server", () => {
 				app.files("/static", "/tmp");
