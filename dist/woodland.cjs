@@ -38,6 +38,8 @@ const POST = "POST";
 const PUT = "PUT";
 const TRACE = "TRACE";
 
+const NODE_METHODS = [CONNECT, DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT, TRACE];
+
 // =============================================================================
 // HTTP STATUS CODES
 // =============================================================================
@@ -854,18 +856,6 @@ function isValidIP(ip) {
 		return true;
 	}
 }
-
-const NODE_METHODS = [
-	"CONNECT",
-	"DELETE",
-	"GET",
-	"HEAD",
-	"OPTIONS",
-	"PATCH",
-	"POST",
-	"PUT",
-	"TRACE",
-];
 
 /**
  * Processes middleware map for a given URI and populates middleware array

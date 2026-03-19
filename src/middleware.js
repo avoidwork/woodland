@@ -5,24 +5,13 @@ import {
 	HEAD,
 	INT_0,
 	LEFT_PAREN,
+	NODE_METHODS,
 	SLASH,
 	STRING,
 	WILDCARD,
 } from "./constants.js";
 import { getStatus } from "./response.js";
 import { extractPath } from "./request.js";
-
-const NODE_METHODS = [
-	"CONNECT",
-	"DELETE",
-	"GET",
-	"HEAD",
-	"OPTIONS",
-	"PATCH",
-	"POST",
-	"PUT",
-	"TRACE",
-];
 
 /**
  * Processes middleware map for a given URI and populates middleware array

@@ -19,6 +19,8 @@ export const POST = "POST";
 export const PUT = "PUT";
 export const TRACE = "TRACE";
 
+export const NODE_METHODS = [CONNECT, DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT, TRACE];
+
 // =============================================================================
 // HTTP STATUS CODES
 // =============================================================================

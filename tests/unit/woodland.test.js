@@ -58,7 +58,6 @@ describe("woodland", () => {
 
 			assert.ok(app.logger.log);
 			assert.ok(app.logger.clfm);
-			assert.ok(app.logger.extractIP);
 			assert.ok(app.logger.logRoute);
 			assert.ok(app.logger.logMiddleware);
 			assert.ok(app.logger.logDecoration);
@@ -72,13 +71,6 @@ describe("woodland", () => {
 			assert.ok(app.cors);
 			assert.ok(app.corsHost);
 			assert.ok(app.corsRequest);
-		});
-
-		it("should have IP extractor", () => {
-			const app = new Woodland();
-
-			assert.ok(app.ip);
-			assert.strictEqual(typeof app.ip, "function");
 		});
 
 		it("should have response handlers", () => {

@@ -142,7 +142,6 @@ export class Woodland extends EventEmitter {
 		});
 		this.cors = (req) => cors(req, this.origins);
 		this.corsHost = corsHost;
-		this.corsRequest = corsRequest;
 		this.error = this.error.bind(this);
 		this.json = this.json.bind(this);
 		this.redirect = this.redirect.bind(this);
@@ -157,7 +156,7 @@ export class Woodland extends EventEmitter {
 		}
 
 		if (this.origins.length > INT_0) {
-			const fnCorsRequest = this.corsRequest();
+			const fnCorsRequest = corsRequest();
 			this.options(fnCorsRequest).ignore(fnCorsRequest);
 		}
 
