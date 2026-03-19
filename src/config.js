@@ -8,21 +8,15 @@ import {
 	INDEX_HTML,
 	EMPTY,
 	INFO,
-	DEBUG,
 	LOG_FORMAT,
 	TRUE,
 	FALSE,
-	WARN,
-	ERROR,
-	CRITICAL,
-	ALERT,
-	EMERG,
-	NOTICE,
 	MSG_CONFIG_FIELD,
 	MSG_VALIDATION_FAILED,
 	PERIOD,
 	SEMICOLON_SPACE,
 	WILDCARD,
+	VALID_LOG_LEVELS,
 } from "./constants.js";
 
 const DEFAULTS = {
@@ -105,8 +99,6 @@ export function validateConfig(config = {}) {
 
 	return validated;
 }
-
-const VALID_LOG_LEVELS = new Set([DEBUG, INFO, WARN, ERROR, CRITICAL, ALERT, EMERG, NOTICE]);
 
 /**
  * Resolves logging value from config, environment, or default

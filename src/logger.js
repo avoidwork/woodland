@@ -10,22 +10,19 @@ import {
 	INT_3,
 	INT_60,
 	INT_1e6,
+	INT_500,
+	LEVELS,
+	LOCALHOST,
 	REFERER,
 	TIME_MS,
 	TOKEN_N,
 	STRING_0,
 	USER_AGENT,
+	HTTP_VERSION,
+	CONSOLE_LOG,
+	CONSOLE_ERROR,
+	VALID_LOG_LEVELS,
 } from "./constants.js";
-
-const LEVELS = Object.create(null);
-LEVELS.emerg = 0;
-LEVELS.alert = 1;
-LEVELS.crit = 2;
-LEVELS.error = 3;
-LEVELS.warn = 4;
-LEVELS.notice = 5;
-LEVELS.info = 6;
-LEVELS.debug = 7;
 
 /**
  * Extracts IP address from request object
@@ -36,9 +33,7 @@ export function extractIP(req) {
 	const connection = req.connection;
 	const socket = req.socket;
 
-	return (
-		(connection && connection.remoteAddress) || (socket && socket.remoteAddress) || "127.0.0.1"
-	);
+	return (connection && connection.remoteAddress) || (socket && socket.remoteAddress) || LOCALHOST;
 }
 
 /**
@@ -69,10 +64,10 @@ export function clfm(req, res, format) {
 	const pathname = parsed && parsed.pathname ? parsed.pathname : req.url ? req.url : HYPHEN;
 	const search = parsed && parsed.search ? parsed.search : HYPHEN;
 	const method = req.method ? req.method : HYPHEN;
-	const requestLine = `${method} ${pathname}${search} HTTP/1.1`;
+	const requestLine = `${method} ${pathname}${search} ${HTTP_VERSION}`;
 
 	const resStatusCode = res.statusCode;
-	const statusCode = resStatusCode ? resStatusCode : 500;
+	const statusCode = resStatusCode ? resStatusCode : INT_500;
 	const getHeader = res.getHeader;
 	const contentLength = getHeader ? getHeader.call(res, CONTENT_LENGTH) : HYPHEN;
 
@@ -175,7 +170,7 @@ export function log(msg, logLevel = DEBUG, enabled = true, actualLevel = INFO) {
 		const idx = LEVELS[logLevel];
 		if (idx <= LEVELS[actualLevel]) {
 			process.nextTick(() => {
-				const consoleMethod = idx > 4 ? "log" : "error";
+				const consoleMethod = idx > 4 ? CONSOLE_LOG : CONSOLE_ERROR;
 				console[consoleMethod](msg);
 			});
 		}
@@ -191,20 +186,9 @@ export function log(msg, logLevel = DEBUG, enabled = true, actualLevel = INFO) {
  * @param {string} [config.level='info'] - Log level
  * @returns {Object} Logger with log, clfm, extractIP, logRoute, logMiddleware, logDecoration, logError, logServe methods
  */
-const VALID_LEVELS = new Set([
-	DEBUG,
-	INFO,
-	"warn",
-	"error",
-	"critical",
-	"alert",
-	"emerg",
-	"notice",
-]);
-
 export function createLogger(config = {}) {
 	const { enabled = true, format, level = INFO } = config;
-	const actualLevel = VALID_LEVELS.has(level) ? level : INFO;
+	const actualLevel = VALID_LOG_LEVELS.has(level) ? level : INFO;
 
 	return {
 		log: (msg, logLevel = DEBUG) => log(msg, logLevel, enabled, actualLevel),

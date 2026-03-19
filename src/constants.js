@@ -234,6 +234,9 @@ export const NOTICE = "notice";
 export const WARN = "warn";
 export const COLLECTION = "collection";
 export const ITEM = "item";
+export const HTTP_VERSION = "HTTP/1.1";
+export const CONSOLE_LOG = "log";
+export const CONSOLE_ERROR = "error";
 
 export const MONTHS = Object.freeze(
 	Array.from({ length: 12 }, (_, idx) => {
@@ -243,3 +246,5 @@ export const MONTHS = Object.freeze(
 		return Object.freeze(d.toLocaleString(EN_US, { month: SHORT }));
 	}),
 );
+
+export const VALID_LOG_LEVELS = new Set([DEBUG, INFO, WARN, ERROR, CRITICAL, ALERT, EMERG, NOTICE]);

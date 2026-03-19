@@ -78,6 +78,7 @@ const UTF_8 = "utf-8";
 // =============================================================================
 const SERVER_VALUE = `${name}/${version}`;
 const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform}/${process.arch}`;
+const LOCALHOST = "127.0.0.1";
 const INT_8000 = 8000;
 
 // =============================================================================
@@ -115,6 +116,17 @@ const STRING = "string";
 const DEBUG = "debug";
 const ERROR = "error";
 const INFO = "info";
+
+const LEVELS = Object.freeze({
+	emerg: 0,
+	alert: 1,
+	crit: 2,
+	error: 3,
+	warn: 4,
+	notice: 5,
+	info: 6,
+	debug: 7,
+});
 const LOG_FORMAT = '%h %l %u %t "%r" %>s %b';
 const MSG_ROUTING_FILE = "Routing request to file system";
 
@@ -163,6 +175,9 @@ const NOTICE = "notice";
 const WARN = "warn";
 const COLLECTION = "collection";
 const ITEM = "item";
+const HTTP_VERSION = "HTTP/1.1";
+const CONSOLE_LOG = "log";
+const CONSOLE_ERROR = "error";
 
 const MONTHS = Object.freeze(
 	Array.from({ length: 12 }, (_, idx) => {
@@ -171,7 +186,9 @@ const MONTHS = Object.freeze(
 
 		return Object.freeze(d.toLocaleString(EN_US, { month: SHORT }));
 	}),
-);const htmlEscapes = {
+);
+
+const VALID_LOG_LEVELS = new Set([DEBUG, INFO, WARN, ERROR, CRITICAL, ALERT, EMERG, NOTICE]);const htmlEscapes = {
 	"&": "&amp;",
 	"<": "&lt;",
 	">": "&gt;",
@@ -896,8 +913,6 @@ function validateConfig(config = {}) {
 	return validated;
 }
 
-const VALID_LOG_LEVELS = new Set([DEBUG, INFO, WARN, ERROR, CRITICAL, ALERT, EMERG, NOTICE]);
-
 /**
  * Resolves logging value from config, environment, or default
  * @param {*} configValue - Value from configuration object
@@ -938,17 +953,7 @@ function validateLogging(logging = {}) {
 	}
 
 	return { enabled, format, level };
-}const LEVELS = Object.create(null);
-LEVELS.emerg = 0;
-LEVELS.alert = 1;
-LEVELS.crit = 2;
-LEVELS.error = 3;
-LEVELS.warn = 4;
-LEVELS.notice = 5;
-LEVELS.info = 6;
-LEVELS.debug = 7;
-
-/**
+}/**
  * Extracts IP address from request object
  * @param {Object} req - Request object
  * @returns {string} IP address
@@ -957,9 +962,7 @@ function extractIP(req) {
 	const connection = req.connection;
 	const socket = req.socket;
 
-	return (
-		(connection && connection.remoteAddress) || (socket && socket.remoteAddress) || "127.0.0.1"
-	);
+	return (connection && connection.remoteAddress) || (socket && socket.remoteAddress) || LOCALHOST;
 }
 
 /**
@@ -990,10 +993,10 @@ function clfm(req, res, format) {
 	const pathname = parsed && parsed.pathname ? parsed.pathname : req.url ? req.url : HYPHEN;
 	const search = parsed && parsed.search ? parsed.search : HYPHEN;
 	const method = req.method ? req.method : HYPHEN;
-	const requestLine = `${method} ${pathname}${search} HTTP/1.1`;
+	const requestLine = `${method} ${pathname}${search} ${HTTP_VERSION}`;
 
 	const resStatusCode = res.statusCode;
-	const statusCode = resStatusCode ? resStatusCode : 500;
+	const statusCode = resStatusCode ? resStatusCode : INT_500;
 	const getHeader = res.getHeader;
 	const contentLength = getHeader ? getHeader.call(res, CONTENT_LENGTH) : HYPHEN;
 
@@ -1096,7 +1099,7 @@ function log(msg, logLevel = DEBUG, enabled = true, actualLevel = INFO) {
 		const idx = LEVELS[logLevel];
 		if (idx <= LEVELS[actualLevel]) {
 			process.nextTick(() => {
-				const consoleMethod = idx > 4 ? "log" : "error";
+				const consoleMethod = idx > 4 ? CONSOLE_LOG : CONSOLE_ERROR;
 				console[consoleMethod](msg);
 			});
 		}
@@ -1112,20 +1115,9 @@ function log(msg, logLevel = DEBUG, enabled = true, actualLevel = INFO) {
  * @param {string} [config.level='info'] - Log level
  * @returns {Object} Logger with log, clfm, extractIP, logRoute, logMiddleware, logDecoration, logError, logServe methods
  */
-const VALID_LEVELS = new Set([
-	DEBUG,
-	INFO,
-	"warn",
-	"error",
-	"critical",
-	"alert",
-	"emerg",
-	"notice",
-]);
-
 function createLogger(config = {}) {
 	const { enabled = true, format, level = INFO } = config;
-	const actualLevel = VALID_LEVELS.has(level) ? level : INFO;
+	const actualLevel = VALID_LOG_LEVELS.has(level) ? level : INFO;
 
 	return {
 		log: (msg, logLevel = DEBUG) => log(msg, logLevel, enabled, actualLevel),
