@@ -1579,8 +1579,8 @@ class Woodland extends EventEmitter {
 		} = validated;
 
 		const finalHeaders = { ...defaultHeaders };
-		if (silent === false) {
-			if (SERVER in finalHeaders === false) {
+		if (!silent) {
+			if (!(SERVER in finalHeaders)) {
 				finalHeaders[SERVER] = SERVER_VALUE;
 			}
 			finalHeaders[X_POWERED_BY] = X_POWERED_BY_VALUE;
@@ -1610,14 +1610,12 @@ class Woodland extends EventEmitter {
 		this.cors = (req) => cors(req, this.origins);
 		this.corsHost = corsHost;
 		this.corsRequest = corsRequest;
-		this.ip = extractIP;
 		this.error = this.error.bind(this);
 		this.json = this.json.bind(this);
 		this.redirect = this.redirect.bind(this);
 		this.send = this.send.bind(this);
 		this.set = this.set.bind(this);
 		this.status = this.status.bind(this);
-
 		this.initFileServer();
 		this.initMiddleware();
 
@@ -1846,7 +1844,7 @@ class Woodland extends EventEmitter {
 		const parsed = parse(req);
 		const allowString = this.allows(parsed.pathname);
 
-		const clientIP = this.ip(req);
+		const clientIP = extractIP(req);
 
 		const headersBatch = Object.create(null);
 		headersBatch[ALLOW] = allowString;
