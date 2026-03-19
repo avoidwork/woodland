@@ -48,7 +48,7 @@
 | `src/config.js` | Configuration validation | `validateConfig`, `validateLogging`, `validateOrigins`, `mergeEnvLogging` |
 | `src/response.js` | Response handlers | `mime`, `getStatusText`, `getStatus`, `error`, `json`, `redirect`, `send`, `set`, `status`, `stream`, `noop`, `escapeHtml`, `partialHeaders`, `pipeable`, `writeHead`, `mimeExtensions` |
 | `src/request.js` | Request handlers | `cors`, `corsHost`, `corsRequest`, `extractIP`, `decorate`, `logClose`, `params`, `parse`, `extractPath`, `isValidIP` |
-| `src/logger.js` | Logging | `createLogger`, `log`, `clfm`, `logRoute`, `logMiddleware`, `logDecoration`, `logError`, `logServe`, `ms`, `timeOffset` |
+| `src/logger.js` | Logging | `createLogger`, `log`, `clf`, `logRoute`, `logMiddleware`, `logDecoration`, `logError`, `logServe`, `ms`, `timeOffset` |
 | `src/middleware.js` | Middleware registry | `reduce`, `next`, `computeRoutes`, `listRoutes`, `checkAllowed`, `createMiddlewareRegistry`, `registerMiddleware` |
 | `src/fileserver.js` | File server | `serve`, `register`, `createFileServer`, `autoindex` |
 | `src/constants.js` | Constants & patterns | All framework constants (HTTP methods, headers, status codes, etc.) |
@@ -117,7 +117,7 @@ res.send = this.send(req, res); // Returns function: res.send(body, status, head
 
 ## Test count
 
-- 531 tests passing
+- 481 tests passing
 - 100% line coverage target
 
 ## Key implementation details
@@ -130,7 +130,7 @@ res.send = this.send(req, res); // Returns function: res.send(body, status, head
 
 ### Logger (`logger.js`)
 - `createLogger` returns object with bound methods via closures
-- `clfm` generates common log format with `timeOffset` for timezone
+- `clf` generates common log format with `timeOffset` for timezone
 - `timeOffset` convention: positive input (minutes) returns negative string (e.g., 300 → "-0500")
 - `ms` - formats nanoseconds to milliseconds with configurable precision
 - Log levels: emerg, alert, crit, error, warn, notice, info, debug (0-7, lower = more severe)

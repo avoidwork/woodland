@@ -20,7 +20,7 @@
 ✖ failing tests:
 
 test at tests\unit\cli.test.js:354:3
-✖ should handle logging disabled (542.6629ms)
+✖ should handle logging disabled (544.1145ms)
   AssertionError [ERR_ASSERTION]: Should not exit with error code
       at ChildProcess.<anonymous> (file:///C:/Users/jason/Projects/woodland/tests/unit/cli.test.js:380:13)
       at ChildProcess.emit (node:events:508:20)

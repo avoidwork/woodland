@@ -790,7 +790,7 @@ Static file serving:
 
 Logging system:
 - `createLogger()` - Create logger instance
-- Common Log Format (CLF) formatting
+- Common Log Format (CLF) formatting via `clf()` method
 - Structured logging for routing, middleware, errors
 
 ### `src/config.js` (130 lines)
