@@ -398,6 +398,97 @@ describe("woodland", () => {
 				assert.ok(res.send);
 			});
 
+			it("should set req.precise when timing enabled", () => {
+				const appWithTiming = woodland({ time: true });
+				const req = {
+					headers: { host: "example.com" },
+					url: "/test",
+					socket: null,
+				};
+				const res = {
+					setHeader: () => {},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+				};
+
+				appWithTiming.decorate(req, res);
+
+				assert.ok(req.precise);
+				assert.ok(typeof req.precise.stop === "function");
+			});
+
+			it("should not set req.precise when timing disabled", () => {
+				const appWithoutTiming = woodland({ time: false });
+				const req = {
+					headers: { host: "example.com" },
+					url: "/test",
+					socket: null,
+				};
+				const res = {
+					setHeader: () => {},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+				};
+
+				appWithoutTiming.decorate(req, res);
+
+				assert.strictEqual(req.precise, void 0);
+			});
+
+			it("should set res.json function", () => {
+				const req = {
+					headers: { host: "example.com" },
+					url: "/test",
+					socket: null,
+				};
+				const res = {
+					setHeader: () => {},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+					getHeader: () => void 0,
+				};
+
+				app.decorate(req, res);
+
+				assert.strictEqual(typeof res.json, "function");
+			});
+
+			it("should call res.json with default parameters", async () => {
+				const app = woodland();
+				let jsonCalled = false;
+
+				app.get("/json", (req, res) => {
+					jsonCalled = true;
+					res.json({ message: "hello" });
+				});
+
+				const req = {
+					method: "GET",
+					headers: { host: "example.com" },
+					url: "/json",
+					socket: null,
+				};
+				const res = {
+					statusCode: 200,
+					setHeader: () => {},
+					on: () => {},
+					end: () => {},
+					error: () => {},
+					set: () => {},
+					send: () => {},
+					getHeader: () => void 0,
+					writeHead: () => {},
+				};
+
+				app.route(req, res);
+
+				await new Promise((resolve) => setTimeout(resolve, 10));
+				assert.ok(jsonCalled);
+			});
+
 			it("should set CORS headers when origins configured", () => {
 				const appWithCors = woodland({ origins: ["http://example.com"] });
 				const req = {

@@ -1235,13 +1235,13 @@ function clf(req, res, format) {
 	const parsed = req.parsed;
 	const username = parsed && parsed.username ? parsed.username : HYPHEN;
 	const pathname = parsed && parsed.pathname ? parsed.pathname : req.url ? req.url : HYPHEN;
-	const search = parsed && parsed.search ? parsed.search : HYPHEN;
+	const search = parsed && parsed.search !== undefined ? parsed.search : HYPHEN;
 	const method = req.method ? req.method : HYPHEN;
 	const requestLine = `${method} ${pathname}${search} ${HTTP_VERSION}`;
 	const resStatusCode = res.statusCode;
 	const statusCode = resStatusCode ? resStatusCode : INT_500;
 	const getHeader = res.getHeader;
-	const contentLength = getHeader ? getHeader.call(res, CONTENT_LENGTH) : HYPHEN;
+	const contentLength = getHeader ? getHeader.call(res, CONTENT_LENGTH) || HYPHEN : HYPHEN;
 	const referer = headers && headers[REFERER] ? headers[REFERER] : HYPHEN;
 	const userAgent = headers && headers[USER_AGENT] ? headers[USER_AGENT] : HYPHEN;
 
@@ -1387,7 +1387,7 @@ function timeOffset(arg = INT_0) {
 	const offsetMinutes = absValue / INT_60;
 	const hours = Math.floor(offsetMinutes);
 	const minutes = Math.floor((offsetMinutes - hours) * INT_60);
-	const sign = isNegative ? HYPHEN : EMPTY;
+	const sign = isNegative ? EMPTY : HYPHEN;
 	const hoursStr = String(hours).padStart(INT_2, STRING_0);
 	const minutesStr = String(minutes).padStart(INT_2, STRING_0);
 

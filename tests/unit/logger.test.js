@@ -1,6 +1,6 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
-import { createLogger, ms } from "../../src/logger.js";
+import { createLogger, ms, clf, timeOffset } from "../../src/logger.js";
 
 describe("logger", () => {
 	describe("createLogger", () => {
@@ -336,6 +336,168 @@ describe("logger", () => {
 			const result = ms(1500);
 
 			assert.strictEqual(result, "0.002 ms");
+		});
+	});
+
+	describe("clf", () => {
+		it("should generate common log format entry", () => {
+			const req = {
+				ip: "192.168.1.1",
+				method: "GET",
+				headers: { host: "example.com" },
+				parsed: { pathname: "/test", search: "", username: "" },
+				url: "/test",
+			};
+			const res = {
+				getHeader: (_name) => "1234",
+				statusCode: 200,
+			};
+			const format = '%h %l %u %t "%r" %>s %b';
+
+			const result = clf(req, res, format);
+
+			assert.ok(result.includes("192.168.1.1"));
+			assert.ok(result.includes("GET /test"));
+			assert.ok(result.includes("200"));
+			assert.ok(result.includes("1234"));
+		});
+
+		it("should use hyphen for missing values", () => {
+			const req = {
+				headers: {},
+				parsed: null,
+				url: undefined,
+			};
+			const res = {};
+			const format = '%h %l %u %t "%r" %>s %b';
+
+			const result = clf(req, res, format);
+
+			assert.ok(result.includes("- -"));
+			assert.ok(result.includes("500"));
+		});
+
+		it("should extract IP from request if req.ip missing", () => {
+			const req = {
+				ip: undefined,
+				method: "POST",
+				headers: { host: "api.example.com" },
+				parsed: { pathname: "/api", search: "?q=1", username: "user" },
+				url: "/api?q=1",
+			};
+			const res = {
+				getHeader: (_name) => "5678",
+				statusCode: 201,
+			};
+			const format = '%h %l %u %t "%r" %>s %b';
+
+			const result = clf(req, res, format);
+
+			assert.ok(result.includes("POST /api"));
+			assert.ok(result.includes("201"));
+		});
+
+		it("should use custom format tokens", () => {
+			const req = {
+				ip: "10.0.0.1",
+				method: "PUT",
+				headers: { host: "test.com", referer: "https://referrer.com", "user-agent": "TestAgent" },
+				parsed: { pathname: "/resource", search: "", username: "-" },
+				url: "/resource",
+			};
+			const res = {
+				getHeader: (_name) => "100",
+				statusCode: 204,
+			};
+			const format = '%v %h "%r" %>s %b %{Referer}i %{User-Agent}i';
+
+			const result = clf(req, res, format);
+
+			assert.ok(result.includes("test.com"));
+			assert.ok(result.includes("10.0.0.1"));
+			assert.ok(result.includes("PUT /resource"));
+			assert.ok(result.includes("204"));
+			assert.ok(result.includes("100"));
+		});
+
+		it("should default status code to 500 when missing", () => {
+			const req = {
+				ip: "127.0.0.1",
+				method: "DELETE",
+				headers: { host: "localhost" },
+				parsed: { pathname: "/item", search: "", username: "-" },
+				url: "/item",
+			};
+			const res = { getHeader: null };
+			const format = '%h "%r" %>s';
+
+			const result = clf(req, res, format);
+
+			assert.ok(result.includes("500"));
+		});
+
+		it("should use hyphen for missing content length", () => {
+			const req = {
+				ip: "192.168.1.100",
+				method: "HEAD",
+				headers: { host: "example.org" },
+				parsed: { pathname: "/check", search: "", username: "-" },
+				url: "/check",
+			};
+			const res = {
+				getHeader: (_name) => undefined,
+				statusCode: 304,
+			};
+			const format = '%h %l %u %t "%r" %>s %b';
+
+			const result = clf(req, res, format);
+
+			assert.ok(result.includes("- -"));
+			assert.ok(result.includes("304 -"));
+		});
+	});
+
+	describe("timeOffset", () => {
+		it("should format positive timezone offset as negative string", () => {
+			const result = timeOffset(300);
+
+			assert.strictEqual(result, "-0500");
+		});
+
+		it("should format negative timezone offset as positive string", () => {
+			const result = timeOffset(-300);
+
+			assert.strictEqual(result, "0500");
+		});
+
+		it("should format zero offset", () => {
+			const result = timeOffset(0);
+
+			assert.strictEqual(result, "-0000");
+		});
+
+		it("should handle fractional hours", () => {
+			const result = timeOffset(330);
+
+			assert.strictEqual(result, "-0530");
+		});
+
+		it("should pad single digit hours and minutes", () => {
+			const result = timeOffset(65);
+
+			assert.strictEqual(result, "-0104");
+		});
+
+		it("should handle large offsets", () => {
+			const result = timeOffset(720);
+
+			assert.strictEqual(result, "-1200");
+		});
+
+		it("should handle complex offset with hours and minutes", () => {
+			const result = timeOffset(545);
+
+			assert.strictEqual(result, "-0905");
 		});
 	});
 });

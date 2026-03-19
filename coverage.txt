@@ -7,20 +7,20 @@
 ℹ  config.js     | 100.00 |    89.74 |  100.00 | 
 ℹ  constants.js  | 100.00 |   100.00 |  100.00 | 
 ℹ  fileserver.js | 100.00 |   100.00 |  100.00 | 
-ℹ  logger.js     |  76.62 |   100.00 |   86.96 | 47-89 221-231
+ℹ  logger.js     | 100.00 |    96.55 |   95.65 | 
 ℹ  middleware.js | 100.00 |   100.00 |  100.00 | 
 ℹ  request.js    | 100.00 |   100.00 |  100.00 | 
 ℹ  response.js   | 100.00 |    98.96 |  100.00 | 
-ℹ  woodland.js   |  99.18 |    95.06 |   87.50 | 272-273 303-305
+ℹ  woodland.js   | 100.00 |    97.59 |   90.00 | 
 ℹ ---------------------------------------------------------------
-ℹ all files      |  97.61 |    97.94 |   93.80 | 
+ℹ all files      | 100.00 |    98.08 |   96.12 | 
 ℹ ---------------------------------------------------------------
 ℹ end of coverage report
 
 ✖ failing tests:
 
 test at tests\unit\cli.test.js:354:3
-✖ should handle logging disabled (541.3286ms)
+✖ should handle logging disabled (542.9088ms)
   AssertionError [ERR_ASSERTION]: Should not exit with error code
       at ChildProcess.<anonymous> (file:///C:/Users/jason/Projects/woodland/tests/unit/cli.test.js:380:13)
       at ChildProcess.emit (node:events:508:20)
