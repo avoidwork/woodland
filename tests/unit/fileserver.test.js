@@ -24,7 +24,7 @@ describe("fileserver", () => {
 		});
 
 		describe("serve", () => {
-			const testFilesDir = process.cwd() + "/test-files";
+			const testFilesDir = process.cwd() + "/tests/test-files";
 
 			it("should block path traversal attempts", async () => {
 				let errorCalled = false;
@@ -259,7 +259,7 @@ describe("fileserver", () => {
 	});
 
 	describe("serve", () => {
-		const testFilesDir = process.cwd() + "/test-files";
+		const testFilesDir = process.cwd() + "/tests/test-files";
 
 		it("should be a function", () => {
 			assert.strictEqual(typeof serve, "function");
