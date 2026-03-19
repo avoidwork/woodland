@@ -112,8 +112,6 @@ function isValidIP(ip) {
 	const doubleColonIndex = ip.indexOf("::");
 	const isCompressed = doubleColonIndex !== -1;
 
-	console.log("outside");
-
 	if (isCompressed) {
 		if (ip.indexOf("::", doubleColonIndex + 2) !== -1) {
 			return false;

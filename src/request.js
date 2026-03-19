@@ -1,22 +1,4 @@
-import {
-	ACCESS_CONTROL_ALLOW_CREDENTIALS,
-	ACCESS_CONTROL_ALLOW_METHODS,
-	ACCESS_CONTROL_ALLOW_HEADERS,
-	ACCESS_CONTROL_EXPOSE_HEADERS,
-	ACCESS_CONTROL_REQUEST_HEADERS,
-	ACCESS_CONTROL_ALLOW_ORIGIN,
-	ALLOW,
-	EMPTY,
-	OPTIONS,
-	ORIGIN,
-	TRUE,
-	TIMING_ALLOW_ORIGIN,
-	WILDCARD,
-	X_CONTENT_TYPE_OPTIONS,
-	NO_SNIFF,
-	STRING,
-	INT_0,
-} from "./constants.js";
+import { EMPTY, ORIGIN, WILDCARD, STRING, INT_0 } from "./constants.js";
 import { escapeHtml } from "./response.js";
 import { coerce } from "tiny-coerce";
 
@@ -80,88 +62,6 @@ export function extractIP(req) {
 	}
 
 	return fallbackIP;
-}
-
-/**
- * Decorates request and response objects with framework utilities
- * @param {Object} req - Request object
- * @param {Object} res - Response object
- * @param {Object} config - Configuration object
- */
-export function decorate(req, res, config) {
-	const {
-		parsed,
-		allowString,
-		timing,
-		corsHostCheck,
-		corsCheck,
-		ipExtractor,
-		defaultHeaders,
-		corsExpose,
-		logDecorator,
-		logClose,
-	} = config;
-
-	const pathname = parsed.pathname;
-
-	req.parsed = parsed;
-	req.allow = allowString;
-	req.body = EMPTY;
-	req.host = parsed.hostname;
-	req.params = {};
-	req.valid = true;
-
-	if (timing) {
-		req.precise = timing;
-	}
-
-	req.corsHost = corsHostCheck(req);
-	req.cors = corsCheck(req);
-
-	const clientIP = ipExtractor(req);
-	req.ip = clientIP;
-
-	res.locals = {};
-
-	const headersBatch = Object.create(null);
-	headersBatch[ALLOW] = allowString;
-	headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
-
-	const headerCount = defaultHeaders.length;
-	for (let i = 0; i < headerCount; i++) {
-		const [key, value] = defaultHeaders[i];
-		headersBatch[key] = value;
-	}
-
-	if (req.cors) {
-		const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? corsExpose;
-		const origin = req.headers.origin;
-
-		headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
-		headersBatch[TIMING_ALLOW_ORIGIN] = origin;
-		headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
-		headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = allowString;
-
-		if (corsHeaders !== void 0) {
-			headersBatch[
-				req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS
-			] = corsHeaders;
-		}
-	}
-
-	res.set(headersBatch);
-
-	logDecorator(pathname, req.method, clientIP);
-	res.on("close", () => logClose(req, res));
-}
-
-/**
- * Placeholder for log close handler (no-op)
- * @param {Object} _req - Request object (unused)
- * @param {Object} _res - Response object (unused)
- */
-export function logClose(_req, _res) {
-	// Placeholder for log close handler
 }
 
 /**
@@ -277,8 +177,6 @@ export function isValidIP(ip) {
 
 	const doubleColonIndex = ip.indexOf("::");
 	const isCompressed = doubleColonIndex !== -1;
-
-	console.log("outside");
 
 	if (isCompressed) {
 		if (ip.indexOf("::", doubleColonIndex + 2) !== -1) {
