@@ -1,7 +1,19 @@
 import { readdir, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { readFileSync } from "node:fs";
-import { EMPTY, INT_403, INT_404, SLASH, UTF8 } from "./constants.js";
+import {
+	COLLECTION,
+	CONTENT_TYPE,
+	EMPTY,
+	INT_403,
+	INT_404,
+	ITEM,
+	MSG_SERVE_PATH_OUTSIDE,
+	MSG_ROUTING_FILE,
+	SLASH,
+	TEXT_HTML,
+	UTF8,
+} from "./constants.js";
 import { escapeHtml } from "./response.js";
 
 const html = readFileSync(join(import.meta.dirname, "..", "tpl", "autoindex.html"), {
@@ -19,12 +31,12 @@ export function autoindex(title = EMPTY, files = []) {
 
 	if (files.length === 0) {
 		return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) => {
-			return key === "TITLE" ? safeTitle : '    <li><a href=".." rel="collection">../</a></li>';
+			return key === "TITLE" ? safeTitle : `    <li><a href=".." rel="${COLLECTION}">../</a></li>`;
 		});
 	}
 
 	const listItems = Array.from({ length: files.length + 1 });
-	listItems[0] = '    <li><a href=".." rel="collection">../</a></li>';
+	listItems[0] = `    <li><a href=".." rel="${COLLECTION}">../</a></li>`;
 
 	const fileCount = files.length;
 	for (let i = 0; i < fileCount; i++) {
@@ -35,8 +47,8 @@ export function autoindex(title = EMPTY, files = []) {
 		const isDir = file.isDirectory();
 
 		listItems[i + 1] = isDir
-			? `    <li><a href="${safeHref}/" rel="collection">${safeName}/</a></li>`
-			: `    <li><a href="${safeHref}" rel="item">${safeName}</a></li>`;
+			? `    <li><a href="${safeHref}/" rel="${COLLECTION}">${safeName}/</a></li>`
+			: `    <li><a href="${safeHref}" rel="${ITEM}">${safeName}</a></li>`;
 	}
 
 	const safeFiles = listItems.join("\n");
@@ -59,7 +71,7 @@ export async function serve(app, req, res, arg, folder = process.cwd()) {
 	const resolvedFolder = resolve(folder);
 
 	if (!fp.startsWith(resolvedFolder)) {
-		app.logger.logServe(req, "Path outside allowed directory");
+		app.logger.logServe(req, MSG_SERVE_PATH_OUTSIDE);
 		res.error(INT_403);
 
 		return;
@@ -68,7 +80,7 @@ export async function serve(app, req, res, arg, folder = process.cwd()) {
 	let valid = true;
 	let stats;
 
-	app.logger.logServe(req, "Routing request to file system");
+	app.logger.logServe(req, MSG_ROUTING_FILE);
 
 	try {
 		stats = await stat(fp, { bigint: false });
@@ -76,9 +88,9 @@ export async function serve(app, req, res, arg, folder = process.cwd()) {
 		valid = false;
 	}
 
-	if (valid === false) {
+	if (!valid) {
 		res.error(INT_404);
-	} else if (stats.isDirectory() === false) {
+	} else if (!stats.isDirectory()) {
 		app.stream(req, res, {
 			charset: app.charset,
 			etag: app.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
@@ -101,11 +113,11 @@ export async function serve(app, req, res, arg, folder = process.cwd()) {
 		}
 
 		if (!result.length) {
-			if (app.autoindex === false) {
+			if (!app.autoindex) {
 				res.error(INT_404);
 			} else {
 				const body = autoindex(decodeURIComponent(req.parsed.pathname), files);
-				res.header("content-type", `text/html; charset=${app.charset}`);
+				res.header(CONTENT_TYPE, `${TEXT_HTML}; charset=${app.charset}`);
 				res.send(body);
 			}
 		} else {

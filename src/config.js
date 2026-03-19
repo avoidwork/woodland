@@ -10,6 +10,19 @@ import {
 	INFO,
 	DEBUG,
 	LOG_FORMAT,
+	TRUE,
+	FALSE,
+	WARN,
+	ERROR,
+	CRITICAL,
+	ALERT,
+	EMERG,
+	NOTICE,
+	MSG_CONFIG_FIELD,
+	MSG_VALIDATION_FAILED,
+	PERIOD,
+	SEMICOLON_SPACE,
+	WILDCARD,
 } from "./constants.js";
 
 const DEFAULTS = {
@@ -63,8 +76,8 @@ export function validateConfig(config = {}) {
 	if (!result.valid) {
 		const errors = result.errors.map((err) => {
 			const field = Array.isArray(err.path)
-				? err.path.join(".")
-				: String(err.path).replace(/^\./, "");
+				? err.path.join(PERIOD)
+				: String(err.path).replace(/^\./, EMPTY);
 			let msg = err.message;
 
 			if (msg.includes("is not of a type(s)")) {
@@ -79,9 +92,9 @@ export function validateConfig(config = {}) {
 				msg = val ? `must be <= ${val[1]}` : msg;
 			}
 
-			return `Config "${field}" ${msg}`;
+			return `${MSG_CONFIG_FIELD}"${field}" ${msg}`;
 		});
-		throw new Error(`Configuration validation failed: ${errors.join("; ")}`);
+		throw new Error(`${MSG_VALIDATION_FAILED}${errors.join(SEMICOLON_SPACE)}`);
 	}
 
 	const validated = {};
@@ -93,16 +106,7 @@ export function validateConfig(config = {}) {
 	return validated;
 }
 
-const VALID_LOG_LEVELS = new Set([
-	DEBUG,
-	INFO,
-	"warn",
-	"error",
-	"critical",
-	"alert",
-	"emerg",
-	"notice",
-]);
+const VALID_LOG_LEVELS = new Set([DEBUG, INFO, WARN, ERROR, CRITICAL, ALERT, EMERG, NOTICE]);
 
 /**
  * Resolves logging value from config, environment, or default
@@ -134,7 +138,7 @@ export function validateLogging(logging = {}) {
 	const envLogFormat = process.env.WOODLAND_LOG_FORMAT;
 	const envLogLevel = process.env.WOODLAND_LOG_LEVEL;
 
-	const enabled = logging.enabled ?? (envLogEnabled ?? "true") !== "false";
+	const enabled = logging.enabled ?? (envLogEnabled ?? TRUE) !== FALSE;
 
 	const format = resolveLoggingValue(logging.format, envLogFormat, LOG_FORMAT);
 	const level = resolveLoggingValue(logging.level, envLogLevel, INFO);
@@ -160,7 +164,7 @@ export function validateOrigins(origins = []) {
 		if (typeof origin !== "string") {
 			return false;
 		}
-		if (origin === "*") {
+		if (origin === WILDCARD) {
 			return true;
 		}
 		try {
@@ -183,7 +187,7 @@ export function mergeEnvLogging(logging = {}) {
 	const envLogFormat = process.env.WOODLAND_LOG_FORMAT;
 	const envLogLevel = process.env.WOODLAND_LOG_LEVEL;
 
-	const enabled = logging.enabled ?? (envLogEnabled ?? "true") !== "false";
+	const enabled = logging.enabled ?? (envLogEnabled ?? TRUE) !== FALSE;
 
 	const format = resolveLoggingValue(logging.format, envLogFormat, LOG_FORMAT);
 	const level = resolveLoggingValue(logging.level, envLogLevel, INFO);

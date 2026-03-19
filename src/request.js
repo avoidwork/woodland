@@ -1,4 +1,14 @@
-import { EMPTY, ORIGIN, WILDCARD, STRING, INT_0 } from "./constants.js";
+import {
+	EMPTY,
+	INT_0,
+	INT_204,
+	INT_8000,
+	LOCALHOST,
+	ORIGIN,
+	WILDCARD,
+	STRING,
+	X_FORWARDED_FOR,
+} from "./constants.js";
 import { escapeHtml } from "./response.js";
 import { coerce } from "tiny-coerce";
 
@@ -33,7 +43,7 @@ export function corsHost(req) {
  * @returns {Function} Request handler function
  */
 export function corsRequest() {
-	return (req, res) => res.status(204).send(EMPTY);
+	return (req, res) => res.status(INT_204).send(EMPTY);
 }
 
 /**
@@ -45,9 +55,9 @@ export function extractIP(req) {
 	const connection = req.connection;
 	const socket = req.socket;
 	const fallbackIP =
-		(connection && connection.remoteAddress) || (socket && socket.remoteAddress) || "127.0.0.1";
+		(connection && connection.remoteAddress) || (socket && socket.remoteAddress) || LOCALHOST;
 
-	const forwardedHeader = req.headers["x-forwarded-for"];
+	const forwardedHeader = req.headers[X_FORWARDED_FOR];
 	if (!forwardedHeader || !forwardedHeader.trim()) {
 		return fallbackIP;
 	}
@@ -117,7 +127,7 @@ export function parse(arg) {
 	return new URL(
 		typeof arg === STRING
 			? arg
-			: `http://${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || "8000"}`}${arg.url}`,
+			: `http://${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || String(INT_8000)}`}${arg.url}`,
 	);
 }
 

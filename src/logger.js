@@ -3,15 +3,18 @@ import {
 	ERROR,
 	HYPHEN,
 	INFO,
+	CONTENT_LENGTH,
 	MONTHS,
 	INT_0,
 	INT_2,
 	INT_3,
 	INT_60,
 	INT_1e6,
+	REFERER,
 	TIME_MS,
 	TOKEN_N,
 	STRING_0,
+	USER_AGENT,
 } from "./constants.js";
 
 const LEVELS = Object.create(null);
@@ -71,10 +74,10 @@ export function clfm(req, res, format) {
 	const resStatusCode = res.statusCode;
 	const statusCode = resStatusCode ? resStatusCode : 500;
 	const getHeader = res.getHeader;
-	const contentLength = getHeader ? getHeader.call(res, "content-length") : HYPHEN;
+	const contentLength = getHeader ? getHeader.call(res, CONTENT_LENGTH) : HYPHEN;
 
-	const referer = headers && headers.referer ? headers.referer : HYPHEN;
-	const userAgent = headers && headers["user-agent"] ? headers["user-agent"] : HYPHEN;
+	const referer = headers && headers[REFERER] ? headers[REFERER] : HYPHEN;
+	const userAgent = headers && headers[USER_AGENT] ? headers[USER_AGENT] : HYPHEN;
 
 	let logEntry = format;
 

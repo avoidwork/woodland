@@ -2,6 +2,8 @@ import { extname } from "node:path";
 import { STATUS_CODES } from "node:http";
 import mimeDb from "mime-db";
 import {
+	ACCESS_CONTROL_ALLOW_METHODS,
+	ALLOW,
 	APPLICATION_JSON,
 	APPLICATION_OCTET_STREAM,
 	CACHE_CONTROL,
@@ -11,6 +13,7 @@ import {
 	COMMA,
 	EMPTY,
 	ETAG,
+	ERROR,
 	EXTENSIONS,
 	FUNCTION,
 	HEAD,
@@ -18,12 +21,28 @@ import {
 	INT_10,
 	INT_200,
 	INT_206,
+	INT_307,
+	INT_308,
+	INT_404,
 	INT_416,
+	INT_500,
 	KEY_BYTES,
+	LAST_MODIFIED,
 	LOCATION,
 	OPTIONS,
 	OPTIONS_BODY,
 	RANGE,
+	STATUS_BAD_REQUEST,
+	STATUS_ERROR,
+	STATUS_FORBIDDEN,
+	STATUS_INTERNAL_SERVER_ERROR,
+	STATUS_METHOD_NOT_ALLOWED,
+	STATUS_NO_CONTENT,
+	STATUS_NOT_FOUND,
+	STATUS_OK,
+	STATUS_PERMANENT_REDIRECT,
+	STATUS_RANGE_NOT_SATISFIABLE,
+	STATUS_TEMPORARY_REDIRECT,
 	STRING,
 	TO_STRING,
 } from "./constants.js";
@@ -161,21 +180,21 @@ export function mime(arg = EMPTY) {
  * @param {number} status - HTTP status code
  * @returns {string} Status text string
  */
-export function getStatusText(status) {
-	const statusTexts = {
-		200: "OK",
-		204: "No Content",
-		307: "Temporary Redirect",
-		308: "Permanent Redirect",
-		400: "Bad Request",
-		403: "Forbidden",
-		404: "Not Found",
-		405: "Method Not Allowed",
-		416: "Range Not Satisfiable",
-		500: "Internal Server Error",
-	};
+const STATUS_TEXTS = Object.freeze({
+	INT_200: STATUS_OK,
+	INT_204: STATUS_NO_CONTENT,
+	INT_307: STATUS_TEMPORARY_REDIRECT,
+	INT_308: STATUS_PERMANENT_REDIRECT,
+	INT_400: STATUS_BAD_REQUEST,
+	INT_403: STATUS_FORBIDDEN,
+	INT_404: STATUS_NOT_FOUND,
+	INT_405: STATUS_METHOD_NOT_ALLOWED,
+	INT_416: STATUS_RANGE_NOT_SATISFIABLE,
+	INT_500: STATUS_INTERNAL_SERVER_ERROR,
+});
 
-	return statusTexts[status] || "Error";
+export function getStatusText(status) {
+	return STATUS_TEXTS[`INT_${status}`] || STATUS_ERROR;
 }
 
 /**
@@ -197,13 +216,13 @@ export function error(req, res, emitError, logError, status = 500, body) {
 	if (res.headersSent === false) {
 		const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
 
-		if (status === 404) {
-			res.removeHeader("allow");
-			res.header("allow", EMPTY);
+		if (status === INT_404) {
+			res.removeHeader(ALLOW);
+			res.header(ALLOW, EMPTY);
 
 			if (req.cors) {
-				res.removeHeader("access-control-allow-methods");
-				res.header("access-control-allow-methods", EMPTY);
+				res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
+				res.header(ACCESS_CONTROL_ALLOW_METHODS, EMPTY);
 			}
 		}
 
@@ -238,7 +257,7 @@ export function json(
  * @param {boolean} [perm=true] - Permanent redirect
  */
 export function redirect(res, uri, perm = true) {
-	res.send(EMPTY, perm ? 308 : 307, { [LOCATION]: uri });
+	res.send(EMPTY, perm ? INT_308 : INT_307, { [LOCATION]: uri });
 }
 
 /**
@@ -270,7 +289,7 @@ export function send(
 		if (isPipeable) {
 			if (rangeHeader === void 0 || req.range !== void 0) {
 				writeHead(res, headers);
-				body.on("error", (err) => error(req, res, noop, noop, 500, err)).pipe(res);
+				body.on(ERROR, (err) => error(req, res, noop, noop, INT_500, err)).pipe(res);
 			} else {
 				error(req, res, noop, noop, INT_416);
 			}
@@ -348,7 +367,7 @@ export function stream(req, res, file, emitStream, createReadStream, etags) {
 		CONTENT_TYPE,
 		file.charset.length > 0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path),
 	);
-	res.header("last-modified", file.stats.mtime.toUTCString());
+	res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
 
 	if (etags && file.etag.length > 0) {
 		res.header(ETAG, file.etag);

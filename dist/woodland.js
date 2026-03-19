@@ -29,9 +29,12 @@ const INT_200 = 200;
 const INT_204 = 204;
 const INT_206 = 206;
 const INT_304 = 304;
+const INT_307 = 307;
+const INT_308 = 308;
 const INT_403 = 403;
 const INT_404 = 404;
 const INT_416 = 416;
+const INT_500 = 500;
 
 // =============================================================================
 // HTTP HEADERS
@@ -48,12 +51,15 @@ const CONTENT_LENGTH = "content-length";
 const CONTENT_RANGE = "content-range";
 const CONTENT_TYPE = "content-type";
 const ETAG = "etag";
+const LAST_MODIFIED = "last-modified";
 const LOCATION = "location";
 const NO_SNIFF = "nosniff";
 const ORIGIN = "origin";
 const RANGE = "range";
+const REFERER = "referer";
 const SERVER = "server";
 const TIMING_ALLOW_ORIGIN = "timing-allow-origin";
+const USER_AGENT = "user-agent";
 const X_CONTENT_TYPE_OPTIONS = "x-content-type-options";
 const X_POWERED_BY = "x-powered-by";
 const X_RESPONSE_TIME = "x-response-time";
@@ -63,6 +69,7 @@ const X_RESPONSE_TIME = "x-response-time";
 // =============================================================================
 const APPLICATION_JSON = "application/json";
 const APPLICATION_OCTET_STREAM = "application/octet-stream";
+const TEXT_HTML = "text/html";
 const UTF8 = "utf8";
 const UTF_8 = "utf-8";
 
@@ -71,6 +78,7 @@ const UTF_8 = "utf-8";
 // =============================================================================
 const SERVER_VALUE = `${name}/${version}`;
 const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform}/${process.arch}`;
+const INT_8000 = 8000;
 
 // =============================================================================
 // FILE SYSTEM & ROUTING
@@ -94,6 +102,7 @@ const DELIMITER = "|";
 const EMPTY = "";
 const HYPHEN = "-";
 const LEFT_PAREN = "(";
+const PERIOD = ".";
 const SLASH = "/";
 const STRING_0 = "0";
 const WILDCARD = "*";
@@ -107,8 +116,25 @@ const DEBUG = "debug";
 const ERROR = "error";
 const INFO = "info";
 const LOG_FORMAT = '%h %l %u %t "%r" %>s %b';
+const MSG_ROUTING_FILE = "Routing request to file system";
+
+const MSG_CONFIG_FIELD = "Config ";
+const MSG_VALIDATION_FAILED = "Configuration validation failed: ";
+const MSG_SERVE_PATH_OUTSIDE = "Path outside allowed directory";
+const SEMICOLON_SPACE = "; ";
 
 const OPTIONS_BODY = "Make a GET request to retrieve the file";
+const STATUS_OK = "OK";
+const STATUS_NO_CONTENT = "No Content";
+const STATUS_TEMPORARY_REDIRECT = "Temporary Redirect";
+const STATUS_PERMANENT_REDIRECT = "Permanent Redirect";
+const STATUS_BAD_REQUEST = "Bad Request";
+const STATUS_FORBIDDEN = "Forbidden";
+const STATUS_NOT_FOUND = "Not Found";
+const STATUS_METHOD_NOT_ALLOWED = "Method Not Allowed";
+const STATUS_RANGE_NOT_SATISFIABLE = "Range Not Satisfiable";
+const STATUS_INTERNAL_SERVER_ERROR = "Internal Server Error";
+const STATUS_ERROR = "Error";
 
 // =============================================================================
 // HTTP RANGE & CACHING
@@ -129,6 +155,14 @@ const EN_US = "en-US";
 const SHORT = "short";
 const TO_STRING = "toString";
 const TRUE = "true";
+const FALSE = "false";
+const CRITICAL = "critical";
+const ALERT = "alert";
+const EMERG = "emerg";
+const NOTICE = "notice";
+const WARN = "warn";
+const COLLECTION = "collection";
+const ITEM = "item";
 
 const MONTHS = Object.freeze(
 	Array.from({ length: 12 }, (_, idx) => {
@@ -270,21 +304,21 @@ function mime(arg = EMPTY) {
  * @param {number} status - HTTP status code
  * @returns {string} Status text string
  */
-function getStatusText(status) {
-	const statusTexts = {
-		200: "OK",
-		204: "No Content",
-		307: "Temporary Redirect",
-		308: "Permanent Redirect",
-		400: "Bad Request",
-		403: "Forbidden",
-		404: "Not Found",
-		405: "Method Not Allowed",
-		416: "Range Not Satisfiable",
-		500: "Internal Server Error",
-	};
+const STATUS_TEXTS = Object.freeze({
+	INT_200: STATUS_OK,
+	INT_204: STATUS_NO_CONTENT,
+	INT_307: STATUS_TEMPORARY_REDIRECT,
+	INT_308: STATUS_PERMANENT_REDIRECT,
+	INT_400: STATUS_BAD_REQUEST,
+	INT_403: STATUS_FORBIDDEN,
+	INT_404: STATUS_NOT_FOUND,
+	INT_405: STATUS_METHOD_NOT_ALLOWED,
+	INT_416: STATUS_RANGE_NOT_SATISFIABLE,
+	INT_500: STATUS_INTERNAL_SERVER_ERROR,
+});
 
-	return statusTexts[status] || "Error";
+function getStatusText(status) {
+	return STATUS_TEXTS[`INT_${status}`] || STATUS_ERROR;
 }
 
 /**
@@ -306,13 +340,13 @@ function error(req, res, emitError, logError, status = 500, body) {
 	if (res.headersSent === false) {
 		const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
 
-		if (status === 404) {
-			res.removeHeader("allow");
-			res.header("allow", EMPTY);
+		if (status === INT_404) {
+			res.removeHeader(ALLOW);
+			res.header(ALLOW, EMPTY);
 
 			if (req.cors) {
-				res.removeHeader("access-control-allow-methods");
-				res.header("access-control-allow-methods", EMPTY);
+				res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
+				res.header(ACCESS_CONTROL_ALLOW_METHODS, EMPTY);
 			}
 		}
 
@@ -347,7 +381,7 @@ function json(
  * @param {boolean} [perm=true] - Permanent redirect
  */
 function redirect(res, uri, perm = true) {
-	res.send(EMPTY, perm ? 308 : 307, { [LOCATION]: uri });
+	res.send(EMPTY, perm ? INT_308 : INT_307, { [LOCATION]: uri });
 }
 
 /**
@@ -379,7 +413,7 @@ function send(
 		if (isPipeable) {
 			if (rangeHeader === void 0 || req.range !== void 0) {
 				writeHead(res, headers);
-				body.on("error", (err) => error(req, res, noop, noop, 500, err)).pipe(res);
+				body.on(ERROR, (err) => error(req, res, noop, noop, INT_500, err)).pipe(res);
 			} else {
 				error(req, res, noop, noop, INT_416);
 			}
@@ -457,7 +491,7 @@ function stream(req, res, file, emitStream, createReadStream, etags) {
 		CONTENT_TYPE,
 		file.charset.length > 0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path),
 	);
-	res.header("last-modified", file.stats.mtime.toUTCString());
+	res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
 
 	if (etags && file.etag.length > 0) {
 		res.header(ETAG, file.etag);
@@ -832,8 +866,8 @@ function validateConfig(config = {}) {
 	if (!result.valid) {
 		const errors = result.errors.map((err) => {
 			const field = Array.isArray(err.path)
-				? err.path.join(".")
-				: String(err.path).replace(/^\./, "");
+				? err.path.join(PERIOD)
+				: String(err.path).replace(/^\./, EMPTY);
 			let msg = err.message;
 
 			if (msg.includes("is not of a type(s)")) {
@@ -848,9 +882,9 @@ function validateConfig(config = {}) {
 				msg = val ? `must be <= ${val[1]}` : msg;
 			}
 
-			return `Config "${field}" ${msg}`;
+			return `${MSG_CONFIG_FIELD}"${field}" ${msg}`;
 		});
-		throw new Error(`Configuration validation failed: ${errors.join("; ")}`);
+		throw new Error(`${MSG_VALIDATION_FAILED}${errors.join(SEMICOLON_SPACE)}`);
 	}
 
 	const validated = {};
@@ -862,16 +896,7 @@ function validateConfig(config = {}) {
 	return validated;
 }
 
-const VALID_LOG_LEVELS = new Set([
-	DEBUG,
-	INFO,
-	"warn",
-	"error",
-	"critical",
-	"alert",
-	"emerg",
-	"notice",
-]);
+const VALID_LOG_LEVELS = new Set([DEBUG, INFO, WARN, ERROR, CRITICAL, ALERT, EMERG, NOTICE]);
 
 /**
  * Resolves logging value from config, environment, or default
@@ -903,7 +928,7 @@ function validateLogging(logging = {}) {
 	const envLogFormat = process.env.WOODLAND_LOG_FORMAT;
 	const envLogLevel = process.env.WOODLAND_LOG_LEVEL;
 
-	const enabled = logging.enabled ?? (envLogEnabled ?? "true") !== "false";
+	const enabled = logging.enabled ?? (envLogEnabled ?? TRUE) !== FALSE;
 
 	const format = resolveLoggingValue(logging.format, envLogFormat, LOG_FORMAT);
 	const level = resolveLoggingValue(logging.level, envLogLevel, INFO);
@@ -970,10 +995,10 @@ function clfm(req, res, format) {
 	const resStatusCode = res.statusCode;
 	const statusCode = resStatusCode ? resStatusCode : 500;
 	const getHeader = res.getHeader;
-	const contentLength = getHeader ? getHeader.call(res, "content-length") : HYPHEN;
+	const contentLength = getHeader ? getHeader.call(res, CONTENT_LENGTH) : HYPHEN;
 
-	const referer = headers && headers.referer ? headers.referer : HYPHEN;
-	const userAgent = headers && headers["user-agent"] ? headers["user-agent"] : HYPHEN;
+	const referer = headers && headers[REFERER] ? headers[REFERER] : HYPHEN;
+	const userAgent = headers && headers[USER_AGENT] ? headers[USER_AGENT] : HYPHEN;
 
 	let logEntry = format;
 
@@ -1168,7 +1193,7 @@ function corsHost(req) {
  * @returns {Function} Request handler function
  */
 function corsRequest() {
-	return (req, res) => res.status(204).send(EMPTY);
+	return (req, res) => res.status(INT_204).send(EMPTY);
 }
 
 /**
@@ -1224,7 +1249,7 @@ function parse(arg) {
 	return new URL(
 		typeof arg === STRING
 			? arg
-			: `http://${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || "8000"}`}${arg.url}`,
+			: `http://${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || String(INT_8000)}`}${arg.url}`,
 	);
 }
 
@@ -1250,12 +1275,12 @@ function autoindex(title = EMPTY, files = []) {
 
 	if (files.length === 0) {
 		return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) => {
-			return key === "TITLE" ? safeTitle : '    <li><a href=".." rel="collection">../</a></li>';
+			return key === "TITLE" ? safeTitle : `    <li><a href=".." rel="${COLLECTION}">../</a></li>`;
 		});
 	}
 
 	const listItems = Array.from({ length: files.length + 1 });
-	listItems[0] = '    <li><a href=".." rel="collection">../</a></li>';
+	listItems[0] = `    <li><a href=".." rel="${COLLECTION}">../</a></li>`;
 
 	const fileCount = files.length;
 	for (let i = 0; i < fileCount; i++) {
@@ -1266,8 +1291,8 @@ function autoindex(title = EMPTY, files = []) {
 		const isDir = file.isDirectory();
 
 		listItems[i + 1] = isDir
-			? `    <li><a href="${safeHref}/" rel="collection">${safeName}/</a></li>`
-			: `    <li><a href="${safeHref}" rel="item">${safeName}</a></li>`;
+			? `    <li><a href="${safeHref}/" rel="${COLLECTION}">${safeName}/</a></li>`
+			: `    <li><a href="${safeHref}" rel="${ITEM}">${safeName}</a></li>`;
 	}
 
 	const safeFiles = listItems.join("\n");
@@ -1290,7 +1315,7 @@ async function serve(app, req, res, arg, folder = process.cwd()) {
 	const resolvedFolder = resolve(folder);
 
 	if (!fp.startsWith(resolvedFolder)) {
-		app.logger.logServe(req, "Path outside allowed directory");
+		app.logger.logServe(req, MSG_SERVE_PATH_OUTSIDE);
 		res.error(INT_403);
 
 		return;
@@ -1299,7 +1324,7 @@ async function serve(app, req, res, arg, folder = process.cwd()) {
 	let valid = true;
 	let stats;
 
-	app.logger.logServe(req, "Routing request to file system");
+	app.logger.logServe(req, MSG_ROUTING_FILE);
 
 	try {
 		stats = await stat(fp, { bigint: false });
@@ -1307,9 +1332,9 @@ async function serve(app, req, res, arg, folder = process.cwd()) {
 		valid = false;
 	}
 
-	if (valid === false) {
+	if (!valid) {
 		res.error(INT_404);
-	} else if (stats.isDirectory() === false) {
+	} else if (!stats.isDirectory()) {
 		app.stream(req, res, {
 			charset: app.charset,
 			etag: app.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
@@ -1332,11 +1357,11 @@ async function serve(app, req, res, arg, folder = process.cwd()) {
 		}
 
 		if (!result.length) {
-			if (app.autoindex === false) {
+			if (!app.autoindex) {
 				res.error(INT_404);
 			} else {
 				const body = autoindex(decodeURIComponent(req.parsed.pathname), files);
-				res.header("content-type", `text/html; charset=${app.charset}`);
+				res.header(CONTENT_TYPE, `${TEXT_HTML}; charset=${app.charset}`);
 				res.send(body);
 			}
 		} else {

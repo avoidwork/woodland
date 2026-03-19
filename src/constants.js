@@ -55,6 +55,7 @@ export const LOCATION = "location";
 export const NO_SNIFF = "nosniff";
 export const ORIGIN = "origin";
 export const RANGE = "range";
+export const REFERER = "referer";
 export const SERVER = "server";
 export const TIMING_ALLOW_ORIGIN = "timing-allow-origin";
 export const USER_AGENT = "user-agent";
@@ -69,6 +70,7 @@ export const X_RESPONSE_TIME = "x-response-time";
 export const APPLICATION_JSON = "application/json";
 export const APPLICATION_OCTET_STREAM = "application/octet-stream";
 export const TEXT_PLAIN = "text/plain";
+export const TEXT_HTML = "text/html";
 export const CHAR_SET = "charset=utf-8";
 export const UTF8 = "utf8";
 export const UTF_8 = "utf-8";
@@ -180,7 +182,23 @@ export const MSG_ROUTING = "Routing request";
 export const MSG_ROUTING_FILE = "Routing request to file system";
 export const MSG_SENDING_BODY = "Sending response body";
 
+export const MSG_CONFIG_FIELD = "Config ";
+export const MSG_VALIDATION_FAILED = "Configuration validation failed: ";
+export const MSG_SERVE_PATH_OUTSIDE = "Path outside allowed directory";
+export const SEMICOLON_SPACE = "; ";
+
 export const OPTIONS_BODY = "Make a GET request to retrieve the file";
+export const STATUS_OK = "OK";
+export const STATUS_NO_CONTENT = "No Content";
+export const STATUS_TEMPORARY_REDIRECT = "Temporary Redirect";
+export const STATUS_PERMANENT_REDIRECT = "Permanent Redirect";
+export const STATUS_BAD_REQUEST = "Bad Request";
+export const STATUS_FORBIDDEN = "Forbidden";
+export const STATUS_NOT_FOUND = "Not Found";
+export const STATUS_METHOD_NOT_ALLOWED = "Method Not Allowed";
+export const STATUS_RANGE_NOT_SATISFIABLE = "Range Not Satisfiable";
+export const STATUS_INTERNAL_SERVER_ERROR = "Internal Server Error";
+export const STATUS_ERROR = "Error";
 
 // =============================================================================
 // HTTP RANGE & CACHING
@@ -205,9 +223,17 @@ export const IP_TOKEN = "%IP";
 export const SHORT = "short";
 export const TIME_MS = "%N ms";
 export const TITLE = "title";
-export const TOKEN_N = "%N";
 export const TO_STRING = "toString";
 export const TRUE = "true";
+export const TOKEN_N = "%N";
+export const FALSE = "false";
+export const CRITICAL = "critical";
+export const ALERT = "alert";
+export const EMERG = "emerg";
+export const NOTICE = "notice";
+export const WARN = "warn";
+export const COLLECTION = "collection";
+export const ITEM = "item";
 
 export const MONTHS = Object.freeze(
 	Array.from({ length: 12 }, (_, idx) => {
