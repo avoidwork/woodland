@@ -15,16 +15,18 @@ import { coerce } from "tiny-coerce";
 /**
  * Checks if request origin is allowed for CORS
  * @param {Object} req - Request object
- * @param {Array} origins - Array of allowed origins
+ * @param {Array|Set} origins - Array or Set of allowed origins
  * @returns {boolean} True if CORS is allowed
  */
 export function cors(req, origins) {
-	if (origins.length === 0) {
+	const size = origins.size ?? origins.length;
+	if (size === 0) {
 		return false;
 	}
 
 	const origin = req.headers.origin;
-	return req.corsHost && (origins.includes(WILDCARD) || origins.includes(origin));
+	const has = origins.has ?? ((v) => origins.includes(v));
+	return req.corsHost && (has.call(origins, WILDCARD) || has.call(origins, origin));
 }
 
 /**

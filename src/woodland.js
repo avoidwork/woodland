@@ -129,7 +129,7 @@ export class Woodland extends EventEmitter {
 		this.etags = etags ? etag({ cacheSize, cacheTTL }) : null;
 		this.indexes = [...indexes];
 		this.logging = validateLogging(logging);
-		this.origins = [...origins];
+		this.origins = new Set(origins);
 		this.time = time;
 		this.cache = new Map();
 		this.permissions = new Map();
@@ -146,7 +146,7 @@ export class Woodland extends EventEmitter {
 			this.get(this.etags.middleware).ignore(this.etags.middleware);
 		}
 
-		if (this.origins.length > INT_0) {
+		if (this.origins.size > INT_0) {
 			const fnCorsRequest = corsRequest();
 			this.options(fnCorsRequest).ignore(fnCorsRequest);
 		}
@@ -496,7 +496,7 @@ export class Woodland extends EventEmitter {
 
 		const hasOriginHeader = ORIGIN in req.headers;
 		const origin = hasOriginHeader ? req.headers.origin : EMPTY;
-		const isOriginAllowed = hasOriginHeader && this.origins.includes(origin);
+		const isOriginAllowed = hasOriginHeader && this.origins.has(origin);
 
 		if (req.cors === false && hasOriginHeader && req.corsHost && !isOriginAllowed) {
 			req.valid = false;
@@ -508,9 +508,10 @@ export class Woodland extends EventEmitter {
 				params(req, result.getParams);
 			}
 
-			const exitMiddleware = result.middleware.slice(result.exit)[Symbol.iterator]();
-			req.exit = next(req, res, exitMiddleware, true);
-			next(req, res, result.middleware[Symbol.iterator]())();
+			const middleware = result.middleware;
+			const exitIndex = result.exit;
+			req.exit = next(req, res, middleware.slice(exitIndex)[Symbol.iterator](), true);
+			next(req, res, middleware[Symbol.iterator]())();
 		} else {
 			req.valid = false;
 			res.error(getStatus(req, res));

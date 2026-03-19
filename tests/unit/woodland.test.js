@@ -35,7 +35,7 @@ describe("woodland", () => {
 			assert.ok(app.etags !== void 0 || app.etags === null);
 			assert.ok(Array.isArray(app.indexes));
 			assert.ok(app.logging !== void 0);
-			assert.ok(Array.isArray(app.origins));
+			assert.ok(app.origins instanceof Set);
 			assert.ok(app.time !== void 0);
 		});
 
@@ -970,8 +970,8 @@ describe("woodland", () => {
 		it("should configure with origins", () => {
 			const app = woodland({ origins: ["http://example.com"] });
 
-			assert.strictEqual(app.origins.length, 1);
-			assert.strictEqual(app.origins[0], "http://example.com");
+			assert.strictEqual(app.origins.size, 1);
+			assert.ok(app.origins.has("http://example.com"));
 		});
 
 		it("should configure with etags enabled", () => {
