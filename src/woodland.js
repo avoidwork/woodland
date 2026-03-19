@@ -288,15 +288,11 @@ export class Woodland extends EventEmitter {
 		}
 
 		res.locals = {};
-		res.error = (status = 500, body) =>
-			error(
-				req,
-				res,
-				(req, res, err) => this.emit(ERROR, req, res, err),
-				(req, _status) => this.logger.logError(req.parsed.pathname, req.method, req.ip),
-				status,
-				body,
-			);
+		res.error = (status = 500, body) => {
+			error(req, res, status);
+			this.logger.logError(req.parsed.pathname, req.method, req.ip);
+			this.logger.log(this.logger.clf(req, res), INFO);
+		};
 		res.header = res.setHeader;
 		res.json = (
 			arg,

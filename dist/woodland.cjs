@@ -51,7 +51,6 @@ const INT_308 = 308;
 const INT_403 = 403;
 const INT_404 = 404;
 const INT_405 = 405;
-const INT_416 = 416;
 const INT_500 = 500;
 
 // =============================================================================
@@ -186,17 +185,6 @@ const MSG_SERVE_PATH_OUTSIDE = "Path outside allowed directory";
 const MSG_VALIDATION_FAILED = "Configuration validation failed: ";
 const SEMICOLON_SPACE = "; ";
 const OPTIONS_BODY = "Make a GET request to retrieve the file";
-const STATUS_BAD_REQUEST = "Bad Request";
-const STATUS_ERROR = "Error";
-const STATUS_FORBIDDEN = "Forbidden";
-const STATUS_INTERNAL_SERVER_ERROR = "Internal Server Error";
-const STATUS_METHOD_NOT_ALLOWED = "Method Not Allowed";
-const STATUS_NO_CONTENT = "No Content";
-const STATUS_NOT_FOUND = "Not Found";
-const STATUS_OK = "OK";
-const STATUS_PERMANENT_REDIRECT = "Permanent Redirect";
-const STATUS_RANGE_NOT_SATISFIABLE = "Range Not Satisfiable";
-const STATUS_TEMPORARY_REDIRECT = "Temporary Redirect";
 
 // =============================================================================
 // HTTP RANGE & CACHING
@@ -369,24 +357,6 @@ function mime(arg = EMPTY) {
 }
 
 /**
- * Gets HTTP status text for status code
- * @param {number} status - HTTP status code
- * @returns {string} Status text string
- */
-const STATUS_TEXTS = Object.freeze({
-	INT_200: STATUS_OK,
-	INT_204: STATUS_NO_CONTENT,
-	INT_307: STATUS_TEMPORARY_REDIRECT,
-	INT_308: STATUS_PERMANENT_REDIRECT,
-	INT_400: STATUS_BAD_REQUEST,
-	INT_403: STATUS_FORBIDDEN,
-	INT_404: STATUS_NOT_FOUND,
-	INT_405: STATUS_METHOD_NOT_ALLOWED,
-	INT_416: STATUS_RANGE_NOT_SATISFIABLE,
-	INT_500: STATUS_INTERNAL_SERVER_ERROR,
-});
-
-/**
  * Determines the appropriate HTTP status code based on request and response state
  * @param {Object} req - The HTTP request object
  * @param {Object} res - The HTTP response object
@@ -405,10 +375,6 @@ function getStatus(req, res) {
 	return res.statusCode > INT_500 ? res.statusCode : INT_500;
 }
 
-function getStatusText(status) {
-	return STATUS_TEXTS[`INT_${status}`] || STATUS_ERROR;
-}
-
 /**
  * No-op function for default parameters
  * @returns {void}
@@ -419,15 +385,10 @@ function noop() {}
  * Error response handler
  * @param {Object} req - Request object
  * @param {Object} res - Response object
- * @param {Function} emitError - Error emit function
- * @param {Function} logError - Error log function
  * @param {number} [status=500] - HTTP status code
- * @param {*} [body] - Error body
  */
-function error(req, res, emitError, logError, status = 500, body) {
+function error(req, res, status = 500) {
 	if (res.headersSent === false) {
-		const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
-
 		if (status === INT_404) {
 			res.removeHeader(ALLOW);
 			res.header(ALLOW, EMPTY);
@@ -440,9 +401,6 @@ function error(req, res, emitError, logError, status = 500, body) {
 
 		res.removeHeader(CONTENT_LENGTH);
 		res.statusCode = status;
-
-		emitError(req, res, err);
-		logError(req, status);
 	}
 }
 
@@ -501,9 +459,9 @@ function send(
 		if (isPipeable) {
 			if (rangeHeader === void 0 || req.range !== void 0) {
 				writeHead(res, headers);
-				body.on(ERROR, (err) => error(req, res, noop, noop, INT_500, err)).pipe(res);
+				body.on(ERROR, (err) => error(req, res, noop)).pipe(res);
 			} else {
-				error(req, res, noop, noop, INT_416);
+				error(req, res, noop);
 			}
 		} else {
 			if (body !== null && typeof body !== STRING && typeof body[TO_STRING] === "function") {
@@ -519,7 +477,7 @@ function send(
 					const rangeBuffer = buffered.slice(req.range.start, req.range.end + 1);
 					onDone(req, res, rangeBuffer.toString(), headers);
 				} else {
-					error(req, res, noop, noop, INT_416);
+					error(req, res, noop);
 				}
 			} else {
 				res.statusCode = status;
@@ -1814,15 +1772,15 @@ class Woodland extends node_events.EventEmitter {
 		}
 
 		res.locals = {};
-		res.error = (status = 500, body) =>
+		res.error = (status = 500, body) => {
 			error(
 				req,
 				res,
-				(req, res, err) => this.emit(ERROR, req, res, err),
-				(req, _status) => this.logger.logError(req.parsed.pathname, req.method, req.ip),
 				status,
-				body,
 			);
+			this.logger.logError(req.parsed.pathname, req.method, req.ip);
+			this.logger.log(this.logger.clf(req, res), INFO);
+		};
 		res.header = res.setHeader;
 		res.json = (
 			arg,

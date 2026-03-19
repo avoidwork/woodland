@@ -228,15 +228,10 @@ export function noop() {}
  * Error response handler
  * @param {Object} req - Request object
  * @param {Object} res - Response object
- * @param {Function} emitError - Error emit function
- * @param {Function} logError - Error log function
  * @param {number} [status=500] - HTTP status code
- * @param {*} [body] - Error body
  */
-export function error(req, res, emitError, logError, status = 500, body) {
+export function error(req, res, status = 500) {
 	if (res.headersSent === false) {
-		const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
-
 		if (status === INT_404) {
 			res.removeHeader(ALLOW);
 			res.header(ALLOW, EMPTY);
@@ -249,9 +244,6 @@ export function error(req, res, emitError, logError, status = 500, body) {
 
 		res.removeHeader(CONTENT_LENGTH);
 		res.statusCode = status;
-
-		emitError(req, res, err);
-		logError(req, status);
 	}
 }
 
