@@ -301,12 +301,12 @@ describe("request", () => {
 	describe("cors", () => {
 		it("should return false when origins is empty", () => {
 			const req = { headers: { origin: "https://example.com" }, corsHost: true };
-			assert.strictEqual(cors(req, []), false);
+			assert.strictEqual(cors(req, new Set()), false);
 		});
 
 		it("should return false when no origin header", () => {
 			const req = { headers: {}, corsHost: false };
-			assert.strictEqual(cors(req, ["https://example.com"]), false);
+			assert.strictEqual(cors(req, new Set(["https://example.com"])), false);
 		});
 
 		it("should return true for wildcard origin", () => {
@@ -314,7 +314,7 @@ describe("request", () => {
 				headers: { origin: "https://example.com" },
 				corsHost: true,
 			};
-			assert.strictEqual(cors(req, ["*"]), true);
+			assert.strictEqual(cors(req, new Set(["*"])), true);
 		});
 
 		it("should return true for matching origin", () => {
@@ -322,7 +322,7 @@ describe("request", () => {
 				headers: { origin: "https://example.com" },
 				corsHost: true,
 			};
-			assert.strictEqual(cors(req, ["https://example.com"]), true);
+			assert.strictEqual(cors(req, new Set(["https://example.com"])), true);
 		});
 
 		it("should return false for non-matching origin", () => {
@@ -330,7 +330,7 @@ describe("request", () => {
 				headers: { origin: "https://other.com" },
 				corsHost: true,
 			};
-			assert.strictEqual(cors(req, ["https://example.com"]), false);
+			assert.strictEqual(cors(req, new Set(["https://example.com"])), false);
 		});
 	});
 
