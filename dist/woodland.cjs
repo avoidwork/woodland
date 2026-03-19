@@ -615,7 +615,7 @@ function escapeHtml(str = EMPTY) {
 /**
  * Checks if request origin is allowed for CORS
  * @param {Object} req - Request object
- * @param {Array|Set} origins - Array or Set of allowed origins
+ * @param {Set} origins - Set of allowed origins
  * @returns {boolean} True if CORS is allowed
  */
 function cors(req, origins) {
@@ -624,7 +624,8 @@ function cors(req, origins) {
 	}
 
 	const origin = req.headers.origin;
-	return req.corsHost && (origins.has(WILDCARD) || origins.has(origin));
+	const corsWildcard = origins.has(WILDCARD);
+	return req.corsHost && (corsWildcard || origins.has(origin));
 }
 
 /**
