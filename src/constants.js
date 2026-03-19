@@ -84,8 +84,11 @@ export const INT_1 = 1;
 export const INT_2 = 2;
 export const INT_3 = 3;
 export const INT_4 = 4;
+export const INT_5 = 5;
+export const INT_8 = 8;
 export const INT_10 = 10;
 export const INT_60 = 60;
+export const INT_255 = 255;
 export const INT_1e3 = 1e3;
 export const INT_1e4 = 1e4;
 export const INT_1e6 = 1e6;
@@ -96,11 +99,14 @@ export const INT_65535 = 65535;
 // STRING & CHARACTER CONSTANTS
 // =============================================================================
 export const COMMA = ",";
+export const COLON = ":";
 export const DELIMITER = "|";
+export const DOUBLE_COLON = "::";
 export const EMPTY = "";
 export const EQUAL = "=";
 export const HYPHEN = "-";
 export const LEFT_PAREN = "(";
+export const PERCENT = "%";
 export const PERIOD = ".";
 export const SLASH = "/";
 export const STRING_0 = "0";
@@ -118,6 +124,8 @@ export const STRING = "string";
 export const SERVER_VALUE = `${name}/${version}`;
 export const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform}/${process.arch}`;
 export const LOCALHOST = "127.0.0.1";
+export const HTTP_PREFIX = "http://";
+export const LOCALHOST_PORT = "localhost:";
 
 // =============================================================================
 // FILE SYSTEM & ROUTING

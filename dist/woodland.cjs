@@ -100,8 +100,11 @@ const INT_1 = 1;
 const INT_2 = 2;
 const INT_3 = 3;
 const INT_4 = 4;
+const INT_5 = 5;
+const INT_8 = 8;
 const INT_10 = 10;
 const INT_60 = 60;
+const INT_255 = 255;
 const INT_1e3 = 1e3;
 const INT_1e4 = 1e4;
 const INT_8000 = 8000;
@@ -110,10 +113,13 @@ const INT_8000 = 8000;
 // STRING & CHARACTER CONSTANTS
 // =============================================================================
 const COMMA = ",";
+const COLON = ":";
 const DELIMITER = "|";
+const DOUBLE_COLON = "::";
 const EMPTY = "";
 const HYPHEN = "-";
 const LEFT_PAREN = "(";
+const PERCENT = "%";
 const PERIOD = ".";
 const SLASH = "/";
 const STRING_0 = "0";
@@ -131,6 +137,7 @@ const STRING = "string";
 const SERVER_VALUE = `${name}/${version}`;
 const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform}/${process.arch}`;
 const LOCALHOST = "127.0.0.1";
+const HTTP_PREFIX = "http://";
 
 // =============================================================================
 // FILE SYSTEM & ROUTING
@@ -645,7 +652,8 @@ function cors(req, origins) {
  */
 function corsHost(req) {
 	return (
-		ORIGIN in req.headers && req.headers.origin.replace(/^http(s)?:\/\//, "") !== req.headers.host
+		ORIGIN in req.headers &&
+		req.headers.origin.replace(/^http(s)?:\/\//, EMPTY) !== req.headers.host
 	);
 }
 
@@ -712,7 +720,7 @@ function params(req, getParams) {
 			processedParams[key] = tinyCoerce.coerce(null);
 		} else {
 			let decoded;
-			if (value.indexOf("%") === -1) {
+			if (value.indexOf(PERCENT) === -1) {
 				decoded = value;
 			} else {
 				try {
@@ -738,7 +746,7 @@ function parse(arg) {
 	return new URL(
 		typeof arg === STRING
 			? arg
-			: `http://${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || String(INT_8000)}`}${arg.url}`,
+			: `${HTTP_PREFIX}${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || String(INT_8000)}`}${arg.url}`,
 	);
 }
 
@@ -766,16 +774,16 @@ function isValidIP(ip) {
 		return false;
 	}
 
-	if (ip.indexOf(":") === -1) {
+	if (ip.indexOf(COLON) === -1) {
 		const match = IPV4_PATTERN.exec(ip);
 
 		if (!match) {
 			return false;
 		}
 
-		for (let i = 1; i < 5; i++) {
-			const num = parseInt(match[i], 10);
-			if (num > 255) {
+		for (let i = 1; i < INT_5; i++) {
+			const num = parseInt(match[i], INT_10);
+			if (num > INT_255) {
 				return false;
 			}
 		}
@@ -792,59 +800,59 @@ function isValidIP(ip) {
 		return isValidIP(ipv4MappedMatch[1]);
 	}
 
-	if (ip === "::") {
+	if (ip === DOUBLE_COLON) {
 		return true;
 	}
 
-	const doubleColonIndex = ip.indexOf("::");
+	const doubleColonIndex = ip.indexOf(DOUBLE_COLON);
 	const isCompressed = doubleColonIndex !== -1;
 
 	if (isCompressed) {
-		if (ip.indexOf("::", doubleColonIndex + 2) !== -1) {
+		if (ip.indexOf(DOUBLE_COLON, doubleColonIndex + INT_2) !== -1) {
 			return false;
 		}
 
 		if (
-			(doubleColonIndex > 0 && ip.charAt(doubleColonIndex - 1) === ":") ||
-			(doubleColonIndex + 2 < ip.length && ip.charAt(doubleColonIndex + 2) === ":")
+			(doubleColonIndex > INT_0 && ip.charAt(doubleColonIndex - INT_1) === COLON) ||
+			(doubleColonIndex + INT_2 < ip.length && ip.charAt(doubleColonIndex + INT_2) === COLON)
 		) {
 			return false;
 		}
 
-		const beforeDoubleColon = ip.substring(0, doubleColonIndex);
-		const afterDoubleColon = ip.substring(doubleColonIndex + 2);
+		const beforeDoubleColon = ip.substring(INT_0, doubleColonIndex);
+		const afterDoubleColon = ip.substring(doubleColonIndex + INT_2);
 
 		let leftGroups;
 		if (beforeDoubleColon) {
-			leftGroups = beforeDoubleColon.split(":");
+			leftGroups = beforeDoubleColon.split(COLON);
 		} else {
 			leftGroups = [];
 		}
 
 		let rightGroups;
 		if (afterDoubleColon) {
-			rightGroups = afterDoubleColon.split(":");
+			rightGroups = afterDoubleColon.split(COLON);
 		} else {
 			rightGroups = [];
 		}
 
-		const nonEmptyLeft = leftGroups.filter((g) => g !== "");
-		const nonEmptyRight = rightGroups.filter((g) => g !== "");
+		const nonEmptyLeft = leftGroups.filter((g) => g !== EMPTY);
+		const nonEmptyRight = rightGroups.filter((g) => g !== EMPTY);
 		const totalGroups = nonEmptyLeft.length + nonEmptyRight.length;
 
-		if (totalGroups >= 8) {
+		if (totalGroups >= INT_8) {
 			return false;
 		}
 
 		/* node:coverage ignore next 5 */
-		for (let i = 0; i < nonEmptyLeft.length; i++) {
+		for (let i = INT_0; i < nonEmptyLeft.length; i++) {
 			if (!HEX_GROUP_PATTERN.test(nonEmptyLeft[i])) {
 				return false;
 			}
 		}
 
 		/* node:coverage ignore next 5 */
-		for (let i = 0; i < nonEmptyRight.length; i++) {
+		for (let i = INT_0; i < nonEmptyRight.length; i++) {
 			if (!HEX_GROUP_PATTERN.test(nonEmptyRight[i])) {
 				return false;
 			}
@@ -852,13 +860,13 @@ function isValidIP(ip) {
 
 		return true;
 	} else {
-		const groups = ip.split(":");
-		if (groups.length !== 8) {
+		const groups = ip.split(COLON);
+		if (groups.length !== INT_8) {
 			return false;
 		}
 
 		/* node:coverage ignore next 5 */
-		for (let i = 0; i < 8; i++) {
+		for (let i = INT_0; i < INT_8; i++) {
 			if (!groups[i] || !HEX_GROUP_PATTERN.test(groups[i])) {
 				return false;
 			}

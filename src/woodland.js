@@ -1,6 +1,5 @@
 import { METHODS } from "node:http";
 import { EventEmitter } from "node:events";
-
 const METHODS_ARRAY = [...METHODS];
 import { createReadStream } from "node:fs";
 import { etag } from "tiny-etag";
