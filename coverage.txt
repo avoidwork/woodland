@@ -10,17 +10,17 @@
 ℹ  logger.js     | 100.00 |    95.00 |  100.00 | 
 ℹ  middleware.js | 100.00 |   100.00 |  100.00 | 
 ℹ  request.js    | 100.00 |   100.00 |  100.00 | 
-ℹ  response.js   | 100.00 |    98.84 |  100.00 | 
-ℹ  woodland.js   | 100.00 |    98.18 |   94.44 | 
+ℹ  response.js   | 100.00 |    98.96 |  100.00 | 
+ℹ  woodland.js   | 100.00 |    98.17 |   94.34 | 
 ℹ ---------------------------------------------------------------
-ℹ all files      | 100.00 |    98.00 |   97.92 | 
+ℹ all files      | 100.00 |    97.99 |   97.89 | 
 ℹ ---------------------------------------------------------------
 ℹ end of coverage report
 
 ✖ failing tests:
 
 test at tests\unit\logger.test.js:51:4
-✖ should return logger object with chained methods (0.3562ms)
+✖ should return logger object with chained methods (0.4831ms)
   TypeError: Cannot read properties of undefined (reading 'log')
       at TestContext.<anonymous> (file:///C:/Users/jason/Projects/woodland/tests/unit/logger.test.js:55:22)
       at Test.runInAsyncScope (node:async_hooks:226:14)
@@ -34,7 +34,7 @@ test at tests\unit\logger.test.js:51:4
       at Array.map (<anonymous>)
 
 test at tests\unit\logger.test.js:293:4
-✖ should handle missing parsed data (0.1144ms)
+✖ should handle missing parsed data (0.0991ms)
   TypeError: Cannot read properties of undefined (reading 'x-forwarded-for')
       at extractIP (file:///C:/Users/jason/Projects/woodland/src/request.js:60:37)
       at clfm (file:///C:/Users/jason/Projects/woodland/src/logger.js:58:29)
@@ -48,7 +48,7 @@ test at tests\unit\logger.test.js:293:4
       at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7)
 
 test at tests\unit\logger.test.js:406:4
-✖ should handle null headers (0.1202ms)
+✖ should handle null headers (0.1415ms)
   TypeError: Cannot read properties of null (reading 'x-forwarded-for')
       at extractIP (file:///C:/Users/jason/Projects/woodland/src/request.js:60:37)
       at clfm (file:///C:/Users/jason/Projects/woodland/src/logger.js:58:29)
@@ -62,7 +62,7 @@ test at tests\unit\logger.test.js:406:4
       at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7)
 
 test at tests\unit\logger.test.js:424:4
-✖ should handle undefined headers (0.077ms)
+✖ should handle undefined headers (0.2549ms)
   TypeError: Cannot read properties of undefined (reading 'x-forwarded-for')
       at extractIP (file:///C:/Users/jason/Projects/woodland/src/request.js:60:37)
       at clfm (file:///C:/Users/jason/Projects/woodland/src/logger.js:58:29)
@@ -76,7 +76,7 @@ test at tests\unit\logger.test.js:424:4
       at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7)
 
 test at tests\unit\logger.test.js:625:4
-✖ should create route log message (3.2346ms)
+✖ should create route log message (3.6573ms)
   AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
   
     assert.ok(result)
@@ -100,7 +100,7 @@ test at tests\unit\logger.test.js:625:4
   }
 
 test at tests\unit\logger.test.js:633:4
-✖ should include uri in message (0.2421ms)
+✖ should include uri in message (0.2667ms)
   AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
   
     assert.ok(result)
@@ -123,7 +123,7 @@ test at tests\unit\logger.test.js:633:4
   }
 
 test at tests\unit\logger.test.js:642:4
-✖ should create middleware log message (0.2034ms)
+✖ should create middleware log message (0.2331ms)
   AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
   
     assert.ok(result)
@@ -147,7 +147,7 @@ test at tests\unit\logger.test.js:642:4
   }
 
 test at tests\unit\logger.test.js:650:4
-✖ should include route in message (0.1141ms)
+✖ should include route in message (0.1235ms)
   AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
   
     assert.ok(result)
@@ -170,7 +170,7 @@ test at tests\unit\logger.test.js:650:4
   }
 
 test at tests\unit\logger.test.js:659:4
-✖ should create decoration log message (0.1306ms)
+✖ should create decoration log message (0.1928ms)
   AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
   
     assert.ok(result)
@@ -194,7 +194,7 @@ test at tests\unit\logger.test.js:659:4
   }
 
 test at tests\unit\logger.test.js:669:4
-✖ should create error log message (0.1511ms)
+✖ should create error log message (0.3284ms)
   AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
   
     assert.ok(result)
@@ -218,7 +218,7 @@ test at tests\unit\logger.test.js:669:4
   }
 
 test at tests\unit\logger.test.js:679:4
-✖ should create serve log message (0.1944ms)
+✖ should create serve log message (0.2196ms)
   AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
   
     assert.ok(result)
@@ -242,7 +242,7 @@ test at tests\unit\logger.test.js:679:4
   }
 
 test at tests\unit\woodland.test.js:56:3
-✖ should have logger object with all methods (3.8492ms)
+✖ should have logger object with all methods (3.9587ms)
   AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
   
     assert.ok(app.logger.extractIP)
@@ -263,7 +263,7 @@ test at tests\unit\woodland.test.js:56:3
   }
 
 test at tests\unit\woodland.test.js:77:3
-✖ should have IP extractor (0.3912ms)
+✖ should have IP extractor (0.3588ms)
   AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
   
     assert.ok(app.ip)

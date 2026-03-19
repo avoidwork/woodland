@@ -366,20 +366,6 @@ describe("woodland", () => {
 			});
 		});
 
-		describe("extractPath", () => {
-			it("should convert parameterized route to regex", () => {
-				const result = app.extractPath("/users/:id");
-
-				assert.strictEqual(result, "/users/(?<id>[^/]+)");
-			});
-
-			it("should handle multiple parameters", () => {
-				const result = app.extractPath("/users/:userId/posts/:postId");
-
-				assert.strictEqual(result, "/users/(?<userId>[^/]+)/posts/(?<postId>[^/]+)");
-			});
-		});
-
 		describe("files", () => {
 			it("should register file server", () => {
 				app.files("/static", "/tmp");

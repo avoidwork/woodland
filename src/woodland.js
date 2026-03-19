@@ -50,12 +50,21 @@ import {
 	X_POWERED_BY_VALUE,
 	X_RESPONSE_TIME,
 } from "./constants.js";
-import { writeHead } from "./response.js";
-import { createMiddlewareRegistry, getStatus, next } from "./middleware.js";
-import { error, json, redirect, send, set, status, stream as responseStream } from "./response.js";
+import { createMiddlewareRegistry, next } from "./middleware.js";
+import {
+	error,
+	json,
+	redirect,
+	send,
+	set,
+	status,
+	stream as responseStream,
+	getStatus,
+	writeHead,
+} from "./response.js";
 import { validateConfig, validateLogging } from "./config.js";
 import { createLogger } from "./logger.js";
-import { cors, corsHost, corsRequest, params, parse, extractPath, extractIP } from "./request.js";
+import { cors, corsHost, corsRequest, params, parse, extractIP } from "./request.js";
 import { createFileServer } from "./fileserver.js";
 import { APPLICATION_JSON } from "./constants.js";
 
@@ -718,15 +727,6 @@ export class Woodland extends EventEmitter {
 		this.logger.logMiddleware(rpath, fn[fn.length - 1]);
 
 		return this;
-	}
-
-	/**
-	 * Converts parameterized route path to regex pattern
-	 * @param {string} path - Route path with parameters (e.g., "/users/:id")
-	 * @returns {string} Regex pattern string
-	 */
-	extractPath(path) {
-		return extractPath(path);
 	}
 }
 

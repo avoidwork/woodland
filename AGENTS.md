@@ -46,10 +46,10 @@
 |------|---------|---------|
 | `src/woodland.js` | Main framework (only class) | `Woodland` class, `woodland` factory |
 | `src/config.js` | Configuration validation | `validateConfig`, `validateLogging`, `validateOrigins`, `mergeEnvLogging` |
-| `src/response.js` | Response handlers | `mime`, `getStatusText`, `error`, `json`, `redirect`, `send`, `set`, `status`, `stream`, `noop`, `escapeHtml`, `partialHeaders`, `pipeable`, `writeHead`, `mimeExtensions` |
+| `src/response.js` | Response handlers | `mime`, `getStatusText`, `getStatus`, `error`, `json`, `redirect`, `send`, `set`, `status`, `stream`, `noop`, `escapeHtml`, `partialHeaders`, `pipeable`, `writeHead`, `mimeExtensions` |
 | `src/request.js` | Request handlers | `cors`, `corsHost`, `corsRequest`, `extractIP`, `decorate`, `logClose`, `params`, `parse`, `extractPath`, `isValidIP` |
 | `src/logger.js` | Logging | `createLogger`, `log`, `clfm`, `logRoute`, `logMiddleware`, `logDecoration`, `logError`, `logServe`, `ms`, `timeOffset` |
-| `src/middleware.js` | Middleware registry | `reduce`, `getStatus`, `next`, `computeRoutes`, `listRoutes`, `checkAllowed`, `createMiddlewareRegistry`, `registerMiddleware` |
+| `src/middleware.js` | Middleware registry | `reduce`, `next`, `computeRoutes`, `listRoutes`, `checkAllowed`, `createMiddlewareRegistry`, `registerMiddleware` |
 | `src/fileserver.js` | File server | `serve`, `register`, `createFileServer`, `autoindex` |
 | `src/constants.js` | Constants & patterns | All framework constants (HTTP methods, headers, status codes, etc.) |
 | `src/cli.js` | CLI entry point | CLI server runner |
@@ -168,8 +168,10 @@ res.send = this.send(req, res); // Returns function: res.send(body, status, head
 - Cache key format: `${method}${DELIMITER}${uri}` (e.g., `"GET|/test"`)
 - `computeRoutes` caches results in Map with key `${method}${DELIMITER}${uri}`
 - `next` - creates iterator-based middleware executor with error handler detection (ERROR_HANDLER_LENGTH = 4)
-- `getStatus` - determines 404/405/500 based on `req.allow` and method
 - HEAD routes cannot be registered directly; GET routes implicitly allow HEAD
+
+### Response handlers (`response.js`)
+- `getStatus` - determines 404/405/500 based on `req.allow` and method (moved from middleware.js)
 
 ### Middleware state management
 - `this.middleware` on Woodland instance is the registry object (not a Map)

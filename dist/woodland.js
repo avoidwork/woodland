@@ -5,7 +5,7 @@
  * @license BSD-3-Clause
  * @version 20.2.10
  */
-import {STATUS_CODES,METHODS}from'node:http';import {EventEmitter}from'node:events';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {createRequire}from'node:module';import {join,extname,resolve}from'node:path';import {fileURLToPath,URL as URL$1}from'node:url';import mimeDb from'mime-db';import {Validator}from'jsonschema';import {coerce}from'tiny-coerce';import {stat,readdir}from'node:fs/promises';const __dirname$1 = fileURLToPath(new URL$1(".", import.meta.url));
+import {STATUS_CODES,METHODS}from'node:http';import {EventEmitter}from'node:events';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {createRequire}from'node:module';import {join,extname,resolve}from'node:path';import {fileURLToPath,URL as URL$1}from'node:url';import mimeDb from'mime-db';import {coerce}from'tiny-coerce';import {Validator}from'jsonschema';import {stat,readdir}from'node:fs/promises';const __dirname$1 = fileURLToPath(new URL$1(".", import.meta.url));
 const require$1 = createRequire(import.meta.url);
 const { name, version } = require$1(join(__dirname$1, "..", "package.json"));
 
@@ -33,6 +33,7 @@ const INT_307 = 307;
 const INT_308 = 308;
 const INT_403 = 403;
 const INT_404 = 404;
+const INT_405 = 405;
 const INT_416 = 416;
 const INT_500 = 500;
 
@@ -348,6 +349,25 @@ const STATUS_TEXTS = Object.freeze({
 	INT_500: STATUS_INTERNAL_SERVER_ERROR,
 });
 
+/**
+ * Determines the appropriate HTTP status code based on request and response state
+ * @param {Object} req - The HTTP request object
+ * @param {Object} res - The HTTP response object
+ * @returns {number} The appropriate HTTP status code
+ */
+function getStatus(req, res) {
+	if (req.allow.length === 0) {
+		return INT_404;
+	}
+	if (req.method !== GET) {
+		return INT_405;
+	}
+	if (req.allow.includes(GET) === false) {
+		return INT_404;
+	}
+	return res.statusCode > INT_500 ? res.statusCode : INT_500;
+}
+
 function getStatusText(status) {
 	return STATUS_TEXTS[`INT_${status}`] || STATUS_ERROR;
 }
@@ -570,403 +590,6 @@ function stream(req, res, file, emitStream, createReadStream, etags) {
  */
 function escapeHtml(str = EMPTY) {
 	return str.replace(/[&<>"']/g, (match) => htmlEscapes[match]);
-}const extractPath$1 = (arg = "") => arg.replace(/\/:([^/]+)/g, "/(?<$1>[^/]+)"),
-	NODE_METHODS = ["CONNECT", "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT", "TRACE"];
-
-/**
- * Processes middleware map for a given URI and populates middleware array
- * @param {string} uri - The URI to match against
- * @param {Map} [map=new Map()] - Map of middleware handlers
- * @param {Object} [arg={}] - Object containing middleware array and parameters
- */
-function reduce(uri, map = new Map(), arg = {}) {
-	if (!map.size) {
-		return;
-	}
-
-	const middlewareArray = arg.middleware;
-	let paramsFound = arg.params;
-
-	for (const middleware of map.values()) {
-		middleware.regex.lastIndex = 0;
-
-		if (middleware.regex.test(uri)) {
-			const handlers = middleware.handlers;
-
-			if (handlers.length === 1) {
-				middlewareArray.push(handlers[0]);
-			} else {
-				middlewareArray.push(...handlers);
-			}
-
-			if (middleware.params && !paramsFound) {
-				arg.params = true;
-				arg.getParams = middleware.regex;
-				paramsFound = true;
-			}
-		}
-	}
-}
-
-/**
- * Determines the appropriate HTTP status code based on request and response state
- * @param {Object} req - The HTTP request object
- * @param {Object} res - The HTTP response object
- * @returns {number} The appropriate HTTP status code
- */
-function getStatus(req, res) {
-	if (req.allow.length === 0) {
-		return 404;
-	}
-	if (req.method !== "GET") {
-		return 405;
-	}
-	if (req.allow.includes("GET") === false) {
-		return 404;
-	}
-	return res.statusCode > 500 ? res.statusCode : 500;
-}
-
-const ERROR_HANDLER_LENGTH = 4;
-
-/**
- * Creates a next function for middleware processing with error handling
- * @param {Object} req - The HTTP request object
- * @param {Object} res - The HTTP response object
- * @param {Iterator} middleware - The middleware iterator
- * @param {boolean} [immediate=false] - Whether to execute immediately or on next tick
- * @returns {Function} The next function for middleware chain
- */
-function next(req, res, middleware, immediate = false) {
-	/**
-	 * Handles errors by finding error handler middleware
-	 * @param {Error} err - The error to handle
-	 * @param {Function} nextFn - Next function for chain
-	 */
-	const handleError = (err, nextFn) => {
-		let obj = middleware.next();
-
-		while (obj.done === false && obj.value && obj.value.length !== ERROR_HANDLER_LENGTH) {
-			obj = middleware.next();
-		}
-
-		if (obj.done === false && obj.value) {
-			obj.value(err, req, res, nextFn);
-		} else {
-			res.error(getStatus(req, res));
-		}
-	};
-
-	/**
-	 * Handles regular middleware execution
-	 * @param {Function} nextFn - Next function for chain
-	 */
-	const handleMiddleware = (nextFn) => {
-		const obj = middleware.next();
-
-		if (obj.done === false) {
-			const value = obj.value;
-			if (typeof value === FUNCTION) {
-				value(req, res, nextFn);
-			} else {
-				res.send(value);
-			}
-		} else {
-			res.error(getStatus(req, res));
-		}
-	};
-
-	/**
-	 * Executes middleware chain with error handling
-	 * @param {Error} [err] - Optional error to trigger error handling
-	 */
-	const execute = (err) => {
-		if (err !== void 0) {
-			handleError(err, execute);
-		} else {
-			handleMiddleware(execute);
-		}
-	};
-
-	return immediate ? execute : (err) => process.nextTick(() => execute(err));
-}
-
-/**
- * Computes route information for a given URI and method
- * @param {Map} middleware - Map of middleware by method
- * @param {Set} ignored - Set of ignored middleware functions
- * @param {string} uri - The URI to match
- * @param {string} method - HTTP method
- * @param {Object|Map} cache - Cache for route results
- * @param {boolean} [override=false] - Whether to override cache
- * @returns {Object} Route information object
- */
-function computeRoutes(middleware, ignored, uri, method, cache, override = false) {
-	const key = `${method}${DELIMITER}${uri}`;
-	const cached = override === false ? cache.get(key) : void 0;
-	let result;
-
-	if (cached !== void 0) {
-		result = cached;
-	} else {
-		result = { getParams: null, middleware: [], params: false, visible: 0, exit: -1 };
-		reduce(uri, middleware.get(WILDCARD) ?? new Map(), result);
-
-		if (method !== WILDCARD) {
-			result.exit = result.middleware.length;
-			reduce(uri, middleware.get(method) ?? new Map(), result);
-		}
-
-		let visible = 0;
-		for (let i = 0; i < result.middleware.length; i++) {
-			if (!ignored.has(result.middleware[i])) {
-				visible++;
-			}
-		}
-		result.visible = visible;
-		cache.set(key, result);
-	}
-
-	return result;
-}
-
-/**
- * Lists middleware routes for a given method
- * @param {Map} middleware - Map of middleware by method
- * @param {string} [method=get] - HTTP method to list
- * @param {string} [type=array] - Return type (array or object)
- * @returns {Array|Object} List of routes
- */
-function listRoutes(middleware, method = GET.toLowerCase(), type = "array") {
-	let result;
-	const methodMap = middleware.get(method.toUpperCase());
-
-	if (type === "array") {
-		result = [...methodMap.keys()];
-	} else if (type === "object") {
-		result = {};
-		const entries = Array.from(methodMap.entries());
-		const entryCount = entries.length;
-
-		for (let i = 0; i < entryCount; i++) {
-			const [key, value] = entries[i];
-			result[key] = value;
-		}
-	}
-
-	return result;
-}
-
-/**
- * Checks if a method is allowed for a given URI
- * @param {Map} middleware - Map of middleware by method
- * @param {Set} ignored - Set of ignored middleware functions
- * @param {Object|Map} cache - Cache for route results
- * @param {string} method - HTTP method
- * @param {string} uri - The URI to check
- * @param {boolean} [override=false] - Whether to override cache
- * @returns {boolean} True if allowed
- */
-function checkAllowed(middleware, ignored, cache, method, uri, override = false) {
-	return computeRoutes(middleware, ignored, uri, method, cache, override).visible > INT_0;
-}
-
-/**
- * Creates a registry object with middleware management methods
- * @param {Array} methods - Array of registered HTTP methods
- * @param {Object|Map} cache - Cache for route results
- * @returns {Object} Registry object with ignore, allowed, routes, register, list methods
- */
-function createMiddlewareRegistry(methods, cache) {
-	const middleware = new Map();
-	const ignored = new Set();
-
-	return {
-		ignore: (f) => {
-			ignored.add(f);
-		},
-		allowed: (m, u, o) => checkAllowed(middleware, ignored, cache, m, u, o),
-		routes: (u, m, o) => computeRoutes(middleware, ignored, u, m, cache, o),
-		register: (p, ...fns) => registerMiddleware(middleware, ignored, methods, cache, p, ...fns),
-		list: (m, t) => listRoutes(middleware, m, t),
-	};
-}
-
-/**
- * Registers middleware for a route
- * @param {Map} middleware - Map of middleware by method
- * @param {Set} ignored - Set of ignored middleware functions
- * @param {Array} methods - Array of registered HTTP methods
- * @param {Object|Map} cache - Cache for route results
- * @param {string|Function} rpath - Route path or middleware function
- * @param {...Function} fn - Middleware functions to register
- */
-function registerMiddleware(middleware, ignored, methods, cache, rpath, ...fn) {
-	if (rpath === void 0) {
-		return;
-	}
-
-	if (typeof rpath === FUNCTION) {
-		fn = [rpath, ...fn];
-		rpath = `/.${WILDCARD}`;
-	}
-
-	const method = typeof fn[fn.length - 1] === STRING ? fn.pop().toUpperCase() : GET;
-
-	if (method !== WILDCARD && NODE_METHODS.includes(method) === false) {
-		throw new TypeError("Invalid HTTP method");
-	}
-
-	if (method === HEAD) {
-		throw new TypeError("Cannot set HEAD route, use GET");
-	}
-
-	if (middleware.has(method) === false) {
-		if (method !== WILDCARD) {
-			methods.push(method);
-		}
-
-		middleware.set(method, new Map());
-	}
-
-	const mmethod = middleware.get(method);
-	let lrpath = rpath,
-		lparams = false;
-
-	if (lrpath.includes(`${SLASH}${LEFT_PAREN}`) === false && lrpath.includes(`${SLASH}:`)) {
-		lparams = true;
-		lrpath = extractPath$1(lrpath);
-	}
-
-	const current = mmethod.get(lrpath) ?? { handlers: [] };
-
-	current.handlers.push(...fn);
-	mmethod.set(lrpath, {
-		handlers: current.handlers,
-		params: lparams,
-		regex: new RegExp(`^${lrpath}$`),
-	});
-}const DEFAULTS = {
-	autoindex: false,
-	cacheSize: INT_1e3,
-	cacheTTL: INT_1e4,
-	charset: UTF_8,
-	corsExpose: EMPTY,
-	defaultHeaders: {},
-	digit: INT_3,
-	etags: true,
-	indexes: [INDEX_HTM, INDEX_HTML],
-	logging: {},
-	origins: [],
-	silent: false,
-	time: false,
-};
-
-const CONFIG_SCHEMA = {
-	$schema: "http://json-schema.org/draft-07/schema#",
-	type: "object",
-	properties: {
-		autoindex: { type: "boolean" },
-		cacheSize: { type: "number", minimum: 1 },
-		cacheTTL: { type: "number", minimum: 1 },
-		charset: { type: "string" },
-		corsExpose: { type: "string" },
-		defaultHeaders: { type: "object" },
-		digit: { type: "number", minimum: 1, maximum: 10 },
-		etags: { type: "boolean" },
-		indexes: { type: "array", items: { type: "string" } },
-		logging: { type: "object" },
-		origins: { type: "array", items: { type: "string" } },
-		silent: { type: "boolean" },
-		time: { type: "boolean" },
-	},
-	additionalProperties: false,
-};
-
-const validator = new Validator();
-
-/**
- * Validates configuration object against schema
- * @param {Object} [config={}] - Configuration object to validate
- * @returns {Object} Validated configuration object with defaults
- * @throws {Error} When configuration validation fails
- */
-function validateConfig(config = {}) {
-	const result = validator.validate(config, CONFIG_SCHEMA);
-
-	if (!result.valid) {
-		const errors = result.errors.map((err) => {
-			const field = Array.isArray(err.path)
-				? err.path.join(PERIOD)
-				: String(err.path).replace(/^\./, EMPTY);
-			let msg = err.message;
-
-			if (msg.includes("is not of a type(s)")) {
-				const types = msg.match(/type\(s\) ([a-z, ]+)/i);
-				const type = types ? types[1].split(",")[0].trim() : "type";
-				msg = `must be ${type}`;
-			} else if (msg.includes("must be greater than or equal to")) {
-				const val = msg.match(/greater than or equal to (\d+)/);
-				msg = val ? `must be >= ${val[1]}` : msg;
-			} else if (msg.includes("must be less than or equal to")) {
-				const val = msg.match(/less than or equal to (\d+)/);
-				msg = val ? `must be <= ${val[1]}` : msg;
-			}
-
-			return `${MSG_CONFIG_FIELD}"${field}" ${msg}`;
-		});
-		throw new Error(`${MSG_VALIDATION_FAILED}${errors.join(SEMICOLON_SPACE)}`);
-	}
-
-	const validated = {};
-	for (const [key] of Object.entries(CONFIG_SCHEMA.properties)) {
-		const value = config[key];
-		validated[key] = value === void 0 ? DEFAULTS[key] : value;
-	}
-
-	return validated;
-}
-
-/**
- * Resolves logging value from config, environment, or default
- * @param {*} configValue - Value from configuration object
- * @param {*} envValue - Value from environment variable
- * @param {*} defaultValue - Default fallback value
- * @returns {*} Resolved value following priority: config > env > default
- */
-function resolveLoggingValue(configValue, envValue, defaultValue) {
-	if (configValue !== void 0) {
-		return configValue;
-	}
-	if (envValue !== void 0) {
-		return envValue;
-	}
-	return defaultValue;
-}
-
-/**
- * Validates and normalizes logging configuration
- * @param {Object} [logging={}] - Logging configuration object
- * @param {boolean} [logging.enabled] - Whether logging is enabled
- * @param {string} [logging.format] - Custom log format string
- * @param {string} [logging.level] - Log level (debug, info, warn, error, etc.)
- * @returns {Object} Validated logging configuration with resolved values
- */
-function validateLogging(logging = {}) {
-	const envLogEnabled = process.env.WOODLAND_LOG_ENABLED;
-	const envLogFormat = process.env.WOODLAND_LOG_FORMAT;
-	const envLogLevel = process.env.WOODLAND_LOG_LEVEL;
-
-	const enabled = logging.enabled ?? (envLogEnabled ?? TRUE) !== FALSE;
-
-	const format = resolveLoggingValue(logging.format, envLogFormat, LOG_FORMAT);
-	const level = resolveLoggingValue(logging.level, envLogLevel, INFO);
-
-	if (!VALID_LOG_LEVELS.has(level)) {
-		return { enabled, format, level: INFO };
-	}
-
-	return { enabled, format, level };
 }/**
  * Checks if request origin is allowed for CORS
  * @param {Object} req - Request object
@@ -1210,6 +833,393 @@ function isValidIP(ip) {
 
 		return true;
 	}
+}const NODE_METHODS = [
+	"CONNECT",
+	"DELETE",
+	"GET",
+	"HEAD",
+	"OPTIONS",
+	"PATCH",
+	"POST",
+	"PUT",
+	"TRACE",
+];
+
+/**
+ * Processes middleware map for a given URI and populates middleware array
+ * @param {string} uri - The URI to match against
+ * @param {Map} [map=new Map()] - Map of middleware handlers
+ * @param {Object} [arg={}] - Object containing middleware array and parameters
+ */
+function reduce(uri, map = new Map(), arg = {}) {
+	if (!map.size) {
+		return;
+	}
+
+	const middlewareArray = arg.middleware;
+	let paramsFound = arg.params;
+
+	for (const middleware of map.values()) {
+		middleware.regex.lastIndex = 0;
+
+		if (middleware.regex.test(uri)) {
+			const handlers = middleware.handlers;
+
+			if (handlers.length === 1) {
+				middlewareArray.push(handlers[0]);
+			} else {
+				middlewareArray.push(...handlers);
+			}
+
+			if (middleware.params && !paramsFound) {
+				arg.params = true;
+				arg.getParams = middleware.regex;
+				paramsFound = true;
+			}
+		}
+	}
+}
+
+const ERROR_HANDLER_LENGTH = 4;
+
+/**
+ * Creates a next function for middleware processing with error handling
+ * @param {Object} req - The HTTP request object
+ * @param {Object} res - The HTTP response object
+ * @param {Iterator} middleware - The middleware iterator
+ * @param {boolean} [immediate=false] - Whether to execute immediately or on next tick
+ * @returns {Function} The next function for middleware chain
+ */
+function next(req, res, middleware, immediate = false) {
+	/**
+	 * Handles errors by finding error handler middleware
+	 * @param {Error} err - The error to handle
+	 * @param {Function} nextFn - Next function for chain
+	 */
+	const handleError = (err, nextFn) => {
+		let obj = middleware.next();
+
+		while (obj.done === false && obj.value && obj.value.length !== ERROR_HANDLER_LENGTH) {
+			obj = middleware.next();
+		}
+
+		if (obj.done === false && obj.value) {
+			obj.value(err, req, res, nextFn);
+		} else {
+			res.error(getStatus(req, res));
+		}
+	};
+
+	/**
+	 * Handles regular middleware execution
+	 * @param {Function} nextFn - Next function for chain
+	 */
+	const handleMiddleware = (nextFn) => {
+		const obj = middleware.next();
+
+		if (obj.done === false) {
+			const value = obj.value;
+			if (typeof value === FUNCTION) {
+				value(req, res, nextFn);
+			} else {
+				res.send(value);
+			}
+		} else {
+			res.error(getStatus(req, res));
+		}
+	};
+
+	/**
+	 * Executes middleware chain with error handling
+	 * @param {Error} [err] - Optional error to trigger error handling
+	 */
+	const execute = (err) => {
+		if (err !== void 0) {
+			handleError(err, execute);
+		} else {
+			handleMiddleware(execute);
+		}
+	};
+
+	return immediate ? execute : (err) => process.nextTick(() => execute(err));
+}
+
+/**
+ * Computes route information for a given URI and method
+ * @param {Map} middleware - Map of middleware by method
+ * @param {Set} ignored - Set of ignored middleware functions
+ * @param {string} uri - The URI to match
+ * @param {string} method - HTTP method
+ * @param {Object|Map} cache - Cache for route results
+ * @param {boolean} [override=false] - Whether to override cache
+ * @returns {Object} Route information object
+ */
+function computeRoutes(middleware, ignored, uri, method, cache, override = false) {
+	const key = `${method}${DELIMITER}${uri}`;
+	const cached = override === false ? cache.get(key) : void 0;
+	let result;
+
+	if (cached !== void 0) {
+		result = cached;
+	} else {
+		result = { getParams: null, middleware: [], params: false, visible: 0, exit: -1 };
+		reduce(uri, middleware.get(WILDCARD) ?? new Map(), result);
+
+		if (method !== WILDCARD) {
+			result.exit = result.middleware.length;
+			reduce(uri, middleware.get(method) ?? new Map(), result);
+		}
+
+		let visible = 0;
+		for (let i = 0; i < result.middleware.length; i++) {
+			if (!ignored.has(result.middleware[i])) {
+				visible++;
+			}
+		}
+		result.visible = visible;
+		cache.set(key, result);
+	}
+
+	return result;
+}
+
+/**
+ * Lists middleware routes for a given method
+ * @param {Map} middleware - Map of middleware by method
+ * @param {string} [method=get] - HTTP method to list
+ * @param {string} [type=array] - Return type (array or object)
+ * @returns {Array|Object} List of routes
+ */
+function listRoutes(middleware, method = GET.toLowerCase(), type = "array") {
+	let result;
+	const methodMap = middleware.get(method.toUpperCase());
+
+	if (type === "array") {
+		result = [...methodMap.keys()];
+	} else if (type === "object") {
+		result = {};
+		const entries = Array.from(methodMap.entries());
+		const entryCount = entries.length;
+
+		for (let i = 0; i < entryCount; i++) {
+			const [key, value] = entries[i];
+			result[key] = value;
+		}
+	}
+
+	return result;
+}
+
+/**
+ * Checks if a method is allowed for a given URI
+ * @param {Map} middleware - Map of middleware by method
+ * @param {Set} ignored - Set of ignored middleware functions
+ * @param {Object|Map} cache - Cache for route results
+ * @param {string} method - HTTP method
+ * @param {string} uri - The URI to check
+ * @param {boolean} [override=false] - Whether to override cache
+ * @returns {boolean} True if allowed
+ */
+function checkAllowed(middleware, ignored, cache, method, uri, override = false) {
+	return computeRoutes(middleware, ignored, uri, method, cache, override).visible > INT_0;
+}
+
+/**
+ * Creates a registry object with middleware management methods
+ * @param {Array} methods - Array of registered HTTP methods
+ * @param {Object|Map} cache - Cache for route results
+ * @returns {Object} Registry object with ignore, allowed, routes, register, list methods
+ */
+function createMiddlewareRegistry(methods, cache) {
+	const middleware = new Map();
+	const ignored = new Set();
+
+	return {
+		ignore: (f) => {
+			ignored.add(f);
+		},
+		allowed: (m, u, o) => checkAllowed(middleware, ignored, cache, m, u, o),
+		routes: (u, m, o) => computeRoutes(middleware, ignored, u, m, cache, o),
+		register: (p, ...fns) => registerMiddleware(middleware, ignored, methods, cache, p, ...fns),
+		list: (m, t) => listRoutes(middleware, m, t),
+	};
+}
+
+/**
+ * Registers middleware for a route
+ * @param {Map} middleware - Map of middleware by method
+ * @param {Set} ignored - Set of ignored middleware functions
+ * @param {Array} methods - Array of registered HTTP methods
+ * @param {Object|Map} cache - Cache for route results
+ * @param {string|Function} rpath - Route path or middleware function
+ * @param {...Function} fn - Middleware functions to register
+ */
+function registerMiddleware(middleware, ignored, methods, cache, rpath, ...fn) {
+	if (rpath === void 0) {
+		return;
+	}
+
+	if (typeof rpath === FUNCTION) {
+		fn = [rpath, ...fn];
+		rpath = `/.${WILDCARD}`;
+	}
+
+	const method = typeof fn[fn.length - 1] === STRING ? fn.pop().toUpperCase() : GET;
+
+	if (method !== WILDCARD && NODE_METHODS.includes(method) === false) {
+		throw new TypeError("Invalid HTTP method");
+	}
+
+	if (method === HEAD) {
+		throw new TypeError("Cannot set HEAD route, use GET");
+	}
+
+	if (middleware.has(method) === false) {
+		if (method !== WILDCARD) {
+			methods.push(method);
+		}
+
+		middleware.set(method, new Map());
+	}
+
+	const mmethod = middleware.get(method);
+	let lrpath = rpath,
+		lparams = false;
+
+	if (lrpath.includes(`${SLASH}${LEFT_PAREN}`) === false && lrpath.includes(`${SLASH}:`)) {
+		lparams = true;
+		lrpath = extractPath(lrpath);
+	}
+
+	const current = mmethod.get(lrpath) ?? { handlers: [] };
+
+	current.handlers.push(...fn);
+	mmethod.set(lrpath, {
+		handlers: current.handlers,
+		params: lparams,
+		regex: new RegExp(`^${lrpath}$`),
+	});
+}const DEFAULTS = {
+	autoindex: false,
+	cacheSize: INT_1e3,
+	cacheTTL: INT_1e4,
+	charset: UTF_8,
+	corsExpose: EMPTY,
+	defaultHeaders: {},
+	digit: INT_3,
+	etags: true,
+	indexes: [INDEX_HTM, INDEX_HTML],
+	logging: {},
+	origins: [],
+	silent: false,
+	time: false,
+};
+
+const CONFIG_SCHEMA = {
+	$schema: "http://json-schema.org/draft-07/schema#",
+	type: "object",
+	properties: {
+		autoindex: { type: "boolean" },
+		cacheSize: { type: "number", minimum: 1 },
+		cacheTTL: { type: "number", minimum: 1 },
+		charset: { type: "string" },
+		corsExpose: { type: "string" },
+		defaultHeaders: { type: "object" },
+		digit: { type: "number", minimum: 1, maximum: 10 },
+		etags: { type: "boolean" },
+		indexes: { type: "array", items: { type: "string" } },
+		logging: { type: "object" },
+		origins: { type: "array", items: { type: "string" } },
+		silent: { type: "boolean" },
+		time: { type: "boolean" },
+	},
+	additionalProperties: false,
+};
+
+const validator = new Validator();
+
+/**
+ * Validates configuration object against schema
+ * @param {Object} [config={}] - Configuration object to validate
+ * @returns {Object} Validated configuration object with defaults
+ * @throws {Error} When configuration validation fails
+ */
+function validateConfig(config = {}) {
+	const result = validator.validate(config, CONFIG_SCHEMA);
+
+	if (!result.valid) {
+		const errors = result.errors.map((err) => {
+			const field = Array.isArray(err.path)
+				? err.path.join(PERIOD)
+				: String(err.path).replace(/^\./, EMPTY);
+			let msg = err.message;
+
+			if (msg.includes("is not of a type(s)")) {
+				const types = msg.match(/type\(s\) ([a-z, ]+)/i);
+				const type = types ? types[1].split(",")[0].trim() : "type";
+				msg = `must be ${type}`;
+			} else if (msg.includes("must be greater than or equal to")) {
+				const val = msg.match(/greater than or equal to (\d+)/);
+				msg = val ? `must be >= ${val[1]}` : msg;
+			} else if (msg.includes("must be less than or equal to")) {
+				const val = msg.match(/less than or equal to (\d+)/);
+				msg = val ? `must be <= ${val[1]}` : msg;
+			}
+
+			return `${MSG_CONFIG_FIELD}"${field}" ${msg}`;
+		});
+		throw new Error(`${MSG_VALIDATION_FAILED}${errors.join(SEMICOLON_SPACE)}`);
+	}
+
+	const validated = {};
+	for (const [key] of Object.entries(CONFIG_SCHEMA.properties)) {
+		const value = config[key];
+		validated[key] = value === void 0 ? DEFAULTS[key] : value;
+	}
+
+	return validated;
+}
+
+/**
+ * Resolves logging value from config, environment, or default
+ * @param {*} configValue - Value from configuration object
+ * @param {*} envValue - Value from environment variable
+ * @param {*} defaultValue - Default fallback value
+ * @returns {*} Resolved value following priority: config > env > default
+ */
+function resolveLoggingValue(configValue, envValue, defaultValue) {
+	if (configValue !== void 0) {
+		return configValue;
+	}
+	if (envValue !== void 0) {
+		return envValue;
+	}
+	return defaultValue;
+}
+
+/**
+ * Validates and normalizes logging configuration
+ * @param {Object} [logging={}] - Logging configuration object
+ * @param {boolean} [logging.enabled] - Whether logging is enabled
+ * @param {string} [logging.format] - Custom log format string
+ * @param {string} [logging.level] - Log level (debug, info, warn, error, etc.)
+ * @returns {Object} Validated logging configuration with resolved values
+ */
+function validateLogging(logging = {}) {
+	const envLogEnabled = process.env.WOODLAND_LOG_ENABLED;
+	const envLogFormat = process.env.WOODLAND_LOG_FORMAT;
+	const envLogLevel = process.env.WOODLAND_LOG_LEVEL;
+
+	const enabled = logging.enabled ?? (envLogEnabled ?? TRUE) !== FALSE;
+
+	const format = resolveLoggingValue(logging.format, envLogFormat, LOG_FORMAT);
+	const level = resolveLoggingValue(logging.level, envLogLevel, INFO);
+
+	if (!VALID_LOG_LEVELS.has(level)) {
+		return { enabled, format, level: INFO };
+	}
+
+	return { enabled, format, level };
 }/**
  * Generates common log format entry
  * @param {Object} req - Request object
@@ -2194,15 +2204,6 @@ class Woodland extends EventEmitter {
 		this.logger.logMiddleware(rpath, fn[fn.length - 1]);
 
 		return this;
-	}
-
-	/**
-	 * Converts parameterized route path to regex pattern
-	 * @param {string} path - Route path with parameters (e.g., "/users/:id")
-	 * @returns {string} Regex pattern string
-	 */
-	extractPath(path) {
-		return extractPath(path);
 	}
 }
 

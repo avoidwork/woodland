@@ -16,6 +16,7 @@ import {
 	ERROR,
 	EXTENSIONS,
 	FUNCTION,
+	GET,
 	HEAD,
 	HYPHEN,
 	INT_10,
@@ -24,6 +25,7 @@ import {
 	INT_307,
 	INT_308,
 	INT_404,
+	INT_405,
 	INT_416,
 	INT_500,
 	KEY_BYTES,
@@ -192,6 +194,25 @@ const STATUS_TEXTS = Object.freeze({
 	INT_416: STATUS_RANGE_NOT_SATISFIABLE,
 	INT_500: STATUS_INTERNAL_SERVER_ERROR,
 });
+
+/**
+ * Determines the appropriate HTTP status code based on request and response state
+ * @param {Object} req - The HTTP request object
+ * @param {Object} res - The HTTP response object
+ * @returns {number} The appropriate HTTP status code
+ */
+export function getStatus(req, res) {
+	if (req.allow.length === 0) {
+		return INT_404;
+	}
+	if (req.method !== GET) {
+		return INT_405;
+	}
+	if (req.allow.includes(GET) === false) {
+		return INT_404;
+	}
+	return res.statusCode > INT_500 ? res.statusCode : INT_500;
+}
 
 export function getStatusText(status) {
 	return STATUS_TEXTS[`INT_${status}`] || STATUS_ERROR;

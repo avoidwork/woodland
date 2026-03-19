@@ -9,9 +9,20 @@ import {
 	STRING,
 	WILDCARD,
 } from "./constants.js";
+import { getStatus } from "./response.js";
+import { extractPath } from "./request.js";
 
-const extractPath = (arg = "") => arg.replace(/\/:([^/]+)/g, "/(?<$1>[^/]+)"),
-	NODE_METHODS = ["CONNECT", "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT", "TRACE"];
+const NODE_METHODS = [
+	"CONNECT",
+	"DELETE",
+	"GET",
+	"HEAD",
+	"OPTIONS",
+	"PATCH",
+	"POST",
+	"PUT",
+	"TRACE",
+];
 
 /**
  * Processes middleware map for a given URI and populates middleware array
@@ -46,25 +57,6 @@ export function reduce(uri, map = new Map(), arg = {}) {
 			}
 		}
 	}
-}
-
-/**
- * Determines the appropriate HTTP status code based on request and response state
- * @param {Object} req - The HTTP request object
- * @param {Object} res - The HTTP response object
- * @returns {number} The appropriate HTTP status code
- */
-export function getStatus(req, res) {
-	if (req.allow.length === 0) {
-		return 404;
-	}
-	if (req.method !== "GET") {
-		return 405;
-	}
-	if (req.allow.includes("GET") === false) {
-		return 404;
-	}
-	return res.statusCode > 500 ? res.statusCode : 500;
 }
 
 const ERROR_HANDLER_LENGTH = 4;

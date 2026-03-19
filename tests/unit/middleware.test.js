@@ -2,7 +2,6 @@ import assert from "node:assert";
 import { describe, it, beforeEach } from "node:test";
 import {
 	reduce,
-	getStatus,
 	next,
 	createMiddlewareRegistry,
 	computeRoutes,
@@ -109,53 +108,6 @@ describe("middleware", () => {
 			reduce("/test", middleware, { middleware: middlewareArray, params: false });
 
 			assert.strictEqual(middlewareArray.length, 2);
-		});
-	});
-
-	describe("getStatus", () => {
-		it("should return 404 when allow array is empty", () => {
-			const req = { allow: [], method: "GET" };
-			const res = { statusCode: 200 };
-
-			const status = getStatus(req, res);
-
-			assert.strictEqual(status, 404);
-		});
-
-		it("should return 405 when method is not GET", () => {
-			const req = { allow: ["POST"], method: "POST" };
-			const res = { statusCode: 200 };
-
-			const status = getStatus(req, res);
-
-			assert.strictEqual(status, 405);
-		});
-
-		it("should return 404 when GET not in allow list", () => {
-			const req = { allow: ["POST"], method: "GET" };
-			const res = { statusCode: 200 };
-
-			const status = getStatus(req, res);
-
-			assert.strictEqual(status, 404);
-		});
-
-		it("should return 500 when GET is allowed and status <= 500", () => {
-			const req = { allow: ["GET"], method: "GET" };
-			const res = { statusCode: 500 };
-
-			const status = getStatus(req, res);
-
-			assert.strictEqual(status, 500);
-		});
-
-		it("should return custom status when > 500", () => {
-			const req = { allow: ["GET"], method: "GET" };
-			const res = { statusCode: 503 };
-
-			const status = getStatus(req, res);
-
-			assert.strictEqual(status, 503);
 		});
 	});
 
