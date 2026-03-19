@@ -306,7 +306,7 @@ export class Woodland extends EventEmitter {
 		) => json(res, arg, status, headers);
 		res.redirect = (uri, perm = true) => redirect(res, uri, perm);
 		res.send = (body = EMPTY, status = res.statusCode, headers = {}) =>
-			send(req, res, body, status, headers, this.onReady, this.onDone);
+			send(req, res, body, status, headers, this.onReady.bind(this), this.onDone.bind(this));
 		res.set = (arg = {}) => set(res, arg);
 		res.status = (arg = INT_200) => status(res, arg);
 

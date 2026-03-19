@@ -21,9 +21,9 @@ var jsonschema = require('jsonschema');
 var promises = require('node:fs/promises');
 
 var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
-const __dirname$1 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href))));
+const __dirname$2 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href))));
 const require$1 = node_module.createRequire((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href)));
-const { name, version } = require$1(node_path.join(__dirname$1, "..", "package.json"));
+const { name, version } = require$1(node_path.join(__dirname$2, "..", "package.json"));
 
 // =============================================================================
 // HTTP METHODS
@@ -1420,7 +1420,9 @@ function timeOffset(arg = INT_0) {
 	return `${sign}${hoursStr}${minutesStr}`;
 }
 
-const html = node_fs.readFileSync(node_path.join(undefined, "..", "tpl", "autoindex.html"), {
+const __dirname$1 = node_url.fileURLToPath(new URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href))));
+
+const html = node_fs.readFileSync(node_path.join(__dirname$1, "..", "tpl", "autoindex.html"), {
 	encoding: UTF8,
 });
 
@@ -1804,7 +1806,7 @@ class Woodland extends node_events.EventEmitter {
 		) => json(res, arg, status, headers);
 		res.redirect = (uri, perm = true) => redirect(res, uri, perm);
 		res.send = (body = EMPTY, status = res.statusCode, headers = {}) =>
-			send(req, res, body, status, headers, this.onReady, this.onDone);
+			send(req, res, body, status, headers, this.onReady.bind(this), this.onDone.bind(this));
 		res.set = (arg = {}) => set(res, arg);
 		res.status = (arg = INT_200) => status(res, arg);
 

@@ -1,6 +1,7 @@
 import { readdir, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import {
 	COLLECTION,
 	CONTENT_TYPE,
@@ -16,7 +17,9 @@ import {
 } from "./constants.js";
 import { escapeHtml } from "./response.js";
 
-const html = readFileSync(join(import.meta.dirname, "..", "tpl", "autoindex.html"), {
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
+
+const html = readFileSync(join(__dirname, "..", "tpl", "autoindex.html"), {
 	encoding: UTF8,
 });
 
