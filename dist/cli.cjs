@@ -24,24 +24,20 @@ const CACHE_CONTROL = "cache-control";
 const CONTENT_TYPE = "content-type";
 const TEXT_PLAIN = "text/plain";
 const CHAR_SET = "charset=utf-8";
-`nodejs/${process.version}, ${process.platform}/${process.arch}`;
-const LOCALHOST = "127.0.0.1";
-const INT_8000 = 8000;
-const EXTENSIONS = "extensions";
 
 // =============================================================================
 // NUMERIC CONSTANTS
 // =============================================================================
 const INT_0 = 0;
+const INT_8000 = 8000;
 const INT_65535 = 65535;
 const EQUAL = "=";
 const HYPHEN = "-";
+`nodejs/${process.version}, ${process.platform}/${process.arch}`;
+const LOCALHOST = "127.0.0.1";
+const EXTENSIONS = "extensions";
 const INFO = "info";
 const NO_CACHE = "no-cache";
-
-// =============================================================================
-// UTILITY & MISC
-// =============================================================================
 const EN_US = "en-US";
 const SHORT = "short";
 

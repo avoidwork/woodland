@@ -37,7 +37,6 @@ const PATCH = "PATCH";
 const POST = "POST";
 const PUT = "PUT";
 const TRACE = "TRACE";
-
 const NODE_METHODS = [CONNECT, DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT, TRACE];
 
 // =============================================================================
@@ -94,21 +93,6 @@ const UTF8 = "utf8";
 const UTF_8 = "utf-8";
 
 // =============================================================================
-// SERVER & SYSTEM INFO
-// =============================================================================
-const SERVER_VALUE = `${name}/${version}`;
-const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform}/${process.arch}`;
-const LOCALHOST = "127.0.0.1";
-const INT_8000 = 8000;
-
-// =============================================================================
-// FILE SYSTEM & ROUTING
-// =============================================================================
-const INDEX_HTM = "index.htm";
-const INDEX_HTML = "index.html";
-const EXTENSIONS = "extensions";
-
-// =============================================================================
 // NUMERIC CONSTANTS
 // =============================================================================
 const INT_0 = 0;
@@ -120,6 +104,11 @@ const INT_10 = 10;
 const INT_60 = 60;
 const INT_1e3 = 1e3;
 const INT_1e4 = 1e4;
+const INT_8000 = 8000;
+
+// =============================================================================
+// STRING & CHARACTER CONSTANTS
+// =============================================================================
 const COMMA = ",";
 const DELIMITER = "|";
 const EMPTY = "";
@@ -129,8 +118,26 @@ const PERIOD = ".";
 const SLASH = "/";
 const STRING_0 = "0";
 const WILDCARD = "*";
+
+// =============================================================================
+// DATA TYPES
+// =============================================================================
 const FUNCTION = "function";
 const STRING = "string";
+
+// =============================================================================
+// SERVER & SYSTEM INFO
+// =============================================================================
+const SERVER_VALUE = `${name}/${version}`;
+const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform}/${process.arch}`;
+const LOCALHOST = "127.0.0.1";
+
+// =============================================================================
+// FILE SYSTEM & ROUTING
+// =============================================================================
+const INDEX_HTM = "index.htm";
+const INDEX_HTML = "index.html";
+const EXTENSIONS = "extensions";
 
 // =============================================================================
 // LOGGING & DEBUGGING
@@ -162,25 +169,27 @@ const LOG_T = "%t";
 const LOG_U = "%u";
 const LOG_USER_AGENT = "%{User-agent}i";
 const LOG_V = "%v";
-const MSG_ROUTING_FILE = "Routing request to file system";
 
+// =============================================================================
+// MESSAGES & RESPONSES
+// =============================================================================
 const MSG_CONFIG_FIELD = "Config ";
-const MSG_VALIDATION_FAILED = "Configuration validation failed: ";
+const MSG_ROUTING_FILE = "Routing request to file system";
 const MSG_SERVE_PATH_OUTSIDE = "Path outside allowed directory";
+const MSG_VALIDATION_FAILED = "Configuration validation failed: ";
 const SEMICOLON_SPACE = "; ";
-
 const OPTIONS_BODY = "Make a GET request to retrieve the file";
-const STATUS_OK = "OK";
-const STATUS_NO_CONTENT = "No Content";
-const STATUS_TEMPORARY_REDIRECT = "Temporary Redirect";
-const STATUS_PERMANENT_REDIRECT = "Permanent Redirect";
 const STATUS_BAD_REQUEST = "Bad Request";
-const STATUS_FORBIDDEN = "Forbidden";
-const STATUS_NOT_FOUND = "Not Found";
-const STATUS_METHOD_NOT_ALLOWED = "Method Not Allowed";
-const STATUS_RANGE_NOT_SATISFIABLE = "Range Not Satisfiable";
-const STATUS_INTERNAL_SERVER_ERROR = "Internal Server Error";
 const STATUS_ERROR = "Error";
+const STATUS_FORBIDDEN = "Forbidden";
+const STATUS_INTERNAL_SERVER_ERROR = "Internal Server Error";
+const STATUS_METHOD_NOT_ALLOWED = "Method Not Allowed";
+const STATUS_NO_CONTENT = "No Content";
+const STATUS_NOT_FOUND = "Not Found";
+const STATUS_OK = "OK";
+const STATUS_PERMANENT_REDIRECT = "Permanent Redirect";
+const STATUS_RANGE_NOT_SATISFIABLE = "Range Not Satisfiable";
+const STATUS_TEMPORARY_REDIRECT = "Temporary Redirect";
 
 // =============================================================================
 // HTTP RANGE & CACHING
@@ -197,21 +206,21 @@ const STREAM = "stream";
 // =============================================================================
 // UTILITY & MISC
 // =============================================================================
+const CONSOLE_ERROR = "error";
+const CONSOLE_LOG = "log";
+const COLLECTION = "collection";
+const CRITICAL = "critical";
+const EMERG = "emerg";
 const EN_US = "en-US";
+const FALSE = "false";
+const HTTP_VERSION = "HTTP/1.1";
+const ITEM = "item";
+const NOTICE = "notice";
 const SHORT = "short";
 const TO_STRING = "toString";
 const TRUE = "true";
-const FALSE = "false";
-const CRITICAL = "critical";
-const ALERT = "alert";
-const EMERG = "emerg";
-const NOTICE = "notice";
 const WARN = "warn";
-const COLLECTION = "collection";
-const ITEM = "item";
-const HTTP_VERSION = "HTTP/1.1";
-const CONSOLE_LOG = "log";
-const CONSOLE_ERROR = "error";
+const ALERT = "alert";
 
 const MONTHS = Object.freeze(
 	Array.from({ length: 12 }, (_, idx) => {

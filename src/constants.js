@@ -18,7 +18,6 @@ export const PATCH = "PATCH";
 export const POST = "POST";
 export const PUT = "PUT";
 export const TRACE = "TRACE";
-
 export const NODE_METHODS = [CONNECT, DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT, TRACE];
 
 // =============================================================================
@@ -78,26 +77,6 @@ export const UTF8 = "utf8";
 export const UTF_8 = "utf-8";
 
 // =============================================================================
-// SERVER & SYSTEM INFO
-// =============================================================================
-export const SERVER_VALUE = `${name}/${version}`;
-export const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform}/${process.arch}`;
-export const LOCALHOST = "127.0.0.1";
-export const INT_8000 = 8000;
-export const IPV4_REGEX =
-	/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-export const PROTOCOL_REGEX = /^http(s)?:\/\//;
-
-// =============================================================================
-// FILE SYSTEM & ROUTING
-// =============================================================================
-export const INDEX_HTM = "index.htm";
-export const INDEX_HTML = "index.html";
-export const FILES = "files";
-export const EXTENSIONS = "extensions";
-export const PARAMS_GROUP = "/(?<$1>[^/]+)";
-
-// =============================================================================
 // NUMERIC CONSTANTS
 // =============================================================================
 export const INT_0 = 0;
@@ -110,14 +89,13 @@ export const INT_60 = 60;
 export const INT_1e3 = 1e3;
 export const INT_1e4 = 1e4;
 export const INT_1e6 = 1e6;
+export const INT_8000 = 8000;
 export const INT_65535 = 65535;
 
 // =============================================================================
 // STRING & CHARACTER CONSTANTS
 // =============================================================================
-export const COLON = ":";
 export const COMMA = ",";
-export const COMMA_SPACE = ", ";
 export const DELIMITER = "|";
 export const EMPTY = "";
 export const EQUAL = "=";
@@ -126,17 +104,29 @@ export const LEFT_PAREN = "(";
 export const PERIOD = ".";
 export const SLASH = "/";
 export const STRING_0 = "0";
-export const STRING_00 = "00";
-export const STRING_30 = "30";
 export const WILDCARD = "*";
 
 // =============================================================================
 // DATA TYPES
 // =============================================================================
-export const ARRAY = "array";
 export const FUNCTION = "function";
-export const OBJECT = "object";
 export const STRING = "string";
+
+// =============================================================================
+// SERVER & SYSTEM INFO
+// =============================================================================
+export const SERVER_VALUE = `${name}/${version}`;
+export const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform}/${process.arch}`;
+export const LOCALHOST = "127.0.0.1";
+
+// =============================================================================
+// FILE SYSTEM & ROUTING
+// =============================================================================
+export const INDEX_HTM = "index.htm";
+export const INDEX_HTML = "index.html";
+export const FILES = "files";
+export const EXTENSIONS = "extensions";
+export const PARAMS_GROUP = "/(?<$1>[^/]+)";
 
 // =============================================================================
 // LOGGING & DEBUGGING
@@ -144,7 +134,6 @@ export const STRING = "string";
 export const DEBUG = "debug";
 export const ERROR = "error";
 export const INFO = "info";
-export const LOG = "log";
 
 export const LEVELS = Object.freeze({
 	emerg: 0,
@@ -173,35 +162,24 @@ export const LOG_V = "%v";
 // =============================================================================
 // MESSAGES & RESPONSES
 // =============================================================================
-export const MSG_DECORATED_IP = "Decorated request from %IP";
-export const MSG_DETERMINED_ALLOW = "Determined 'allow' header value";
-export const MSG_ERROR_HEAD_ROUTE = "Cannot set HEAD route, use GET";
-export const MSG_ERROR_INVALID_METHOD = "Invalid HTTP method";
-export const MSG_ERROR_IP = "Handled error response for %IP";
-export const MSG_IGNORED_FN = "Added function to ignored Set";
-export const MSG_REGISTERING_MIDDLEWARE = "Registering middleware";
-export const MSG_RETRIEVED_MIDDLEWARE = "Retrieved middleware for request";
+export const MSG_CONFIG_FIELD = "Config ";
 export const MSG_ROUTING = "Routing request";
 export const MSG_ROUTING_FILE = "Routing request to file system";
-export const MSG_SENDING_BODY = "Sending response body";
-
-export const MSG_CONFIG_FIELD = "Config ";
-export const MSG_VALIDATION_FAILED = "Configuration validation failed: ";
 export const MSG_SERVE_PATH_OUTSIDE = "Path outside allowed directory";
+export const MSG_VALIDATION_FAILED = "Configuration validation failed: ";
 export const SEMICOLON_SPACE = "; ";
-
 export const OPTIONS_BODY = "Make a GET request to retrieve the file";
-export const STATUS_OK = "OK";
-export const STATUS_NO_CONTENT = "No Content";
-export const STATUS_TEMPORARY_REDIRECT = "Temporary Redirect";
-export const STATUS_PERMANENT_REDIRECT = "Permanent Redirect";
 export const STATUS_BAD_REQUEST = "Bad Request";
-export const STATUS_FORBIDDEN = "Forbidden";
-export const STATUS_NOT_FOUND = "Not Found";
-export const STATUS_METHOD_NOT_ALLOWED = "Method Not Allowed";
-export const STATUS_RANGE_NOT_SATISFIABLE = "Range Not Satisfiable";
-export const STATUS_INTERNAL_SERVER_ERROR = "Internal Server Error";
 export const STATUS_ERROR = "Error";
+export const STATUS_FORBIDDEN = "Forbidden";
+export const STATUS_INTERNAL_SERVER_ERROR = "Internal Server Error";
+export const STATUS_METHOD_NOT_ALLOWED = "Method Not Allowed";
+export const STATUS_NO_CONTENT = "No Content";
+export const STATUS_NOT_FOUND = "Not Found";
+export const STATUS_OK = "OK";
+export const STATUS_PERMANENT_REDIRECT = "Permanent Redirect";
+export const STATUS_RANGE_NOT_SATISFIABLE = "Range Not Satisfiable";
+export const STATUS_TEMPORARY_REDIRECT = "Temporary Redirect";
 
 // =============================================================================
 // HTTP RANGE & CACHING
@@ -213,33 +191,30 @@ export const NO_CACHE = "no-cache";
 // EVENT & STREAM CONSTANTS
 // =============================================================================
 export const CLOSE = "close";
-export const END = "end";
 export const FINISH = "finish";
-export const START = "start";
 export const STREAM = "stream";
 
 // =============================================================================
 // UTILITY & MISC
 // =============================================================================
+export const CONSOLE_ERROR = "error";
+export const CONSOLE_LOG = "log";
+export const COLLECTION = "collection";
+export const CRITICAL = "critical";
+export const EMERG = "emerg";
 export const EN_US = "en-US";
-export const IP_TOKEN = "%IP";
+export const FALSE = "false";
+export const HTTP_VERSION = "HTTP/1.1";
+export const ITEM = "item";
+export const NOTICE = "notice";
 export const SHORT = "short";
 export const TIME_MS = "%N ms";
 export const TITLE = "title";
 export const TO_STRING = "toString";
-export const TRUE = "true";
 export const TOKEN_N = "%N";
-export const FALSE = "false";
-export const CRITICAL = "critical";
-export const ALERT = "alert";
-export const EMERG = "emerg";
-export const NOTICE = "notice";
+export const TRUE = "true";
 export const WARN = "warn";
-export const COLLECTION = "collection";
-export const ITEM = "item";
-export const HTTP_VERSION = "HTTP/1.1";
-export const CONSOLE_LOG = "log";
-export const CONSOLE_ERROR = "error";
+export const ALERT = "alert";
 
 export const MONTHS = Object.freeze(
 	Array.from({ length: 12 }, (_, idx) => {
