@@ -112,6 +112,7 @@ const EXTENSIONS = "extensions";
 // NUMERIC CONSTANTS
 // =============================================================================
 const INT_0 = 0;
+const INT_1 = 1;
 const INT_2 = 2;
 const INT_3 = 3;
 const INT_4 = 4;
@@ -1135,12 +1136,12 @@ const CONFIG_SCHEMA = {
 	type: "object",
 	properties: {
 		autoindex: { type: "boolean" },
-		cacheSize: { type: "number", minimum: 1 },
-		cacheTTL: { type: "number", minimum: 1 },
+		cacheSize: { type: "number", minimum: INT_1 },
+		cacheTTL: { type: "number", minimum: INT_1 },
 		charset: { type: "string" },
 		corsExpose: { type: "string" },
 		defaultHeaders: { type: "object" },
-		digit: { type: "number", minimum: 1, maximum: 10 },
+		digit: { type: "number", minimum: INT_1, maximum: INT_10 },
 		etags: { type: "boolean" },
 		indexes: { type: "array", items: { type: "string" } },
 		logging: { type: "object" },

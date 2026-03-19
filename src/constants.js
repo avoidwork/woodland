@@ -101,6 +101,7 @@ export const PARAMS_GROUP = "/(?<$1>[^/]+)";
 // NUMERIC CONSTANTS
 // =============================================================================
 export const INT_0 = 0;
+export const INT_1 = 1;
 export const INT_2 = 2;
 export const INT_3 = 3;
 export const INT_4 = 4;

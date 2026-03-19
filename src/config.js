@@ -1,8 +1,10 @@
 import { Validator } from "jsonschema";
 import {
+	INT_1,
 	INT_1e3,
 	INT_1e4,
 	INT_3,
+	INT_10,
 	UTF_8,
 	INDEX_HTM,
 	INDEX_HTML,
@@ -40,12 +42,12 @@ const CONFIG_SCHEMA = {
 	type: "object",
 	properties: {
 		autoindex: { type: "boolean" },
-		cacheSize: { type: "number", minimum: 1 },
-		cacheTTL: { type: "number", minimum: 1 },
+		cacheSize: { type: "number", minimum: INT_1 },
+		cacheTTL: { type: "number", minimum: INT_1 },
 		charset: { type: "string" },
 		corsExpose: { type: "string" },
 		defaultHeaders: { type: "object" },
-		digit: { type: "number", minimum: 1, maximum: 10 },
+		digit: { type: "number", minimum: INT_1, maximum: INT_10 },
 		etags: { type: "boolean" },
 		indexes: { type: "array", items: { type: "string" } },
 		logging: { type: "object" },
