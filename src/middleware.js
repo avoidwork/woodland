@@ -1,3 +1,4 @@
+import { STATUS_CODES } from "node:http";
 import {
 	DELIMITER,
 	FUNCTION,
@@ -80,7 +81,8 @@ export function next(req, res, middleware, immediate = false) {
 		if (obj.done === false && obj.value) {
 			obj.value(err, req, res, nextFn);
 		} else {
-			res.error(getStatus(req, res));
+			const newStatus = getStatus(req, res);
+			res.error(newStatus, new Error(STATUS_CODES[newStatus]));
 		}
 	};
 
@@ -99,7 +101,8 @@ export function next(req, res, middleware, immediate = false) {
 				res.send(value);
 			}
 		} else {
-			res.error(getStatus(req, res));
+			const newStatus = getStatus(req, res);
+			res.error(newStatus, new Error(STATUS_CODES[newStatus]));
 		}
 	};
 

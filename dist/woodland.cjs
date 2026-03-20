@@ -934,7 +934,8 @@ function next(req, res, middleware, immediate = false) {
 		if (obj.done === false && obj.value) {
 			obj.value(err, req, res, nextFn);
 		} else {
-			res.error(getStatus(req, res));
+			const newStatus = getStatus(req, res);
+			res.error(newStatus, new Error(node_http.STATUS_CODES[newStatus]));
 		}
 	};
 
@@ -953,7 +954,8 @@ function next(req, res, middleware, immediate = false) {
 				res.send(value);
 			}
 		} else {
-			res.error(getStatus(req, res));
+			const newStatus = getStatus(req, res);
+			res.error(newStatus, new Error(node_http.STATUS_CODES[newStatus]));
 		}
 	};
 
@@ -1494,7 +1496,7 @@ async function serve(app, req, res, arg, folder = process.cwd()) {
 
 	if (!fp.startsWith(resolvedFolder)) {
 		app.logger.logServe(req, MSG_SERVE_PATH_OUTSIDE);
-		res.error(INT_403);
+		res.error(INT_403, new Error(node_http.STATUS_CODES[INT_403]));
 
 		return;
 	}
@@ -1511,7 +1513,7 @@ async function serve(app, req, res, arg, folder = process.cwd()) {
 	}
 
 	if (!valid) {
-		res.error(INT_404);
+		res.error(INT_404, new Error(node_http.STATUS_CODES[INT_404]));
 	} else if (!stats.isDirectory()) {
 		app.stream(req, res, {
 			charset: app.charset,
@@ -1536,7 +1538,7 @@ async function serve(app, req, res, arg, folder = process.cwd()) {
 
 		if (!result.length) {
 			if (!app.autoindex) {
-				res.error(INT_404);
+				res.error(INT_404, new Error(node_http.STATUS_CODES[INT_404]));
 			} else {
 				const body = autoindex(decodeURIComponent(req.parsed.pathname), files);
 				res.header(CONTENT_TYPE, `${TEXT_HTML}; charset=${app.charset}`);
@@ -1667,7 +1669,9 @@ class Woodland extends node_events.EventEmitter {
 			this.options(fnCorsRequest).ignore(fnCorsRequest);
 		}
 
-		this.on(ERROR, () => {});
+		this.on(ERROR, (err, req, _res) =>
+			this.logger.logError(req.parsed.pathname, req.method, req.ip),
+		);
 	}
 
 	/**
@@ -1806,10 +1810,9 @@ class Woodland extends node_events.EventEmitter {
 
 		res.locals = {};
 		res.error = (status = 500, body) => {
-			const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
 			error(req, res, status);
+			const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
 			this.emit(ERROR, err, req, res);
-			this.logger.logError(req.parsed.pathname, req.method, req.ip);
 			res.send(err.message);
 		};
 		res.header = res.setHeader;
@@ -2014,7 +2017,7 @@ class Woodland extends node_events.EventEmitter {
 
 		if (req.cors === false && hasOriginHeader && req.corsHost && !isOriginAllowed) {
 			req.valid = false;
-			res.error(INT_403);
+			res.error(INT_403, new Error(node_http.STATUS_CODES[INT_403]));
 		} else if (req.allow.includes(method)) {
 			const result = this.middleware.routes(req.parsed.pathname, method);
 
@@ -2028,7 +2031,8 @@ class Woodland extends node_events.EventEmitter {
 			next(req, res, middleware[Symbol.iterator]())();
 		} else {
 			req.valid = false;
-			res.error(getStatus(req, res));
+			const newStatus = getStatus(req, res);
+			res.error(newStatus, new Error(node_http.STATUS_CODES[newStatus]));
 		}
 	}
 

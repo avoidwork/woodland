@@ -1,3 +1,4 @@
+import { STATUS_CODES } from "node:http";
 import { readdir, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { readFileSync } from "node:fs";
@@ -75,7 +76,7 @@ export async function serve(app, req, res, arg, folder = process.cwd()) {
 
 	if (!fp.startsWith(resolvedFolder)) {
 		app.logger.logServe(req, MSG_SERVE_PATH_OUTSIDE);
-		res.error(INT_403);
+		res.error(INT_403, new Error(STATUS_CODES[INT_403]));
 
 		return;
 	}
@@ -92,7 +93,7 @@ export async function serve(app, req, res, arg, folder = process.cwd()) {
 	}
 
 	if (!valid) {
-		res.error(INT_404);
+		res.error(INT_404, new Error(STATUS_CODES[INT_404]));
 	} else if (!stats.isDirectory()) {
 		app.stream(req, res, {
 			charset: app.charset,
@@ -117,7 +118,7 @@ export async function serve(app, req, res, arg, folder = process.cwd()) {
 
 		if (!result.length) {
 			if (!app.autoindex) {
-				res.error(INT_404);
+				res.error(INT_404, new Error(STATUS_CODES[INT_404]));
 			} else {
 				const body = autoindex(decodeURIComponent(req.parsed.pathname), files);
 				res.header(CONTENT_TYPE, `${TEXT_HTML}; charset=${app.charset}`);

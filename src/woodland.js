@@ -1,4 +1,4 @@
-import { METHODS } from "node:http";
+import { METHODS, STATUS_CODES } from "node:http";
 import { EventEmitter } from "node:events";
 const METHODS_ARRAY = [...METHODS];
 import { createReadStream } from "node:fs";
@@ -292,8 +292,8 @@ export class Woodland extends EventEmitter {
 
 		res.locals = {};
 		res.error = (status = 500, body) => {
-			const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
 			error(req, res, status);
+			const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
 			this.emit(ERROR, err, req, res);
 			res.send(err.message);
 		};
@@ -499,7 +499,7 @@ export class Woodland extends EventEmitter {
 
 		if (req.cors === false && hasOriginHeader && req.corsHost && !isOriginAllowed) {
 			req.valid = false;
-			res.error(INT_403);
+			res.error(INT_403, new Error(STATUS_CODES[INT_403]));
 		} else if (req.allow.includes(method)) {
 			const result = this.middleware.routes(req.parsed.pathname, method);
 
@@ -513,7 +513,8 @@ export class Woodland extends EventEmitter {
 			next(req, res, middleware[Symbol.iterator]())();
 		} else {
 			req.valid = false;
-			res.error(getStatus(req, res));
+			const newStatus = getStatus(req, res);
+			res.error(newStatus, new Error(STATUS_CODES[newStatus]));
 		}
 	}
 

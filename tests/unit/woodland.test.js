@@ -1183,6 +1183,7 @@ describe("woodland", () => {
 			const res = {
 				statusCode: 200,
 				setHeader: () => {},
+				writeHead: () => {},
 				on: () => {},
 				end: () => {},
 				error: () => {},
@@ -1219,6 +1220,7 @@ describe("woodland", () => {
 			const res = {
 				statusCode: 200,
 				setHeader: () => {},
+				writeHead: () => {},
 				on: (event, callback) => {
 					if (event === "finish") {
 						finishOnCalled = true;
@@ -1261,6 +1263,7 @@ describe("woodland", () => {
 			const res = {
 				statusCode: 200,
 				setHeader: () => {},
+				writeHead: () => {},
 				on: () => {},
 				end: () => {},
 				error: () => {},
