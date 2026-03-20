@@ -1550,8 +1550,6 @@ function createFileServer(app) {
 	};
 }
 
-const METHODS_ARRAY = [...node_http.METHODS];
-
 /**
  * Woodland HTTP server framework class extending EventEmitter
  * @class
@@ -1667,7 +1665,7 @@ class Woodland extends node_events.EventEmitter {
 			let list;
 
 			if (allMethods) {
-				list = [...METHODS_ARRAY];
+				list = [...NODE_METHODS];
 			} else {
 				const methodSet = new Set();
 

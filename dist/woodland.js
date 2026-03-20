@@ -5,7 +5,7 @@
  * @license BSD-3-Clause
  * @version 20.2.10
  */
-import {STATUS_CODES,METHODS}from'node:http';import {EventEmitter}from'node:events';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {createRequire}from'node:module';import {join,extname,resolve}from'node:path';import {fileURLToPath,URL as URL$1}from'node:url';import mimeDb from'mime-db';import {coerce}from'tiny-coerce';import {Validator}from'jsonschema';import {stat,readdir}from'node:fs/promises';const __dirname$2 = fileURLToPath(new URL$1(".", import.meta.url));
+import {STATUS_CODES}from'node:http';import {EventEmitter}from'node:events';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {precise}from'precise';import {createRequire}from'node:module';import {join,extname,resolve}from'node:path';import {fileURLToPath,URL as URL$1}from'node:url';import mimeDb from'mime-db';import {coerce}from'tiny-coerce';import {Validator}from'jsonschema';import {stat,readdir}from'node:fs/promises';const __dirname$2 = fileURLToPath(new URL$1(".", import.meta.url));
 const require$1 = createRequire(import.meta.url);
 const { name, version } = require$1(join(__dirname$2, "..", "package.json"));
 
@@ -1520,9 +1520,7 @@ function createFileServer(app) {
 			register(app, root, folder, useMiddleware || app.use.bind(app)),
 		serve: (req, res, arg, folder) => serve(app, req, res, arg, folder),
 	};
-}const METHODS_ARRAY = [...METHODS];
-
-/**
+}/**
  * Woodland HTTP server framework class extending EventEmitter
  * @class
  * @extends {EventEmitter}
@@ -1637,7 +1635,7 @@ class Woodland extends EventEmitter {
 			let list;
 
 			if (allMethods) {
-				list = [...METHODS_ARRAY];
+				list = [...NODE_METHODS];
 			} else {
 				const methodSet = new Set();
 

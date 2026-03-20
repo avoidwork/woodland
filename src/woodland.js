@@ -1,6 +1,5 @@
-import { METHODS, STATUS_CODES } from "node:http";
+import { STATUS_CODES } from "node:http";
 import { EventEmitter } from "node:events";
-const METHODS_ARRAY = [...METHODS];
 import { createReadStream } from "node:fs";
 import { etag } from "tiny-etag";
 import { precise } from "precise";
@@ -49,6 +48,7 @@ import {
 	X_RESPONSE_TIME,
 	HYPHEN,
 	COMMA_SPACE,
+	NODE_METHODS,
 } from "./constants.js";
 import { createMiddlewareRegistry, next } from "./middleware.js";
 import {
@@ -184,7 +184,7 @@ export class Woodland extends EventEmitter {
 			let list;
 
 			if (allMethods) {
-				list = [...METHODS_ARRAY];
+				list = [...NODE_METHODS];
 			} else {
 				const methodSet = new Set();
 

@@ -126,7 +126,6 @@ export const SERVER_VALUE = `${name}/${version}`;
 export const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform}/${process.arch}`;
 export const LOCALHOST = "127.0.0.1";
 export const HTTP_PREFIX = "http://";
-export const LOCALHOST_PORT = "localhost:";
 
 // =============================================================================
 // FILE SYSTEM & ROUTING

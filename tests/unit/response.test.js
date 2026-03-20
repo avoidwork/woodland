@@ -49,8 +49,8 @@ describe("response", () => {
 			assert.strictEqual(getStatusText(416), "Range Not Satisfiable");
 		});
 
-		it("should return Error for unknown status", () => {
-			assert.strictEqual(getStatusText(999), "Error");
+		it("should return Internal Server Error for unknown status", () => {
+			assert.strictEqual(getStatusText(999), "Internal Server Error");
 		});
 	});
 
@@ -381,6 +381,7 @@ describe("response", () => {
 				statusCode: 200,
 				header: () => {},
 				removeHeader: () => {},
+				error: () => {},
 			};
 
 			send(
@@ -453,6 +454,7 @@ describe("response", () => {
 				header: () => {},
 				removeHeader: () => {},
 				writeHead: () => {},
+				error: () => {},
 			};
 
 			send(

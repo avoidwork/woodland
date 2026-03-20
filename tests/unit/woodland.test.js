@@ -1179,6 +1179,13 @@ describe("woodland", () => {
 				connection: { remoteAddress: "127.0.0.1" },
 				parsed: { pathname: "/test" },
 				precise: { stop: () => ({ diff: () => 0 }) },
+				allow: "/",
+				cors: false,
+				corsHost: false,
+				valid: true,
+				ip: "127.0.0.1",
+				params: {},
+				host: "example.com",
 			};
 			const res = {
 				statusCode: 200,
@@ -1195,7 +1202,8 @@ describe("woodland", () => {
 				headersSent: false,
 			};
 
-			// Call route to trigger connect event
+			connectApp.middleware.register("/test", () => {}, "GET");
+
 			connectApp.route(req, res);
 
 			assert.ok(connectEmitted);
