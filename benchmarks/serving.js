@@ -300,6 +300,35 @@ async function benchmarkServeRangeRequest() {
 }
 
 /**
+ * Benchmark stream() function with different HTTP methods
+ */
+function benchmarkStreamDifferentMethods() {
+	const freshApp = woodland({
+		cacheSize: 1000,
+		cacheTTL: 10000,
+		etags: true,
+		logging: { enabled: false },
+	});
+
+	const methods = ["GET", "HEAD", "OPTIONS"];
+	const method = methods[Math.floor(Math.random() * methods.length)];
+	const req = createMockRequest(method, "/test.txt");
+	const res = createMockResponse();
+
+	const file = {
+		charset: "utf-8",
+		etag: '"test-etag-value"',
+		path: join(testDir, "small.txt"),
+		stats: {
+			mtime: new Date(),
+			size: 11,
+		},
+	};
+
+	return freshApp.stream(req, res, file);
+}
+
+/**
  * Benchmark stream() function with small files
  */
 function benchmarkStreamSmallFile() {
@@ -311,6 +340,34 @@ function benchmarkStreamSmallFile() {
 	});
 
 	const req = createMockRequest("GET", "/small.txt");
+	const res = createMockResponse();
+
+	const file = {
+		charset: "utf-8",
+		etag: '"test-etag-value"',
+		path: join(testDir, "small.txt"),
+		stats: {
+			mtime: new Date(),
+			size: 11,
+		},
+	};
+
+	return freshApp.stream(req, res, file);
+}
+
+/**
+ * Benchmark stream() function with ETags
+ */
+function benchmarkStreamWithEtags() {
+	const freshApp = woodland({
+		cacheSize: 1000,
+		cacheTTL: 10000,
+		etags: true,
+		logging: { enabled: false },
+	});
+
+	const req = createMockRequest("GET", "/test.txt");
+	req.headers["if-none-match"] = '"test-etag-value"';
 	const res = createMockResponse();
 
 	const file = {

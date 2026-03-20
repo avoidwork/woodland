@@ -72,12 +72,12 @@ Woodland delivers **enterprise-grade performance** with architectural optimizati
 
 | Operation | Mean (ms) | Ops/sec | Use Case |
 |-----------|-----------|---------|----------|
-| `allows()` - with cache | 0.0003ms | **3,735,525** | Method validation |
-| `allowed()` - with cache | 0.0005ms | **1,930,502** | Permission checking |
-| `routes()` - with cache | 0.0011ms | **922,424** | Route resolution |
-| Static route matching | 0.0004ms | **2,339,729** | Fixed paths |
-| Parameter route matching | 0.0004ms | **2,812,148** | Dynamic paths |
-| Not found handling | 0.0004ms | **2,449,180** | 404 scenarios |
+| `allows()` - with cache | 0.0002ms | **4,916,950** | Method validation |
+| `allowed()` - with cache | 0.0003ms | **3,294,424** | Permission checking |
+| `routes()` - with cache | 0.0006ms | **1,787,871** | Route resolution |
+| Static route matching | 0.0002ms | **5,003,828** | Fixed paths |
+| Parameter route matching | 0.0002ms | **4,527,105** | Dynamic paths |
+| Not found handling | 0.0002ms | **4,295,133** | 404 scenarios |
 
 ### Scalability Implications
 
@@ -106,17 +106,17 @@ At **3.7M ops/sec** for method validation, Woodland can theoretically handle:
 
 | Operation | Mean (ms) | Ops/sec | Use Case |
 |-----------|-----------|---------|----------|
-| `ignore()` middleware | 0.043ms | **23,234** | Global exclusions |
-| Multiple handlers | 0.043ms | **23,009** | Chained middleware |
-| `always()` registration | 0.045ms | **21,986** | Global middleware |
-| Method-specific | 0.046ms | **21,773** | GET/POST/etc. |
-| `use()` registration | 0.049ms | **20,294** | Route-specific |
-| Response helpers | 0.052ms | **19,314** | `res.json()`, `res.send()` |
-| Parameter extraction | 0.068ms | **14,706** | `req.params` |
-| CORS handling | 0.083ms | **11,999** | Origin validation |
-| Error handlers | 0.085ms | **11,817** | 4-arg middleware |
-| Complex execution | 0.124ms | **8,071** | Multi-layer stacks |
-| Simple execution | 0.034ms | **29,675** | Single middleware |
+| `ignore()` middleware | 0.0230ms | **43,520** | Global exclusions |
+| Multiple handlers | 0.0227ms | **44,082** | Chained middleware |
+| `always()` registration | 0.0238ms | **41,927** | Global middleware |
+| Method-specific | 0.0238ms | **42,094** | GET/POST/etc. |
+| `use()` registration | 0.0276ms | **36,295** | Route-specific |
+| Response helpers | 0.0286ms | **34,922** | `res.json()`, `res.send()` |
+| Parameter extraction | 0.0298ms | **33,534** | `req.params` |
+| CORS handling | 0.0355ms | **28,168** | Origin validation |
+| Error handlers | 0.0311ms | **32,224** | 4-arg middleware |
+| Complex execution | 0.0338ms | **29,579** | Multi-layer stacks |
+| Simple execution | 0.0319ms | **31,330** | Single middleware |
 
 ### Middleware Chain Analysis
 
@@ -148,16 +148,16 @@ At **3.7M ops/sec** for method validation, Woodland can theoretically handle:
 
 | Function | Mean (ms) | Ops/sec | Purpose |
 |----------|-----------|---------|---------|
-| `timeOffset()` | 0.0002ms | **4,040,404** | Timezone formatting |
-| `isValidIP()` | 0.0004ms | **2,451,581** | IP validation |
-| `reduce()` | 0.0004ms | **2,367,985** | Route reduction |
-| `getStatus()` | 0.0005ms | **2,052,967** | Status determination |
-| `ms()` | 0.0004ms | **2,482,622** | Time formatting |
-| `mime()` - basic | 0.0007ms | **1,537,043** | MIME detection |
-| `mime()` - complex | 0.0008ms | **1,239,772** | Multi-extension files |
-| `parse()` - URL | 0.0009ms | **1,126,888** | URL parsing |
-| `pipeable()` | 0.0003ms | **3,208,841** | Stream detection |
-| `writeHead()` | 0.0005ms | **2,065,420** | Header writing |
+| `timeOffset()` | 0.0002ms | **5,667,442** | Timezone formatting |
+| `isValidIP()` | 0.0003ms | **4,043,810** | IP validation |
+| `reduce()` | 0.0003ms | **3,036,753** | Route reduction |
+| `getStatus()` | 0.0004ms | **2,375,586** | Status determination |
+| `ms()` | 0.0002ms | **4,273,513** | Time formatting |
+| `mime()` - basic | 0.0003ms | **2,990,611** | MIME detection |
+| `mime()` - complex | 0.0004ms | **2,569,543** | Multi-extension files |
+| `parse()` - URL | 0.0009ms | **1,112,206** | URL parsing |
+| `pipeable()` | 0.0004ms | **2,644,794** | Stream detection |
+| `writeHead()` | 0.0005ms | **1,978,418** | Header writing |
 
 ### Utility Performance Implications
 
@@ -190,19 +190,19 @@ At **3.7M ops/sec** for method validation, Woodland can theoretically handle:
 
 | Scenario | Mean (ms) | Ops/sec | Description |
 |----------|-----------|---------|-------------|
-| Server startup | 0.092ms | **10,913** | App initialization |
-| DELETE requests | 0.099ms | **10,135** | Idempotent operations |
-| Complex middleware | 0.113ms | **8,866** | Multi-layer stacks |
-| Nested parameterized | 0.140ms | **7,127** | `/users/:id/posts/:postId` |
-| Parameterized routes | 0.137ms | **7,297** | `/users/:id` |
-| JSON response | 0.138ms | **7,266** | `res.json()` |
-| Error handling | 0.142ms | **7,036** | `res.error()` |
-| PUT requests | 0.145ms | **6,877** | Resource updates |
-| Middleware chain | 0.156ms | **6,423** | 2-3 layer stacks |
-| Mixed workload | 0.239ms | **4,178** | Varied response types |
-| POST requests | 0.164ms | **6,088** | Resource creation |
-| Simple GET | 0.240ms | **4,171** | Basic responses |
-| Large response | 1.095ms | **913** | 1,000-item JSON array |
+| Server startup | 0.0355ms | **28,257** | App initialization |
+| DELETE requests | 0.0680ms | **14,706** | Idempotent operations |
+| Complex middleware | 0.0719ms | **13,947** | Multi-layer stacks |
+| Nested parameterized | 0.0782ms | **12,859** | `/users/:id/posts/:postId` |
+| Parameterized routes | 0.0738ms | **13,599** | `/users/:id` |
+| JSON response | 0.0759ms | **13,225** | `res.json()` |
+| Error handling | 0.0750ms | **13,345** | `res.error()` |
+| PUT requests | 0.0895ms | **11,218** | Resource updates |
+| Middleware chain | 0.0944ms | **10,784** | 2-3 layer stacks |
+| Mixed workload | 0.0933ms | **10,750** | Varied response types |
+| POST requests | 0.0968ms | **10,391** | Resource creation |
+| Simple GET | 0.1088ms | **9,238** | Basic responses |
+| Large response | 1.1349ms | **882** | 1,000-item JSON array |
 
 ### Real-World Throughput Estimates
 
