@@ -7,199 +7,56 @@
 ℹ  config.js     | 100.00 |    89.74 |  100.00 | 
 ℹ  constants.js  | 100.00 |   100.00 |  100.00 | 
 ℹ  fileserver.js | 100.00 |   100.00 |  100.00 | 
-ℹ  logger.js     | 100.00 |    98.28 |  100.00 | 
+ℹ  logger.js     | 100.00 |    96.55 |   95.65 | 
 ℹ  middleware.js | 100.00 |   100.00 |  100.00 | 
 ℹ  request.js    | 100.00 |   100.00 |  100.00 | 
-ℹ  response.js   | 100.00 |    98.90 |   94.74 | 
-ℹ  woodland.js   | 100.00 |    97.50 |   86.84 | 
+ℹ  response.js   | 100.00 |    98.91 |   94.74 | 
+ℹ  woodland.js   | 100.00 |    96.34 |   89.47 | 
 ℹ ---------------------------------------------------------------
-ℹ all files      | 100.00 |    98.27 |   95.28 | 
+ℹ all files      | 100.00 |    97.85 |   95.28 | 
 ℹ ---------------------------------------------------------------
 ℹ end of coverage report
 
 ✖ failing tests:
 
-test at tests\unit\response.test.js:105:3
-✖ should handle string error (0.821ms)
-  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-  
-  false !== true
-  
-      at TestContext.<anonymous> (file:///C:/Users/jason/Projects/woodland/tests/unit/response.test.js:130:11)
+test at tests\unit\woodland.test.js:1168:3
+✖ should emit connect event when listener exists (0.6763ms)
+  TypeError: res.writeHead is not a function
+      at writeHead (file:///C:/Users/jason/Projects/woodland/src/response.js:166:6)
+      at Woodland.onDone (file:///C:/Users/jason/Projects/woodland/src/woodland.js:404:3)
+      at send (file:///C:/Users/jason/Projects/woodland/src/response.js:327:5)
+      at res.send (file:///C:/Users/jason/Projects/woodland/src/woodland.js:308:4)
+      at res.error (file:///C:/Users/jason/Projects/woodland/src/woodland.js:298:8)
+      at Woodland.route (file:///C:/Users/jason/Projects/woodland/src/woodland.js:516:8)
+      at TestContext.<anonymous> (file:///C:/Users/jason/Projects/woodland/tests/unit/woodland.test.js:1198:15)
       at Test.runInAsyncScope (node:async_hooks:226:14)
       at Test.run (node:internal/test_runner/test:1201:25)
-      at Test.start (node:internal/test_runner/test:1096:17)
-      at node:internal/test_runner/test:1617:71
-      at node:internal/per_context/primordials:466:82
-      at new Promise (<anonymous>)
-      at new SafePromise (node:internal/per_context/primordials:435:3)
-      at node:internal/per_context/primordials:466:9
-      at Array.map (<anonymous>) {
-    generatedMessage: true,
-    code: 'ERR_ASSERTION',
-    actual: false,
-    expected: true,
-    operator: 'strictEqual',
-    diff: 'simple'
-  }
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7)
 
-test at tests\unit\response.test.js:134:3
-✖ should handle Error object (0.4706ms)
-  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-  + actual - expected
-  
-  + null
-  - Error: Test error
-  -     at TestContext.<anonymous> (file:///C:/Users/jason/Projects/woodland/tests/unit/response.test.js:145:16)
-  -     at Test.runInAsyncScope (node:async_hooks:226:14)
-  -     at Test.run (node:internal/test_runner/test:1201:25)
-  -     at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
-  -     at Test.postRun (node:internal/test_runner/test:1330:19)
-  -     at Test.run (node:internal/test_runner/test:1258:12)
-  -     at async Promise.all (index 0)
-  -     at async Suite.run (node:internal/test_runner/test:1619:7)
-  -     at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7)
-  
-      at TestContext.<anonymous> (file:///C:/Users/jason/Projects/woodland/tests/unit/response.test.js:157:11)
+test at tests\unit\woodland.test.js:1203:3
+✖ should register finish listener when listener exists (0.5499ms)
+  TypeError: res.writeHead is not a function
+      at writeHead (file:///C:/Users/jason/Projects/woodland/src/response.js:166:6)
+      at Woodland.onDone (file:///C:/Users/jason/Projects/woodland/src/woodland.js:404:3)
+      at send (file:///C:/Users/jason/Projects/woodland/src/response.js:327:5)
+      at res.send (file:///C:/Users/jason/Projects/woodland/src/woodland.js:308:4)
+      at res.error (file:///C:/Users/jason/Projects/woodland/src/woodland.js:298:8)
+      at Woodland.route (file:///C:/Users/jason/Projects/woodland/src/woodland.js:516:8)
+      at TestContext.<anonymous> (file:///C:/Users/jason/Projects/woodland/tests/unit/woodland.test.js:1239:14)
       at Test.runInAsyncScope (node:async_hooks:226:14)
       at Test.run (node:internal/test_runner/test:1201:25)
-      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
-      at Test.postRun (node:internal/test_runner/test:1330:19)
-      at Test.run (node:internal/test_runner/test:1258:12)
-      at async Promise.all (index 0)
-      at async Suite.run (node:internal/test_runner/test:1619:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
-    generatedMessage: true,
-    code: 'ERR_ASSERTION',
-    actual: null,
-    expected: Error: Test error
-        at TestContext.<anonymous> (file:///C:/Users/jason/Projects/woodland/tests/unit/response.test.js:145:16)
-        at Test.runInAsyncScope (node:async_hooks:226:14)
-        at Test.run (node:internal/test_runner/test:1201:25)
-        at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
-        at Test.postRun (node:internal/test_runner/test:1330:19)
-        at Test.run (node:internal/test_runner/test:1258:12)
-        at async Promise.all (index 0)
-        at async Suite.run (node:internal/test_runner/test:1619:7)
-        at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7),
-    operator: 'strictEqual',
-    diff: 'simple'
-  }
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7)
 
-test at tests\unit\response.test.js:185:3
-✖ should clear allow header for 404 (0.1304ms)
-  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-  
-  false !== true
-  
-      at TestContext.<anonymous> (file:///C:/Users/jason/Projects/woodland/tests/unit/response.test.js:209:11)
+test at tests\unit\woodland.test.js:1251:3
+✖ should not emit connect/finish when no listeners (0.432ms)
+  TypeError: res.writeHead is not a function
+      at writeHead (file:///C:/Users/jason/Projects/woodland/src/response.js:166:6)
+      at Woodland.onDone (file:///C:/Users/jason/Projects/woodland/src/woodland.js:404:3)
+      at send (file:///C:/Users/jason/Projects/woodland/src/response.js:327:5)
+      at res.send (file:///C:/Users/jason/Projects/woodland/src/woodland.js:308:4)
+      at res.error (file:///C:/Users/jason/Projects/woodland/src/woodland.js:298:8)
+      at Woodland.route (file:///C:/Users/jason/Projects/woodland/src/woodland.js:516:8)
+      at TestContext.<anonymous> (file:///C:/Users/jason/Projects/woodland/tests/unit/woodland.test.js:1275:19)
       at Test.runInAsyncScope (node:async_hooks:226:14)
       at Test.run (node:internal/test_runner/test:1201:25)
-      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
-      at Test.postRun (node:internal/test_runner/test:1330:19)
-      at Test.run (node:internal/test_runner/test:1258:12)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
-    generatedMessage: true,
-    code: 'ERR_ASSERTION',
-    actual: false,
-    expected: true,
-    operator: 'strictEqual',
-    diff: 'simple'
-  }
-
-test at tests\unit\response.test.js:212:3
-✖ should clear CORS headers for 404 (0.0933ms)
-  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-  
-  false !== true
-  
-      at TestContext.<anonymous> (file:///C:/Users/jason/Projects/woodland/tests/unit/response.test.js:236:11)
-      at Test.runInAsyncScope (node:async_hooks:226:14)
-      at Test.run (node:internal/test_runner/test:1201:25)
-      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
-      at Test.postRun (node:internal/test_runner/test:1330:19)
-      at Test.run (node:internal/test_runner/test:1258:12)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
-    generatedMessage: true,
-    code: 'ERR_ASSERTION',
-    actual: false,
-    expected: true,
-    operator: 'strictEqual',
-    diff: 'simple'
-  }
-
-test at tests\unit\response.test.js:239:3
-✖ should create Error from undefined body (0.086ms)
-  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-  
-  false !== true
-  
-      at TestContext.<anonymous> (file:///C:/Users/jason/Projects/woodland/tests/unit/response.test.js:261:11)
-      at Test.runInAsyncScope (node:async_hooks:226:14)
-      at Test.run (node:internal/test_runner/test:1201:25)
-      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
-      at Test.postRun (node:internal/test_runner/test:1330:19)
-      at Test.run (node:internal/test_runner/test:1258:12)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
-    generatedMessage: true,
-    code: 'ERR_ASSERTION',
-    actual: false,
-    expected: true,
-    operator: 'strictEqual',
-    diff: 'simple'
-  }
-
-test at tests\unit\woodland.test.js:850:4
-✖ should return 403 for disallowed origin (65.5528ms)
-  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-  
-  false !== true
-  
-      at TestContext.<anonymous> (file:///C:/Users/jason/Projects/woodland/tests/unit/woodland.test.js:885:12)
-      at async Test.run (node:internal/test_runner/test:1208:7)
-      at async Promise.all (index 0)
-      at async Suite.run (node:internal/test_runner/test:1619:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
-    generatedMessage: true,
-    code: 'ERR_ASSERTION',
-    actual: false,
-    expected: true,
-    operator: 'strictEqual',
-    diff: 'simple'
-  }
-
-test at tests\unit\woodland.test.js:889:4
-✖ should return 403 when origin header present but not in allowed list (61.7203ms)
-  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-  
-  false !== true
-  
-      at TestContext.<anonymous> (file:///C:/Users/jason/Projects/woodland/tests/unit/woodland.test.js:924:12)
-      at async Test.run (node:internal/test_runner/test:1208:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
-    generatedMessage: true,
-    code: 'ERR_ASSERTION',
-    actual: false,
-    expected: true,
-    operator: 'strictEqual',
-    diff: 'simple'
-  }
-
-test at tests\unit\woodland.test.js:931:4
-✖ should return error for disallowed method (62.7979ms)
-  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-  
-  false !== true
-  
-      at TestContext.<anonymous> (file:///C:/Users/jason/Projects/woodland/tests/unit/woodland.test.js:963:12)
-      at async Test.run (node:internal/test_runner/test:1208:7)
-      at async Promise.all (index 0)
-      at async Suite.run (node:internal/test_runner/test:1619:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
-    generatedMessage: true,
-    code: 'ERR_ASSERTION',
-    actual: false,
-    expected: true,
-    operator: 'strictEqual',
-    diff: 'simple'
-  }
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7)

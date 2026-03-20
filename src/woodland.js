@@ -151,7 +151,9 @@ export class Woodland extends EventEmitter {
 			this.options(fnCorsRequest).ignore(fnCorsRequest);
 		}
 
-		this.on(ERROR, () => {});
+		this.on(ERROR, (err, req, _res) =>
+			this.logger.logError(req.parsed.pathname, req.method, req.ip),
+		);
 	}
 
 	/**
@@ -293,7 +295,6 @@ export class Woodland extends EventEmitter {
 			const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
 			error(req, res, status);
 			this.emit(ERROR, err, req, res);
-			this.logger.logError(req.parsed.pathname, req.method, req.ip);
 			res.send(err.message);
 		};
 		res.header = res.setHeader;

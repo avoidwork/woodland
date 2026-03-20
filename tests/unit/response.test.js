@@ -102,86 +102,6 @@ describe("response", () => {
 	});
 
 	describe("error", () => {
-		it("should handle string error", () => {
-			let emitted = false;
-			let logged = false;
-
-			const req = { method: "GET" };
-			const res = {
-				headersSent: false,
-				removeHeader: () => {},
-				header: () => {},
-				statusCode: 500,
-			};
-
-			error(
-				req,
-				res,
-				(_req, _res, _err) => {
-					emitted = true;
-				},
-				(_req, _status) => {
-					logged = true;
-				},
-				500,
-				"Internal Error",
-			);
-
-			assert.strictEqual(emitted, true);
-			assert.strictEqual(logged, true);
-		});
-
-		it("should handle Error object", () => {
-			let errorReceived = null;
-
-			const req = { method: "GET" };
-			const res = {
-				headersSent: false,
-				removeHeader: () => {},
-				header: () => {},
-				statusCode: 500,
-			};
-
-			const err = new Error("Test error");
-			error(
-				req,
-				res,
-				(req, res, err) => {
-					errorReceived = err;
-				},
-				() => {},
-				500,
-				err,
-			);
-
-			assert.strictEqual(errorReceived, err);
-		});
-
-		it("should not handle when headers already sent", () => {
-			let called = false;
-
-			const req = { method: "GET" };
-			const res = {
-				headersSent: true,
-				removeHeader: () => {},
-				header: () => {},
-				statusCode: 500,
-			};
-
-			error(
-				req,
-				res,
-				() => {
-					called = true;
-				},
-				() => {},
-				500,
-				"Error",
-			);
-
-			assert.strictEqual(called, false);
-		});
-
 		it("should clear allow header for 404", () => {
 			let allowRemoved = false;
 
@@ -197,14 +117,7 @@ describe("response", () => {
 				statusCode: 500,
 			};
 
-			error(
-				req,
-				res,
-				() => {},
-				() => {},
-				404,
-				"Not Found",
-			);
+			error(req, res, 404);
 
 			assert.strictEqual(allowRemoved, true);
 		});
@@ -224,41 +137,57 @@ describe("response", () => {
 				statusCode: 500,
 			};
 
-			error(
-				req,
-				res,
-				() => {},
-				() => {},
-				404,
-				"Not Found",
-			);
+			error(req, res, 404);
 
 			assert.strictEqual(corsRemoved, true);
 		});
 
-		it("should create Error from undefined body", () => {
-			let errorReceived = null;
+		it("should not handle when headers already sent", () => {
+			const req = { method: "GET" };
+			const res = {
+				headersSent: true,
+				removeHeader: () => {},
+				header: () => {},
+				statusCode: 200,
+			};
 
+			error(req, res, 500);
+
+			assert.strictEqual(res.statusCode, 200);
+		});
+
+		it("should set status code", () => {
 			const req = { method: "GET" };
 			const res = {
 				headersSent: false,
 				removeHeader: () => {},
 				header: () => {},
-				statusCode: 500,
+				statusCode: 200,
 			};
 
-			error(
-				req,
-				res,
-				(req, res, err) => {
-					errorReceived = err;
-				},
-				() => {},
-				500,
-				void 0,
-			);
+			error(req, res, 404);
 
-			assert.strictEqual(errorReceived instanceof Error, true);
+			assert.strictEqual(res.statusCode, 404);
+		});
+
+		it("should clear content-length header", () => {
+			let contentLengthRemoved = false;
+
+			const req = { method: "GET" };
+			const res = {
+				headersSent: false,
+				removeHeader: (name) => {
+					if (name === "content-length") {
+						contentLengthRemoved = true;
+					}
+				},
+				header: () => {},
+				statusCode: 200,
+			};
+
+			error(req, res, 500);
+
+			assert.strictEqual(contentLengthRemoved, true);
 		});
 	});
 
