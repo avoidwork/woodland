@@ -43,7 +43,9 @@ describe("woodland", () => {
 		it("should have cache, permissions, middleware, methods", () => {
 			const app = new Woodland();
 
-			assert.ok(app.cache instanceof Map);
+			assert.ok(app.cache);
+			assert.ok(typeof app.cache.get === "function");
+			assert.ok(typeof app.cache.set === "function");
 			assert.ok(app.permissions instanceof Map);
 			assert.ok(app.middleware);
 			assert.strictEqual(typeof app.middleware.register, "function");

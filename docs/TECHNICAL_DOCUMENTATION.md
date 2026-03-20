@@ -384,21 +384,22 @@ $$
 
 #### Caching Function
 
-The Map-based cache behavior is modeled as:
+The LRU cache behavior is modeled as:
 
-$$C: K \times V \rightarrow V \cup \{\text{undefined}\}$$
+$$C: K \times V \times T \rightarrow V \cup \{\text{null}\}$$
 
 Where:
 
 - $K$ = Cache key space
 - $V$ = Value space
+- $T$ = Time domain
 
-Cache lookup:
+Cache lookup with TTL:
 
 $$
-C(k) = \begin{cases}
-v & \text{if } k \in \text{Map} \\
-\text{undefined} & \text{otherwise}
+C(k, v, t) = \begin{cases}
+v & \text{if } t - t_{\text{insert}} < \text{TTL} \\
+\text{null} & \text{otherwise}
 \end{cases}
 $$
 
@@ -408,13 +409,13 @@ $$C_{\text{key}}(method, uri) = \text{method} + \text{DELIMITER} + \text{uri}$$
 
 Cache types:
 
-- **Route Cache**: Cached route resolution results (Map in `this.cache`)
-- **Permission Cache**: Cached allowed methods per URI (Map in `this.permissions`)
+- **Route Cache**: Cached route resolution results (LRU via `tiny-lru`)
+- **Permission Cache**: Cached allowed methods per URI (Map)
 - **ETag Cache**: External `tiny-etag` package (provides its own LRU cache)
 - **File Stats**: No caching - fresh `fs.stat()` on each request
 
 Cache initialization:
-$$C_{\text{init}}() = \text{new Map()} \text{ for both route and permission caches}$$
+$$C_{\text{init}}(size, ttl) = \text{lru(size, ttl)} \text{ for route cache}$$
 
 #### Security Validation Functions
 
@@ -571,11 +572,11 @@ $$W(req, config, middleware) = W(req, config, middleware)$$
 
 ##### Middleware Iterator Properties
 
-Middleware execution is not associative due to iterator pattern:
-$$(f \circ g) \circ h \neq f \circ (g \circ h)$$
+Middleware execution follows a deterministic iterator sequence:
 
-Instead, middleware follows iterator sequence:
 $$\text{next}(req, res, [f_1, f_2, ..., f_n], i) = f_i(req, res, \text{next}(req, res, [f_1, f_2, ..., f_n], i+1))$$
+
+The iterator pattern ensures predictable execution order with error handler detection (functions with length === 4).
 
 ##### Event Loop Scheduling
 
@@ -592,7 +593,7 @@ $$
 
 LRU cache operations are commutative for different keys:
 
-$$C(k_1, v_1, t) \cup C(k_2, v_2, t) = C(k_2, v_2, t) \cup C(k_1, v_1, t)$$
+$$C_{\text{lru}}(k_1, v_1, t) \cup C_{\text{lru}}(k_2, v_2, t) = C_{\text{lru}}(k_2, v_2, t) \cup C_{\text{lru}}(k_1, v_1, t)$$
 
 ##### Event Emission Properties
 
@@ -615,7 +616,7 @@ $$E_{\text{event}}: E_{type} \times D \times L \rightarrow V$$
 
 Where:
 
-- $E_{type}$ = Event type space (connect, finish, stream, error)
+- $E_{type}$ = Event type space (connect, finish, stream, error, close)
 - $D$ = Event data space (request, response, error objects)
 - $L$ = Listener set from EventEmitter
 - $V$ = Void (no return value)
@@ -661,7 +662,7 @@ Decoration function with batch operations:
 
 $$
 D(req, res, config) = \begin{cases}
-req' = req \cup \{parsed, allow, body, corsHost, cors, host, ip, params, valid, precise\} \\
+req' = req \cup \{parsed, allow, body, corsHost, cors, host, ip, params, valid, precise, exit\} \\
 res' = res \cup \{locals, error, header, json, redirect, send, set, status\}
 \end{cases}
 $$
@@ -756,8 +757,8 @@ $$
 
 $$
 E_{\text{middleware}}(error, req, res, next) = \begin{cases}
-\text{next(error)} & \text{if error passed to next()} \\
-\text{res.error(500, error)} & \text{if unhandled error}
+\text{emit("error", req, res, error), then next(error)} & \text{if error passed to next()} \\
+\text{emit("error", req, res, error), then res.error(500, error)} & \text{if unhandled error}
 \end{cases}
 $$
 
