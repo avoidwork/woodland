@@ -243,7 +243,7 @@ function benchmarkErrorHandlingMiddleware() {
 	});
 
 	// Error handler middleware - simplified to avoid mock response issues
-	freshApp.use((err, req, res, next) => {
+	freshApp.use((err, req, res, _next) => {
 		res.statusCode = 500;
 		// Don't call next() to avoid continuing the chain
 	});
