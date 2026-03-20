@@ -58,6 +58,21 @@ createServer(app.route).listen(3000, () => console.log("Server running at http:/
 - **Lightweight** - Minimal dependencies, no bloat
 - **Dual module support** - Works with CommonJS and ECMAScript Modules (ESM)
 
+**Built-in Features (No Additional Packages Needed):**
+
+- **Automatic `Allow` header** - Every response includes `Allow: GET, POST, OPTIONS` (or relevant methods) for REST compliance
+- **CORS support** - Configure allowed origins with automatic preflight handling (OPTIONS)
+- **X-Content-Type-Options** - Automatic `nosniff` header on all responses
+- **ETag generation** - Built-in ETag support via `tiny-etag` for caching
+- **Response timing** - Optional `X-Response-Time` header for monitoring
+- **Directory indexing** - Auto-generated HTML directory listings (optional)
+- **Range request support** - Automatic handling of `Range` headers for file streaming
+- **HEAD request handling** - GET routes automatically support HEAD
+- **Error event emission** - Built-in error logging and event hooks
+- **Request decoration** - IP extraction, URL parsing, parameter extraction built-in
+- **Logger with CLF** - Common Log Format logging with configurable levels
+- **Cache control** - LRU caching for routes (configurable size and TTL)
+
 ## Common Patterns
 
 ### REST API
