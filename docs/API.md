@@ -185,8 +185,9 @@ app.always((req, res, next) => {
 - Middleware registered via `always()` is automatically added to the ignored set
 - Does not contribute to `req.allow` header calculations
 - Executes on every request regardless of HTTP method or route match
+- Internally calls `ignore()` for each handler before registering with `use()`
 
-#### `use(path, ...handlers)`
+#### `use(rpath, ...fn)`
 
 Register middleware for a specific route pattern. Can accept path + handlers or just handlers (matches all paths).
 
@@ -200,12 +201,18 @@ app.use(globalMiddleware);
 
 **Parameters:**
 
-| Parameter  | Type               | Description                          |
-| ---------- | ------------------ | ------------------------------------ |
-| `path`     | `string\|Function` | Route pattern or middleware function |
-| `handlers` | `Function[]`       | Middleware/handler functions         |
+| Parameter | Type               | Description                          |
+| --------- | ------------------ | ------------------------------------ |
+| `rpath`   | `string\|Function` | Route pattern or middleware function |
+| `fn`      | `Function[]`       | Middleware/handler functions         |
 
 **Returns:** `Woodland` instance (chainable)
+
+**Notes:**
+
+- If first argument is a function, it's treated as global middleware (path becomes `/.*)`
+- Last argument can be an HTTP method string (defaults to "GET")
+- Logs "use" event with route and method information
 
 #### `ignore(fn)`
 
@@ -223,6 +230,12 @@ app.ignore(etagMiddleware);
 
 **Returns:** `Woodland` instance (chainable)
 
+**Notes:**
+
+- Ignored middleware doesn't contribute to `req.allow` header
+- Used internally for automatically registered middleware
+- Logs "ignore" event with function name
+
 ---
 
 ### Response Helpers
@@ -231,7 +244,7 @@ These methods are attached to the `res` object during request decoration.
 
 #### `res.send(body, status, headers)`
 
-Send a response body.
+Send a response body. Handles strings, Buffers, and streams.
 
 ```javascript
 res.send("Hello World");
@@ -245,9 +258,9 @@ res.send("Data", 200, { "x-custom": "value" });
 | `status`  | `number`                 | Current status | HTTP status code |
 | `headers` | `Object`                 | `{}`           | Response headers |
 
-#### `res.json(body, status, headers)`
+#### `res.json(arg, status, headers)`
 
-Send a JSON response.
+Send a JSON response. Automatically stringifies the data.
 
 ```javascript
 res.json({ message: "Hello" });
@@ -256,18 +269,18 @@ res.json({ error: "Not found" }, 404);
 
 | Parameter | Type            | Default                                               | Description      |
 | --------- | --------------- | ----------------------------------------------------- | ---------------- |
-| `body`    | `Object\|Array` | Required                                              | JSON data        |
+| `arg`     | `Object\|Array` | Required                                              | JSON data        |
 | `status`  | `number`        | `200`                                                 | HTTP status code |
 | `headers` | `Object`        | `{"content-type": "application/json; charset=utf-8"}` | Response headers |
 
 #### `res.error(status, body)`
 
-Send an error response.
+Send an error response. Triggers error event and sends error message.
 
 ```javascript
 res.error(404);
 res.error(500, "Internal Server Error");
-res.error(new Error("Something went wrong"));
+res.error(403, new Error("Forbidden"));
 ```
 
 | Parameter | Type            | Default     | Description                   |
@@ -275,9 +288,9 @@ res.error(new Error("Something went wrong"));
 | `status`  | `number`        | `500`       | HTTP status code              |
 | `body`    | `string\|Error` | Status text | Error message or Error object |
 
-#### `res.redirect(url, permanent)`
+#### `res.redirect(uri, permanent)`
 
-Redirect to a different URL.
+Redirect to a different URL. Uses 308 for permanent, 307 for temporary.
 
 ```javascript
 res.redirect("/new-location"); // Permanent (308)
@@ -286,12 +299,12 @@ res.redirect("/temp", false); // Temporary (307)
 
 | Parameter   | Type      | Default  | Description                 |
 | ----------- | --------- | -------- | --------------------------- |
-| `url`       | `string`  | Required | Redirect URL                |
+| `uri`       | `string`  | Required | Redirect URL                |
 | `permanent` | `boolean` | `true`   | `true` = 308, `false` = 307 |
 
 #### `res.header(name, value)`
 
-Set a response header.
+Set a response header. Alias for `res.setHeader()`.
 
 ```javascript
 res.header("x-custom", "value");
@@ -302,9 +315,9 @@ res.header("x-custom", "value");
 | `name`    | `string` | Header name  |
 | `value`   | `string` | Header value |
 
-#### `res.set(headers)`
+#### `res.set(arg)`
 
-Set multiple response headers.
+Set multiple response headers. Accepts Object, Map, or Headers.
 
 ```javascript
 res.set({ "x-one": "1", "x-two": "2" });
@@ -313,11 +326,11 @@ res.set(new Headers([["x-custom", "value"]]));
 
 | Parameter | Type                   | Description    |
 | --------- | ---------------------- | -------------- |
-| `headers` | `Object\|Map\|Headers` | Headers to set |
+| `arg`     | `Object\|Map\|Headers` | Headers to set |
 
-#### `res.status(code)`
+#### `res.status(arg)`
 
-Set the HTTP status code.
+Set the HTTP status code. Returns `res` for chaining.
 
 ```javascript
 res.status(201).json({ created: true });
@@ -325,7 +338,7 @@ res.status(201).json({ created: true });
 
 | Parameter | Type     | Description      |
 | --------- | -------- | ---------------- |
-| `code`    | `number` | HTTP status code |
+| `arg`     | `number` | HTTP status code |
 
 **Returns:** `res` (chainable)
 
@@ -372,9 +385,15 @@ if (app.allowed("GET", "/users")) {
 
 **Returns:** `boolean`
 
+**Notes:**
+
+- Checks if middleware is registered for the method and URI
+- Ignores middleware marked with `ignore()`
+- Uses internal cache for performance
+
 #### `allows(uri, override)`
 
-Get allowed methods for a URI.
+Get allowed methods for a URI. Automatically adds HEAD (if GET exists) and OPTIONS.
 
 ```javascript
 const methods = app.allows("/users"); // "GET,HEAD,OPTIONS"
@@ -385,11 +404,18 @@ const methods = app.allows("/users"); // "GET,HEAD,OPTIONS"
 | `uri`      | `string`  | Required | Request URI       |
 | `override` | `boolean` | `false`  | Skip cache lookup |
 
-**Returns:** `string` (comma-separated methods)
+**Returns:** `string` (comma-separated methods, sorted)
+
+**Notes:**
+
+- Returns wildcard methods if `always()` middleware registered
+- Automatically adds HEAD if GET is allowed
+- Automatically adds OPTIONS if not present
+- Logs "allows" event with route information
 
 #### `list(method, type)`
 
-List registered routes.
+List registered routes for a specific HTTP method.
 
 ```javascript
 const routes = app.list("get", "array"); // ["/", "/users", ...]
@@ -398,10 +424,16 @@ const routes = app.list("post", "object"); // {"/users": middleware}
 
 | Parameter | Type     | Default   | Description             |
 | --------- | -------- | --------- | ----------------------- |
-| `method`  | `string` | `"get"`   | HTTP method             |
+| `method`  | `string` | `"get"`   | HTTP method (lowercase) |
 | `type`    | `string` | `"array"` | `"array"` or `"object"` |
 
 **Returns:** `Array` or `Object`
+
+**Notes:**
+
+- Method is converted to lowercase for lookup
+- Returns array of route paths or object mapping paths to handlers
+- Does not include `always()` middleware routes
 
 #### `path(arg)`
 
@@ -416,6 +448,11 @@ const pattern = app.path("/users/:id"); // "/users/([^/]+)"
 | `arg`     | `string` | Route path with `:param` placeholders |
 
 **Returns:** `string` (regex pattern)
+
+**Notes:**
+
+- Converts `:param` to named capture group `(?<param>[^/]+)`
+- Used internally for route parameter extraction
 
 #### `ip(req)`
 
@@ -435,7 +472,8 @@ const ip = app.ip(req);
 
 - Respects `X-Forwarded-For` header
 - Validates IP addresses for security
-- Falls back to connection IP
+- Falls back to connection.remoteAddress or socket.remoteAddress
+- Returns `127.0.0.1` if no IP found
 
 #### `decorate(req, res)`
 
@@ -498,7 +536,7 @@ app.onDone(req, res, body, headers);
 
 #### `files(root, folder)`
 
-Mount a static file server.
+Mount a static file server. Registers middleware for serving files.
 
 ```javascript
 app.files("/static", "./public");
@@ -509,6 +547,8 @@ app.files("/", "./www");
 | --------- | -------- | --------------- | --------------------------- |
 | `root`    | `string` | `"/"`           | URL root path               |
 | `folder`  | `string` | `process.cwd()` | File system folder to serve |
+
+**Returns:** `Woodland` instance (chainable)
 
 **Features:**
 
@@ -534,6 +574,14 @@ await app.serve(req, res, "path/to/file", "./public");
 | `folder`  | `string` | `process.cwd()` | Base directory               |
 
 **Returns:** `Promise<void>`
+
+**Notes:**
+
+- Resolves path and checks for path traversal attacks
+- Returns 403 if path is outside allowed directory
+- Returns 404 if file/directory not found
+- Redirects directories to add trailing slash
+- Serves index files or autoindex HTML
 
 #### `stream(req, res, file)`
 
@@ -562,10 +610,19 @@ app.stream(req, res, {
 | `etag`    | `string` | ETag value                       |
 | `path`    | `string` | File system path                 |
 | `stats`   | `Object` | File statistics (from `fs.stat`) |
+| `stats.size`   | `number` | File size in bytes       |
+| `stats.mtime`  | `Date`   | File modification time   |
+
+**Notes:**
+
+- Handles GET, HEAD, and OPTIONS methods
+- Supports range requests for partial content
+- Emits "stream" event when started
+- Sets Content-Type, Content-Length, Last-Modified headers
 
 #### `etag(method, ...args)`
 
-Generate an ETag for the given arguments.
+Generate an ETag for the given arguments. Returns empty string for non-cacheable methods.
 
 ```javascript
 const etag = app.etag("GET", inode, size, mtime);
@@ -577,6 +634,12 @@ const etag = app.etag("GET", inode, size, mtime);
 | `args`    | `any[]`  | Arguments for ETag generation |
 
 **Returns:** `string` (ETag value or empty string)
+
+**Notes:**
+
+- Returns empty string for methods other than GET, HEAD, OPTIONS
+- Returns empty string if etags are disabled in config
+- Uses `tiny-etag` library for ETag generation
 
 ---
 

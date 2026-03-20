@@ -34,17 +34,6 @@ import {
 	OPTIONS,
 	OPTIONS_BODY,
 	RANGE,
-	STATUS_BAD_REQUEST,
-	STATUS_ERROR,
-	STATUS_FORBIDDEN,
-	STATUS_INTERNAL_SERVER_ERROR,
-	STATUS_METHOD_NOT_ALLOWED,
-	STATUS_NO_CONTENT,
-	STATUS_NOT_FOUND,
-	STATUS_OK,
-	STATUS_PERMANENT_REDIRECT,
-	STATUS_RANGE_NOT_SATISFIABLE,
-	STATUS_TEMPORARY_REDIRECT,
 	STRING,
 	TO_STRING,
 } from "./constants.js";
@@ -178,24 +167,6 @@ export function mime(arg = EMPTY) {
 }
 
 /**
- * Gets HTTP status text for status code
- * @param {number} status - HTTP status code
- * @returns {string} Status text string
- */
-const STATUS_TEXTS = Object.freeze({
-	INT_200: STATUS_OK,
-	INT_204: STATUS_NO_CONTENT,
-	INT_307: STATUS_TEMPORARY_REDIRECT,
-	INT_308: STATUS_PERMANENT_REDIRECT,
-	INT_400: STATUS_BAD_REQUEST,
-	INT_403: STATUS_FORBIDDEN,
-	INT_404: STATUS_NOT_FOUND,
-	INT_405: STATUS_METHOD_NOT_ALLOWED,
-	INT_416: STATUS_RANGE_NOT_SATISFIABLE,
-	INT_500: STATUS_INTERNAL_SERVER_ERROR,
-});
-
-/**
  * Determines the appropriate HTTP status code based on request and response state
  * @param {Object} req - The HTTP request object
  * @param {Object} res - The HTTP response object
@@ -215,7 +186,7 @@ export function getStatus(req, res) {
 }
 
 export function getStatusText(status) {
-	return STATUS_TEXTS[`INT_${status}`] || STATUS_ERROR;
+	return STATUS_CODES[status] || STATUS_CODES[INT_500];
 }
 
 /**
@@ -302,9 +273,9 @@ export function send(
 		if (isPipeable) {
 			if (rangeHeader === void 0 || req.range !== void 0) {
 				writeHead(res, headers);
-				body.on(ERROR, (err) => error(req, res, noop, noop, INT_500, err)).pipe(res);
+				body.on(ERROR, (_err) => res.error(INT_500)).pipe(res);
 			} else {
-				error(req, res, noop, noop, INT_416);
+				res.error(INT_416);
 			}
 		} else {
 			if (body !== null && typeof body !== STRING && typeof body[TO_STRING] === "function") {
@@ -320,7 +291,7 @@ export function send(
 					const rangeBuffer = buffered.slice(req.range.start, req.range.end + 1);
 					onDone(req, res, rangeBuffer.toString(), headers);
 				} else {
-					error(req, res, noop, noop, INT_416);
+					res.error(INT_416);
 				}
 			} else {
 				res.statusCode = status;
