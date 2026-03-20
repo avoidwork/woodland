@@ -428,4 +428,5 @@ For mission-critical services requiring maximum throughput, Woodland provides th
 
 *Last updated: March 2026*
 *Benchmark version: 2.8*
+*Framework version: 21.0.0*
 *Test framework: Node.js 22.x on Windows 11*

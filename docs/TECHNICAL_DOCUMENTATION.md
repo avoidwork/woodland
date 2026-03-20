@@ -22,6 +22,8 @@
 
 Woodland is a lightweight, security-focused HTTP server framework for Node.js that extends EventEmitter. It provides a middleware-based architecture with built-in features for modern web applications including CORS handling, file serving, caching, and comprehensive logging.
 
+**Version:** 21.0.0
+
 ### Key Features
 
 - **Middleware-based routing** with parameter extraction

@@ -594,6 +594,8 @@ const app = woodland({ cacheSize: 100, cacheTTL: 60000 });
 
 Copyright (c) 2026 Jason Mulligan
 
+Version: 21.0.0
+
 Licensed under the **BSD-3-Clause** license.
 
 ## Contributing
