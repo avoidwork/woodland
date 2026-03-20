@@ -74,12 +74,12 @@ graph TB
     end
 
     subgraph "Internal Components"
-        Q[cache LRU]
-        R[permissions Map]
-        S[middleware Registry]
-        T[etags]
-        U[fileServer]
-        V[logger]
+        Q[LRU Cache]
+        R[Permissions Map]
+        S[Middleware Registry]
+        T[ETags]
+        U[File Server]
+        V[Logger]
     end
 
     subgraph "Factory Functions"
