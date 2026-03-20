@@ -1,21 +1,10 @@
 // Note: Using source utility functions since they are not exported from dist
-import {woodland} from "../src/woodland.js";
-import {
-	autoindex,
-	getStatus,
-	isValidIP,
-	mime,
-	ms,
-	next,
-	pad,
-	params,
-	parse,
-	partialHeaders,
-	pipeable,
-	reduce,
-	timeOffset,
-	writeHead
-} from "../src/utility.js";
+import { woodland } from "../src/woodland.js";
+import { autoIndex } from "../src/fileserver.js";
+import { getStatus, mime, partialHeaders, pipeable, writeHead } from "../src/response.js";
+import { next, reduce } from "../src/middleware.js";
+import { isValidIP, params, parse } from "../src/request.js";
+import { ms, timeOffset } from "../src/logger.js";
 
 /**
  * Create a fresh Woodland app instance for benchmarks
@@ -25,8 +14,8 @@ const createFreshApp = () => {
 	return woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
-		etags: true,
-		logging: {enabled: false}
+		etags: false,
+		logging: { enabled: false },
 	});
 };
 
@@ -46,7 +35,7 @@ const testUrls = [
 	"http://localhost:3000/admin/dashboard#section",
 	"http://localhost:8080/complex/path/with/many/segments",
 	"http://localhost:8443/secure/api/endpoint",
-	"http://127.0.0.1:5000/local/service"
+	"http://127.0.0.1:5000/local/service",
 ];
 
 const testFiles = [
@@ -67,30 +56,17 @@ const testFiles = [
 	"spreadsheet.xlsx",
 	"executable.exe",
 	"unknown.xyz",
-	"no-extension"
+	"no-extension",
 ];
 
 const testTimeValues = [
-	0,
-	1000000,
-	5000000,
-	10000000,
-	50000000,
-	100000000,
-	500000000,
-	1000000000,
-	5000000000,
-	10000000000
-];
-
-const testNumbers = [
-	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-	25, 30, 35, 40, 45, 50, 55, 60, 99, 100, 999, 1000, 9999, 10000
+	0, 1000000, 5000000, 10000000, 50000000, 100000000, 500000000, 1000000000, 5000000000,
+	10000000000,
 ];
 
 const testTimezoneOffsets = [
-	0, -60, -120, -180, -240, -300, -360, -420, -480, -540, -600, -660, -720,
-	60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 660, 720
+	0, -60, -120, -180, -240, -300, -360, -420, -480, -540, -600, -660, -720, 60, 120, 180, 240, 300,
+	360, 420, 480, 540, 600, 660, 720,
 ];
 
 const testIPAddresses = [
@@ -109,7 +85,7 @@ const testIPAddresses = [
 	"invalid.ip",
 	"256.256.256.256",
 	"192.168.1",
-	"gggg::1"
+	"gggg::1",
 ];
 
 // Mock request objects for testing
@@ -119,16 +95,16 @@ const createMockRequest = (method = "GET", url = "/", headers = {}) => ({
 	headers: {
 		host: "localhost:3000",
 		"user-agent": "benchmark-test",
-		...headers
+		...headers,
 	},
 	connection: {
-		remoteAddress: "127.0.0.1"
+		remoteAddress: "127.0.0.1",
 	},
 	socket: {
 		server: {
-			_connectionKey: "6::::3000"
-		}
-	}
+			_connectionKey: "6::::3000",
+		},
+	},
 });
 
 const createMockResponse = () => {
@@ -138,8 +114,8 @@ const createMockResponse = () => {
 		statusCode: 200,
 		headersSent: false,
 		setHeader: (name, value) => headers.set(name.toLowerCase(), value),
-		getHeader: name => headers.get(name.toLowerCase()),
-		removeHeader: name => headers.delete(name.toLowerCase()),
+		getHeader: (name) => headers.get(name.toLowerCase()),
+		removeHeader: (name) => headers.delete(name.toLowerCase()),
 		header: (name, value) => headers.set(name.toLowerCase(), value),
 		writeHead: (statusCode, statusMessage, headerObj) => {
 			if (headerObj) {
@@ -155,30 +131,30 @@ const createMockResponse = () => {
 		once: (_event, _callback) => {},
 		emit: (_event, ..._args) => {},
 		// Add response helper methods
-		send: _data => {},
-		json: _data => {},
-		redirect: (_url, _statusCode) => {}
+		send: (_data) => {},
+		json: (_data) => {},
+		redirect: (_url, _statusCode) => {},
 	};
 };
 
 // Mock file objects for autoindex testing
 const createMockFiles = () => [
-	{name: "file1.txt", isDirectory: () => false},
-	{name: "file2.js", isDirectory: () => false},
-	{name: "image.png", isDirectory: () => false},
-	{name: "subdirectory", isDirectory: () => true},
-	{name: "document.pdf", isDirectory: () => false},
-	{name: "another-folder", isDirectory: () => true},
-	{name: "index.html", isDirectory: () => false},
-	{name: "style.css", isDirectory: () => false},
-	{name: "script.js", isDirectory: () => false},
-	{name: "data.json", isDirectory: () => false}
+	{ name: "file1.txt", isDirectory: () => false },
+	{ name: "file2.js", isDirectory: () => false },
+	{ name: "image.png", isDirectory: () => false },
+	{ name: "subdirectory", isDirectory: () => true },
+	{ name: "document.pdf", isDirectory: () => false },
+	{ name: "another-folder", isDirectory: () => true },
+	{ name: "index.html", isDirectory: () => false },
+	{ name: "style.css", isDirectory: () => false },
+	{ name: "script.js", isDirectory: () => false },
+	{ name: "data.json", isDirectory: () => false },
 ];
 
 /**
  * Benchmark parse() function - URL parsing
  */
-function benchmarkParse () {
+function benchmarkParse() {
 	const url = testUrls[Math.floor(Math.random() * testUrls.length)];
 
 	return parse(url);
@@ -187,10 +163,10 @@ function benchmarkParse () {
 /**
  * Benchmark parse() function with request objects
  */
-function benchmarkParseRequest () {
+function benchmarkParseRequest() {
 	const request = createMockRequest(
 		"GET",
-		testUrls[Math.floor(Math.random() * testUrls.length)].replace(/^https?:\/\/[^/]+/, "")
+		testUrls[Math.floor(Math.random() * testUrls.length)].replace(/^https?:\/\/[^/]+/, ""),
 	);
 
 	return parse(request);
@@ -199,7 +175,7 @@ function benchmarkParseRequest () {
 /**
  * Benchmark mime() function - MIME type detection
  */
-function benchmarkMime () {
+function benchmarkMime() {
 	const filename = testFiles[Math.floor(Math.random() * testFiles.length)];
 
 	return mime(filename);
@@ -208,7 +184,7 @@ function benchmarkMime () {
 /**
  * Benchmark ms() function - time formatting
  */
-function benchmarkMs () {
+function benchmarkMs() {
 	const time = testTimeValues[Math.floor(Math.random() * testTimeValues.length)];
 	const digits = Math.floor(Math.random() * 5) + 1;
 
@@ -216,48 +192,39 @@ function benchmarkMs () {
 }
 
 /**
- * Benchmark pad() function - number padding
- */
-function benchmarkPad () {
-	const num = testNumbers[Math.floor(Math.random() * testNumbers.length)];
-
-	return pad(num);
-}
-
-/**
  * Benchmark timeOffset() function - timezone offset formatting
  */
-function benchmarkTimeOffset () {
+function benchmarkTimeOffset() {
 	const offset = testTimezoneOffsets[Math.floor(Math.random() * testTimezoneOffsets.length)];
 
 	return timeOffset(offset);
 }
 
 /**
- * Benchmark autoindex() function - directory listing generation
+ * Benchmark autoIndex() function - directory listing generation
  */
-function benchmarkAutoindex () {
+function benchmarkAutoindex() {
 	const title = "/test/directory";
 	const files = createMockFiles();
-	// Pass file objects directly as expected by the autoindex function
+	// Pass file objects directly as expected by the autoIndex function
 
-	return autoindex(title, files);
+	return autoIndex(title, files);
 }
 
 /**
  * Benchmark getStatus() function - status code determination
  */
-function benchmarkGetStatus () {
+function benchmarkGetStatus() {
 	const req = createMockRequest();
 	const res = createMockResponse();
 
 	// Set up various scenarios
 	const scenarios = [
-		{allow: "GET, POST, PUT, DELETE", method: "GET"},
-		{allow: "GET, POST", method: "PUT"},
-		{allow: "", method: "GET"},
-		{allow: "GET", method: "GET"},
-		{allow: "POST", method: "GET"}
+		{ allow: "GET, POST, PUT, DELETE", method: "GET" },
+		{ allow: "GET, POST", method: "PUT" },
+		{ allow: "", method: "GET" },
+		{ allow: "GET", method: "GET" },
+		{ allow: "POST", method: "GET" },
 	];
 
 	const scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
@@ -273,13 +240,14 @@ function benchmarkGetStatus () {
 /**
  * Benchmark params() function - parameter extraction
  */
-function benchmarkParams () {
+function benchmarkParams() {
 	const req = createMockRequest();
-	req.parsed = {pathname: "/users/123/posts/456/comments/789"};
+	req.parsed = { pathname: "/users/123/posts/456/comments/789" };
 	req.params = {};
 
 	// Create a regex similar to what woodland uses
-	const regex = /^\/users\/(?<userId>[^/]+)\/posts\/(?<postId>[^/]+)\/comments\/(?<commentId>[^/]+)$/;
+	const regex =
+		/^\/users\/(?<userId>[^/]+)\/posts\/(?<postId>[^/]+)\/comments\/(?<commentId>[^/]+)$/;
 
 	return params(req, regex);
 }
@@ -287,7 +255,7 @@ function benchmarkParams () {
 /**
  * Benchmark partialHeaders() function - range request headers
  */
-function benchmarkPartialHeaders () {
+function benchmarkPartialHeaders() {
 	const req = createMockRequest();
 	const res = createMockResponse();
 
@@ -305,18 +273,18 @@ function benchmarkPartialHeaders () {
 /**
  * Benchmark pipeable() function - checks if content is pipeable
  */
-function benchmarkPipeable () {
+function benchmarkPipeable() {
 	const methods = ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"];
 	const method = methods[Math.floor(Math.random() * methods.length)];
 
 	// Test with different types of content
 	const contents = [
 		"string content",
-		{pipe: () => {}, on: () => {}}, // Stream-like object
+		{ pipe: () => {}, on: () => {} }, // Stream-like object
 		Buffer.from("buffer content"),
 		123,
 		null,
-		{toString: () => "object with toString"}
+		{ toString: () => "object with toString" },
 	];
 
 	const content = contents[Math.floor(Math.random() * contents.length)];
@@ -327,7 +295,7 @@ function benchmarkPipeable () {
 /**
  * Benchmark reduce() function - route reduction
  */
-function benchmarkReduce () {
+function benchmarkReduce() {
 	const uri = "/api/users/123/posts";
 	const map = new Map();
 
@@ -335,19 +303,19 @@ function benchmarkReduce () {
 	map.set("/.∗", {
 		handlers: [(req, res, nextFn) => nextFn()],
 		params: false,
-		regex: /^\/\.∗$/
+		regex: /^\/\.∗$/,
 	});
 
 	map.set("/api/users/:id/posts", {
 		handlers: [(req, res, nextFn) => nextFn()],
 		params: true,
-		regex: /^\/api\/users\/([^/]+)\/posts$/
+		regex: /^\/api\/users\/([^/]+)\/posts$/,
 	});
 
 	map.set("/api/users", {
 		handlers: [(req, res, nextFn) => nextFn()],
 		params: false,
-		regex: /^\/api\/users$/
+		regex: /^\/api\/users$/,
 	});
 
 	const arg = {
@@ -355,7 +323,7 @@ function benchmarkReduce () {
 		middleware: [],
 		params: false,
 		visible: 0,
-		exit: -1
+		exit: -1,
 	};
 
 	return reduce(uri, map, arg);
@@ -364,13 +332,13 @@ function benchmarkReduce () {
 /**
  * Benchmark writeHead() function - header writing
  */
-function benchmarkWriteHead () {
+function benchmarkWriteHead() {
 	const res = createMockResponse();
 	const headers = {
 		"Content-Type": "application/json",
 		"Cache-Control": "no-cache",
 		"X-Custom-Header": "test-value",
-		"Access-Control-Allow-Origin": "*"
+		"Access-Control-Allow-Origin": "*",
 	};
 
 	return writeHead(res, headers);
@@ -379,7 +347,7 @@ function benchmarkWriteHead () {
 /**
  * Benchmark next() function - middleware chain progression
  */
-function benchmarkNext () {
+function benchmarkNext() {
 	// Create a realistic Woodland app to properly set up the request
 	const freshApp = createFreshApp();
 
@@ -405,7 +373,7 @@ function benchmarkNext () {
 		(request, response) => {
 			request.step3 = true;
 			response.send("OK");
-		}
+		},
 	];
 
 	const iterator = middleware[Symbol.iterator]();
@@ -417,7 +385,7 @@ function benchmarkNext () {
 /**
  * Benchmark URL parsing edge cases
  */
-function benchmarkParseEdgeCases () {
+function benchmarkParseEdgeCases() {
 	const edgeCaseUrls = [
 		"http://localhost/",
 		"http://localhost:8080/path?query=value#fragment",
@@ -427,7 +395,7 @@ function benchmarkParseEdgeCases () {
 		"http://localhost/path%20with%20encoded%20spaces",
 		"http://localhost/path?multiple=queries&and=parameters",
 		"http://localhost/path#fragment-only",
-		"http://localhost:8080/port-specified"
+		"http://localhost:8080/port-specified",
 	];
 
 	const url = edgeCaseUrls[Math.floor(Math.random() * edgeCaseUrls.length)];
@@ -438,7 +406,7 @@ function benchmarkParseEdgeCases () {
 /**
  * Benchmark complex MIME type detection
  */
-function benchmarkComplexMime () {
+function benchmarkComplexMime() {
 	const complexFiles = [
 		"file.tar.gz",
 		"document.docx",
@@ -459,7 +427,7 @@ function benchmarkComplexMime () {
 		"installer.msi",
 		"font.woff2",
 		"vector.svg",
-		"3d-model.obj"
+		"3d-model.obj",
 	];
 
 	const filename = complexFiles[Math.floor(Math.random() * complexFiles.length)];
@@ -470,7 +438,7 @@ function benchmarkComplexMime () {
 /**
  * Benchmark isValidIP() function - IP address validation
  */
-function benchmarkIsValidIP () {
+function benchmarkIsValidIP() {
 	const ip = testIPAddresses[Math.floor(Math.random() * testIPAddresses.length)];
 
 	return isValidIP(ip);
@@ -483,7 +451,6 @@ export default {
 	"mime() - basic files": benchmarkMime,
 	"mime() - complex files": benchmarkComplexMime,
 	"ms() - time formatting": benchmarkMs,
-	"pad() - number padding": benchmarkPad,
 	"timeOffset() - timezone": benchmarkTimeOffset,
 	"autoindex() - directory listing": benchmarkAutoindex,
 	"getStatus() - status determination": benchmarkGetStatus,
@@ -494,5 +461,5 @@ export default {
 	"writeHead() - header writing": benchmarkWriteHead,
 	"next() - middleware chain": benchmarkNext,
 	"parse() - edge cases": benchmarkParseEdgeCases,
-	"isValidIP() - IP validation": benchmarkIsValidIP
+	"isValidIP() - IP validation": benchmarkIsValidIP,
 };

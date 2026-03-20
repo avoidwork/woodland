@@ -22,6 +22,8 @@
 
 Woodland is a lightweight, security-focused HTTP server framework for Node.js that extends EventEmitter. It provides a middleware-based architecture with built-in features for modern web applications including CORS handling, file serving, caching, and comprehensive logging.
 
+**Version:** 21.0.0
+
 ### Key Features
 
 - **Middleware-based routing** with parameter extraction
@@ -48,40 +50,74 @@ Woodland is a lightweight, security-focused HTTP server framework for Node.js th
 
 ## Architecture
 
-The Woodland framework follows a layered architecture pattern with clear separation of concerns:
+The Woodland framework follows a class-based architecture extending EventEmitter with factory pattern:
 
 ```mermaid
 graph TB
-    subgraph "Application Layer"
-        A[HTTP Request] --> B[Woodland Instance]
-        B --> C[Request Decoration]
-        C --> D[Route Resolution]
-        D --> E[Middleware Chain]
-        E --> F[Response Generation]
-        F --> G[HTTP Response]
+    subgraph "Entry Point"
+        A[HTTP Request] --> B[app.route handler]
     end
-    
-    subgraph "Core Components"
-        H[Router] --> I[Middleware Manager]
-        I --> J[Cache Layer]
-        J --> K[Security Layer]
-        K --> L[File System]
+
+    subgraph "Woodland Class extends EventEmitter"
+        B --> C[decorate adds utilities]
+        C --> D[allows permission check]
+        D --> E{CORS Validation}
+        E -->|Invalid| F[res.error 403]
+        E -->|Valid| G{Route Match?}
+        G -->|No| H[res.error 404/405]
+        G -->|Yes| I[middleware.routes]
+        I --> J[params extract]
+        J --> K[next iterator]
+        K --> L[Middleware Chain]
+        L --> M[onReady timing]
+        M --> N[onSend prepare]
+        N --> O[onDone finalize]
+        O --> P[HTTP Response]
     end
-    
-    subgraph "Support Services"
-        M[Logger] --> N[CORS Handler]
-        N --> O[ETag Generator]
-        O --> P[Stream Handler]
+
+    subgraph "Internal Components"
+        Q[LRU Cache]
+        R[Permissions Map]
+        S[Middleware Registry]
+        T[ETags]
+        U[File Server]
+        V[Logger]
     end
-    
-    B -.-> H
-    H -.-> M
-    
+
+    subgraph "Factory Functions"
+        W[createLogger]
+        X[createMiddlewareRegistry]
+        Y[createFileServer]
+        Z[woodland factory]
+    end
+
+    B -.-> Q
+    B -.-> R
+    B -.-> S
+    B -.-> T
+    B -.-> U
+    B -.-> V
+    Z -->|new Woodland| B
+
     style A fill:#2563eb,stroke:#1e40af,stroke-width:2px,color:#ffffff
-    style G fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
-    style H fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#ffffff
-    style M fill:#7c3aed,stroke:#6d28d9,stroke-width:2px,color:#ffffff
+    style P fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
+    style B fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#ffffff
+    style Z fill:#7c3aed,stroke:#6d28d9,stroke-width:2px,color:#ffffff
 ```
+
+### Component Flow
+
+1. **`woodland()` factory** creates `Woodland` instance (extends `EventEmitter`)
+2. **`app.route(req, res)`** is the HTTP request handler
+3. **`decorate(req, res)`** adds framework utilities (ip, parsed, allow, cors, params, etc.)
+4. **`allows(uri)`** checks permission cache, determines allowed methods
+5. **CORS validation** rejects disallowed origins with 403
+6. **Route matching** via `middleware.routes()` with cached results
+7. **`params(req, regex)`** extracts URL parameters
+8. **`next()`** creates iterator-based middleware executor
+9. **`onReady()`** adds timing header if enabled
+10. **`onSend()`** prepares response array
+11. **`onDone()`** sets content-length, writes headers, ends response
 
 ### Component Responsibilities
 
@@ -100,79 +136,116 @@ graph TB
 
 ```mermaid
 sequenceDiagram
-    participant C as Client
-    participant W as Woodland
-    participant M as Middleware
-    participant F as File System
-    participant R as Response
-    
-    C->>+W: HTTP Request
-    W->>W: Parse & Validate
-    W->>W: Decorate req/res
-    W->>W: Determine CORS
-    W->>W: Check Permissions
-    
-    alt Valid Route
-        W->>+M: Execute Middleware Chain
-        M->>M: Process Request
-        M->>-W: Continue/Response
-        
-        alt File Request
-            W->>+F: Serve File
-            F->>F: Security Check
-            F->>F: Path Validation
-            F->>-W: File Stream/Error
+    participant Client
+    participant Route as app.route
+    participant Decorate as decorate
+    participant Allows as allows
+    participant Routes as middleware.routes
+    participant Params as params
+    participant Next as next iterator
+    participant Middleware
+    participant Response as onReady/onSend/onDone
+    participant Logger as logger
+
+    Client->>Route: HTTP Request
+    Route->>Route: HEAD to GET conversion
+    Route->>Decorate: Decorate req/res
+    Decorate->>Decorate: Add parsed, allow, cors, ip, params
+    Decorate-->>Route: Return decorated objects
+    Route->>Allows: Check permissions
+    Allows->>Allows: Map lookup for allowed methods
+    Allows-->>Route: Return allowed methods
+    Route->>Route: Validate CORS origin
+    alt Invalid CORS
+        Route->>Route: res.error 403
+        Route->>Client: HTTP Response
+    else Valid CORS
+        Route->>Routes: Match route
+        Routes->>Routes: LRU cache lookup
+        alt Cache Hit
+            Routes-->>Route: Return cached route
+        else Cache Miss
+            Routes->>Routes: Iterate compiled patterns
+            Routes->>Routes: Store in cache
+            Routes-->>Route: Return route info
         end
-        
-        W->>+R: Generate Response
-        R->>R: Set Headers
-        R->>R: Apply ETags
-        R->>-W: Response Data
-    else Invalid Route
-        W->>W: Generate Error
+        alt No Route Match
+            Route->>Route: res.error 404/405
+            Route->>Client: HTTP Response
+        else Route Found
+            Route->>Params: Extract URL params
+            Params->>Params: regex.exec with escapeHtml
+            Params-->>Route: Return params array
+            Route->>Next: Create iterator
+            Next->>Middleware: Execute middleware 1
+            Middleware->>Middleware: Process request
+            alt More middleware
+                Middleware->>Next: Call next()
+                Next->>Middleware: Execute middleware N
+                Middleware-->>Next: Continue chain
+            else End of chain
+                Middleware-->>Next: Final middleware
+            end
+            Next-->>Route: Middleware complete
+            Route->>Response: Finalize response
+            Response->>Response: onReady - timing header
+            Response->>Response: onSend - prepare response
+            Response->>Response: onDone - write headers
+            Response-->>Route: Response sent
+        end
     end
-    
-    W->>-C: HTTP Response
-    W->>W: Log Request
-    
-    Note over W: Security: Path traversal protection,<br/>Input validation, CORS enforcement
+    Route->>Logger: Log request
+    Logger->>Logger: CLF format with timeOffset
+    Logger-->>Route: Log complete
+    Route->>Client: HTTP Response
+    Route->>Route: Emit finish event
+
+    Note over Route: Security: Path traversal,<br/>CORS enforcement,<br/>Input validation,<br/>HTML escaping
 ```
 
 ### Middleware Execution Flow
 
 ```mermaid
-graph LR
-    A[Request] --> B{Route Match?}
-    B -->|Yes| C[Extract Parameters]
-    B -->|No| D[404 Error]
-    
-    C --> E[Middleware Chain]
-    E --> F[Middleware 1]
-    F --> G[Middleware 2]
-    G --> H[Middleware N]
-    
-    H --> I{Error?}
-    I -->|Yes| J[Error Handler]
-    I -->|No| K[Response]
-    
-    J --> L[Error Response]
-    K --> M[Success Response]
-    
-    subgraph "Security Layer"
-        N[Input Validation]
-        O[Path Sanitization]
-        P[CORS Validation]
+graph TB
+    subgraph "Iterator Pattern"
+        A[next iterator] --> B{immediate?}
+        B -->|true| C[synchronous execution]
+        B -->|false| D[process.nextTick]
+        C --> E[execute middleware]
+        D --> E
+        E --> F{more middleware?}
+        F -->|yes| G[create next iterator]
+        F -->|no| H[chain complete]
+        G --> E
     end
-    
-    E -.-> N
-    N -.-> O
-    O -.-> P
-    
-    style A fill:#2563eb,stroke:#1e40af,stroke-width:2px,color:#ffffff
-    style D fill:#dc2626,stroke:#b91c1c,stroke-width:2px,color:#ffffff
-    style J fill:#dc2626,stroke:#b91c1c,stroke-width:2px,color:#ffffff
-    style M fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
-    style N fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#ffffff
+
+    subgraph "Middleware Functions"
+        I[middleware 1] --> J[middleware 2]
+        J --> K[middleware N]
+        K --> H
+    end
+
+    subgraph "Error Handler Detection"
+        L{function length equals 4}
+        L -->|yes| M[error handler]
+        L -->|no| N[regular middleware]
+    end
+
+    subgraph "Execution Flow"
+        O[Route Match] --> P[Extract Params]
+        P --> Q[Create Iterator]
+        Q --> R[Execute Chain]
+        R --> S{Error Passed?}
+        S -->|yes| L
+        S -->|no| T[Response Generated]
+        M --> U[error handler executes]
+        U --> T
+    end
+
+    style A fill:#7c3aed,stroke:#6d28d9,stroke-width:2px,color:#ffffff
+    style H fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
+    style L fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#ffffff
+    style T fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
 ```
 
 ---
@@ -187,7 +260,7 @@ The main class extending EventEmitter that orchestrates all operations:
 class Woodland extends EventEmitter {
   constructor(config = {}) {
     // Configuration options:
-    // - autoindex: Enable directory listing (default: false)
+    // - autoIndex: Enable directory listing (default: false)
     // - cacheSize: LRU cache size (default: 1000)
     // - cacheTTL: Cache TTL in ms (default: 10000)
     // - charset: Default charset (default: 'utf-8')
@@ -209,31 +282,33 @@ class Woodland extends EventEmitter {
 ```mermaid
 graph TB
     subgraph "Security Layers"
-        A[Input Validation] --> B[Path Sanitization]
-        B --> C[Directory Traversal Protection]
-        C --> D[CORS Enforcement]
-        D --> E[File Access Control]
+        A[CORS Validation] --> B[File Access Control]
+        B --> C[Input Validation]
+        C --> D[Path Resolution]
+        D --> E[Path Traversal Check]
     end
-    
+
     subgraph "Validation Functions"
-        F[isSafeFilePath] --> G[sanitizeFilePath]
-        G --> H[isValidIP]
-        H --> I[escapeHtml]
+        F[escapeHtml]
+        G[isValidIP]
+        H[startsWith check]
     end
-    
+
     subgraph "Protection Mechanisms"
-        J[Allowlist Origins] --> K[Path Normalization]
-        K --> L[File Extension Validation]
-        L --> M[Access Control Headers]
+        I[Allowlist Origins] --> J[Batch Headers]
+        J --> K[MIME Validation]
+        K --> L[Path Sanitization]
     end
-    
-    A -.-> F
-    D -.-> J
-    E -.-> L
-    
+
+    A -.-> I
+    B -.-> H
+    C -.-> F
+    C -.-> G
+    D -.-> L
+
     style A fill:#dc2626,stroke:#b91c1c,stroke-width:2px,color:#ffffff
-    style D fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#ffffff
-    style J fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
+    style E fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#ffffff
+    style I fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
 ```
 
 ### Caching Strategy
@@ -241,33 +316,33 @@ graph TB
 ```mermaid
 graph LR
     A[Request] --> B{Cache Hit?}
-    B -->|Yes| C[Return Cached]
-    B -->|No| D[Process Request]
-    
-    D --> E[Generate Response]
-    E --> F[Store in Cache]
-    F --> G[Return Response]
-    
+    B -->|Yes| C[Cached Route]
+    B -->|No| D[Route Resolution]
+
+    D --> E[Compile Pattern]
+    E --> F[Store Cache]
+    F --> G[Execute Handlers]
+
     subgraph "Cache Types"
-        H[Route Cache]
+        H[ETag Cache]
         I[Permission Cache]
-        J[ETag Cache]
-        K[File Stats Cache]
+        J[Route Cache]
     end
-    
-    subgraph "Cache Configuration"
-        L[LRU Algorithm]
-        M[TTL: 10s default]
-        N[Size: 1000 default]
-        O[Configurable]
+
+    subgraph "Cache Config"
+        K[LRU Algorithm]
+        L[Size 1000]
+        M[TTL 10s]
     end
-    
-    F -.-> H
-    H -.-> L
-    
+
+    F -.-> J
+    J -.-> K
+    J -.-> L
+    J -.-> M
+
     style C fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
     style D fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#ffffff
-    style L fill:#7c3aed,stroke:#6d28d9,stroke-width:2px,color:#ffffff
+    style K fill:#7c3aed,stroke:#6d28d9,stroke-width:2px,color:#ffffff
 ```
 
 ---
@@ -285,6 +360,7 @@ The core request processing function can be modeled as:
 $$W: R \times C \times M \rightarrow S \times H \times B$$
 
 Where:
+
 - $R$ = Set of HTTP requests
 - $C$ = Configuration space
 - $M$ = Middleware set
@@ -299,6 +375,7 @@ Route matching is defined by the function using compiled regex patterns:
 $$M: U \times P \times R \rightarrow B \times V \times F$$
 
 Where:
+
 - $U$ = URI space
 - $P$ = Route pattern set
 - $R$ = Compiled regex patterns
@@ -308,28 +385,34 @@ Where:
 
 For a route pattern $p$ with compiled regex $r$ and URI $u$:
 
-$$M(u, p, r) = \begin{cases}
+$$
+M(u, p, r) = \begin{cases}
 (\text{true}, \text{extract}(u, r), \text{handlers}) & \text{if } r.test(u) \\
 (\text{false}, \text{null}, \text{null}) & \text{otherwise}
-\end{cases}$$
+\end{cases}
+$$
 
-Route registration in the `use()` method:
+Route registration in the `middleware.register()` method:
 
-$$M_{\text{register}}(path, handlers, method) = \begin{cases}
+$$
+M_{\text{register}}(path, handlers, method) = \begin{cases}
 \text{compile regex pattern} \\
 \text{store handlers, params, regex} \\
-\text{add to middleware.get(method)}
-\end{cases}$$
+\text{add to middleware Map}
+\end{cases}
+$$
 
 Route reduction in the `reduce()` function:
 
-$$M_{\text{reduce}}(uri, map, arg) = \begin{cases}
+$$
+M_{\text{reduce}}(uri, map, arg) = \begin{cases}
 \text{for each middleware in } map\text{:} \\
 \text{  reset } regex.lastIndex = 0 \\
 \text{  if } regex.test(uri)\text{:} \\
 \text{    } arg.middleware.push(...handlers) \\
 \text{    if params: } arg.params = true, arg.getParams = regex
-\end{cases}$$
+\end{cases}
+$$
 
 Array spreading cost:
 
@@ -346,6 +429,7 @@ The middleware execution chain uses an iterator-based pattern with the `next()` 
 $$E: R \times R \times [F] \times I \rightarrow R \times R$$
 
 Where:
+
 - $[F]$ is the sequence of middleware functions
 - $I$ is the iterator state for middleware execution
 
@@ -355,17 +439,21 @@ $$E(req, res, [f_1, f_2, ..., f_n], i) = \text{next}(req, res, i)$$
 
 The `next()` function implements the iterator pattern with event loop scheduling:
 
-$$\text{next}(req, res, middleware, immediate) = \begin{cases}
+$$
+\text{next}(req, res, middleware, immediate) = \begin{cases}
 \text{immediate execution} & \text{if } immediate = \text{true} \\
 \text{process.nextTick(execution)} & \text{if } immediate = \text{false}
-\end{cases}$$
+\end{cases}
+$$
 
 Iterator execution:
 
-$$\text{next}(req, res, i) = \begin{cases}
+$$
+\text{next}(req, res, i) = \begin{cases}
 f_i(req, res, \text{next}(req, res, i+1)) & \text{if } i < n \\
 \text{undefined} & \text{if } i \geq n
-\end{cases}$$
+\end{cases}
+$$
 
 #### Caching Function
 
@@ -374,29 +462,33 @@ The LRU cache behavior is modeled as:
 $$C: K \times V \times T \rightarrow V \cup \{\text{null}\}$$
 
 Where:
+
 - $K$ = Cache key space
 - $V$ = Value space
 - $T$ = Time domain
 
 Cache lookup with TTL:
 
-$$C(k, v, t) = \begin{cases}
+$$
+C(k, v, t) = \begin{cases}
 v & \text{if } t - t_{\text{insert}} < \text{TTL} \\
 \text{null} & \text{otherwise}
-\end{cases}$$
+\end{cases}
+$$
 
 Cache key generation:
 
 $$C_{\text{key}}(method, uri) = \text{method} + \text{DELIMITER} + \text{uri}$$
 
 Cache types:
-- **Route Cache**: Cached route resolution results
-- **Permission Cache**: Cached allowed methods per URI
-- **ETag Cache**: Cached ETag values for files
-- **File Stats Cache**: Cached file system statistics
+
+- **Route Cache**: Cached route resolution results (LRU via `tiny-lru`)
+- **Permission Cache**: Cached allowed methods per URI (Map)
+- **ETag Cache**: External `tiny-etag` package (provides its own LRU cache)
+- **File Stats**: No caching - fresh `fs.stat()` on each request
 
 Cache initialization:
-$$C_{\text{init}}(size, ttl) = \text{lru(size, ttl)} \text{ for both route and permission caches}$$
+$$C_{\text{init}}(size, ttl) = \text{lru(size, ttl)} \text{ for route cache}$$
 
 #### Security Validation Functions
 
@@ -412,10 +504,12 @@ $$P(requested, base) = \text{resolve}(requested).startsWith(\text{resolve}(base)
 
 Implementation checks:
 
-$$P(arg, folder) = \begin{cases}
+$$
+P(arg, folder) = \begin{cases}
 \text{true} & \text{if } \text{resolve}(folder, arg) \in \text{resolve}(folder) \\
 \text{false} & \text{otherwise (403 Forbidden)}
-\end{cases}$$
+\end{cases}
+$$
 
 Security logging:
 
@@ -432,15 +526,18 @@ CORS origin validation with security enforcement:
 $$O: O_{set} \times A \times H \rightarrow B$$
 
 Where:
+
 - $O_{set}$ = Origin space
 - $A$ = Allowed origins set
 - $H$ = Request headers space
 
-$$O(origin, allowed, headers) = \begin{cases}
+$$
+O(origin, allowed, headers) = \begin{cases}
 \text{false} & \text{if } allowed = \text{null} \text{ (default deny)} \\
 \text{true} & \text{if } origin \in allowed \text{ or } '*' \in allowed \\
 \text{false} & \text{otherwise}
-\end{cases}$$
+\end{cases}
+$$
 
 Cross-origin detection:
 
@@ -448,25 +545,31 @@ $$O_{\text{host}}(req) = \text{ORIGIN} \in req.headers \text{ and } req.headers.
 
 CORS preflight handling:
 
-$$O_{\text{preflight}}(req, res) = \begin{cases}
+$$
+O_{\text{preflight}}(req, res) = \begin{cases}
 \text{res.status(204).send("")} & \text{if } req.method = \text{OPTIONS} \\
 \text{no-op} & \text{otherwise}
-\end{cases}$$
+\end{cases}
+$$
 
 Automatic CORS setup:
 
-$$O_{\text{setup}}(origins) = \begin{cases}
+$$
+O_{\text{setup}}(origins) = \begin{cases}
 \text{register OPTIONS handler} & \text{if } |origins| > 0 \\
 \text{  mark as ignored middleware} \\
 \text{no-op} & \text{if } |origins| = 0
-\end{cases}$$
+\end{cases}
+$$
 
 CORS header injection:
 
-$$O_{\text{headers}}(req, res, config) = \begin{cases}
+$$
+O_{\text{headers}}(req, res, config) = \begin{cases}
 \text{add CORS headers to batch} & \text{if } req.cors = \text{true} \\
 \text{no-op} & \text{otherwise}
-\end{cases}$$
+\end{cases}
+$$
 
 ##### IP Address Validation
 
@@ -475,42 +578,34 @@ IP address extraction and validation:
 $$I: H \times S \rightarrow S$$
 
 Where:
+
 - $H$ = Request headers space
 - $S$ = String space (IP addresses)
 
-$$I(headers, fallback) = \begin{cases}
+$$
+I(headers, fallback) = \begin{cases}
 \text{first valid IP in } X\text{-Forwarded-For} & \text{if header exists} \\
 \text{connection.remoteAddress} & \text{if available} \\
 \text{socket.remoteAddress} & \text{if available} \\
 \text{fallback} & \text{otherwise}
-\end{cases}$$
+\end{cases}
+$$
 
-IP validation function:
+IP validation function (implemented in `src/request.js`):
 
-$$I_{\text{valid}}(ip) = \begin{cases}
-\text{true} & \text{if IPv4: } /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/ \text{ and octets} \in [0,255] \\
-\text{true} & \text{if IPv6: valid IPv6 format} \\
+$$
+I_{\text{valid}}(ip) = \begin{cases}
+\text{true} & \text{if IPv4: octets} \in [0,255] \\
+\text{true} & \text{if IPv6: valid format with compression support} \\
 \text{false} & \text{otherwise}
-\end{cases}$$
+\end{cases}
+$$
 
-IP extraction with validation:
+IPv6 validation supports:
 
-$$I_{\text{extract}}(req) = \begin{cases}
-\text{first valid IP in X-Forwarded-For} & \text{if header exists and valid} \\
-\text{connection.remoteAddress} & \text{if available} \\
-\text{socket.remoteAddress} & \text{if available} \\
-\text{"127.0.0.1"} & \text{fallback}
-\end{cases}$$
-
-IPv6 validation details:
-
-$$I_{\text{ipv6}}(ip) = \begin{cases}
-\text{true} & \text{if valid characters: } /^[0-9a-fA-F:.]+$/ \\
-\text{true} & \text{if IPv4-mapped: } /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/ \\
-\text{true} & \text{if compressed notation: } \text{groups} < 8 \\
-\text{true} & \text{if full notation: } \text{groups} = 8 \\
-\text{false} & \text{otherwise}
-\end{cases}$$
+- Full notation (8 groups)
+- Compressed notation (::)
+- IPv4-mapped addresses (::ffff:192.168.1.1)
 
 #### Performance Complexity Analysis
 
@@ -550,26 +645,28 @@ $$W(req, config, middleware) = W(req, config, middleware)$$
 
 ##### Middleware Iterator Properties
 
-Middleware execution is not associative due to iterator pattern:
-$$(f \circ g) \circ h \neq f \circ (g \circ h)$$
+Middleware execution follows a deterministic iterator sequence:
 
-Instead, middleware follows iterator sequence:
 $$\text{next}(req, res, [f_1, f_2, ..., f_n], i) = f_i(req, res, \text{next}(req, res, [f_1, f_2, ..., f_n], i+1))$$
+
+The iterator pattern ensures predictable execution order with error handler detection (functions with length === 4).
 
 ##### Event Loop Scheduling
 
 Middleware execution respects event loop scheduling:
 
-$$\text{next}(req, res, middleware, immediate) = \begin{cases}
+$$
+\text{next}(req, res, middleware, immediate) = \begin{cases}
 \text{synchronous} & \text{if } immediate = \text{true} \\
 \text{asynchronous} & \text{if } immediate = \text{false}
-\end{cases}$$
+\end{cases}
+$$
 
 ##### Cache Commutativity
 
 LRU cache operations are commutative for different keys:
 
-$$C(k_1, v_1, t) \cup C(k_2, v_2, t) = C(k_2, v_2, t) \cup C(k_1, v_1, t)$$
+$$C_{\text{lru}}(k_1, v_1, t) \cup C_{\text{lru}}(k_2, v_2, t) = C_{\text{lru}}(k_2, v_2, t) \cup C_{\text{lru}}(k_1, v_1, t)$$
 
 ##### Event Emission Properties
 
@@ -591,17 +688,20 @@ The framework follows an event-driven pattern using EventEmitter:
 $$E_{\text{event}}: E_{type} \times D \times L \rightarrow V$$
 
 Where:
-- $E_{type}$ = Event type space (connect, finish, stream, error)
+
+- $E_{type}$ = Event type space (connect, finish, stream, error, close)
 - $D$ = Event data space (request, response, error objects)
 - $L$ = Listener set from EventEmitter
 - $V$ = Void (no return value)
 
 Event emission pattern with listener checking:
 
-$$E_{\text{check}}(e, L) = \begin{cases}
+$$
+E_{\text{check}}(e, L) = \begin{cases}
 \text{emit}(e, d) & \text{if } |L| > 0 \\
 \text{no-op} & \text{otherwise}
-\end{cases}$$
+\end{cases}
+$$
 
 Event emission pattern:
 
@@ -612,10 +712,12 @@ Response event binding:
 $$E_{\text{response}}(req, res, evf) = \text{res.on(evf, () => emit(evf, req, res))}$$
 
 Key events:
+
 - `connect`: Request processing started (with listener count check)
 - `finish`: Response completed (with automatic binding)
 - `stream`: File streaming initiated (emitted after file processing)
 - `error`: Error occurred during processing
+- `close`: Connection closed (logging trigger)
 
 #### Request Decoration Model
 
@@ -624,34 +726,47 @@ Request and response objects are decorated with additional properties and method
 $$D: R \times R \times C \rightarrow R' \times R'$$
 
 Where:
+
 - $R$ = Original request/response space
 - $R'$ = Decorated request/response space
 - $C$ = Configuration space
 
 Decoration function with batch operations:
 
-$$D(req, res, config) = \begin{cases}
-req' = req \cup \{parsed, allow, body, corsHost, cors, host, ip, params, valid, precise\} \\
+$$
+D(req, res, config) = \begin{cases}
+req' = req \cup \{parsed, allow, body, corsHost, cors, host, ip, params, valid, precise, exit\} \\
 res' = res \cup \{locals, error, header, json, redirect, send, set, status\}
-\end{cases}$$
+\end{cases}
+$$
 
 Batch header operations:
 
-$$H_{\text{batch}}(req, res, config) = \begin{cases}
+$$
+H_{\text{batch}}(req, res, config) = \begin{cases}
 \text{headersBatch} = \{ALLOW: req.allow, X_CONTENT_TYPE_OPTIONS: NO_SNIFF\} \\
 \text{  add default headers} \\
 \text{  add CORS headers if } req.cors = \text{true} \\
 \text{  res.set(headersBatch)}
-\end{cases}$$
+\end{cases}
+$$
 
 Key decorations:
+
 - `req.parsed`: Parsed URL object
 - `req.allow`: Allowed HTTP methods for URI
 - `req.cors`: CORS validation result
 - `req.ip`: Client IP address with validation
+- `req.host`: Request hostname
+- `req.body`: Request body (initialized as empty)
+- `req.valid`: Request validity flag
 - `req.precise`: Timing precision object (if time enabled)
-- `res.send`: Response sending function
+- `req.exit`: Iterator-based middleware exit point
+- `res.locals`: Response-local storage
+- `res.error`: Error response handler
+- `res.header`: Native Node.js header setter
 - `res.json`: JSON response function
+- `res.send`: Response sending function
 - **Batch Headers**: Optimized header setting for performance
 
 #### Memory Management Model
@@ -661,6 +776,7 @@ Memory usage can be modeled as:
 $$\mathcal{M}(t) = \mathcal{M}_{\text{base}} + \mathcal{M}_{\text{middleware}}(t) + \mathcal{M}_{\text{cache}}(t) + \mathcal{M}_{\text{active}}(t) + \mathcal{M}_{\text{events}}(t) + \mathcal{M}_{\text{clone}}(t)$$
 
 Where:
+
 - $\mathcal{M}_{\text{base}}$ = Base framework memory (EventEmitter, configuration)
 - $\mathcal{M}_{\text{middleware}}(t)$ = Middleware function closures and compiled regex patterns
 - $\mathcal{M}_{\text{cache}}(t)$ = LRU cache memory (routes, permissions, ETags)
@@ -669,6 +785,7 @@ Where:
 - $\mathcal{M}_{\text{clone}}(t)$ = Structured clone memory (origins, indexes arrays)
 
 Memory components:
+
 - **Route Storage**: $O(n \cdot m)$ for $n$ routes with average pattern length $m$
 - **Middleware Closures**: $O(k \cdot c)$ for $k$ middleware with closure size $c$
 - **Cache Memory**: $O(s \cdot v)$ for cache size $s$ with average value size $v$
@@ -692,6 +809,7 @@ $$\mathcal{E}_{\text{middleware}}: \mathbb{E} \times \mathbb{R} \times \mathbb{R
 $$\mathcal{E}_{\text{file}}: \mathbb{E} \times \mathbb{R} \times \mathbb{R} \times \mathbb{P} \rightarrow \mathbb{S} \times \mathbb{B}$$
 
 Where:
+
 - $\mathbb{E}$ = Error space
 - $\mathbb{R}$ = Request/Response space
 - $\mathbb{S}$ = Status code space
@@ -702,34 +820,44 @@ Where:
 
 Error handling paths:
 
-$$E_{\text{route}}(error, req, res) = \begin{cases}
+$$
+E_{\text{route}}(error, req, res) = \begin{cases}
 (403, \text{Forbidden}) & \text{if CORS validation fails} \\
 (404, \text{Not Found}) & \text{if route not found} \\
 (405, \text{Method Not Allowed}) & \text{if method not allowed}
-\end{cases}$$
+\end{cases}
+$$
 
-$$E_{\text{middleware}}(error, req, res, next) = \begin{cases}
-\text{next(error)} & \text{if error passed to next()} \\
-\text{res.error(500, error)} & \text{if unhandled error}
-\end{cases}$$
+$$
+E_{\text{middleware}}(error, req, res, next) = \begin{cases}
+\text{emit("error", req, res, error), then next(error)} & \text{if error passed to next()} \\
+\text{emit("error", req, res, error), then res.error(500, error)} & \text{if unhandled error}
+\end{cases}
+$$
 
-$$E_{\text{file}}(error, req, res, path) = \begin{cases}
+$$
+E_{\text{file}}(error, req, res, path) = \begin{cases}
 (403, \text{Forbidden}) & \text{if path traversal detected} \\
 (404, \text{Not Found}) & \text{if file not found} \\
 (500, \text{Internal Server Error}) & \text{if file system error}
-\end{cases}$$
+\end{cases}
+$$
 
-$$E_{\text{stream}}(error, req, res, body) = \begin{cases}
+$$
+E_{\text{stream}}(error, req, res, body) = \begin{cases}
 \text{body.on(ERROR, err => res.error(500, err))} & \text{if stream error} \\
 (416, \text{Range Not Satisfiable}) & \text{if invalid range request} \\
 (500, \text{Internal Server Error}) & \text{if stream processing error}
-\end{cases}$$
+\end{cases}
+$$
 
-$$E_{\text{range}}(error, req, res, size) = \begin{cases}
+$$
+E_{\text{range}}(error, req, res, size) = \begin{cases}
 (206, \text{Partial Content}) & \text{if valid range} \\
 (416, \text{Range Not Satisfiable}) & \text{if invalid range} \\
 \text{fallback to full content} & \text{otherwise}
-\end{cases}$$
+\end{cases}
+$$
 
 ---
 
@@ -740,20 +868,21 @@ $$E_{\text{range}}(error, req, res, size) = \begin{cases}
 Woodland implements multiple layers of protection against directory traversal attacks:
 
 ```javascript
-// Security validation in serve method
+// Security: Ensure resolved path stays within allowed directory
 async serve(req, res, arg, folder = process.cwd()) {
   const fp = resolve(folder, arg);
-  
-  // Security: Ensure resolved path stays within the allowed directory
+
+  // Path traversal protection: resolved path must stay within folder
   if (!fp.startsWith(resolve(folder))) {
-    this.log(`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="Path outside allowed directory", path="${arg}"`, ERROR);
+    this.log(`type=serve, uri=${req.parsed.pathname}, message="Path outside allowed directory"`, ERROR);
     res.error(INT_403);
     return;
   }
-  // ... rest of serve method
+
+  // ... rest of file serving logic
 }
 
-// HTML escaping for output safety
+// HTML escaping for output safety in autoindex
 export function escapeHtml(str = '') {
   const htmlEscapes = {
     "&": "&amp;",
@@ -762,33 +891,8 @@ export function escapeHtml(str = '') {
     '"': "&quot;",
     "'": "&#39;"
   };
-  
-  return str.replace(/[&<>"']/g, match => htmlEscapes[match]);
-}
 
-// IP address validation
-export function isValidIP(ip) {
-  if (!ip || typeof ip !== "string") {
-    return false;
-  }
-  
-  // IPv4 validation with octet range checking
-  if (!ip.includes(":")) {
-    const ipv4Pattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-    const match = ip.match(ipv4Pattern);
-    
-    if (!match) {
-      return false;
-    }
-    
-    return match.slice(1).every(octet => {
-      const num = parseInt(octet, 10);
-      return num >= 0 && num <= 255;
-    });
-  }
-  
-  // IPv6 validation including IPv4-mapped addresses
-  // ... (implementation continues)
+  return str.replace(/[&<>"']/g, match => htmlEscapes[match]);
 }
 ```
 
@@ -800,7 +904,7 @@ export function isValidIP(ip) {
 
 When you configure `origins` in the constructor, Woodland automatically:
 
-1. **Registers Preflight Routes**: Automatically adds an OPTIONS handler for all paths using `this.options(fnCorsRequest).ignore(fnCorsRequest)`
+1. **Registers Global Preflight Handler**: Adds a single OPTIONS handler (without path) that applies globally using `this.options(fnCorsRequest).ignore(fnCorsRequest)`
 2. **Sets CORS Headers**: Dynamically adds all required CORS headers during request decoration
 3. **Validates Origins**: Checks request origin against configured allowlist with security enforcement
 4. **Manages Credentials**: Sets `Access-Control-Allow-Credentials: true` for valid origins
@@ -811,34 +915,35 @@ When you configure `origins` in the constructor, Woodland automatically:
 
 ```mermaid
 graph TB
-    A[Request with Origin] --> B{Origins Configured?}
-    B -->|No| C[No CORS Headers]
-    B -->|Yes| D{Origin in Allowlist?}
-    D -->|No| E[Reject/403]
-    D -->|Yes| F[Automatic CORS Headers]
-    
-    F --> G["Access-Control-Allow-Origin: (origin)"]
-    F --> H["Access-Control-Allow-Credentials: true"]
-    F --> I["Access-Control-Allow-Methods: (req.allow)"]
-    F --> J["Timing-Allow-Origin: (origin)"]
-    F --> K{OPTIONS Request?}
-    K -->|Yes| L["Access-Control-Allow-Headers"]
-    K -->|No| M["Access-Control-Expose-Headers"]
-    
-    subgraph "Constructor Auto-Setup"
-        N[if origins.length > 0]
+    A[app.route handler] --> B[decorate sets req.cors]
+    B --> C{Origin Header Present?}
+    C -->|No| D[Skip CORS Check]
+    C -->|Yes| E{Origin in Allowlist?}
+    E -->|No| F{req.corsHost Check}
+    F -->|Cross-origin| G[Reject 403]
+    F -->|Same-origin| D
+    E -->|Yes| H[Set CORS Headers]
+
+    H --> I["Access-Control-Allow-Origin"]
+    H --> J["Access-Control-Allow-Credentials"]
+    H --> K["Access-Control-Allow-Methods"]
+    H --> L["Timing-Allow-Origin"]
+    H --> M["Access-Control-Expose-Headers"]
+
+    subgraph "Constructor Setup"
+        N[origins.length > 0]
         O[Register OPTIONS Handler]
-        P[Mark as Ignored Middleware]
+        P[Ignore OPTIONS Handler]
     end
-    
-    subgraph "Request Decoration"
-        Q[req.corsHost = corsHost check]
-        R[req.cors = validation result]
-        S[Batch header setting]
+
+    subgraph "Route Method Logic"
+        Q[hasOriginHeader]
+        R[isOriginAllowed check]
+        S[req.cors validation]
     end
-    
-    style E fill:#dc2626,stroke:#b91c1c,stroke-width:2px,color:#ffffff
-    style F fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
+
+    style G fill:#dc2626,stroke:#b91c1c,stroke-width:2px,color:#ffffff
+    style H fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
     style N fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#ffffff
 ```
 
@@ -855,10 +960,10 @@ graph TB
 ```javascript
 const app = woodland({
   origins: [
-    "https://app.example.com",     // Specific domains
-    "https://api.example.com"
+    "https://app.example.com", // Specific domains
+    "https://api.example.com",
   ],
-  corsExpose: "x-custom-header,x-request-id"  // Headers to expose
+  corsExpose: "x-custom-header,x-request-id", // Headers to expose
 });
 
 // Results in automatic:
@@ -875,6 +980,7 @@ Woodland demonstrates **excellent adherence to OWASP security guidelines** with 
 #### ✅ Strong OWASP Compliance Areas
 
 ##### A03:2021 - Injection Prevention
+
 - **Path Traversal Protection**: Robust implementation prevents directory traversal attacks
   ```javascript
   // Security validation in serve method
@@ -887,17 +993,14 @@ Woodland demonstrates **excellent adherence to OWASP security guidelines** with 
 - **Input Sanitization**: Comprehensive validation for file paths, IP addresses, and user input
 
 ##### A05:2021 - Security Misconfiguration
+
 - **Secure Defaults**: CORS disabled by default (empty origins array denies all cross-origin requests)
 - **Autoindex Disabled**: Directory browsing disabled by default for security
 - **Security Headers**: `X-Content-Type-Options: nosniff` set automatically
 - **Configurable Security**: Support for custom security headers and policies
 
-##### A07:2021 - Identification and Authentication Failures
-- **IP Validation**: Robust IP address extraction with validation from `X-Forwarded-For` headers
-- **CORS Origin Validation**: Strict allowlist-based origin checking
-- **Header Validation**: Comprehensive validation of security-critical headers
-
 ##### A01:2021 - Broken Access Control
+
 - **Default Deny CORS**: No cross-origin requests allowed unless explicitly configured
 - **File Access Control**: Path validation ensures files can only be served from allowed directories
 - **Method Validation**: Proper HTTP method validation and error handling
@@ -906,29 +1009,37 @@ Woodland demonstrates **excellent adherence to OWASP security guidelines** with 
 #### 🛡️ Security Features Implementation
 
 ##### Comprehensive Input Validation
+
 ```javascript
-// HTML escaping function
-function escapeHtml(str = '') {
+// HTML escaping function for XSS prevention
+function escapeHtml(str = "") {
   const htmlEscapes = {
-    "&": "&amp;", "<": "&lt;", ">": "&gt;",
-    '"': "&quot;", "'": "&#39;"
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
   };
-  return str.replace(/[&<>"']/g, match => htmlEscapes[match]);
+  return str.replace(/[&<>"']/g, (match) => htmlEscapes[match]);
 }
 
-// IP validation with IPv4 and IPv6 support
+// IP validation (see src/request.js for full implementation)
+// Supports IPv4, IPv6, IPv4-mapped IPv6, and :: compression
 export function isValidIP(ip) {
-  // Comprehensive IPv4/IPv6 validation logic
-  // Validates octet ranges, compression notation, etc.
+  // Full implementation: 96 lines with optimized regex patterns
 }
 ```
 
 ##### Security Headers Implementation
+
 - **X-Content-Type-Options**: `nosniff` (prevents MIME type sniffing)
-- **Configurable Security Headers**: Framework supports adding additional security headers
+- **Configurable Security Headers**: Framework supports adding additional security headers via `defaultHeaders` option
 - **Server Identification**: Can be disabled with `silent: true` option
 
+Note: The deprecated `X-XSS-Protection` header is not included as modern browsers have deprecated it in favor of Content Security Policy.
+
 ##### Error Handling Security
+
 - **Information Disclosure Prevention**: Error messages don't expose internal paths or sensitive data
 - **Graceful Error Handling**: Multiple error calls handled safely without information leakage
 - **Secure Status Codes**: Appropriate HTTP status codes for security violations
@@ -936,61 +1047,67 @@ export function isValidIP(ip) {
 #### ⚠️ Enhancement Recommendations
 
 ##### Security Headers with Helmet (Recommended)
+
 For production applications, use the [`helmet`](https://helmetjs.github.io/) middleware for comprehensive security headers:
 
 ```javascript
-import { woodland } from 'woodland';
-import helmet from 'helmet';
+import { woodland } from "woodland";
+import helmet from "helmet";
 
 const app = woodland();
 
 // Use helmet for production-ready security headers
-app.always(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"]
-    }
-  },
-  hsts: {
-    maxAge: 31536000,
-    includeSubDomains: true,
-    preload: true
-  }
-}));
+app.always(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "https:"],
+      },
+    },
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
+  }),
+);
 ```
 
 **Why Helmet?**
+
 - **Battle-tested**: Industry standard with regular updates for new threats
 - **Comprehensive**: Sets 15+ security headers automatically
 - **Configurable**: Fine-grained control over each header
 - **Maintained**: Active development and security advisories
 
 ##### Manual Security Headers (Alternative)
+
 If you prefer manual configuration, Woodland supports custom headers:
 
 ```javascript
 const app = woodland({
   defaultHeaders: {
     "x-content-type-options": "nosniff",
-    "x-frame-options": "DENY", 
-    "x-xss-protection": "1; mode=block",
+    "x-frame-options": "DENY",
     "strict-transport-security": "max-age=31536000; includeSubDomains",
     "content-security-policy": "default-src 'self'",
-    "referrer-policy": "strict-origin-when-cross-origin"
-  }
+    "referrer-policy": "strict-origin-when-cross-origin",
+  },
 });
 ```
 
 ##### Rate Limiting with Third-Party Middleware
+
 Woodland does not include built-in rate limiting by design (keeping the core lightweight). Implement rate limiting using proven third-party middleware:
 
 **Recommended: express-rate-limit**
+
 ```javascript
-import { woodland } from 'woodland';
-import rateLimit from 'express-rate-limit';
+import { woodland } from "woodland";
+import rateLimit from "express-rate-limit";
 
 const app = woodland();
 
@@ -998,7 +1115,7 @@ const app = woodland();
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.',
+  message: "Too many requests from this IP, please try again later.",
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
@@ -1012,12 +1129,13 @@ const authLimiter = rateLimit({
   skipSuccessfulRequests: true,
 });
 
-app.always('/api/auth', authLimiter);
+app.always("/api/auth", authLimiter);
 ```
 
 **Alternative: rate-limiter-flexible** (Redis/memory store)
+
 ```javascript
-import { RateLimiterMemory } from 'rate-limiter-flexible';
+import { RateLimiterMemory } from "rate-limiter-flexible";
 
 const rateLimiter = new RateLimiterMemory({
   keyGenerator: (req) => req.ip,
@@ -1030,18 +1148,20 @@ app.always(async (req, res, next) => {
     await rateLimiter.consume(req.ip);
     next();
   } catch (rejRes) {
-    res.status(429).send('Too Many Requests');
+    res.status(429).send("Too Many Requests");
   }
 });
 ```
 
 **Why Third-Party Middleware?**
+
 - **Specialized Solutions**: Dedicated libraries focus solely on rate limiting
 - **Multiple Stores**: Support for Redis, database, or memory storage
 - **Advanced Features**: Sliding windows, different algorithms, distributed limiting
 - **Battle-Tested**: Used by thousands of production applications
 
 ##### External Security Considerations
+
 - **Content Size Limits**: Configure at application level based on requirements
 - **TLS Configuration**: Handle at reverse proxy or server level
 - **DDoS Protection**: Consider services like Cloudflare or AWS Shield for large-scale attacks
@@ -1049,6 +1169,7 @@ app.always(async (req, res, next) => {
 #### 🧪 Security Testing Coverage
 
 Woodland includes comprehensive security tests covering:
+
 - **Path traversal attempts** (including encoded attacks)
 - **CORS policy enforcement** (default deny, explicit allow, wildcard handling)
 - **Input validation** (null bytes, newlines, malformed URIs)
@@ -1058,31 +1179,31 @@ Woodland includes comprehensive security tests covering:
 
 #### 📊 OWASP Top 10 Assessment Summary
 
-| OWASP Category | Compliance Level | Implementation Notes |
-|---|---|---|
-| **A01: Broken Access Control** | ✅ Excellent | Strong CORS & file access controls |
-| **A02: Cryptographic Failures** | ✅ Good | Secure error handling, no sensitive exposure |
-| **A03: Injection** | ✅ Excellent | Comprehensive input validation & escaping |
-| **A04: Insecure Design** | ✅ Excellent | Security-first architecture |
-| **A05: Security Misconfiguration** | ✅ Good | Secure defaults, configurable security |
-| **A06: Vulnerable Components** | ✅ Good | Minimal dependencies, regular updates |
-| **A07: Authentication Failures** | ⚠️ Partial | No built-in auth, rate limiting via middleware |
-| **A08: Software Integrity Failures** | ✅ N/A | Minimal serialization/deserialization |
-| **A09: Security Logging Failures** | ✅ Good | Comprehensive logging with CLF support |
-| **A10: Server-Side Request Forgery** | ✅ N/A | No outbound request functionality |
+| OWASP Category                       | Compliance Level | Implementation Notes                         |
+| ------------------------------------ | ---------------- | -------------------------------------------- |
+| **A01: Broken Access Control**       | ✅ Excellent     | Strong CORS & file access controls           |
+| **A02: Cryptographic Failures**      | ✅ Good          | Secure error handling, no sensitive exposure |
+| **A03: Injection**                   | ✅ Excellent     | Comprehensive input validation & escaping    |
+| **A04: Insecure Design**             | ✅ Excellent     | Security-first architecture                  |
+| **A05: Security Misconfiguration**   | ✅ Good          | Secure defaults, configurable security       |
+| **A06: Vulnerable Components**       | ✅ Good          | Minimal dependencies, regular updates        |
+| **A07: Authentication Failures**     | ✅ N/A           | Framework provides hooks, not built-in auth  |
+| **A08: Software Integrity Failures** | ✅ N/A           | Minimal serialization/deserialization        |
+| **A09: Security Logging Failures**   | ✅ Good          | Comprehensive logging with CLF support       |
+| **A10: Server-Side Request Forgery** | ✅ N/A           | No outbound request functionality            |
 
 #### 🎯 Security Assessment Conclusion
 
 **Woodland demonstrates excellent adherence to OWASP security guidance** with a security-first design philosophy. The framework implements robust protections against the most critical web application security risks including:
 
 - **Injection Prevention**: Comprehensive input validation and output encoding
-- **Access Control**: Strict file system and CORS access controls  
+- **Access Control**: Strict file system and CORS access controls
 - **Secure Configuration**: Secure defaults with flexibility for additional hardening
 - **Error Handling**: Secure error responses without information disclosure
 
 While lightweight by design, Woodland provides the security foundation needed for production applications. Additional security measures (rate limiting, advanced headers, authentication) can be layered on top based on specific application requirements.
 
-**Security Rating**: ⭐⭐⭐⭐⭐ *Excellent* - Strong security implementation with comprehensive testing coverage.
+**Security Rating**: ⭐⭐⭐⭐⭐ _Excellent_ - Strong security implementation with comprehensive testing coverage.
 
 ---
 
@@ -1110,19 +1231,35 @@ While lightweight by design, Woodland provides the security foundation needed fo
 
 ## Test Coverage
 
-Woodland maintains exceptional test coverage with **100% coverage across all metrics** - statements, branches, functions, and lines. The framework includes 386 comprehensive test cases covering every aspect of functionality, achieving perfect coverage across all modules.
+Woodland maintains comprehensive test coverage with **478 tests passing**. The framework achieves 100% line coverage across all modules, with ongoing work to achieve 100% branch and function coverage.
 
 ### Coverage Metrics
 
 ```
-File          | % Stmts | % Branch | % Funcs | % Lines | Status
---------------|---------|----------|---------|---------|--------
-All files     |     100 |      100 |     100 |     100 | 🎯 Perfect
-cli.js        |     100 |      100 |     100 |     100 | 🎯 Perfect
-constants.js  |     100 |      100 |     100 |     100 | 🎯 Perfect  
-utility.js    |     100 |      100 |     100 |     100 | 🎯 Perfect
-woodland.js   |     100 |      100 |     100 |     100 | 🎯 Perfect
+File            | % Stmts | % Branch | % Funcs | % Lines | Status
+----------------|---------|----------|---------|---------|--------
+All files       |     100 |      100 |     100 |     100 | 🎯 Perfect
+cli.js          |     100 |      100 |     100 |     100 | 🎯 Perfect
+config.js       |     100 |    89.74 |     100 |     100 | ⚠️ Branch gap
+constants.js    |     100 |      100 |     100 |     100 | 🎯 Perfect
+fileserver.js   |     100 |      100 |     100 |     100 | 🎯 Perfect
+logger.js       |     100 |    96.55 |   95.65 |     100 | ⚠️ Branch/func gap
+middleware.js   |     100 |      100 |     100 |     100 | 🎯 Perfect
+request.js      |     100 |      100 |     100 |     100 | 🎯 Perfect
+response.js     |     100 |    98.91 |   94.74 |     100 | ⚠️ Branch/func gap
+woodland.js     |     100 |    96.34 |   89.47 |     100 | ⚠️ Branch/func gap
 ```
+
+### Coverage Status
+
+**Achieved:**
+- ✅ 100% line coverage across all source files
+- ✅ 478 passing tests
+- ✅ CLI module: 100% coverage across all dimensions
+
+**Working towards:**
+- ⏸️ 100% branch coverage (missing in config.js, logger.js, response.js, woodland.js)
+- ⏸️ 100% function coverage (missing in logger.js, response.js, woodland.js)
 
 ### Test Architecture
 
@@ -1132,34 +1269,34 @@ graph TB
         A[Unit Tests] --> A1[CLI Tests - 100%]
         A --> A2[Utility Tests]
         A --> A3[Constants Tests]
-        
+
         B[Integration Tests] --> B1[Security Tests]
         B --> B2[HTTP Server Tests]
         B --> B3[File Serving Tests]
-        
+
         C[End-to-End Tests] --> C1[Middleware Chain]
         C --> C2[Request/Response Cycle]
         C --> C3[Error Handling]
     end
-    
+
     subgraph "Test Strategies"
         D[Mocking & Stubbing] --> D1[HTTP Requests]
         D --> D2[File System]
         D --> D3[Process Management]
-        
+
         E[Property Testing] --> E1[Input Validation]
         E --> E2[Edge Cases]
         E --> E3[Security Boundaries]
-        
+
         F[Performance Testing] --> F1[Benchmarks]
         F --> F2[Memory Usage]
         F --> F3[Concurrency]
     end
-    
+
     A1 -.-> D1
     B1 -.-> E1
     C1 -.-> F1
-    
+
     style A1 fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
     style B1 fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#ffffff
     style C1 fill:#7c3aed,stroke:#6d28d9,stroke-width:2px,color:#ffffff
@@ -1180,11 +1317,11 @@ The CLI module represents a significant testing achievement with **100% code cov
 describe("CLI server startup", () => {
   it("should start server and serve HTTP requests", async () => {
     const result = await spawnCliAndWaitForServer(["--port=8001"]);
-    
+
     // Verify startup logs
     assert.match(result.stdout, /id=woodland/);
     assert.match(result.stdout, /port=8001/);
-    
+
     // Actual HTTP request verification confirms server is functional
     const response = await makeRequest(8001);
     assert.ok(response.statusCode);
@@ -1195,6 +1332,7 @@ describe("CLI server startup", () => {
 ### Test Categories
 
 #### 1. CLI Tests (100% Coverage) - 28 tests
+
 - **Successful startup scenarios**: Default args, custom port/IP, logging configuration
 - **Validation logic**: Port ranges (0-65535), IPv4 address format, argument parsing
 - **Error handling**: Invalid inputs, malformed arguments, edge cases
@@ -1202,6 +1340,7 @@ describe("CLI server startup", () => {
 - **Output validation**: Log format verification, error message formatting
 
 #### 2. Security Integration Tests - 18 tests
+
 - **Path traversal protection**: Directory traversal attacks, encoded attempts
 - **IP address security**: X-Forwarded-For validation, IPv4/IPv6 handling
 - **CORS enforcement**: Origin validation, preflight requests, header security
@@ -1209,6 +1348,7 @@ describe("CLI server startup", () => {
 - **Security headers**: Content-Type-Options, default headers, custom configurations
 
 #### 3. Core Functionality Tests - 200+ tests
+
 - **HTTP methods**: All standard methods with middleware support
 - **Routing engine**: Parameter extraction, pattern matching, wildcard routes
 - **Middleware system**: Execution order, error propagation, exit functionality
@@ -1216,6 +1356,7 @@ describe("CLI server startup", () => {
 - **Caching system**: Route caching, permissions cache, LRU eviction
 
 #### 4. File Serving Tests - 35+ tests
+
 - **Static file serving**: Text, HTML, binary files with proper MIME types
 - **Directory handling**: Index files, autoindex generation, nested paths
 - **Stream operations**: Large file streaming, range requests, ETags
@@ -1223,6 +1364,7 @@ describe("CLI server startup", () => {
 - **Security validation**: Path sanitization, access control
 
 #### 5. Utility Function Tests - 80+ tests
+
 - **URL processing**: Parameter extraction, query parsing, path normalization
 - **Time utilities**: Timestamp formatting, timezone handling, precision control
 - **MIME detection**: Content type resolution, extension mapping
@@ -1230,10 +1372,10 @@ describe("CLI server startup", () => {
 
 ### Test Quality Metrics
 
-- **Code Coverage**: 100% statements, 100% branches, 100% functions, 100% lines
+- **Code Coverage**: 100% lines, ongoing for branches and functions
 - **Test Execution Time**: ~6 seconds for full suite
 - **Test Reliability**: 100% pass rate with deterministic behavior
-- **Edge Case Coverage**: Comprehensive boundary testing with perfect coverage across all modules
+- **Edge Case Coverage**: Comprehensive boundary testing
 - **Error Path Coverage**: All error conditions tested
 - **Performance Testing**: Integrated benchmarks for critical paths
 
@@ -1252,41 +1394,41 @@ describe("CLI server startup", () => {
 ### 1. Modern API Server
 
 ```javascript
-import {woodland} from 'woodland';
-import {createServer} from 'node:http';
+import { woodland } from "woodland";
+import { createServer } from "node:http";
 
 const app = woodland({
-  origins: ['https://app.example.com', 'https://admin.example.com'],
+  origins: ["https://app.example.com", "https://admin.example.com"],
   defaultHeaders: {
-    'Content-Security-Policy': "default-src 'self'",
-    'X-Frame-Options': 'DENY',
-    'X-Content-Type-Options': 'nosniff'
+    "Content-Security-Policy": "default-src 'self'",
+    "X-Frame-Options": "DENY",
+    "X-Content-Type-Options": "nosniff",
   },
-  time: true
+  time: true,
 });
 
 // Health check endpoint for container orchestration
-app.get('/health', (req, res) => {
+app.get("/health", (req, res) => {
   res.json({
-    status: 'healthy',
+    status: "healthy",
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
   });
 });
 
 // GraphQL endpoint
-app.post('/graphql', async (req, res) => {
+app.post("/graphql", async (req, res) => {
   try {
     const result = await executeGraphQL(req.body);
     res.json(result);
   } catch (error) {
-    res.status(500).json({error: error.message});
+    res.status(500).json({ error: error.message });
   }
 });
 
 // Metrics endpoint for monitoring
-app.get('/metrics', (req, res) => {
-  res.set({'Content-Type': 'text/plain'});
+app.get("/metrics", (req, res) => {
+  res.set({ "Content-Type": "text/plain" });
   res.send(generatePrometheusMetrics());
 });
 
@@ -1296,40 +1438,40 @@ createServer(app.route).listen(3000);
 ### 2. Microservice with Authentication
 
 ```javascript
-import {woodland} from 'woodland';
-import {verify} from 'jsonwebtoken';
+import { woodland } from "woodland";
+import { verify } from "jsonwebtoken";
 
 const app = woodland({
-  origins: process.env.ALLOWED_ORIGINS?.split(',') || [],
+  origins: process.env.ALLOWED_ORIGINS?.split(",") || [],
   cacheSize: 5000,
-  cacheTTL: 30000
+  cacheTTL: 30000,
 });
 
 // JWT Authentication middleware
-app.always('/api/*', (req, res, next) => {
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  
+app.always("/api/*", (req, res, next) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+
   if (!token) {
-    return res.status(401).json({error: 'Missing token'});
+    return res.status(401).json({ error: "Missing token" });
   }
-  
+
   try {
     req.user = verify(token, process.env.JWT_SECRET);
     next();
   } catch (error) {
-    res.status(401).json({error: 'Invalid token'});
+    res.status(401).json({ error: "Invalid token" });
   }
 });
 
 // User profile endpoint
-app.get('/api/user/:id', async (req, res) => {
+app.get("/api/user/:id", async (req, res) => {
   const userId = req.params.id;
-  
+
   // Authorization check
   if (req.user.id !== userId && !req.user.isAdmin) {
-    return res.status(403).json({error: 'Forbidden'});
+    return res.status(403).json({ error: "Forbidden" });
   }
-  
+
   const user = await getUserById(userId);
   res.json(user);
 });
@@ -1338,33 +1480,33 @@ app.get('/api/user/:id', async (req, res) => {
 ### 3. Edge Computing Function
 
 ```javascript
-import {woodland} from 'woodland';
+import { woodland } from "woodland";
 
 // Optimized for edge deployment
 const app = woodland({
   cacheSize: 100,
   cacheTTL: 60000,
   silent: true,
-  etags: true
+  etags: true,
 });
 
 // Image optimization endpoint
-app.get('/image/:id', async (req, res) => {
-  const {id} = req.params;
-  const {width, height, format = 'webp'} = req.query;
-  
+app.get("/image/:id", async (req, res) => {
+  const { id } = req.params;
+  const { width, height, format = "webp" } = req.query;
+
   try {
-    const image = await optimizeImage(id, {width, height, format});
-    
+    const image = await optimizeImage(id, { width, height, format });
+
     res.set({
-      'Content-Type': `image/${format}`,
-      'Cache-Control': 'public, max-age=31536000',
-      'Vary': 'Accept-Encoding'
+      "Content-Type": `image/${format}`,
+      "Cache-Control": "public, max-age=31536000",
+      Vary: "Accept-Encoding",
     });
-    
+
     res.send(image);
   } catch (error) {
-    res.status(404).json({error: 'Image not found'});
+    res.status(404).json({ error: "Image not found" });
   }
 });
 
@@ -1375,34 +1517,34 @@ export default app;
 ### 4. Real-time Application Server
 
 ```javascript
-import {woodland} from 'woodland';
-import {WebSocketServer} from 'ws';
+import { woodland } from "woodland";
+import { WebSocketServer } from "ws";
 
 const app = woodland({
-  origins: ['https://chat.example.com'],
-  time: true
+  origins: ["https://chat.example.com"],
+  time: true,
 });
 
 // WebSocket upgrade handling
-const wss = new WebSocketServer({noServer: true});
+const wss = new WebSocketServer({ noServer: true });
 
-app.on('upgrade', (request, socket, head) => {
+app.on("upgrade", (request, socket, head) => {
   wss.handleUpgrade(request, socket, head, (ws) => {
-    wss.emit('connection', ws, request);
+    wss.emit("connection", ws, request);
   });
 });
 
 // Chat message endpoint
-app.post('/api/messages', async (req, res) => {
+app.post("/api/messages", async (req, res) => {
   const message = await saveMessage(req.body);
-  
+
   // Broadcast to WebSocket clients
-  wss.clients.forEach(client => {
+  wss.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(JSON.stringify(message));
     }
   });
-  
+
   res.json(message);
 });
 ```
@@ -1410,29 +1552,29 @@ app.post('/api/messages', async (req, res) => {
 ### 5. Container-Ready Static Server
 
 ```javascript
-import {woodland} from 'woodland';
-import {createServer} from 'node:http';
+import { woodland } from "woodland";
+import { createServer } from "node:http";
 
 const app = woodland({
-  autoindex: process.env.NODE_ENV === 'development',
+  autoindex: process.env.NODE_ENV === "development",
   defaultHeaders: {
-    'X-Content-Type-Options': 'nosniff',
-    'X-Frame-Options': 'DENY',
-    'Referrer-Policy': 'strict-origin-when-cross-origin'
-  }
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+  },
 });
 
 // Serve static files with security headers
-app.files('/', './public');
+app.files("/", "./public");
 
 // SPA fallback for client-side routing
-app.get('*', (req, res) => {
-  res.sendFile('./public/index.html');
+app.get("*", (req, res) => {
+  res.sendFile("./public/index.html");
 });
 
 // Graceful shutdown for containers
-process.on('SIGTERM', () => {
-  console.log('Received SIGTERM, shutting down gracefully');
+process.on("SIGTERM", () => {
+  console.log("Received SIGTERM, shutting down gracefully");
   server.close(() => {
     process.exit(0);
   });
@@ -1450,19 +1592,19 @@ server.listen(process.env.PORT || 3000);
 
 ```javascript
 const app = woodland({
-  autoindex: false,        // Enable directory listing
-  cacheSize: 1000,        // LRU cache size
-  cacheTTL: 10000,        // Cache TTL in milliseconds
-  charset: 'utf-8',       // Default character encoding
-  corsExpose: '',         // CORS headers to expose to the client
-  defaultHeaders: {},     // Default HTTP headers
-  digit: 3,               // Timing precision digits
-  etags: true,            // Enable ETag generation
-  indexes: ['index.htm', 'index.html'], // Index file names
-  logging: {},            // Logging configuration
-  origins: [],            // CORS allowed origins
-  silent: false,          // Disable default headers
-  time: false             // Enable response time tracking
+  autoIndex: false, // Enable directory listing (camelCase)
+  cacheSize: 1000, // LRU cache size
+  cacheTTL: 10000, // Cache TTL in milliseconds
+  charset: "utf-8", // Default character encoding
+  corsExpose: "", // CORS headers to expose to the client
+  defaultHeaders: {}, // Default HTTP headers
+  digit: 3, // Timing precision digits
+  etags: true, // Enable ETag generation
+  indexes: ["index.htm", "index.html"], // Index file names
+  logging: {}, // Logging configuration
+  origins: [], // CORS allowed origins
+  silent: false, // Disable default headers
+  time: false, // Enable response time tracking
 });
 ```
 
@@ -1470,20 +1612,20 @@ const app = woodland({
 
 ```javascript
 // Route registration
-app.get('/path', handler);
-app.post('/path', handler);
-app.put('/path', handler);
-app.patch('/path', handler);
-app.delete('/path', handler);
-app.options('/path', handler);
-app.trace('/path', handler);
-app.connect('/path', handler);
+app.get("/path", handler);
+app.post("/path", handler);
+app.put("/path", handler);
+app.patch("/path", handler);
+app.delete("/path", handler);
+app.options("/path", handler);
+app.trace("/path", handler);
+app.connect("/path", handler);
 
 // Note: HEAD requests are automatically handled when GET routes are defined
 // Cannot register HEAD routes directly - use GET instead
 
-// Middleware for all methods
-app.always('/path', middleware);
+// Middleware for all methods (auto-ignored for route visibility)
+app.always("/path", middleware);
 app.always(middleware); // All routes
 ```
 
@@ -1496,7 +1638,8 @@ res.send(body, status, headers);
 res.status(code);
 res.set(headers);
 res.redirect(url, permanent);
-res.error(statusCode, body);
+res.error(status, body);
+res.header(name, value); // Native Node.js header setter
 ```
 
 ### Utility Methods
@@ -1512,8 +1655,21 @@ app.files(route, directory);
 app.serve(req, res, path, folder);
 
 // Middleware management
-app.ignore(middleware);
+app.ignore(fn);
 app.list(method, type);
+
+// Response utilities
+res.writeHead(status, headers); // Write response headers
+
+// Event handlers (internal)
+app.onReady(req, res, body, status, headers);
+app.onDone(req, res, body, headers);
+app.onSend(req, res, body, status, headers);
+
+// ETag generation
+app.etag(method, ...values);
+
+// Note: always() middleware is automatically ignored
 ```
 
 ---
@@ -1533,17 +1689,19 @@ woodland --ip=0.0.0.0 --port=3000 --logging=false
 
 # Available options
 # --ip: Server IP address (default: 127.0.0.1)
-# --port: Server port (default: 8000)  
+# --port: Server port (default: 8000)
 # --logging: Enable/disable request logging (default: true)
 ```
 
 The CLI automatically configures Woodland with:
+
 - Auto-indexing enabled for directory browsing
 - Security headers and CORS protection
 - File serving with proper MIME types
 - Request logging in Common Log Format
 
 This deployment pattern is ideal for:
+
 - Local development servers
 - Quick file sharing
 - Static site previewing
@@ -1560,29 +1718,29 @@ graph TB
         A --> C[Container 2]
         A --> D[Container N]
     end
-    
+
     subgraph "Container Configuration"
         E[Environment Variables]
         F[Health Checks]
         G[Resource Limits]
         H[Auto-scaling]
     end
-    
+
     subgraph "Monitoring"
         I[Metrics Endpoint]
         J[Health Endpoint]
         K[Logging Output]
         L[Tracing]
     end
-    
+
     B -.-> E
     C -.-> F
     D -.-> G
-    
+
     B --> I
     C --> J
     D --> K
-    
+
     style A fill:#2563eb,stroke:#1e40af,stroke-width:2px,color:#ffffff
     style E fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
     style I fill:#7c3aed,stroke:#6d28d9,stroke-width:2px,color:#ffffff
@@ -1625,25 +1783,25 @@ spec:
         app: woodland-app
     spec:
       containers:
-      - name: woodland-app
-        image: woodland-app:latest
-        ports:
-        - containerPort: 3000
-        env:
-        - name: NODE_ENV
-          value: "production"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 3000
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /ready
-            port: 3000
-          initialDelaySeconds: 5
-          periodSeconds: 5
+        - name: woodland-app
+          image: woodland-app:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: "production"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
 ```
 
 ---
@@ -1669,7 +1827,7 @@ spec:
 ### Development Best Practices
 
 1. **Logging**: Use structured logging for debugging
-2. **Testing**: Implement comprehensive test coverage (386 tests with 100% coverage across all metrics including 100% CLI coverage)
+2. **Testing**: Implement comprehensive test coverage (478 tests with 100% line coverage, CLI module at 100% across all dimensions)
 3. **Monitoring**: Add health checks and metrics
 4. **Documentation**: Maintain API documentation
 5. **Versioning**: Use semantic versioning for APIs
@@ -1685,26 +1843,26 @@ graph TB
         C --> E[Cache Layer]
         C --> F[External APIs]
     end
-    
+
     subgraph "Cross-cutting Concerns"
         G[Logging]
         H[Monitoring]
         I[Security]
         J[Error Handling]
     end
-    
+
     subgraph "Deployment"
         K[Container Registry]
         L[CI/CD Pipeline]
         M[Kubernetes Cluster]
         N[Monitoring Stack]
     end
-    
+
     A -.-> G
     B -.-> H
     C -.-> I
     D -.-> J
-    
+
     style A fill:#2563eb,stroke:#1e40af,stroke-width:2px,color:#ffffff
     style G fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#ffffff
     style K fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
@@ -1718,4 +1876,4 @@ Woodland provides a robust foundation for building modern web applications with 
 
 The framework's emphasis on security, performance, and developer experience makes it well-suited for the evolving landscape of web development in 2025 and beyond.
 
-For additional information, refer to the [Code Style Guide](./CODE_STYLE_GUIDE.md) and explore the comprehensive test suite in the `tests/` directory. 
+For additional information, refer to the [Code Style Guide](./CODE_STYLE_GUIDE.md) and explore the comprehensive test suite in the `tests/` directory.

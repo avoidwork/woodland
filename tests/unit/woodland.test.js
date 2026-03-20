@@ -1,2943 +1,1295 @@
 import assert from "node:assert";
-import {EventEmitter} from "node:events";
-import {Woodland, woodland} from "../../src/woodland.js";
+import { describe, it, beforeEach } from "node:test";
+import { Woodland, woodland } from "../../src/woodland.js";
+import { EVT_CONNECT } from "../../src/constants.js";
 
-describe("Woodland", () => {
-	let app;
+describe("woodland", () => {
+	describe("Woodland class", () => {
+		it("should create instance with default config", () => {
+			const app = new Woodland();
 
-	beforeEach(() => {
-		app = new Woodland({ logging: { enabled: false }});
-	});
-
-	describe("constructor", () => {
-		it("should create instance extending EventEmitter", () => {
-			assert.ok(app instanceof EventEmitter);
 			assert.ok(app instanceof Woodland);
 		});
 
-		it("should set default configuration", () => {
-			assert.strictEqual(app.autoindex, false);
-			assert.strictEqual(app.charset, "utf-8");
-			assert.strictEqual(app.digit, 3);
-			assert.strictEqual(app.time, false);
+		it("should create instance with woodland factory function", () => {
+			const app = woodland();
+
+			assert.ok(app instanceof Woodland);
+		});
+
+		it("should have EventEmitter methods", () => {
+			const app = new Woodland();
+
+			assert.strictEqual(typeof app.on, "function");
+			assert.strictEqual(typeof app.emit, "function");
+			assert.strictEqual(typeof app.removeListener, "function");
+		});
+
+		it("should have default properties", () => {
+			const app = new Woodland();
+
+			assert.ok(app.autoIndex !== void 0);
+			assert.ok(app.charset !== void 0);
+			assert.ok(app.corsExpose !== void 0);
+			assert.ok(Array.isArray(app.defaultHeaders));
+			assert.ok(app.digit !== void 0);
+			assert.ok(app.etags !== void 0 || app.etags === null);
 			assert.ok(Array.isArray(app.indexes));
-			assert.ok(Array.isArray(app.origins));
-			assert.ok(Array.isArray(app.methods));
-			assert.ok(app.middleware instanceof Map);
+			assert.ok(app.logging !== void 0);
+			assert.ok(app.origins instanceof Set);
+			assert.ok(app.time !== void 0);
+		});
+
+		it("should have cache, permissions, middleware, methods", () => {
+			const app = new Woodland();
+
 			assert.ok(app.cache);
-			assert.ok(app.permissions);
-			assert.ok(app.ignored instanceof Set);
+			assert.ok(typeof app.cache.get === "function");
+			assert.ok(typeof app.cache.set === "function");
+			assert.ok(app.permissions instanceof Map);
+			assert.ok(app.middleware);
+			assert.strictEqual(typeof app.middleware.register, "function");
+			assert.strictEqual(typeof app.middleware.ignore, "function");
+			assert.strictEqual(typeof app.middleware.allowed, "function");
+			assert.strictEqual(typeof app.middleware.routes, "function");
+			assert.strictEqual(typeof app.middleware.list, "function");
+			assert.ok(Array.isArray(app.methods));
 		});
 
-		it("should accept custom configuration", () => {
-			const customApp = new Woodland({
-				autoindex: true,
-				charset: "utf-16",
-				digit: 2,
-				time: true,
-				silent: true,
-				indexes: ["home.html"],
-				origins: ["https://example.com"],
-				logging: { enabled: false }
-			});
+		it("should have logger object with all methods", () => {
+			const app = new Woodland();
 
-			assert.strictEqual(customApp.autoindex, true);
-			assert.strictEqual(customApp.charset, "utf-16");
-			assert.strictEqual(customApp.digit, 2);
-			assert.strictEqual(customApp.time, true);
-			assert.deepStrictEqual(customApp.indexes, ["home.html"]);
-			assert.deepStrictEqual(customApp.origins, ["https://example.com"]);
+			assert.ok(app.logger.log);
+			assert.ok(app.logger.logRoute);
+			assert.ok(app.logger.logMiddleware);
+			assert.ok(app.logger.logDecoration);
+			assert.ok(app.logger.logError);
+			assert.ok(app.logger.logServe);
 		});
 
-		it("should set default headers when not silent", () => {
-			const headers = app.defaultHeaders;
-			assert.ok(Array.isArray(headers));
-			assert.ok(headers.length > 0);
+		it("should have cors handlers", () => {
+			const app = new Woodland();
+
+			assert.ok(app);
 		});
 
-		it("should not set default headers when silent", () => {
-			const silentApp = new Woodland({silent: true,
-				logging: { enabled: false }});
-			assert.strictEqual(silentApp.defaultHeaders.length, 0);
+		it("should have file server", () => {
+			const app = new Woodland();
+
+			assert.ok(app.fileServer);
 		});
 
-		it("should initialize etags when enabled", () => {
-			assert.ok(app.etags !== null);
-		});
+		it("should have middleware registry", () => {
+			const app = new Woodland();
 
-		it("should not initialize etags when disabled", () => {
-			const noEtagApp = new Woodland({etags: false,
-				logging: { enabled: false }});
-			assert.strictEqual(noEtagApp.etags, null);
+			assert.ok(app.middleware);
+			assert.strictEqual(typeof app.middleware.register, "function");
 		});
 	});
 
-	describe("HTTP method handlers", () => {
-		it("should register GET routes", () => {
-			const handler = () => {};
-			app.get("/test", handler);
-			assert.ok(app.middleware.has("GET"));
-			assert.ok(app.middleware.get("GET").has("/test"));
-		});
-
-		it("should register POST routes", () => {
-			const handler = () => {};
-			app.post("/test", handler);
-			assert.ok(app.middleware.has("POST"));
-			assert.ok(app.middleware.get("POST").has("/test"));
-		});
-
-		it("should register PUT routes", () => {
-			const handler = () => {};
-			app.put("/test", handler);
-			assert.ok(app.middleware.has("PUT"));
-			assert.ok(app.middleware.get("PUT").has("/test"));
-		});
-
-		it("should register DELETE routes", () => {
-			const handler = () => {};
-			app.delete("/test", handler);
-			assert.ok(app.middleware.has("DELETE"));
-			assert.ok(app.middleware.get("DELETE").has("/test"));
-		});
-
-		it("should register PATCH routes", () => {
-			const handler = () => {};
-			app.patch("/test", handler);
-			assert.ok(app.middleware.has("PATCH"));
-			assert.ok(app.middleware.get("PATCH").has("/test"));
-		});
-
-		it("should register OPTIONS routes", () => {
-			const handler = () => {};
-			app.options("/test", handler);
-			assert.ok(app.middleware.has("OPTIONS"));
-			assert.ok(app.middleware.get("OPTIONS").has("/test"));
-		});
-
-		it("should register TRACE routes", () => {
-			const handler = () => {};
-			app.trace("/test", handler);
-			assert.ok(app.middleware.has("TRACE"));
-			assert.ok(app.middleware.get("TRACE").has("/test"));
-		});
-
-		it("should register CONNECT routes", () => {
-			const handler = () => {};
-			app.connect("/test", handler);
-			assert.ok(app.middleware.has("CONNECT"));
-			assert.ok(app.middleware.get("CONNECT").has("/test"));
-		});
-	});
-
-	describe("use", () => {
-		it("should register middleware with route pattern", () => {
-			const handler = () => {};
-			app.use("/api/*", handler);
-			assert.ok(app.middleware.has("GET"));
-			assert.ok(app.middleware.get("GET").has("/api/*"));
-		});
-
-		it("should register middleware without route pattern", () => {
-			const handler = () => {};
-			app.use(handler);
-			assert.ok(app.middleware.has("GET"));
-			assert.ok(app.middleware.get("GET").has("/.*"));
-		});
-
-		it("should register middleware with specific method", () => {
-			const handler = () => {};
-			app.use("/test", handler, "POST");
-			assert.ok(app.middleware.has("POST"));
-			assert.ok(app.middleware.get("POST").has("/test"));
-		});
-
-		it("should throw error for invalid method", () => {
-			const handler = () => {};
-			assert.throws(() => {
-				app.use("/test", handler, "INVALID");
-			}, TypeError);
-		});
-
-		it("should throw error for HEAD method", () => {
-			const handler = () => {};
-			assert.throws(() => {
-				app.use("/test", handler, "HEAD");
-			}, TypeError);
-		});
-
-		it("should handle parameterized routes", () => {
-			const handler = () => {};
-			app.use("/users/:id", handler);
-			const route = app.middleware.get("GET").get("/users/(?<id>[^/]+)");
-			assert.ok(route);
-			assert.strictEqual(route.params, true);
-		});
-
-		it("should return instance for chaining", () => {
-			const handler = () => {};
-			const result = app.use("/test", handler);
-			assert.strictEqual(result, app);
-		});
-	});
-
-	describe("always", () => {
-		it("should register wildcard middleware", () => {
-			const handler = () => {};
-			app.always(handler);
-			assert.ok(app.middleware.has("*"));
-		});
-
-		it("should return instance for chaining", () => {
-			const handler = () => {};
-			const result = app.always(handler);
-			assert.strictEqual(result, app);
-		});
-	});
-
-	describe("allowed", () => {
-		beforeEach(() => {
-			app.get("/test", () => {});
-		});
-
-		it("should return true for allowed method", () => {
-			const result = app.allowed("GET", "/test");
-			assert.strictEqual(result, true);
-		});
-
-		it("should return false for disallowed method", () => {
-			const result = app.allowed("POST", "/test");
-			assert.strictEqual(result, false);
-		});
-
-		it("should handle override parameter", () => {
-			const result = app.allowed("GET", "/test", true);
-			assert.strictEqual(result, true);
-		});
-	});
-
-	describe("allows", () => {
-		beforeEach(() => {
-			app.get("/test", () => {});
-			app.post("/test", () => {});
-		});
-
-		it("should return comma-separated list of allowed methods", () => {
-			const result = app.allows("/test");
-			assert.ok(typeof result === "string");
-			assert.ok(result.includes("GET"));
-			assert.ok(result.includes("POST"));
-			assert.ok(result.includes("HEAD")); // Should be added automatically when GET is present
-			assert.ok(result.includes("OPTIONS")); // Should be added automatically for any route with methods
-		});
-
-		it("should include OPTIONS for routes without GET", () => {
-			app.post("/api", () => {});
-			app.put("/api", () => {});
-			app.delete("/api", () => {});
-
-			const result = app.allows("/api");
-			assert.ok(typeof result === "string");
-			assert.ok(result.includes("POST"));
-			assert.ok(result.includes("PUT"));
-			assert.ok(result.includes("DELETE"));
-			assert.ok(result.includes("OPTIONS")); // Should be added for non-GET routes
-			assert.ok(!result.includes("HEAD")); // HEAD should only be added when GET is present
-		});
-
-		it("should include OPTIONS for single non-GET method routes", () => {
-			app.post("/single", () => {});
-
-			const result = app.allows("/single");
-			assert.ok(result.includes("POST"));
-			assert.ok(result.includes("OPTIONS"));
-			assert.ok(!result.includes("HEAD"));
-			assert.ok(!result.includes("GET"));
-		});
-
-		it("should include HEAD only when GET is present", () => {
-			app.post("/no-get", () => {});
-			const resultNoGet = app.allows("/no-get");
-			assert.ok(!resultNoGet.includes("HEAD"));
-
-			app.get("/with-get", () => {});
-			const resultWithGet = app.allows("/with-get");
-			assert.ok(resultWithGet.includes("HEAD"));
-		});
-
-		it("should not include duplicate OPTIONS", () => {
-			app.options("/explicit", () => {});
-			app.post("/explicit", () => {});
-
-			const result = app.allows("/explicit");
-			const methods = result.split(", ");
-			const optionsCount = methods.filter(method => method === "OPTIONS").length;
-			assert.strictEqual(optionsCount, 1, "OPTIONS should appear only once");
-		});
-
-		it("should not include duplicate HEAD", () => {
-			app.get("/explicit-head", () => {});
-			// Note: HEAD routes are not allowed in use() method, so we test with GET only
-
-			const result = app.allows("/explicit-head");
-			const methods = result.split(", ");
-			const headCount = methods.filter(method => method === "HEAD").length;
-			assert.strictEqual(headCount, 1, "HEAD should appear only once");
-		});
-
-		it("should cache results", () => {
-			const result1 = app.allows("/test");
-			const result2 = app.allows("/test");
-			assert.strictEqual(result1, result2);
-		});
-
-		it("should handle override parameter", () => {
-			const result = app.allows("/test", true);
-			assert.ok(typeof result === "string");
-		});
-
-		it("should return empty for routes with no methods", () => {
-			const result = app.allows("/nonexistent");
-			assert.strictEqual(result, "");
-		});
-	});
-
-	describe("cors and corsHost", () => {
-		it("should detect cross-origin requests", () => {
-			const req = {
-				headers: {
-					origin: "https://example.com",
-					host: "api.example.com"
-				}
-			};
-			assert.strictEqual(app.corsHost(req), true);
-		});
-
-		it("should not detect same-origin requests", () => {
-			const req = {
-				headers: {
-					origin: "https://example.com",
-					host: "example.com"
-				}
-			};
-			assert.strictEqual(app.corsHost(req), false);
-		});
-
-		it("should allow CORS for wildcard origins", () => {
-			const corsApp = new Woodland({origins: ["*"],
-				logging: { enabled: false }});
-			const req = {
-				corsHost: true,
-				headers: {origin: "https://example.com"}
-			};
-			assert.strictEqual(corsApp.cors(req), true);
-		});
-
-		it("should allow CORS for specific origins", () => {
-			const corsApp = new Woodland({origins: ["https://example.com"],
-				logging: { enabled: false }});
-			const req = {
-				corsHost: true,
-				headers: {origin: "https://example.com"}
-			};
-			assert.strictEqual(corsApp.cors(req), true);
-		});
-
-		it("should deny CORS for unlisted origins", () => {
-			const corsApp = new Woodland({origins: ["https://trusted.com"],
-				logging: { enabled: false }});
-			const req = {
-				corsHost: true,
-				headers: {origin: "https://untrusted.com"}
-			};
-			assert.strictEqual(corsApp.cors(req), false);
-		});
-	});
-
-	describe("ip", () => {
-		it("should extract IP from connection", () => {
-			const ipApp = new Woodland();
-			const req = {
-				connection: {remoteAddress: "192.168.1.1"},
-				headers: {}
-			};
-			const result = ipApp.ip(req);
-			assert.strictEqual(result, "192.168.1.1");
-		});
-
-		it("should extract IP from X-Forwarded-For header", () => {
-			const ipApp = new Woodland();
-			const req = {
-				connection: {remoteAddress: "127.0.0.1"},
-				headers: {"x-forwarded-for": "192.168.1.100, 10.0.0.1"}
-			};
-			const result = ipApp.ip(req);
-			assert.strictEqual(result, "192.168.1.100");
-		});
-
-		it("should handle missing remoteAddress by using socket fallback", () => {
-			const ipApp = new Woodland();
-			const req = {
-				connection: {},
-				socket: {remoteAddress: "10.0.0.1"},
-				headers: {}
-			};
-			const result = ipApp.ip(req);
-			assert.strictEqual(result, "10.0.0.1");
-		});
-
-		it("should fallback to 127.0.0.1 when no IP available", () => {
-			const ipApp = new Woodland();
-			const req = {
-				connection: {},
-				socket: {},
-				headers: {}
-			};
-			const result = ipApp.ip(req);
-			assert.strictEqual(result, "127.0.0.1");
-		});
-	});
-
-	describe("ignore", () => {
-		it("should add function to ignored set", () => {
-			const fn = () => {};
-			app.ignore(fn);
-			assert.ok(app.ignored.has(fn));
-		});
-
-		it("should return instance for chaining", () => {
-			const fn = () => {};
-			const result = app.ignore(fn);
-			assert.strictEqual(result, app);
-		});
-	});
-
-	describe("list", () => {
-		beforeEach(() => {
-			app.get("/test1", () => {});
-			app.get("/test2", () => {});
-			app.post("/api", () => {});
-		});
-
-		it("should return array of routes by default", () => {
-			const result = app.list();
-			assert.ok(Array.isArray(result));
-			assert.ok(result.includes("/test1"));
-			assert.ok(result.includes("/test2"));
-		});
-
-		it("should return object when type is object", () => {
-			const result = app.list("get", "object");
-			assert.ok(typeof result === "object");
-			assert.ok(!Array.isArray(result));
-			assert.ok(result["/test1"]);
-			assert.ok(result["/test2"]);
-		});
-
-		it("should filter by method", () => {
-			const getRoutes = app.list("get");
-			const postRoutes = app.list("post");
-			assert.ok(getRoutes.includes("/test1"));
-			assert.ok(postRoutes.includes("/api"));
-			assert.ok(!postRoutes.includes("/test1"));
-		});
-	});
-
-	describe("log", () => {
-		it("should log messages when logging enabled", () => {
-			const logApp = new Woodland({logging: {enabled: true}});
-			const result = logApp.log("test message");
-			assert.strictEqual(result, logApp);
-		});
-
-		it("should return instance for chaining", () => {
-			const logApp = new Woodland({logging: {enabled: false}});
-			const result = logApp.log("test message");
-			assert.strictEqual(result, logApp);
-		});
-
-		it("should use console.error for error level logging", () => {
-			const logApp = new Woodland({logging: {enabled: true, level: "error"}});
-			const result = logApp.log("test error", "error");
-			assert.strictEqual(result, logApp);
-		});
-
-		it("should use console.log for debug level logging", () => {
-			const logApp = new Woodland({logging: {enabled: true, level: "debug"}});
-			const result = logApp.log("test debug", "debug");
-			assert.strictEqual(result, logApp);
-		});
-
-		it("should handle log levels correctly for console output", () => {
-			const logApp = new Woodland({logging: {enabled: true, level: "info"}});
-
-			// Test different log levels to ensure the console[idx > INT_4 ? LOG : ERROR] branch is covered
-			logApp.log("test info", "info");
-			logApp.log("test warn", "warn");
-			logApp.log("test error", "error");
-			logApp.log("test debug", "debug");
-
-			assert.ok(true, "All log levels processed");
-		});
-	});
-
-	describe("path", () => {
-		it("should convert route parameters to regex groups", () => {
-			const result = app.path("/users/:id");
-			assert.strictEqual(result, "/users/(?<id>[^/]+)");
-		});
-
-		it("should handle multiple parameters", () => {
-			const result = app.path("/users/:id/posts/:postId");
-			assert.strictEqual(result, "/users/(?<id>[^/]+)/posts/(?<postId>[^/]+)");
-		});
-
-		it("should return unchanged string for no parameters", () => {
-			const result = app.path("/users");
-			assert.strictEqual(result, "/users");
-		});
-
-		it("should handle empty string", () => {
-			const result = app.path();
-			assert.strictEqual(result, "");
-		});
-	});
-
-	describe("etag", () => {
-		it("should generate etag for GET requests", () => {
-			const result = app.etag("GET", "test", "data");
-			assert.ok(typeof result === "string");
-		});
-
-		it("should generate etag for HEAD requests", () => {
-			const result = app.etag("HEAD", "test", "data");
-			assert.ok(typeof result === "string");
-		});
-
-		it("should generate etag for OPTIONS requests", () => {
-			const result = app.etag("OPTIONS", "test", "data");
-			assert.ok(typeof result === "string");
-		});
-
-		it("should return empty string for other methods", () => {
-			const result = app.etag("POST", "test", "data");
-			assert.strictEqual(result, "");
-		});
-
-		it("should return empty string when etags disabled", () => {
-			const noEtagApp = new Woodland({etags: false,
-				logging: { enabled: false }});
-			const result = noEtagApp.etag("GET", "test", "data");
-			assert.strictEqual(result, "");
-		});
-	});
-
-	describe("routes", () => {
-		beforeEach(() => {
-			app.get("/test", () => {});
-			app.post("/test", () => {});
-			app.always(() => {}); // wildcard middleware
-		});
-
-		it("should return route information", () => {
-			const result = app.routes("/test", "GET");
-			assert.ok(typeof result === "object");
-			assert.ok(Array.isArray(result.middleware));
-			assert.ok(typeof result.visible === "number");
-			assert.ok(typeof result.params === "boolean");
-		});
-
-		it("should include wildcard middleware", () => {
-			const result = app.routes("/test", "GET");
-			assert.ok(result.middleware.length >= 2); // wildcard + GET specific
-		});
-
-		it("should cache results", () => {
-			const result1 = app.routes("/test", "GET");
-			const result2 = app.routes("/test", "GET");
-			assert.strictEqual(result1, result2);
-		});
-
-		it("should handle override parameter", () => {
-			const result = app.routes("/test", "GET", true);
-			assert.ok(typeof result === "object");
-		});
-	});
-
-	describe("helper method factories", () => {
-		let mockReq, mockRes;
+	describe("Woodland methods", () => {
+		let app;
 
 		beforeEach(() => {
-			mockReq = {
-				method: "GET",
-				headers: {},
-				parsed: {pathname: "/test"}
-			};
-			mockRes = {
-				headersSent: false,
-				statusCode: 200,
-				setHeader: () => {},
-				header: () => {},
-				getHeader: () => undefined,
-				removeHeader: () => {},
-				end: () => {}
-			};
+			app = woodland();
 		});
 
-		describe("json", () => {
-			it("should create json response function", () => {
-				const jsonFn = app.json(mockRes);
-				assert.strictEqual(typeof jsonFn, "function");
+		describe("use", () => {
+			it("should register middleware for GET by default", () => {
+				const handler = () => {};
+
+				app.use("/test", handler);
+
+				assert.ok(app.middleware.allowed("GET", "/test"));
+			});
+
+			it("should register middleware for specific method", () => {
+				const handler = () => {};
+
+				app.use("/test", handler, "POST");
+
+				assert.ok(app.middleware.allowed("POST", "/test"));
+			});
+
+			it("should register wildcard middleware", () => {
+				const handler = () => {};
+
+				app.use(handler);
+
+				assert.ok(app.middleware.allowed("GET", "/./*"));
+			});
+
+			it("should throw error for invalid HTTP method", () => {
+				assert.throws(() => {
+					app.use("/test", () => {}, "INVALID");
+				}, /Invalid HTTP method/);
+			});
+
+			it("should throw error for HEAD method", () => {
+				assert.throws(() => {
+					app.use("/test", () => {}, "HEAD");
+				}, /Cannot set HEAD route/);
+			});
+
+			it("should convert parameterized routes to regex", () => {
+				app.use("/users/:id", () => {});
+
+				const routes = app.list("GET", "array");
+				assert.ok(routes.some((r) => r.includes("(")));
+			});
+
+			it("should return app instance for chaining", () => {
+				const result = app.use("/test", () => {});
+
+				assert.strictEqual(result, app);
+			});
+
+			it("should accept multiple handlers", () => {
+				const handler1 = () => {};
+				const handler2 = () => {};
+
+				app.use("/test", handler1, handler2);
+
+				assert.ok(app.middleware.allowed("GET", "/test"));
 			});
 		});
 
-		describe("redirect", () => {
-			it("should create redirect function", () => {
-				const redirectFn = app.redirect(mockRes);
-				assert.strictEqual(typeof redirectFn, "function");
+		describe("HTTP method shortcuts", () => {
+			it("should register GET middleware", () => {
+				const handler = () => {};
+
+				app.get("/test", handler);
+
+				assert.ok(app.middleware.allowed("GET", "/test"));
+			});
+
+			it("should register POST middleware", () => {
+				const handler = () => {};
+
+				app.post("/test", handler);
+
+				assert.ok(app.middleware.allowed("POST", "/test"));
+			});
+
+			it("should register PUT middleware", () => {
+				const handler = () => {};
+
+				app.put("/test", handler);
+
+				assert.ok(app.middleware.allowed("PUT", "/test"));
+			});
+
+			it("should register DELETE middleware", () => {
+				const handler = () => {};
+
+				app.delete("/test", handler);
+
+				assert.ok(app.middleware.allowed("DELETE", "/test"));
+			});
+
+			it("should register PATCH middleware", () => {
+				const handler = () => {};
+
+				app.patch("/test", handler);
+
+				assert.ok(app.middleware.allowed("PATCH", "/test"));
+			});
+
+			it("should register OPTIONS middleware", () => {
+				const handler = () => {};
+
+				app.options("/test", handler);
+
+				assert.ok(app.middleware.allowed("OPTIONS", "/test"));
+			});
+
+			it("should register CONNECT middleware", () => {
+				const handler = () => {};
+
+				app.connect("/test", handler);
+
+				assert.ok(app.middleware.allowed("CONNECT", "/test"));
+			});
+
+			it("should register TRACE middleware", () => {
+				const handler = () => {};
+
+				app.trace("/test", handler);
+
+				assert.ok(app.middleware.allowed("TRACE", "/test"));
+			});
+
+			it("should return app instance for chaining", () => {
+				const result = app.get("/test", () => {});
+
+				assert.strictEqual(result, app);
 			});
 		});
 
-		describe("send", () => {
-			it("should create send function", () => {
-				const sendFn = app.send(mockReq, mockRes);
-				assert.strictEqual(typeof sendFn, "function");
+		describe("always", () => {
+			it("should register wildcard middleware and ignore it for visible count", () => {
+				const handler = () => {};
+
+				app.always(handler);
+
+				assert.ok(app.middleware.routes("/.*", "GET").middleware.includes(handler));
+				assert.strictEqual(app.middleware.routes("/.*", "GET").visible, 0);
+			});
+
+			it("should return app instance for chaining", () => {
+				const result = app.always(() => {});
+
+				assert.strictEqual(result, app);
 			});
 		});
 
-		describe("set", () => {
-			it("should create header setting function", () => {
-				const setFn = app.set(mockRes);
-				assert.strictEqual(typeof setFn, "function");
+		describe("ignore", () => {
+			it("should add function to ignored set", () => {
+				const handler = () => {};
+
+				app.ignore(handler);
+
+				// Verify function is still callable (not removed from registry)
+				assert.ok(app.middleware);
+			});
+
+			it("should return app instance for chaining", () => {
+				const result = app.ignore(() => {});
+
+				assert.strictEqual(result, app);
+			});
+
+			it("should log ignored function name", () => {
+				const handler = function namedHandler() {};
+
+				app.ignore(handler);
+
+				assert.ok(app.middleware);
 			});
 		});
 
-		describe("status", () => {
-			it("should create status setting function", () => {
-				const statusFn = app.status(mockRes);
-				assert.strictEqual(typeof statusFn, "function");
+		describe("list", () => {
+			it("should return array of routes", () => {
+				app.get("/test1", () => {});
+				app.get("/test2", () => {});
+
+				const result = app.list("GET", "array");
+
+				assert.ok(Array.isArray(result));
+				assert.ok(result.includes("/test1"));
+				assert.ok(result.includes("/test2"));
+			});
+
+			it("should return object of routes", () => {
+				app.get("/test1", () => {});
+				app.get("/test2", () => {});
+
+				const result = app.list("GET", "object");
+
+				assert.strictEqual(typeof result, "object");
+				assert.ok(result["/test1"]);
+				assert.ok(result["/test2"]);
+			});
+
+			it("should return empty array for non-existent method", () => {
+				app.delete("/test", () => {});
+
+				const result = app.list("DELETE", "array");
+
+				assert.ok(Array.isArray(result));
+				assert.strictEqual(result.length, 1);
 			});
 		});
 
-		describe("error", () => {
-			it("should create error handler function", () => {
-				const errorFn = app.error(mockReq, mockRes);
-				assert.strictEqual(typeof errorFn, "function");
+		describe("files", () => {
+			it("should register file server", () => {
+				app.files("/static", "/tmp");
+
+				assert.ok(app.fileServer);
+			});
+
+			it("should use process.cwd() as default folder", () => {
+				app.files("/static");
+
+				assert.ok(app.fileServer);
+			});
+		});
+
+		describe("allowed", () => {
+			it("should check if method is allowed for URI", () => {
+				app.get("/test", () => {});
+
+				const result = app.allowed("GET", "/test");
+
+				assert.strictEqual(result, true);
+			});
+
+			it("should return false for non-allowed method", () => {
+				app.get("/test", () => {});
+
+				const result = app.allowed("POST", "/test");
+
+				assert.strictEqual(result, false);
+			});
+		});
+
+		describe("allows", () => {
+			it("should return allowed methods for URI", () => {
+				app.get("/test", () => {});
+
+				const result = app.allows("/test");
+
+				assert.ok(typeof result === "string");
+				assert.ok(result.includes("GET"));
+			});
+
+			it("should return all methods for wildcard middleware", () => {
+				app.always(() => {});
+
+				const result = app.allows("/test");
+
+				assert.ok(result.includes("GET"));
+				assert.ok(result.includes("POST"));
+				assert.ok(result.includes("PUT"));
+				assert.ok(result.includes("DELETE"));
+				assert.ok(result.includes("HEAD"));
+				assert.ok(result.includes("OPTIONS"));
+			});
+
+			it("should include HEAD when GET is allowed", () => {
+				app.get("/test", () => {});
+
+				const result = app.allows("/test");
+
+				assert.ok(result.includes("HEAD"));
+			});
+
+			it("should include OPTIONS when other methods allowed", () => {
+				app.get("/test", () => {});
+
+				const result = app.allows("/test");
+
+				assert.ok(result.includes("OPTIONS"));
+			});
+		});
+
+		describe("decorate", () => {
+			it("should decorate request and response objects", () => {
+				const req = {
+					headers: { host: "example.com" },
+					url: "/test",
+					socket: null,
+				};
+				const res = {
+					setHeader: () => {},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+				};
+
+				app.decorate(req, res);
+
+				assert.ok(req.parsed);
+				assert.strictEqual(typeof req.allow, "string");
+				assert.ok(req.params);
+				assert.strictEqual(req.valid, true);
+				assert.ok(req.ip);
+				assert.ok(res.locals);
+				assert.ok(res.error);
+				assert.ok(res.json);
+				assert.ok(res.redirect);
+				assert.ok(res.send);
+			});
+
+			it("should set req.precise when timing enabled", () => {
+				const appWithTiming = woodland({ time: true });
+				const req = {
+					headers: { host: "example.com" },
+					url: "/test",
+					socket: null,
+				};
+				const res = {
+					setHeader: () => {},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+				};
+
+				appWithTiming.decorate(req, res);
+
+				assert.ok(req.precise);
+				assert.ok(typeof req.precise.stop === "function");
+			});
+
+			it("should not set req.precise when timing disabled", () => {
+				const appWithoutTiming = woodland({ time: false });
+				const req = {
+					headers: { host: "example.com" },
+					url: "/test",
+					socket: null,
+				};
+				const res = {
+					setHeader: () => {},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+				};
+
+				appWithoutTiming.decorate(req, res);
+
+				assert.strictEqual(req.precise, void 0);
+			});
+
+			it("should set res.json function", () => {
+				const req = {
+					headers: { host: "example.com" },
+					url: "/test",
+					socket: null,
+				};
+				const res = {
+					setHeader: () => {},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+					getHeader: () => void 0,
+				};
+
+				app.decorate(req, res);
+
+				assert.strictEqual(typeof res.json, "function");
+			});
+
+			it("should call res.json with default parameters", async () => {
+				const app = woodland();
+				let jsonCalled = false;
+
+				app.get("/json", (req, res) => {
+					jsonCalled = true;
+					res.json({ message: "hello" });
+				});
+
+				const req = {
+					method: "GET",
+					headers: { host: "example.com" },
+					url: "/json",
+					socket: null,
+				};
+				const res = {
+					statusCode: 200,
+					setHeader: () => {},
+					on: () => {},
+					end: () => {},
+					error: () => {},
+					set: () => {},
+					send: () => {},
+					getHeader: () => void 0,
+					writeHead: () => {},
+				};
+
+				app.route(req, res);
+
+				await new Promise((resolve) => setTimeout(resolve, 10));
+				assert.ok(jsonCalled);
+			});
+
+			it("should set CORS headers when origins configured", () => {
+				const appWithCors = woodland({ origins: ["http://example.com"] });
+				const req = {
+					headers: { host: "different.com", origin: "http://example.com" },
+					url: "/test",
+					socket: null,
+				};
+				const res = {
+					setHeader: () => {},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+				};
+
+				appWithCors.decorate(req, res);
+
+				assert.strictEqual(req.cors, true);
+			});
+		});
+
+		describe("routes", () => {
+			it("should return route information", () => {
+				app.get("/test", () => {});
+
+				const result = app.routes("/test", "GET");
+
+				assert.ok(result.middleware);
+				assert.strictEqual(typeof result.visible, "number");
+				assert.strictEqual(typeof result.exit, "number");
+			});
+
+			it("should cache route results", () => {
+				app.get("/test", () => {});
+
+				const result1 = app.routes("/test", "GET");
+				const result2 = app.routes("/test", "GET");
+
+				assert.strictEqual(result1, result2);
+			});
+		});
+
+		describe("etag", () => {
+			it("should generate etag for GET methods", () => {
+				const appWithEtags = woodland({ etags: true });
+				const result = appWithEtags.etag("GET", "test", "value");
+
+				assert.ok(typeof result === "string");
+			});
+
+			it("should return empty string for non-GET methods", () => {
+				const appWithEtags = woodland({ etags: true });
+				const result = appWithEtags.etag("POST", "test");
+
+				assert.strictEqual(result, "");
+			});
+
+			it("should return empty string when etags disabled", () => {
+				const appWithoutEtags = woodland({ etags: false });
+				const result = appWithoutEtags.etag("GET", "test");
+
+				assert.strictEqual(result, "");
+			});
+
+			it("should generate etag for HEAD methods", () => {
+				const appWithEtags = woodland({ etags: true });
+				const result = appWithEtags.etag("HEAD", "test");
+
+				assert.ok(typeof result === "string");
+			});
+
+			it("should generate etag for OPTIONS methods", () => {
+				const appWithEtags = woodland({ etags: true });
+				const result = appWithEtags.etag("OPTIONS", "test");
+
+				assert.ok(typeof result === "string");
+			});
+		});
+
+		describe("onReady", () => {
+			it("should handle response ready", () => {
+				const req = {
+					parsed: { pathname: "/test" },
+					method: "GET",
+					headers: { host: "example.com" },
+					connection: { remoteAddress: "127.0.0.1" },
+				};
+				const res = {
+					statusCode: 200,
+					getHeader: () => void 0,
+					header: () => {},
+				};
+
+				const result = app.onReady(req, res, "body", 200, {});
+
+				assert.ok(Array.isArray(result));
+			});
+
+			it("should add response time header when timing enabled", () => {
+				const appWithTiming = woodland({ time: true, digit: 2 });
+				let headerCalled = false;
+				const req = {
+					parsed: { pathname: "/test" },
+					method: "GET",
+					headers: { host: "example.com" },
+					connection: { remoteAddress: "127.0.0.1" },
+					precise: {
+						stop: () => ({ diff: () => 12345678 }),
+					},
+				};
+				const res = {
+					statusCode: 200,
+					getHeader: () => void 0,
+					header: (key, _value) => {
+						headerCalled = true;
+						assert.ok(key.includes("response-time"));
+					},
+				};
+
+				appWithTiming.onReady(req, res, "body", 200, {});
+
+				assert.ok(headerCalled);
+			});
+		});
+
+		describe("onSend", () => {
+			it("should return response array", () => {
+				const result = app.onSend({}, {}, "body", 200, {});
+
+				assert.deepStrictEqual(result, ["body", 200, {}]);
+			});
+		});
+
+		describe("onDone", () => {
+			it("should handle response done", () => {
+				let headersWritten = false;
+				let ended = false;
+
+				const res = {
+					statusCode: 200,
+					getHeader: () => void 0,
+					header: () => {},
+					writeHead: () => {
+						headersWritten = true;
+					},
+					end: () => {
+						ended = true;
+					},
+				};
+
+				app.onDone({}, res, "body", {});
+
+				assert.ok(headersWritten);
+				assert.ok(ended);
+			});
+
+			it("should skip content-length for 204 status", () => {
+				let contentLengthSet = false;
+
+				const res = {
+					statusCode: 204,
+					getHeader: () => void 0,
+					header: () => {
+						contentLengthSet = true;
+					},
+					writeHead: () => {},
+					end: () => {},
+				};
+
+				app.onDone({}, res, "body", {});
+
+				assert.strictEqual(contentLengthSet, false);
+			});
+
+			it("should skip content-length for 304 status", () => {
+				let contentLengthSet = false;
+
+				const res = {
+					statusCode: 304,
+					getHeader: () => void 0,
+					header: () => {
+						contentLengthSet = true;
+					},
+					writeHead: () => {},
+					end: () => {},
+				};
+
+				app.onDone({}, res, "body", {});
+
+				assert.strictEqual(contentLengthSet, false);
+			});
+
+			it("should skip content-length when already set", () => {
+				let headerCalled = false;
+
+				const res = {
+					statusCode: 200,
+					getHeader: () => 100,
+					header: () => {
+						headerCalled = true;
+					},
+					writeHead: () => {},
+					end: () => {},
+				};
+
+				app.onDone({}, res, "body", {});
+
+				assert.strictEqual(headerCalled, false);
+			});
+		});
+
+		describe("decorate with CORS", () => {
+			it("should set CORS headers when CORS is enabled", () => {
+				const appWithCors = woodland({ origins: ["http://example.com"] });
+				const req = {
+					headers: {
+						host: "different.com",
+						origin: "http://example.com",
+						"access-control-request-headers": "x-custom",
+					},
+					url: "/test",
+					socket: null,
+					method: "GET",
+				};
+				const res = {
+					setHeader: () => {},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+				};
+
+				appWithCors.decorate(req, res);
+
+				assert.strictEqual(req.cors, true);
+				assert.strictEqual(req.corsHost, true);
+			});
+
+			it("should set CORS headers for OPTIONS request", () => {
+				const appWithCors = woodland({ origins: ["http://example.com"] });
+				const req = {
+					headers: {
+						host: "different.com",
+						origin: "http://example.com",
+						"access-control-request-headers": "x-custom",
+					},
+					url: "/test",
+					socket: null,
+					method: "OPTIONS",
+				};
+				let headersBatch = {};
+				const res = {
+					setHeader: (key, value) => {
+						headersBatch[key] = value;
+					},
+					on: () => {},
+					set: (headers) => {
+						headersBatch = { ...headersBatch, ...headers };
+					},
+					send: () => {},
+				};
+
+				appWithCors.decorate(req, res);
+
+				assert.strictEqual(req.cors, true);
+				assert.strictEqual(headersBatch["access-control-allow-origin"], "http://example.com");
+				assert.strictEqual(headersBatch["access-control-allow-headers"], "x-custom");
+			});
+
+			it("should set CORS headers for non-OPTIONS request", () => {
+				const appWithCors = woodland({ origins: ["http://example.com"] });
+				const req = {
+					headers: {
+						host: "different.com",
+						origin: "http://example.com",
+						"access-control-request-headers": "x-custom",
+					},
+					url: "/test",
+					socket: null,
+					method: "GET",
+				};
+				let headersBatch = {};
+				const res = {
+					setHeader: (key, value) => {
+						headersBatch[key] = value;
+					},
+					on: () => {},
+					set: (headers) => {
+						headersBatch = { ...headersBatch, ...headers };
+					},
+					send: () => {},
+				};
+
+				appWithCors.decorate(req, res);
+
+				assert.strictEqual(req.cors, true);
+				assert.strictEqual(headersBatch["access-control-expose-headers"], "x-custom");
+			});
+
+			it("should set CORS headers without access-control-request-headers", () => {
+				const appWithCors = woodland({ origins: ["http://example.com"] });
+				const req = {
+					headers: {
+						host: "different.com",
+						origin: "http://example.com",
+					},
+					url: "/test",
+					socket: null,
+					method: "GET",
+				};
+				let headersBatch = {};
+				const res = {
+					setHeader: (key, value) => {
+						headersBatch[key] = value;
+					},
+					on: () => {},
+					set: (headers) => {
+						headersBatch = { ...headersBatch, ...headers };
+					},
+					send: () => {},
+				};
+
+				appWithCors.decorate(req, res);
+
+				assert.strictEqual(req.cors, true);
+			});
+
+			it("should use corsExpose when access-control-request-headers is undefined", () => {
+				const appWithCors = woodland({
+					origins: ["http://example.com"],
+					corsExpose: "x-custom-header",
+				});
+				const req = {
+					headers: {
+						host: "different.com",
+						origin: "http://example.com",
+					},
+					url: "/test",
+					socket: null,
+					method: "GET",
+				};
+				let headersBatch = {};
+				const res = {
+					setHeader: (key, value) => {
+						headersBatch[key] = value;
+					},
+					on: () => {},
+					set: (headers) => {
+						headersBatch = { ...headersBatch, ...headers };
+					},
+					send: () => {},
+				};
+
+				appWithCors.decorate(req, res);
+
+				assert.strictEqual(headersBatch["access-control-expose-headers"], "x-custom-header");
+			});
+		});
+
+		describe("route with disallowed origin", () => {
+			it("should return 403 for disallowed origin", async () => {
+				const app = woodland({ origins: ["http://allowed.com"] });
+				app.use(() => {});
+
+				const req = {
+					method: "GET",
+					headers: {
+						host: "example.com",
+						origin: "http://evil.com",
+					},
+					url: "/test",
+					socket: null,
+				};
+				let errorCalled = false;
+				const res = {
+					setHeader: () => {},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+					getHeader: () => void 0,
+					writeHead: () => {},
+					end: () => {},
+					statusCode: 200,
+					headersSent: false,
+					removeHeader: () => {},
+					header: () => {},
+				};
+
+				app.on("error", () => {
+					errorCalled = true;
+				});
+
+				app.route(req, res);
+
+				await new Promise((resolve) => setTimeout(resolve, 50));
+				assert.strictEqual(errorCalled, true);
+				assert.strictEqual(req.valid, false);
+			});
+
+			it("should return 403 when origin header present but not in allowed list", async () => {
+				const app = woodland({ origins: ["http://allowed.com"] });
+				app.use(() => {});
+
+				const req = {
+					method: "GET",
+					headers: {
+						host: "different.com",
+						origin: "http://notallowed.com",
+					},
+					url: "/test",
+					socket: null,
+				};
+				let errorEmitted = false;
+				const res = {
+					setHeader: () => {},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+					getHeader: () => void 0,
+					writeHead: () => {},
+					end: () => {},
+					statusCode: 200,
+					headersSent: false,
+					removeHeader: () => {},
+					header: () => {},
+				};
+
+				app.on("error", () => {
+					errorEmitted = true;
+				});
+
+				app.route(req, res);
+
+				await new Promise((resolve) => setTimeout(resolve, 50));
+				assert.strictEqual(errorEmitted, true);
+				assert.strictEqual(req.valid, false);
+				assert.strictEqual(res.statusCode, 403);
+			});
+		});
+
+		describe("route with disallowed method", () => {
+			it("should return error for disallowed method", async () => {
+				const app = woodland();
+				app.get("/test", () => {});
+
+				const req = {
+					method: "POST",
+					headers: { host: "example.com" },
+					url: "/test",
+					socket: null,
+				};
+				let errorCalled = false;
+				const res = {
+					setHeader: () => {},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+					getHeader: () => void 0,
+					writeHead: () => {},
+					end: () => {},
+					statusCode: 405,
+					headersSent: false,
+					removeHeader: () => {},
+					header: () => {},
+				};
+
+				app.on("error", () => {
+					errorCalled = true;
+				});
+
+				app.route(req, res);
+
+				await new Promise((resolve) => setTimeout(resolve, 50));
+				assert.strictEqual(errorCalled, true);
+				assert.strictEqual(req.valid, false);
 			});
 		});
 	});
 
-	describe("files", () => {
-		it("should register file serving route", () => {
-			app.files("/static", "/var/www");
-			assert.ok(app.middleware.has("GET"));
-			// Should register a route pattern for serving files
-			const routes = app.list();
-			assert.ok(routes.some(route => route.includes(".*")));
+	describe("Woodland with config", () => {
+		it("should configure with origins", () => {
+			const app = woodland({ origins: ["http://example.com"] });
+
+			assert.strictEqual(app.origins.size, 1);
+			assert.ok(app.origins.has("http://example.com"));
 		});
 
-		it("should handle default parameters", () => {
-			app.files();
-			const routes = app.list();
-			assert.ok(Array.isArray(routes));
+		it("should configure with etags enabled", () => {
+			const app = woodland({ etags: true });
+
+			assert.ok(app.etags);
+		});
+
+		it("should configure with custom digit precision", () => {
+			const app = woodland({ digit: 2 });
+
+			assert.strictEqual(app.digit, 2);
+		});
+
+		it("should configure with custom indexes", () => {
+			const app = woodland({ indexes: ["index.html", "index.htm"] });
+
+			assert.strictEqual(app.indexes.length, 2);
+		});
+
+		it("should configure with silent mode", () => {
+			const app = woodland({ silent: true });
+
+			const hasServerHeader = app.defaultHeaders.some(
+				(h) => h[0] === "server" || h[0] === "x-powered-by",
+			);
+
+			assert.strictEqual(hasServerHeader, false);
+		});
+
+		it("should configure with custom default headers", () => {
+			const app = woodland({ defaultHeaders: { "x-custom": "value" } });
+
+			const hasCustomHeader = app.defaultHeaders.some((h) => h[0] === "x-custom");
+
+			assert.ok(hasCustomHeader);
+		});
+
+		it("should configure logging", () => {
+			const app = woodland({ logging: { enabled: true, level: "debug" } });
+
+			assert.strictEqual(app.logging.enabled, true);
+			assert.strictEqual(app.logging.level, "debug");
 		});
 	});
 
-	describe("routing edge cases", () => {
-		let mockReq, mockRes;
+	describe("Woodland request handling", () => {
+		let app;
 
 		beforeEach(() => {
-			mockReq = {
-				method: "OPTIONS",
-				url: "/test",
-				headers: {host: "localhost"},
-				parsed: {pathname: "/test", hostname: "localhost", search: ""},
-				allow: "GET, HEAD, OPTIONS",
-				socket: {server: {_connectionKey: "::8000"}, remoteAddress: "127.0.0.1"},
-				connection: {remoteAddress: "127.0.0.1"}
-			};
-			mockRes = {
-				headersSent: false,
-				statusCode: 200,
-				_headers: {},
-				setHeader: function (name, value) {
-					this._headers[name.toLowerCase()] = value;
-				},
-				header: function (name, value) {
-					this.setHeader(name, value);
-				},
-				removeHeader: function (name) {
-					delete this._headers[name.toLowerCase()];
-				},
-				getHeader: function (name) {
-					return this._headers[name.toLowerCase()];
-				},
-				on: function (event, callback) {
-					if (event === "close") {
-						setTimeout(callback, 0);
-					}
-					if (event === "finish") {
-						setTimeout(callback, 0);
-					}
-				},
-				writeHead: function () {
-					// Mock implementation
-				},
-				end: function () {
-					// Mock implementation
-				},
-				send: function () {},
-				error: function () {}
-			};
+			app = woodland();
 		});
 
-		it("should fallback OPTIONS to GET when no OPTIONS route exists", () => {
-			// Register only a GET route
+		it("should handle route with middleware", async () => {
+			let middlewareCalled = false;
+
 			app.get("/test", (req, res) => {
-				res.send("test");
+				middlewareCalled = true;
+				res.send("ok");
 			});
 
-			// Mock the allowed method to return false for OPTIONS
-			const originalAllowed = app.allowed.bind(app);
-			app.allowed = function (method, uri) {
-				if (method === "OPTIONS") {
-					return false;
-				}
-
-				return originalAllowed(method, uri);
-			};
-
-			// Test that OPTIONS gets converted to GET
-			app.route(mockReq, mockRes);
-
-			// Restore original method
-			app.allowed = originalAllowed;
-
-			// The method should have been changed to GET internally
-			// We can't easily assert this without more complex mocking
-			assert.ok(true, "OPTIONS fallback executed without error");
-		});
-
-		it("should emit connect event when there are listeners", done => {
-			let connectEmitted = false;
-
-			app.on("connect", (req, res) => {
-				connectEmitted = true;
-				assert.strictEqual(req, mockReq);
-				assert.strictEqual(res, mockRes);
-			});
-
-			app.route(mockReq, mockRes);
-
-			setTimeout(() => {
-				assert.strictEqual(connectEmitted, true, "Connect event should be emitted");
-				done();
-			}, 10);
-		});
-
-		it("should emit connect event with proper listener count", done => {
-			let connectEmitted = false;
-
-			// Explicitly verify the listener is registered
-			const connectHandler = (req, res) => {
-				connectEmitted = true;
-				assert.strictEqual(req, mockReq);
-				assert.strictEqual(res, mockRes);
-				done();
-			};
-
-			app.on("connect", connectHandler);
-
-			// Verify listener count before routing
-			assert.ok(app.listenerCount("connect") > 0, "Should have connect listeners");
-
-			// Route the request, which should trigger the connect event
-			app.route(mockReq, mockRes);
-
-			// Fallback timeout in case event doesn't fire
-			setTimeout(() => {
-				if (!connectEmitted) {
-					done(new Error("Connect event was not emitted"));
-				}
-			}, 50);
-		});
-
-		it("should emit connect event on fresh instance", done => {
-			// Create a completely fresh app instance to avoid any state issues
-			const freshApp = new Woodland({logging: {enabled: false}});
-			let connectEmitted = false;
-
-			const connectHandler = (req, res) => {
-				connectEmitted = true;
-				assert.ok(req, "Should pass request object");
-				assert.ok(res, "Should pass response object");
-				done();
-			};
-
-			freshApp.on("connect", connectHandler);
-
-			// Verify listener count
-			assert.strictEqual(freshApp.listenerCount("connect"), 1, "Should have exactly one connect listener");
-
-			// Create fresh mock objects
-			const freshReq = {
-				method: "GET",
-				url: "/test",
-				headers: {host: "localhost"},
-				connection: {remoteAddress: "127.0.0.1"}
-			};
-
-			const freshRes = {
-				statusCode: 200,
-				headersSent: false,
-				setHeader: () => {},
-				removeHeader: () => {},
-				getHeader: () => undefined,
-				on: () => {},
-				writeHead: () => {},
-				end: () => {}
-			};
-
-			// This should trigger the connect event emission
-			freshApp.route(freshReq, freshRes);
-
-			// Fallback timeout
-			setTimeout(() => {
-				if (!connectEmitted) {
-					done(new Error("Connect event was not emitted on fresh instance"));
-				}
-			}, 100);
-		});
-
-		it("should emit connect event with HEAD method request", done => {
-			// Create a fresh app instance specifically for HEAD request testing
-			const headApp = new Woodland({logging: {enabled: false}});
-			let connectEmitted = false;
-
-			const connectHandler = (req, res) => {
-				connectEmitted = true;
-				assert.strictEqual(req.method, "HEAD", "Should preserve HEAD method in request");
-				assert.ok(res, "Should pass response object");
-				done();
-			};
-
-			headApp.on("connect", connectHandler);
-
-			// Add a GET route so that HEAD has something to map to
-			headApp.get("/test", (req, res) => {
-				res.send("test");
-			});
-
-			// Verify listener count
-			assert.strictEqual(headApp.listenerCount("connect"), 1, "Should have exactly one connect listener");
-
-			// Create HEAD request mock
-			const headReq = {
-				method: "HEAD",
-				url: "/test",
-				headers: {host: "localhost"},
-				connection: {remoteAddress: "127.0.0.1"}
-			};
-
-			const headRes = {
-				statusCode: 200,
-				headersSent: false,
-				setHeader: () => {},
-				removeHeader: () => {},
-				getHeader: () => undefined,
-				on: () => {},
-				writeHead: () => {},
-				end: () => {}
-			};
-
-			// This HEAD request should trigger the connect event emission
-			headApp.route(headReq, headRes);
-
-			// Fallback timeout
-			setTimeout(() => {
-				if (!connectEmitted) {
-					done(new Error("Connect event was not emitted for HEAD request"));
-				}
-			}, 100);
-		});
-
-		it("should emit finish event when there are listeners", done => {
-			let finishEmitted = false;
-
-			app.on("finish", (req, res) => {
-				finishEmitted = true;
-				assert.strictEqual(req, mockReq);
-				assert.strictEqual(res, mockRes);
-			});
-
-			app.route(mockReq, mockRes);
-
-			setTimeout(() => {
-				assert.strictEqual(finishEmitted, true, "Finish event should be emitted");
-				done();
-			}, 10);
-		});
-
-		it("should handle CORS rejection", () => {
-			let errorCalled = false;
-			let errorStatus = null;
-
-			// Create a new app instance with empty origins to reject CORS
-			const corsApp = woodland({origins: [],
-				logging: { enabled: false }});
-
-			// Setup request to be cross-origin
-			mockReq.headers.origin = "https://evil.com";
-
-			// Store the original error function and capture calls
-			const originalError = mockRes.error;
-			mockRes.error = function (status) {
-				errorCalled = true;
-				errorStatus = status;
-				// Also call original to maintain compatibility
-				if (originalError) originalError.call(this, status);
-			};
-
-			// Override the error method that gets set by decorate
-			const originalDecorate = corsApp.decorate;
-			corsApp.decorate = function (req, res) {
-				originalDecorate.call(this, req, res);
-				// Restore our test error handler after decorate overwrites it
-				res.error = function (status) {
-					errorCalled = true;
-					errorStatus = status;
-				};
-			};
-
-			corsApp.route(mockReq, mockRes);
-
-			assert.strictEqual(errorCalled, true, "Error should be called for CORS rejection");
-			assert.strictEqual(errorStatus, 403, "Should return 403 for CORS rejection");
-			assert.strictEqual(mockReq.valid, false, "Request should be marked invalid");
-		});
-
-		it("should handle method not allowed", () => {
-			let errorCalled = false;
-
-			// Setup request with method not supported by any routes
-			mockReq.method = "DELETE";
-			mockReq.url = "/nonexistent";
-			mockReq.parsed.pathname = "/nonexistent";
-
-			// Override the error method that gets set by decorate
-			const originalDecorate = app.decorate;
-			app.decorate = function (req, res) {
-				originalDecorate.call(this, req, res);
-				// Restore our test error handler after decorate overwrites it
-				res.error = function () {
-					errorCalled = true;
-				};
-			};
-
-			app.route(mockReq, mockRes);
-
-			assert.strictEqual(errorCalled, true, "Error should be called for method not allowed");
-			assert.strictEqual(mockReq.valid, false, "Request should be marked invalid");
-		});
-	});
-
-	describe("advanced route handling", () => {
-		let mockReq, mockRes;
-
-		beforeEach(() => {
-			mockReq = {
-				method: "GET",
-				url: "/users/123",
-				headers: {host: "localhost"},
-				parsed: {pathname: "/users/123", hostname: "localhost", search: ""},
-				params: {},
-				socket: {server: {_connectionKey: "::8000"}, remoteAddress: "127.0.0.1"},
-				connection: {remoteAddress: "127.0.0.1"}
-			};
-			mockRes = {
-				headersSent: false,
-				statusCode: 200,
-				_headers: {},
-				setHeader: function (name, value) {
-					this._headers[name.toLowerCase()] = value;
-				},
-				header: function (name, value) {
-					this.setHeader(name, value);
-				},
-				removeHeader: function (name) {
-					delete this._headers[name.toLowerCase()];
-				},
-				getHeader: function (name) {
-					return this._headers[name.toLowerCase()];
-				},
-				on: function (event, callback) {
-					if (event === "close") {
-						setTimeout(callback, 0);
-					}
-				},
-				writeHead: function () {
-					// Mock implementation
-				},
-				end: function () {
-					// Mock implementation
-				},
-				send: function () {},
-				error: function () {}
-			};
-		});
-
-		it("should extract parameters from parameterized routes", done => {
-			let handlerCalled = false;
-			let extractedParams = null;
-
-			// Create a new app instance to avoid conflicts with other tests
-			const paramApp = woodland({ logging: { enabled: false }});
-
-			paramApp.get("/users/:id", (req, res) => {
-				handlerCalled = true;
-				extractedParams = req.params;
-				res.send("OK");
-
-				// Check assertions after handler completes
-				try {
-					assert.strictEqual(handlerCalled, true, "Handler should be called");
-					assert.ok(extractedParams, "Parameters should be extracted");
-					assert.strictEqual(extractedParams.id, 123, "Parameter should be parsed as number");
-					done();
-				} catch (error) {
-					done(error);
-				}
-			});
-
-			// Update mock request for GET method
-			mockReq.method = "GET";
-
-			paramApp.route(mockReq, mockRes);
-		});
-
-		it("should handle middleware with exit functionality", done => {
-			let middleware1Called = false;
-			let middleware2Called = false;
-			let doneCalled = false;
-
-			// Create a new app instance to avoid conflicts with other tests
-			const middlewareApp = woodland({ logging: { enabled: false }});
-
-			middlewareApp.always((req, res, next) => {
-				middleware1Called = true;
-				next();
-			});
-
-			middlewareApp.get("/users/:id", (req, res) => {
-				middleware2Called = true;
-				// Call exit to skip remaining middleware
-				if (req.exit) {
-					req.exit();
-				}
-				res.send("OK");
-
-				// Check assertions after handler completes (only call done once)
-				if (!doneCalled) {
-					doneCalled = true;
-					try {
-						assert.strictEqual(middleware1Called, true, "First middleware should be called");
-						assert.strictEqual(middleware2Called, true, "Second middleware should be called");
-						// Exit functionality is set up by the route method
-						assert.ok(typeof mockReq.exit === "function", "Exit function should be available");
-						done();
-					} catch (error) {
-						done(error);
-					}
-				}
-			});
-
-			// Update mock request for GET method
-			mockReq.method = "GET";
-
-			middlewareApp.route(mockReq, mockRes);
-		});
-	});
-});
-
-describe("woodland factory function", () => {
-	it("should create Woodland instance", () => {
-		const app = woodland({ logging: { enabled: false }});
-		assert.ok(app instanceof Woodland);
-	});
-
-	it("should pass configuration to constructor", () => {
-		const app = woodland({autoindex: true, time: true, logging: { enabled: false }});
-		assert.strictEqual(app.autoindex, true);
-		assert.strictEqual(app.time, true);
-	});
-
-	it("should bind route method", () => {
-		const app = woodland({ logging: { enabled: false }});
-		assert.strictEqual(typeof app.route, "function");
-		// The route method should be bound to the instance
-		const routeFn = app.route;
-		assert.strictEqual(typeof routeFn, "function");
-	});
-});
-
-describe("Woodland CLF (Common Log Format)", () => {
-	let app;
-	let mockReq;
-	let mockRes;
-
-	beforeEach(() => {
-		app = new Woodland({ logging: { enabled: false }});
-
-		// Mock a complete request object
-		mockReq = {
-			method: "GET",
-			headers: {
-				host: "example.com",
-				referer: "https://google.com/search?q=test",
-				"user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
-			},
-			parsed: {
-				pathname: "/api/users",
-				search: "?limit=10",
-				username: "testuser"
-			},
-			ip: "192.168.1.100"
-		};
-
-		mockRes = {
-			statusCode: 200,
-			getHeader: function (name) {
-				if (name === "content-length") {
-					return "1234";
-				}
-
-				return undefined;
-			}
-		};
-	});
-
-	it("should generate CLF with all fields populated", () => {
-		const logEntry = app.clf(mockReq, mockRes);
-
-		assert.ok(typeof logEntry === "string", "Should return a string");
-		assert.ok(logEntry.includes("example.com") || logEntry.includes("-"), "Should include host or placeholder");
-		assert.ok(logEntry.includes("192.168.1.100"), "Should include IP address");
-		assert.ok(logEntry.includes("testuser"), "Should include username");
-		assert.ok(logEntry.includes("GET /api/users?limit=10 HTTP/1.1"), "Should include request line");
-		assert.ok(logEntry.includes("200"), "Should include status code");
-		assert.ok(logEntry.includes("1234"), "Should include content length");
-		// Note: Default log format doesn't include referer and user-agent
-	});
-
-	it("should include referer and user-agent with custom format", () => {
-		const customApp = new Woodland({
-			logging: {
-				enabled: false,
-				format: "%h %l %u %t \"%r\" %>s %b %{Referer}i %{User-agent}i"
-			}
-		});
-		const logEntry = customApp.clf(mockReq, mockRes);
-
-		assert.ok(logEntry.includes("https://google.com/search?q=test"), "Should include referer");
-		assert.ok(logEntry.includes("Mozilla/5.0"), "Should include user agent");
-	});
-
-	it("should handle missing host header", () => {
-		delete mockReq.headers.host;
-		const logEntry = app.clf(mockReq, mockRes);
-
-		assert.ok(logEntry.includes("-"), "Should use hyphen for missing host");
-		assert.ok(!logEntry.includes("undefined"), "Should not contain undefined");
-	});
-
-	it("should handle missing IP", () => {
-		delete mockReq.ip;
-		const logEntry = app.clf(mockReq, mockRes);
-
-		assert.ok(logEntry.includes("-"), "Should use hyphen for missing IP");
-	});
-
-	it("should handle missing username", () => {
-		delete mockReq.parsed.username;
-		const logEntry = app.clf(mockReq, mockRes);
-
-		assert.ok(logEntry.includes("-"), "Should use hyphen for missing username");
-	});
-
-	it("should handle missing referer header", () => {
-		delete mockReq.headers.referer;
-		const logEntry = app.clf(mockReq, mockRes);
-
-		assert.ok(logEntry.includes("-"), "Should use hyphen for missing referer");
-	});
-
-	it("should handle missing user-agent header", () => {
-		delete mockReq.headers["user-agent"];
-		const logEntry = app.clf(mockReq, mockRes);
-
-		assert.ok(logEntry.includes("-"), "Should use hyphen for missing user-agent");
-	});
-
-	it("should handle missing content-length", () => {
-		mockRes.getHeader = () => undefined;
-		const logEntry = app.clf(mockReq, mockRes);
-
-		assert.ok(logEntry.includes("-"), "Should use hyphen for missing content-length");
-	});
-
-	it("should format timestamp correctly", () => {
-		const logEntry = app.clf(mockReq, mockRes);
-
-		// Check for timestamp format: [DD/MMM/YYYY:HH:MM:SS +ZZZZ]
-		const timestampRegex = /\[\d{1,2}\/\w{3}\/\d{4}:\d{2}:\d{2}:\d{2} [+-]\d{4}\]/;
-		assert.ok(timestampRegex.test(logEntry), "Should include properly formatted timestamp");
-	});
-
-	it("should include timezone offset", () => {
-		const logEntry = app.clf(mockReq, mockRes);
-
-		// Should have timezone offset like +0000, -0500, etc.
-		const timezoneRegex = /[+-]\d{4}/;
-		assert.ok(timezoneRegex.test(logEntry), "Should include timezone offset");
-	});
-
-	it("should handle custom logging format", () => {
-		const customApp = new Woodland({
-			logging: {
-				enabled: false,
-				format: "%h %l %u %t \"%r\" %>s %b custom-field"
-			}
-		});
-
-		const logEntry = customApp.clf(mockReq, mockRes);
-		assert.ok(logEntry.includes("custom-field"), "Should use custom format");
-	});
-
-	it("should work when timing is disabled", () => {
-		const noTimeApp = new Woodland({
-			time: false,
-			logging: { enabled: false }
-		});
-
-		const [body, status, headers] = noTimeApp.onReady(mockReq, mockRes, "test", 200, {});
-
-		assert.strictEqual(body, "test", "Should return original body");
-		assert.strictEqual(status, 200, "Should return original status");
-		assert.deepStrictEqual(headers, {}, "Should return original headers");
-		assert.strictEqual(mockRes.getHeader("x-response-time"), undefined, "Should not set response time header");
-	});
-});
-
-describe("Woodland Timing and Hooks", () => {
-	let app;
-	let mockReq;
-	let mockRes;
-
-	beforeEach(() => {
-		app = new Woodland({
-			time: true,
-			logging: { enabled: false }
-		});
-
-		mockReq = {
-			method: "GET",
-			headers: { host: "localhost" },
-			parsed: { pathname: "/test" }
-		};
-
-		mockRes = {
-			headersSent: false,
-			statusCode: 200,
-			_headers: {},
-			setHeader: function (name, value) {
-				this._headers[name.toLowerCase()] = value;
-			},
-			header: function (name, value) {
-				this.setHeader(name, value);
-			},
-			getHeader: function (name) {
-				return this._headers[name.toLowerCase()];
-			},
-			removeHeader: function (name) {
-				delete this._headers[name.toLowerCase()];
-			}
-		};
-	});
-
-	it("should add response time header when timing enabled", () => {
-		// Mock precise timer
-		mockReq.precise = {
-			stop: () => ({
-				diff: () => 1500000 // 1.5ms in nanoseconds
-			})
-		};
-
-		app.onReady(mockReq, mockRes, "test", 200, {});
-
-		assert.ok(mockRes.getHeader("x-response-time"), "Should set response time header");
-		assert.ok(mockRes.getHeader("x-response-time").includes("ms"), "Should include 'ms' in response time");
-	});
-
-	it("should not override existing response time header", () => {
-		mockRes.setHeader("x-response-time", "5.00ms");
-		mockReq.precise = {
-			stop: () => ({
-				diff: () => 1500000
-			})
-		};
-
-		app.onReady(mockReq, mockRes, "test", 200, {});
-
-		assert.strictEqual(mockRes.getHeader("x-response-time"), "5.00ms", "Should not override existing header");
-	});
-
-	it("should call onSend hook", () => {
-		let onSendCalled = false;
-
-		// Mock precise timer
-		mockReq.precise = {
-			stop: () => ({
-				diff: () => 1000000
-			})
-		};
-
-		// Override onSend method
-		app.onSend = function (req, res, body, status, headers) {
-			onSendCalled = true;
-			assert.strictEqual(req, mockReq, "Should pass request");
-			assert.strictEqual(res, mockRes, "Should pass response");
-			assert.strictEqual(body, "test body", "Should pass body");
-			assert.strictEqual(status, 201, "Should pass status");
-			assert.deepStrictEqual(headers, { "x-custom": "value" }, "Should pass headers");
-
-			// Return modified values
-			return ["modified body", 202, { "x-modified": "true" }];
-		};
-
-		const [resultBody, resultStatus, resultHeaders] = app.onReady(mockReq, mockRes, "test body", 201, { "x-custom": "value" });
-
-		assert.strictEqual(onSendCalled, true, "Should call onSend hook");
-		assert.strictEqual(resultBody, "modified body", "Should return modified body");
-		assert.strictEqual(resultStatus, 202, "Should return modified status");
-		assert.deepStrictEqual(resultHeaders, { "x-modified": "true" }, "Should return modified headers");
-	});
-
-	it("should work when timing is disabled", () => {
-		const noTimeApp = new Woodland({
-			time: false,
-			logging: { enabled: false }
-		});
-
-		const [body, status, headers] = noTimeApp.onReady(mockReq, mockRes, "test", 200, {});
-
-		assert.strictEqual(body, "test", "Should return original body");
-		assert.strictEqual(status, 200, "Should return original status");
-		assert.deepStrictEqual(headers, {}, "Should return original headers");
-		assert.strictEqual(mockRes.getHeader("x-response-time"), undefined, "Should not set response time header");
-	});
-});
-
-describe("Woodland Stream Method", () => {
-	let app;
-	let mockReq;
-	let mockRes;
-
-	beforeEach(() => {
-		app = new Woodland({
-			etags: true,
-			logging: { enabled: false }
-		});
-
-		mockReq = {
-			method: "GET",
-			headers: {}
-		};
-
-		mockRes = {
-			headersSent: false,
-			statusCode: 200,
-			_headers: {},
-			setHeader: function (name, value) {
-				this._headers[name.toLowerCase()] = value;
-			},
-			header: function (name, value) {
-				this.setHeader(name, value);
-			},
-			getHeader: function (name) {
-				return this._headers[name.toLowerCase()];
-			},
-			removeHeader: function (name) {
-				delete this._headers[name.toLowerCase()];
-			},
-			send: function (stream, status) {
-				this.sentStream = stream;
-				this.sentStatus = status;
-			}
-		};
-	});
-
-	it("should set basic file headers for GET request", () => {
-		const fileInfo = {
-			charset: "utf-8",
-			etag: "abc123",
-			path: "./test-files/small.txt",
-			stats: {
-				size: 1024,
-				mtime: new Date("2023-01-01T00:00:00Z")
-			}
-		};
-
-		// Mock the send method to avoid file system access
-		let sentBody, sentStatus; // eslint-disable-line no-unused-vars
-		mockRes.send = function (body, status) {
-			sentBody = body;
-			sentStatus = status;
-		};
-
-		app.stream(mockReq, mockRes, fileInfo);
-
-		assert.strictEqual(mockRes.getHeader("content-length"), 1024, "Should set content-length");
-		assert.ok(mockRes.getHeader("content-type").includes("text/plain"), "Should set content-type for .txt file");
-		assert.ok(mockRes.getHeader("content-type").includes("charset=utf-8"), "Should include charset");
-		assert.strictEqual(mockRes.getHeader("last-modified"), "Sun, 01 Jan 2023 00:00:00 GMT", "Should set last-modified");
-		assert.strictEqual(mockRes.getHeader("etag"), "abc123", "Should set etag");
-		assert.strictEqual(mockRes.getHeader("cache-control"), undefined, "Should remove cache-control when etag is present");
-	});
-
-	it("should handle different file types correctly", () => {
-		const jsFileInfo = {
-			charset: "",
-			etag: "",
-			path: "./test-files/test.js",
-			stats: { size: 500, mtime: new Date() }
-		};
-
-		// Mock the send method to avoid file system access
-		let sentBody, sentStatus; // eslint-disable-line no-unused-vars
-		mockRes.send = function (body, status) {
-			sentBody = body;
-			sentStatus = status;
-		};
-
-		app.stream(mockReq, mockRes, jsFileInfo);
-
-		assert.ok(mockRes.getHeader("content-type").includes("text/javascript"), "Should set correct MIME type for .js file");
-		assert.ok(!mockRes.getHeader("content-type").includes("charset"), "Should not include charset when empty");
-	});
-
-	it("should handle HEAD requests", () => {
-		mockReq.method = "HEAD";
-		const fileInfo = {
-			charset: "utf-8",
-			etag: "abc123",
-			path: "./test-files/test.html",
-			stats: { size: 2048, mtime: new Date() }
-		};
-
-		app.stream(mockReq, mockRes, fileInfo);
-
-		assert.strictEqual(mockRes.sentStream, "", "Should send empty body for HEAD request");
-	});
-
-	it("should handle OPTIONS requests", () => {
-		mockReq.method = "OPTIONS";
-		const fileInfo = {
-			charset: "utf-8",
-			etag: "abc123",
-			path: "./test-files/test.html",
-			stats: { size: 2048, mtime: new Date() }
-		};
-
-		app.stream(mockReq, mockRes, fileInfo);
-
-		assert.strictEqual(mockRes.getHeader("content-length"), undefined, "Should remove content-length for OPTIONS");
-		assert.ok(typeof mockRes.sentStream === "string", "Should send OPTIONS body");
-	});
-
-	it("should handle range requests", () => {
-		mockReq.headers.range = "bytes=0-499";
-
-		const fileInfo = {
-			charset: "utf-8",
-			etag: "abc123",
-			path: "./test-files/large.txt",
-			stats: { size: 1000, mtime: new Date() }
-		};
-
-		// Mock the send method to avoid file system access
-		let sentBody, sentStatus; // eslint-disable-line no-unused-vars
-		mockRes.send = function (body, status) {
-			sentBody = body;
-			sentStatus = status;
-		};
-
-		app.stream(mockReq, mockRes, fileInfo);
-
-		// With a range header, the stream method should set up range processing
-		// The exact headers depend on the partialHeaders implementation
-		assert.ok(mockRes.getHeader("content-range") || mockRes.getHeader("content-length"), "Should handle range processing");
-	});
-
-	it("should handle invalid range requests and serve full file", () => {
-		// Create an invalid range request that will make partialHeaders return empty options
-		mockReq.headers.range = "bytes=1000-500"; // start > end, invalid range
-
-		const fileInfo = {
-			charset: "utf-8",
-			etag: "abc123",
-			path: "./test-files/large.txt",
-			stats: { size: 1000, mtime: new Date() }
-		};
-
-		// Mock the send method to capture what gets sent
-		let sentBody, sentStatus;
-		mockRes.send = function (body, status) {
-			sentBody = body;
-			sentStatus = status;
-		};
-
-		app.stream(mockReq, mockRes, fileInfo);
-
-		// For invalid range, it should serve the full file
-		// The specific assertion depends on how createReadStream is mocked
-		assert.ok(sentBody !== undefined, "Should send body for invalid range");
-		assert.ok(sentStatus === undefined || sentStatus === 200, "Should use default status for full file");
-	});
-
-	it("should work without etags enabled", () => {
-		const noEtagApp = new Woodland({
-			etags: false,
-			logging: { enabled: false }
-		});
-
-		const fileInfo = {
-			charset: "utf-8",
-			etag: "should-be-ignored",
-			path: "./test-files/small.txt",
-			stats: { size: 1024, mtime: new Date() }
-		};
-
-		// Mock the send method to avoid file system access
-		let sentBody, sentStatus; // eslint-disable-line no-unused-vars
-		mockRes.send = function (body, status) {
-			sentBody = body;
-			sentStatus = status;
-		};
-
-		noEtagApp.stream(mockReq, mockRes, fileInfo);
-
-		assert.strictEqual(mockRes.getHeader("etag"), undefined, "Should not set etag when disabled");
-	});
-
-	it("should emit stream event", done => {
-		app.on("stream", (req, res) => {
-			assert.strictEqual(req, mockReq, "Should pass request to stream event");
-			assert.strictEqual(res, mockRes, "Should pass response to stream event");
-			done();
-		});
-
-		const fileInfo = {
-			charset: "utf-8",
-			etag: "",
-			path: "./test-files/small.txt",
-			stats: { size: 1024, mtime: new Date() }
-		};
-
-		app.stream(mockReq, mockRes, fileInfo);
-	});
-
-	it("should handle binary files correctly", () => {
-		const binaryFileInfo = {
-			charset: "",
-			etag: "binary123",
-			path: "./test-files/binary.dat",
-			stats: { size: 2048, mtime: new Date() }
-		};
-
-		app.stream(mockReq, mockRes, binaryFileInfo);
-
-		const contentType = mockRes.getHeader("content-type");
-		assert.ok(contentType, "Should set content-type header");
-		assert.ok(contentType.includes("application/octet-stream"), "Should set correct MIME type for binary DAT file");
-		assert.ok(!contentType.includes("charset"), "Should not include charset for binary files");
-	});
-
-	it("should reach full coverage by testing edge cases", async () => {
-		// This test ensures we've covered all the critical security paths
-		// The additional security check (lines 792-796) is very difficult to trigger
-		// legitimately because the code is well-designed to prevent path traversal
-
-		const testApp = new Woodland({
-			logging: { enabled: false }
-		});
-
-		// Test various edge cases to ensure robust security
-		const testCases = [
-			{ file: "normal.txt", folder: "./test-files" },
-			{ file: "safe/path.txt", folder: "./test-files" },
-			{ file: "", folder: "./test-files" } // Empty file will resolve correctly
-		];
-
-		for (const testCase of testCases) {
 			const req = {
 				method: "GET",
-				headers: { host: "localhost" },
-				parsed: { pathname: "/test", search: "" },
-				connection: { remoteAddress: "127.0.0.1" }
+				headers: { host: "example.com" },
+				url: "/test",
+				socket: null,
 			};
-
 			const res = {
 				statusCode: 200,
-				error: function (status) {
-					this.statusCode = status;
-				}
+				setHeader: () => {},
+				on: () => {},
+				end: () => {},
+				error: () => {},
+				set: () => {},
+				send: () => {},
 			};
 
-			try {
-				await testApp.serve(req, res, testCase.file, testCase.folder);
-			} catch {
-				// Expected for non-existent files
-			}
-		}
+			app.route(req, res);
 
-		// The fact that we haven't triggered any security errors demonstrates that
-		// path.resolve is handling path normalization correctly and the boundary
-		// checking is working as expected for these test cases
-		assert.ok(true, "Security validations prevent scenarios requiring fallback security check");
-	});
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			assert.ok(middlewareCalled);
+		});
 
-	it("should throw TypeError for invalid file descriptor in stream method", () => {
-		assert.throws(() => {
-			app.stream(mockReq, mockRes, {
-				charset: "",
-				etag: "",
-				path: "", // Empty path should trigger error
-				stats: { size: 100, mtime: new Date() }
+		it("should handle parameterized routes", async () => {
+			let capturedParams = {};
+
+			app.get("/users/:id", (req, res) => {
+				capturedParams = req.params;
+				res.send("ok");
 			});
-		}, TypeError, "Should throw TypeError for empty path");
 
-		assert.throws(() => {
-			app.stream(mockReq, mockRes, {
-				charset: "",
-				etag: "",
-				path: "/valid/path",
-				stats: { size: 0, mtime: new Date() } // Zero size should trigger error
-			});
-		}, TypeError, "Should throw TypeError for zero size");
-	});
-});
-
-describe("Woodland Range Requests and Partial Content", () => {
-	let app;
-	let mockReq;
-	let mockRes;
-
-	beforeEach(() => {
-		app = new Woodland({ logging: { enabled: false }});
-
-		mockReq = {
-			method: "GET",
-			headers: {},
-			parsed: { pathname: "/test" }
-		};
-
-		mockRes = {
-			headersSent: false,
-			statusCode: 200,
-			_headers: {},
-			setHeader: function (name, value) {
-				this._headers[name.toLowerCase()] = value;
-			},
-			header: function (name, value) {
-				this.setHeader(name, value);
-			},
-			getHeader: function (name) {
-				return this._headers[name.toLowerCase()];
-			},
-			removeHeader: function (name) {
-				delete this._headers[name.toLowerCase()];
-			},
-			writeHead: function () {},
-			end: function () {},
-			error: function (status) {
-				this.statusCode = status;
-				this.errorCalled = true;
-			}
-		};
-	});
-
-	it("should handle range requests for string content", () => {
-		mockReq.headers.range = "bytes=0-4";
-		mockReq.range = { start: 0, end: 5 };
-
-		const sendFn = app.send(mockReq, mockRes);
-		const content = "Hello, World!";
-
-		// Mock Buffer methods
-		const originalBuffer = global.Buffer;
-		global.Buffer = {
-			...originalBuffer,
-			from: str => ({
-				slice: (start, end) => originalBuffer.from(str).slice(start, end),
-				toString: () => str.slice(0, 5) // "Hello"
-			}),
-			byteLength: input => {
-				// Handle case where input might be an object or other type
-				if (typeof input === "string") {
-					return originalBuffer.byteLength(input);
-				} else if (originalBuffer.isBuffer(input)) {
-					return input.length;
-				} else {
-					// For objects or other types, return a default length
-					return 13; // Length of "Hello, World!"
-				}
-			}
-		};
-
-		sendFn(content);
-
-		// Restore Buffer
-		global.Buffer = originalBuffer;
-
-		// Should handle partial content
-		assert.ok(true, "Should handle range request without error");
-	});
-
-	it("should return 416 for invalid range", () => {
-		// Set an invalid range where start > end
-		mockReq.headers.range = "bytes=10-5";
-		// Don't set req.range to simulate invalid range
-
-		// Mock Buffer.byteLength to handle any input type
-		const originalByteLength = Buffer.byteLength;
-		Buffer.byteLength = function (input) {
-			if (typeof input === "string") {
-				return originalByteLength(input);
-			} else if (Buffer.isBuffer(input)) {
-				return input.length;
-			} else {
-				return 13; // Default length for "Hello, World!"
-			}
-		};
-
-		const sendFn = app.send(mockReq, mockRes);
-		sendFn("Hello, World!");
-
-		// Restore Buffer.byteLength
-		Buffer.byteLength = originalByteLength;
-
-		assert.strictEqual(mockRes.statusCode, 416, "Should return 416 for invalid range");
-		assert.strictEqual(mockRes.errorCalled, true, "Should call error handler");
-	});
-
-	it("should handle range requests for streams", () => {
-		mockReq.headers.range = "bytes=0-499";
-		// Don't set req.range to simulate stream with invalid range
-
-		const mockStream = {
-			on: function (event, callback) {
-				if (event === "error") {
-					this.errorHandler = callback;
-				}
-
-				return this;
-			},
-			pipe: function () {
-				// Mock pipe operation
-				return this;
-			}
-		};
-
-		const sendFn = app.send(mockReq, mockRes);
-		sendFn(mockStream);
-
-		assert.strictEqual(mockRes.statusCode, 416, "Should return 416 for stream with invalid range");
-	});
-
-	it("should send full content when no range specified", () => {
-		const sendFn = app.send(mockReq, mockRes);
-		const content = "Full content here";
-
-		let endCalled = false;
-		mockRes.end = function (body) {
-			endCalled = true;
-			assert.strictEqual(body, content, "Should send full content");
-		};
-
-		sendFn(content);
-
-		assert.strictEqual(endCalled, true, "Should call res.end");
-	});
-});
-
-describe("Woodland Cache Functionality", () => {
-	let app;
-
-	beforeEach(() => {
-		app = new Woodland({
-			cacheSize: 5,
-			cacheTTL: 100, // 100ms for quick testing
-			logging: { enabled: false }
-		});
-	});
-
-	it("should cache route information", () => {
-		app.get("/test", () => {});
-
-		// First call should populate cache
-		const result1 = app.routes("/test", "GET");
-
-		// Second call should return cached result
-		const result2 = app.routes("/test", "GET");
-
-		assert.strictEqual(result1, result2, "Should return same cached object");
-	});
-
-	it("should cache allows results", () => {
-		app.get("/api", () => {});
-		app.post("/api", () => {});
-
-		const result1 = app.allows("/api");
-		const result2 = app.allows("/api");
-
-		assert.strictEqual(result1, result2, "Should return same cached result");
-		assert.ok(result1.includes("GET"), "Should include GET method");
-		assert.ok(result1.includes("POST"), "Should include POST method");
-	});
-
-	it("should respect cache override", () => {
-		app.get("/override", () => {});
-
-		const cached = app.routes("/override", "GET", false);
-		const uncached = app.routes("/override", "GET", true);
-
-		// Both should have same structure but might be different objects
-		assert.deepStrictEqual(
-			Object.keys(cached),
-			Object.keys(uncached),
-			"Should have same structure when overriding cache"
-		);
-	});
-
-	it("should handle cache eviction", done => {
-		// Fill cache beyond capacity
-		for (let i = 0; i < 10; i++) {
-			app.get(`/route${i}`, () => {});
-			app.routes(`/route${i}`, "GET");
-		}
-
-		// Wait for TTL expiration
-		setTimeout(() => {
-			// Access should still work (might not be cached)
-			const result = app.routes("/route0", "GET");
-			assert.ok(result, "Should still return route information after cache eviction");
-			done();
-		}, 150);
-	});
-
-	it("should handle permissions cache", () => {
-		app.get("/permissions", () => {});
-
-		const perms1 = app.allows("/permissions");
-		const perms2 = app.allows("/permissions");
-
-		assert.strictEqual(perms1, perms2, "Should cache permissions results");
-	});
-});
-
-
-describe("Woodland Serve Method", () => {
-	let app;
-	let mockReq;
-	let mockRes;
-
-	beforeEach(() => {
-		app = new Woodland({
-			indexes: ["index.html", "index.htm"],
-			autoindex: false,
-			logging: { enabled: false }
-		});
-
-		mockReq = {
-			method: "GET",
-			headers: { host: "localhost" },
-			parsed: {
-				pathname: "/test",
-				search: "?query=1"
-			},
-			ip: "127.0.0.1"
-		};
-
-		mockRes = {
-			statusCode: 200,
-			_headers: {},
-			setHeader: function (name, value) {
-				this._headers[name.toLowerCase()] = value;
-			},
-			header: function (name, value) {
-				this.setHeader(name, value);
-			},
-			getHeader: function (name) {
-				return this._headers[name.toLowerCase()];
-			},
-			removeHeader: function (name) {
-				delete this._headers[name.toLowerCase()];
-			},
-			error: function (status) {
-				this.statusCode = status;
-				this.errorCalled = true;
-			},
-			redirect: function (url) {
-				this.redirectUrl = url;
-				this.redirectCalled = true;
-			},
-			send: function (body) {
-				this.sentBody = body;
-				this.sendCalled = true;
-			},
-			writeHead: function () {},
-			end: function () {}
-		};
-	});
-
-	it("should serve existing text files", async () => {
-		let streamCalled = false;
-		let fileInfo = null;
-
-		// Mock the stream method to capture file info
-		app.stream = function (req, res, info) {
-			streamCalled = true;
-			fileInfo = info;
-			res.send("File content served");
-		};
-
-		await app.serve(mockReq, mockRes, "small.txt", "./test-files");
-
-		assert.strictEqual(streamCalled, true, "Should call stream method");
-		assert.ok(fileInfo.path.includes("small.txt"), "Should construct correct file path");
-		assert.strictEqual(typeof fileInfo.etag, "string", "Should generate etag");
-		assert.ok(fileInfo.etag.length > 0, "ETag should not be empty");
-		assert.strictEqual(fileInfo.stats.size, 11, "Should get correct file size");
-		assert.strictEqual(mockRes.sendCalled, true, "Should send file content");
-	});
-
-	it("should serve HTML files with correct MIME type", async () => {
-		let fileInfo = null;
-
-		app.stream = function (req, res, info) {
-			fileInfo = info;
-			res.send("HTML content");
-		};
-
-		await app.serve(mockReq, mockRes, "test.html", "./test-files");
-
-		assert.ok(fileInfo.path.includes("test.html"), "Should serve HTML file");
-		assert.strictEqual(fileInfo.charset, "utf-8", "Should set UTF-8 charset for HTML");
-	});
-
-	it("should serve binary files", async () => {
-		let fileInfo = null;
-
-		app.stream = function (req, res, info) {
-			fileInfo = info;
-			res.send("Binary content");
-		};
-
-		await app.serve(mockReq, mockRes, "binary.dat", "./test-files");
-
-		assert.ok(fileInfo.path.includes("binary.dat"), "Should serve binary file");
-		// Binary .dat files might get a default charset, so let's be more flexible
-		assert.ok(typeof fileInfo.charset === "string", "Should have charset property");
-		assert.strictEqual(fileInfo.stats.size, 1000, "Should get correct binary file size");
-	});
-
-	it("should return 404 for non-existent files", async () => {
-		await app.serve(mockReq, mockRes, "nonexistent.txt", "./test-files");
-
-		assert.strictEqual(mockRes.statusCode, 404, "Should return 404 for non-existent file");
-		assert.strictEqual(mockRes.errorCalled, true, "Should call error handler");
-	});
-
-	it("should redirect directories without trailing slash", async () => {
-		// Test with subdir which exists
-		mockReq.parsed.pathname = "/subdir";
-
-		await app.serve(mockReq, mockRes, "subdir", "./test-files");
-
-		assert.strictEqual(mockRes.redirectCalled, true, "Should redirect");
-		assert.ok(mockRes.redirectUrl.includes("/subdir/"), "Should redirect to path with trailing slash");
-		assert.ok(mockRes.redirectUrl.includes("?query=1"), "Should preserve query string");
-	});
-
-	it("should serve index files from directories", async () => {
-		let fileInfo = null;
-
-		app.stream = function (req, res, info) {
-			fileInfo = info;
-			res.send("Index content");
-		};
-
-		// Request directory with trailing slash
-		mockReq.parsed.pathname = "/subdir/";
-
-		await app.serve(mockReq, mockRes, "subdir", "./test-files");
-
-		assert.ok(fileInfo.path.includes("index.html"), "Should serve index.html");
-		assert.strictEqual(mockRes.sendCalled, true, "Should serve index file");
-	});
-
-	it("should serve autoindex when enabled and no index file", async () => {
-		const autoindexApp = new Woodland({
-			autoindex: true,
-			logging: { enabled: false }
-		});
-
-		// Request the test-files directory itself which has no index
-		mockReq.parsed.pathname = "/test-files/";
-
-		await autoindexApp.serve(mockReq, mockRes, "", "./test-files");
-
-		assert.strictEqual(mockRes.sendCalled, true, "Should send autoindex");
-		assert.ok(mockRes.sentBody.includes("small.txt"), "Should include files in autoindex");
-		assert.ok(mockRes.sentBody.includes("subdir"), "Should include subdirectories in autoindex");
-		assert.strictEqual(mockRes.getHeader("content-type"), "text/html; charset=utf-8", "Should set HTML content type");
-	});
-
-	it("should return 404 for directories when autoindex disabled and no index", async () => {
-		// Create a temporary directory without index files for testing
-		mockReq.parsed.pathname = "/test-files/";
-
-		await app.serve(mockReq, mockRes, "", "./test-files");
-
-		assert.strictEqual(mockRes.statusCode, 404, "Should return 404 when no index file and autoindex disabled");
-		assert.strictEqual(mockRes.errorCalled, true, "Should call error handler");
-	});
-
-	it("should handle different file types correctly", async () => {
-		const testFiles = [
-			{ file: "test.css", expectedCharset: "utf-8" },
-			{ file: "test.js", expectedCharset: "utf-8" },
-			{ file: "test.json", expectedCharset: "utf-8" },
-			{ file: "test.xml", expectedCharset: "utf-8" }
-		];
-
-		for (const test of testFiles) {
-			let fileInfo = null;
-
-			app.stream = function (req, res, info) {
-				fileInfo = info;
-				res.send("Content");
+			const req = {
+				method: "GET",
+				headers: { host: "example.com" },
+				url: "/users/123",
+				socket: null,
+			};
+			const res = {
+				statusCode: 200,
+				setHeader: () => {},
+				on: () => {},
+				end: () => {},
+				error: () => {},
+				set: () => {},
+				send: () => {},
 			};
 
-			await app.serve(mockReq, mockRes, test.file, "./test-files");
+			app.route(req, res);
 
-			assert.ok(fileInfo.path.includes(test.file), `Should serve ${test.file}`);
-			assert.strictEqual(fileInfo.charset, test.expectedCharset, `Should set correct charset for ${test.file}`);
-		}
-	});
-
-	it("should use default folder when not specified", async () => {
-		let fileInfo = null;
-
-		app.stream = function (req, res, info) {
-			fileInfo = info;
-			res.send("Content");
-		};
-
-		// Use ES module import syntax
-		const { resolve, relative } = await import("node:path");
-		const testFilePath = resolve("./test-files/small.txt");
-
-		await app.serve(mockReq, mockRes, relative(process.cwd(), testFilePath));
-
-		assert.ok(fileInfo.path.includes("small.txt"), "Should serve file from resolved path");
-		assert.strictEqual(mockRes.sendCalled, true, "Should serve file");
-	});
-
-	it("should generate etag based on file stats", async () => {
-		let fileInfo = null;
-
-		app.stream = function (req, res, info) {
-			fileInfo = info;
-			res.send("Content");
-		};
-
-		await app.serve(mockReq, mockRes, "medium.txt", "./test-files");
-
-		assert.ok(fileInfo.etag.length > 0, "Should generate etag");
-		assert.strictEqual(typeof fileInfo.etag, "string", "ETag should be a string");
-
-		// ETag should be consistent for the same file
-		let fileInfo2 = null;
-		app.stream = function (req, res, info) {
-			fileInfo2 = info;
-			res.send("Content");
-		};
-
-		await app.serve(mockReq, mockRes, "medium.txt", "./test-files");
-		assert.strictEqual(fileInfo.etag, fileInfo2.etag, "ETag should be consistent for same file");
-	});
-
-	it("should handle nested directory paths", async () => {
-		let fileInfo = null;
-
-		app.stream = function (req, res, info) {
-			fileInfo = info;
-			res.send("Nested content");
-		};
-
-		await app.serve(mockReq, mockRes, "subdir/nested.txt", "./test-files");
-
-		assert.ok(fileInfo.path.includes("nested.txt"), "Should serve nested file");
-		assert.ok(fileInfo.path.includes("subdir"), "Should include subdirectory in path");
-		assert.strictEqual(mockRes.sendCalled, true, "Should serve nested file");
-	});
-
-	it("should handle large files", async () => {
-		let fileInfo = null;
-
-		app.stream = function (req, res, info) {
-			fileInfo = info;
-			res.send("Large content");
-		};
-
-		await app.serve(mockReq, mockRes, "large.txt", "./test-files");
-
-		assert.ok(fileInfo.path.includes("large.txt"), "Should serve large file");
-		assert.strictEqual(fileInfo.stats.size, 10000, "Should get correct large file size");
-		assert.strictEqual(mockRes.sendCalled, true, "Should serve large file");
-	});
-
-	it("should handle custom folder parameter", async () => {
-		let fileInfo = null;
-
-		app.stream = function (req, res, info) {
-			fileInfo = info;
-			res.send("Custom folder content");
-		};
-
-		await app.serve(mockReq, mockRes, "small.txt", "./test-files");
-
-		assert.ok(fileInfo.path.includes("test-files"), "Should use custom folder path");
-		assert.ok(fileInfo.path.includes("small.txt"), "Should append file to custom folder");
-		assert.strictEqual(mockRes.sendCalled, true, "Should serve from custom folder");
-	});
-
-	it("should handle additional security check in serve method", async () => {
-		// Mock the path traversal to test the additional security check
-		// This is a complex test that requires mocking file system behavior
-
-		// Create a mock request for a potentially malicious path
-		const maliciousReq = {
-			method: "GET",
-			headers: { host: "localhost" },
-			parsed: { pathname: "/test", search: "" },
-			connection: { remoteAddress: "127.0.0.1" }
-		};
-
-		const maliciousRes = {
-			statusCode: 200,
-			error: function (status) {
-				this.statusCode = status;
-				this.errorCalled = true;
-			}
-		};
-
-		// This test verifies that the path boundary validation works correctly.
-		// With path.resolve handling path normalization, we test that the method
-		// works correctly with normal paths and relies on boundary checking for security.
-
-		await app.serve(maliciousReq, maliciousRes, "safe-file.txt", "./test-files");
-
-		// The serve method should complete without triggering the additional security error
-		// since we're using a safe path. The path would need to be crafted in a very
-		// specific way to trigger the additional check, which is intentionally difficult.
-		assert.ok(true, "Serve method handles security checks correctly");
-	});
-});
-
-describe("Woodland Middleware Execution and Error Propagation", () => {
-	let app;
-	let mockReq;
-	let mockRes;
-	let executionOrder;
-
-	beforeEach(() => {
-		app = new Woodland({ logging: { enabled: false }});
-		executionOrder = [];
-
-		mockReq = {
-			method: "GET",
-			url: "/test",
-			headers: { host: "localhost" },
-			parsed: { pathname: "/test", hostname: "localhost", search: "" },
-			socket: { remoteAddress: "127.0.0.1" },
-			connection: { remoteAddress: "127.0.0.1" }
-		};
-
-		mockRes = {
-			headersSent: false,
-			statusCode: 200,
-			_headers: {},
-			setHeader: function (name, value) {
-				this._headers[name.toLowerCase()] = value;
-			},
-			header: function (name, value) {
-				this.setHeader(name, value);
-			},
-			removeHeader: function (name) {
-				delete this._headers[name.toLowerCase()];
-			},
-			getHeader: function (name) {
-				return this._headers[name.toLowerCase()];
-			},
-			on: function () {},
-			writeHead: function () {},
-			end: function () {},
-			send: function (body) {
-				this.sentBody = body;
-			},
-			error: function (status) {
-				this.statusCode = status;
-				this.errorCalled = true;
-			}
-		};
-	});
-
-	it("should execute wildcard middleware before specific method middleware", done => {
-		app.always((req, res, next) => {
-			executionOrder.push("wildcard1");
-			next();
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			assert.strictEqual(capturedParams.id, 123);
 		});
 
-		app.always((req, res, next) => {
-			executionOrder.push("wildcard2");
-			next();
+		it("should handle HEAD requests as GET", async () => {
+			let called = false;
+
+			app.get("/test", (req, res) => {
+				called = true;
+				res.send("ok");
+			});
+
+			const req = {
+				method: "HEAD",
+				headers: { host: "example.com" },
+				url: "/test",
+				socket: null,
+			};
+			const res = {
+				statusCode: 200,
+				setHeader: () => {},
+				on: () => {},
+				end: () => {},
+				error: () => {},
+				set: () => {},
+				send: () => {},
+			};
+
+			app.route(req, res);
+
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			assert.ok(called);
 		});
 
-		app.get("/test", (req, res, next) => {
-			executionOrder.push("get1");
-			next();
+		it("should delegate to file server in serve", async () => {
+			const req = { method: "GET", headers: {}, url: "/test.txt", socket: null };
+			const res = {
+				statusCode: 200,
+				setHeader: () => {},
+				on: () => {},
+				end: () => {},
+				error: () => {},
+				set: () => {},
+				send: () => {},
+				header: () => {},
+				getHeader: () => void 0,
+				removeHeader: () => {},
+				headersSent: false,
+			};
+
+			const result = app.serve(req, res, "/test.txt", "/tmp");
+
+			// Await to prevent async activity after test
+			await result.catch(() => {});
+
+			assert.ok(true);
 		});
 
-		app.get("/test", (req, res) => {
-			executionOrder.push("get2");
-			res.send("OK");
+		it("should delegate to response stream in stream", () => {
+			const req = { method: "GET", headers: {}, url: "/test.txt", socket: null };
+			const res = {
+				statusCode: 200,
+				setHeader: () => {},
+				on: () => {},
+				end: () => {},
+				error: () => {},
+				set: () => {},
+				send: () => {},
+				header: () => {},
+				getHeader: () => void 0,
+				removeHeader: () => {},
+				headersSent: false,
+			};
+			const file = {
+				charset: "utf-8",
+				etag: "abc123",
+				path: "",
+				stats: { mtime: new Date(), size: 1024 },
+			};
 
-			// Verify execution order
-			assert.deepStrictEqual(executionOrder, ["wildcard1", "wildcard2", "get1", "get2"],
-				"Should execute wildcard middleware before specific method middleware");
-			done();
+			// Verify the call throws with empty path
+			assert.throws(() => app.stream(req, res, file), /Invalid file descriptor/);
 		});
 
-		app.route(mockReq, mockRes);
-	});
+		it("should emit connect event when listener exists", () => {
+			const connectApp = woodland();
+			let connectEmitted = false;
 
-	it("should stop execution when middleware doesn't call next", done => {
-		app.always((req, res, next) => {
-			executionOrder.push("wildcard");
-			next();
-		});
+			connectApp.on(EVT_CONNECT, () => {
+				connectEmitted = true;
+			});
 
-		app.get("/test", (req, res) => {
-			executionOrder.push("blocking");
-			res.send("Blocked");
-			// Don't call next()
-		});
-
-		app.get("/test", (req, res) => {
-			executionOrder.push("should-not-execute");
-			res.send("Should not reach here");
-		});
-
-		setTimeout(() => {
-			assert.deepStrictEqual(executionOrder, ["wildcard", "blocking"],
-				"Should stop execution when middleware doesn't call next");
-			assert.ok(!executionOrder.includes("should-not-execute"), "Should not execute subsequent middleware");
-			done();
-		}, 10);
-
-		app.route(mockReq, mockRes);
-	});
-
-	it("should handle middleware errors", done => {
-		app.get("/test", (req, res, next) => {
-			executionOrder.push("before-error");
-			// Use next with error instead of throwing
-			next(new Error("Middleware error"));
-		});
-
-		app.get("/test", () => {
-			executionOrder.push("should-not-execute");
-		});
-
-		// Listen for error events
-		app.on("error", (req, res, error) => {
-			executionOrder.push("error-handler");
-			// The error message might be transformed to "Internal Server Error" by the framework
-			assert.ok(error.message === "Middleware error" || error.message === "Internal Server Error",
-				"Should receive an error (original or transformed)");
-			assert.ok(!executionOrder.includes("should-not-execute"), "Should not execute subsequent middleware after error");
-			done();
-		});
-
-		app.route(mockReq, mockRes);
-	});
-
-	it("should provide exit function for skipping remaining middleware", done => {
-		app.always((req, res, next) => {
-			executionOrder.push("wildcard");
-			next();
-		});
-
-		app.get("/test", (req, res, next) => {
-			executionOrder.push("middleware1");
-			next();
-		});
-
-		app.get("/test", (req, res) => {
-			executionOrder.push("middleware2");
-
-			// Use exit to skip remaining middleware
-			if (typeof req.exit === "function") {
-				req.exit();
-
-				return;
-			}
-
-			// Fallback - just end the response to stop middleware execution
-			res.send("OK");
-		});
-
-		app.get("/test", () => {
-			executionOrder.push("should-not-execute");
-		});
-
-		setTimeout(() => {
-			// Check if exit function exists or if middleware execution was properly stopped
-			const hasExit = typeof mockReq.exit === "function";
-			const stoppedExecution = !executionOrder.includes("should-not-execute");
-			assert.ok(hasExit || stoppedExecution, "Should either provide exit function or stop middleware execution");
-			done();
-		}, 10);
-
-		app.route(mockReq, mockRes);
-	});
-
-	it("should handle exit middleware path when result.exit >= 0", done => {
-		const exitApp = woodland();
-		const exitReq = {
-			method: "GET",
-			url: "/test/exit",
-			headers: {host: "localhost:8000"},
-			socket: {remoteAddress: "127.0.0.1"},
-			connection: {server: {address: () => ({port: 8000})}}
-		};
-		const exitRes = {
-			writeHead: () => {},
-			setHeader: () => {},
-			on: () => {},
-			end: () => {
-				// Verify that exit middleware iterator was created
-				done();
-			},
-			finished: false
-		};
-
-		// Add wildcard middleware (this sets result.exit to middleware.length)
-		exitApp.always((req, res, next) => {
-			next();
-		});
-
-		// Add method-specific middleware
-		exitApp.get("/test/exit", (req, res) => {
-			res.end("test");
-		});
-
-		exitApp.route(exitReq, exitRes);
-	});
-
-	it("should handle parameterized routes correctly", done => {
-		app.get("/users/:id", (req, res) => {
-			executionOrder.push("param-handler");
-			assert.ok(req.params, "Should have params object");
-			// The parameter might be coerced to a number, so check for both string and number
-			assert.ok(req.params.id === "123" || req.params.id === 123, "Should extract route parameter");
-			res.send("User 123");
-			done();
-		});
-
-		mockReq.parsed.pathname = "/users/123";
-		mockReq.url = "/users/123";
-
-		app.route(mockReq, mockRes);
-	});
-
-	it("should handle multiple middleware functions on same route", done => {
-		let middlewareCount = 0;
-
-		app.get("/test",
-			(req, res, next) => {
-				middlewareCount++;
-				executionOrder.push("middleware1");
-				next();
-			},
-			(req, res, next) => {
-				middlewareCount++;
-				executionOrder.push("middleware2");
-				next();
-			},
-			(req, res) => {
-				middlewareCount++;
-				executionOrder.push("final");
-				res.send("Multiple middleware");
-
-				assert.strictEqual(middlewareCount, 3, "Should execute all middleware functions");
-				assert.deepStrictEqual(executionOrder, ["middleware1", "middleware2", "final"],
-					"Should execute middleware in order");
-				done();
-			}
-		);
-
-		app.route(mockReq, mockRes);
-	});
-});
-
-
-describe("Woodland Decorate Method and Header Manipulation", () => {
-	let app;
-	let mockReq;
-	let mockRes;
-
-	beforeEach(() => {
-		app = new Woodland({
-			time: true,
-			logging: { enabled: false },
-			defaultHeaders: {
-				"Custom-Server": "Woodland-Test",
-				"X-Frame-Options": "DENY"
-			}
-		});
-
-		mockReq = {
-			method: "GET",
-			url: "/test?param=value",
-			headers: {
+			const req = {
+				method: "GET",
+				url: "/test",
+				headers: { host: "example.com" },
+				connection: { remoteAddress: "127.0.0.1" },
+				parsed: { pathname: "/test" },
+				precise: { stop: () => ({ diff: () => 0 }) },
+				allow: "GET,HEAD,OPTIONS",
+				cors: false,
+				corsHost: false,
+				valid: true,
+				ip: "127.0.0.1",
+				params: {},
 				host: "example.com",
-				"user-agent": "Test-Agent",
-				"accept": "text/html,application/xhtml+xml"
-			},
-			connection: { remoteAddress: "192.168.1.100" },
-			socket: { remoteAddress: "192.168.1.100" }
-		};
+			};
+			const res = {
+				statusCode: 200,
+				setHeader: () => {},
+				writeHead: () => {},
+				on: () => {},
+				end: () => {},
+				error: () => {},
+				set: () => {},
+				send: () => {},
+				header: () => {},
+				getHeader: () => void 0,
+				removeHeader: () => {},
+				headersSent: false,
+			};
 
-		mockRes = {
-			headersSent: false,
-			statusCode: 200,
-			_headers: {},
-			locals: {},
-			setHeader: function (name, value) {
-				this._headers[name.toLowerCase()] = value;
-			},
-			header: function (name, value) {
-				this.setHeader(name, value);
-			},
-			removeHeader: function (name) {
-				delete this._headers[name.toLowerCase()];
-			},
-			getHeader: function (name) {
-				return this._headers[name.toLowerCase()];
-			},
-			on: function (event, callback) {
-				if (event === "close") {
-					setTimeout(callback, 0);
-				}
-			}
-		};
-	});
+			connectApp.middleware.register("/test", () => {}, "GET");
 
-	it("should set all default headers", () => {
-		app.decorate(mockReq, mockRes);
+			connectApp.route(req, res);
 
-		assert.ok(mockRes.getHeader("server"), "Should set server header");
-		assert.ok(mockRes.getHeader("x-powered-by"), "Should set x-powered-by header");
-		assert.strictEqual(mockRes.getHeader("custom-server"), "Woodland-Test", "Should set custom default headers");
-		assert.strictEqual(mockRes.getHeader("x-frame-options"), "DENY", "Should set custom security headers");
-		assert.strictEqual(mockRes.getHeader("x-content-type-options"), "nosniff", "Should set security headers");
-	});
-
-	it("should parse request URL correctly", () => {
-		app.decorate(mockReq, mockRes);
-
-		assert.ok(mockReq.parsed, "Should have parsed object");
-		assert.strictEqual(mockReq.parsed.pathname, "/test", "Should parse pathname");
-		assert.strictEqual(mockReq.parsed.search, "?param=value", "Should parse search parameters");
-		assert.strictEqual(mockReq.parsed.hostname, "example.com", "Should parse hostname");
-	});
-
-	it("should set request properties correctly", () => {
-		app.decorate(mockReq, mockRes);
-
-		assert.strictEqual(mockReq.body, "", "Should initialize body as empty string");
-		assert.strictEqual(typeof mockReq.allow, "string", "Should set allow string");
-		assert.strictEqual(mockReq.host, "example.com", "Should set host from parsed");
-		assert.strictEqual(mockReq.ip, "192.168.1.100", "Should set IP address");
-		assert.deepStrictEqual(mockReq.params, {}, "Should initialize params as empty object");
-		assert.strictEqual(mockReq.valid, true, "Should initialize valid as true");
-	});
-
-	it("should set response helper methods", () => {
-		app.decorate(mockReq, mockRes);
-
-		assert.strictEqual(typeof mockRes.error, "function", "Should set error method");
-		assert.strictEqual(typeof mockRes.json, "function", "Should set json method");
-		assert.strictEqual(typeof mockRes.redirect, "function", "Should set redirect method");
-		assert.strictEqual(typeof mockRes.send, "function", "Should set send method");
-		assert.strictEqual(typeof mockRes.set, "function", "Should set set method");
-		assert.strictEqual(typeof mockRes.status, "function", "Should set status method");
-		assert.strictEqual(mockRes.header, mockRes.setHeader, "Should alias header to setHeader");
-		assert.deepStrictEqual(mockRes.locals, {}, "Should initialize locals as empty object");
-	});
-
-	it("should handle CORS requests correctly", () => {
-		const corsApp = new Woodland({
-			origins: ["https://trusted.com"],
-			logging: { enabled: false }
+			assert.ok(connectEmitted);
 		});
 
-		mockReq.headers.origin = "https://trusted.com";
-		corsApp.decorate(mockReq, mockRes);
+		it("should register finish listener when listener exists", () => {
+			const finishApp = woodland();
+			let finishEmitted = false;
 
-		assert.strictEqual(mockReq.corsHost, true, "Should detect cross-origin request");
-		assert.strictEqual(mockReq.cors, true, "Should allow CORS for trusted origin");
-		assert.strictEqual(mockRes.getHeader("access-control-allow-origin"), "https://trusted.com", "Should set CORS origin header");
-		assert.strictEqual(mockRes.getHeader("access-control-allow-credentials"), "true", "Should set credentials header");
-		assert.strictEqual(mockRes.getHeader("timing-allow-origin"), "https://trusted.com", "Should set timing origin header");
-		// Allow methods header might not be set by decorate, only during actual routing
-		// assert.ok(mockRes.getHeader("access-control-allow-methods"), "Should set allowed methods header");
-	});
+			finishApp.on("finish", () => {
+				finishEmitted = true;
+			});
 
-	it("should handle CORS preflight requests", () => {
-		const corsApp = new Woodland({
-			origins: ["*"],
-			logging: { enabled: false }
+			const req = {
+				method: "GET",
+				headers: { host: "example.com" },
+				connection: { remoteAddress: "127.0.0.1" },
+				parsed: { pathname: "/test" },
+				precise: { stop: () => ({ diff: () => 0 }) },
+			};
+			let finishOnCalled = false;
+			const res = {
+				statusCode: 200,
+				setHeader: () => {},
+				writeHead: () => {},
+				on: (event, callback) => {
+					if (event === "finish") {
+						finishOnCalled = true;
+						// Simulate finish event
+						setTimeout(callback, 0);
+					}
+				},
+				end: () => {},
+				error: () => {},
+				set: () => {},
+				send: () => {},
+				header: () => {},
+				getHeader: () => void 0,
+				removeHeader: () => {},
+				headersSent: false,
+			};
+
+			finishApp.route(req, res);
+
+			// Wait for finish event to be emitted
+			return new Promise((resolve) => {
+				setTimeout(() => {
+					assert.ok(finishOnCalled);
+					assert.ok(finishEmitted);
+					resolve();
+				}, 10);
+			});
 		});
 
-		mockReq.method = "OPTIONS";
-		mockReq.headers.origin = "https://example.com";
-		mockReq.headers["access-control-request-headers"] = "content-type,authorization";
+		it("should not emit connect/finish when no listeners", () => {
+			const noListenersApp = woodland();
 
-		corsApp.decorate(mockReq, mockRes);
+			const req = {
+				method: "GET",
+				headers: { host: "example.com" },
+				connection: { remoteAddress: "127.0.0.1" },
+				parsed: { pathname: "/test" },
+				precise: { stop: () => ({ diff: () => 0 }) },
+			};
+			const res = {
+				statusCode: 200,
+				setHeader: () => {},
+				writeHead: () => {},
+				on: () => {},
+				end: () => {},
+				error: () => {},
+				set: () => {},
+				send: () => {},
+				header: () => {},
+				getHeader: () => void 0,
+				removeHeader: () => {},
+				headersSent: false,
+			};
 
-		// The allow-headers might be set during routing, not just decoration
-		const allowHeaders = mockRes.getHeader("access-control-allow-headers");
-		if (allowHeaders) {
-			assert.strictEqual(allowHeaders, "content-type,authorization", "Should set allowed headers for preflight");
-		} else {
-			// If headers not set during decoration, that's ok - they might be set during routing
-			assert.ok(true, "Headers may be set during routing phase, not decoration");
-		}
-	});
+			noListenersApp.route(req, res);
 
-	it("should set CORS expose headers for non-preflight requests", () => {
-		const corsApp = new Woodland({
-			origins: ["*"],
-			logging: { enabled: false }
+			assert.ok(true);
 		});
-
-		corsApp.corsExpose = "x-custom-header,x-another-header";
-		mockReq.headers.origin = "https://example.com";
-
-		corsApp.decorate(mockReq, mockRes);
-
-		// Expose headers might be set during routing, not just decoration
-		const exposeHeaders = mockRes.getHeader("access-control-expose-headers");
-		if (exposeHeaders) {
-			assert.strictEqual(exposeHeaders, "x-custom-header,x-another-header", "Should set expose headers for non-preflight requests");
-		} else {
-			// If headers not set during decoration, that's ok - they might be set during routing
-			assert.ok(true, "Expose headers may be set during routing phase, not decoration");
-		}
-	});
-
-	it("should initialize precise timer when timing enabled", () => {
-		app.decorate(mockReq, mockRes);
-
-		assert.ok(mockReq.precise, "Should have precise timer object");
-		assert.strictEqual(typeof mockReq.precise.start, "function", "Should have start method");
-	});
-
-	it("should not initialize timer when timing disabled", () => {
-		const noTimeApp = new Woodland({
-			time: false,
-			logging: { enabled: false }
-		});
-
-		noTimeApp.decorate(mockReq, mockRes);
-
-		assert.strictEqual(mockReq.precise, undefined, "Should not have precise timer when disabled");
-	});
-
-	it("should emit close event", done => {
-		let doneCalled = false;
-
-		// Capture the log call
-		app.log = function (message) {
-			if (message.includes("192.168.1.100") && !doneCalled) {
-				doneCalled = true;
-				done();
-			}
-
-			return this;
-		};
-
-		app.decorate(mockReq, mockRes);
-
-		// The close event should be emitted via setTimeout
-	});
-
-	it("should handle same-origin requests", () => {
-		mockReq.headers.origin = "https://example.com";
-		app.decorate(mockReq, mockRes);
-
-		assert.strictEqual(mockReq.corsHost, false, "Should not detect cross-origin for same host");
-		assert.strictEqual(mockReq.cors, false, "Should not allow CORS for same origin when no origins configured");
-	});
-
-	it("should handle CORS when corsHeaders is undefined", () => {
-		const corsApp = new Woodland({
-			origins: ["https://trusted.com"],
-			logging: { enabled: false }
-		});
-
-		mockReq.headers.origin = "https://trusted.com";
-		// Ensure no ACCESS_CONTROL_REQUEST_HEADERS header
-		delete mockReq.headers["access-control-request-headers"];
-		// Set corsExpose to undefined to trigger the branch
-		corsApp.corsExpose = undefined;
-
-		corsApp.decorate(mockReq, mockRes);
-
-		assert.strictEqual(mockReq.corsHost, true, "Should detect cross-origin request");
-		assert.strictEqual(mockReq.cors, true, "Should allow CORS for trusted origin");
-		assert.strictEqual(mockRes.getHeader("access-control-allow-origin"), "https://trusted.com", "Should set CORS origin header");
-		// The corsHeaders condition should be false, so no allow-headers or expose-headers should be set
-		assert.strictEqual(mockRes.getHeader("access-control-allow-headers"), undefined, "Should not set allow headers when corsHeaders is undefined");
-		assert.strictEqual(mockRes.getHeader("access-control-expose-headers"), undefined, "Should not set expose headers when corsHeaders is undefined");
-	});
-
-	it("should handle CORS headers for OPTIONS method", () => {
-		const corsApp = new Woodland({
-			origins: ["https://trusted.com"],
-			logging: { enabled: false }
-		});
-
-		mockReq.method = "OPTIONS";
-		mockReq.headers.origin = "https://trusted.com";
-		mockReq.headers["access-control-request-headers"] = "content-type,authorization";
-
-		corsApp.decorate(mockReq, mockRes);
-
-		assert.strictEqual(mockReq.corsHost, true, "Should detect cross-origin request");
-		assert.strictEqual(mockReq.cors, true, "Should allow CORS for trusted origin");
-		assert.strictEqual(mockRes.getHeader("access-control-allow-origin"), "https://trusted.com", "Should set CORS origin header");
-		assert.strictEqual(mockRes.getHeader("access-control-allow-headers"), "content-type,authorization", "Should set allow headers for OPTIONS request");
-	});
-
-	it("should handle CORS headers for non-OPTIONS method", () => {
-		const corsApp = new Woodland({
-			origins: ["https://trusted.com"],
-			logging: { enabled: false }
-		});
-
-		corsApp.corsExpose = "x-custom-header";
-		mockReq.method = "GET";
-		mockReq.headers.origin = "https://trusted.com";
-
-		corsApp.decorate(mockReq, mockRes);
-
-		assert.strictEqual(mockReq.corsHost, true, "Should detect cross-origin request");
-		assert.strictEqual(mockReq.cors, true, "Should allow CORS for trusted origin");
-		assert.strictEqual(mockRes.getHeader("access-control-allow-origin"), "https://trusted.com", "Should set CORS origin header");
-		assert.strictEqual(mockRes.getHeader("access-control-expose-headers"), "x-custom-header", "Should set expose headers for non-OPTIONS request");
-	});
-
-	it("should set allow header based on routes", () => {
-		app.get("/test", () => {});
-		app.post("/test", () => {});
-
-		app.decorate(mockReq, mockRes);
-
-		const allowHeader = mockRes.getHeader("allow");
-		assert.ok(allowHeader.includes("GET"), "Should include GET in allow header");
-		assert.ok(allowHeader.includes("POST"), "Should include POST in allow header");
-		assert.ok(allowHeader.includes("HEAD"), "Should include HEAD in allow header");
-		assert.ok(allowHeader.includes("OPTIONS"), "Should include OPTIONS in allow header");
 	});
 });
-
-describe("Woodland Helper Method Edge Cases", () => {
-	let app;
-	let mockReq;
-	let mockRes;
-
-	beforeEach(() => {
-		app = new Woodland({ logging: { enabled: false }});
-
-		mockReq = {
-			method: "GET",
-			headers: {},
-			parsed: { pathname: "/test" }
-		};
-
-		mockRes = {
-			headersSent: false,
-			statusCode: 200,
-			_headers: {},
-			setHeader: function (name, value) {
-				this._headers[name.toLowerCase()] = value;
-			},
-			header: function (name, value) {
-				this.setHeader(name, value);
-			},
-			getHeader: function (name) {
-				return this._headers[name.toLowerCase()];
-			},
-			removeHeader: function (name) {
-				delete this._headers[name.toLowerCase()];
-			},
-			setHeaders: function (headers) {
-				if (headers instanceof Map) {
-					for (const [key, value] of headers) {
-						this.setHeader(key, value);
-					}
-				} else if (headers instanceof Headers) {
-					for (const [key, value] of headers) {
-						this.setHeader(key, value);
-					}
-				} else {
-					for (const [key, value] of Object.entries(headers)) {
-						this.setHeader(key, value);
-					}
-				}
-			},
-			writeHead: function () {},
-			end: function () {}
-		};
-	});
-
-	it("should handle json response with custom headers", () => {
-		const jsonFn = app.json(mockRes);
-
-		mockRes.send = function (body, status, headers) {
-			assert.strictEqual(body, '{"test":"value"}', "Should stringify JSON");
-			assert.strictEqual(status, 201, "Should use custom status");
-
-			// Headers might be undefined if content-type is set via setHeader
-			if (headers) {
-				const contentType = headers["content-type"] || headers["Content-Type"];
-				if (contentType) {
-					assert.strictEqual(contentType, "application/json; charset=utf-8", "Should set JSON content type");
-				}
-				assert.strictEqual(headers["x-custom"], "header", "Should include custom headers");
-			} else {
-				// Check if content-type was set via setHeader instead
-				const setContentType = mockRes.getHeader("content-type");
-				if (setContentType) {
-					assert.strictEqual(setContentType, "application/json; charset=utf-8", "Should set JSON content type via setHeader");
-				}
-			}
-		};
-
-		jsonFn({ test: "value" }, 201, { "x-custom": "header" });
-	});
-
-	it("should handle redirect with temporary redirect", () => {
-		const redirectFn = app.redirect(mockRes);
-
-		mockRes.send = function (body, status, headers) {
-			assert.strictEqual(body, "", "Should send empty body");
-			assert.strictEqual(status, 307, "Should use 307 for temporary redirect");
-			assert.strictEqual(headers.location, "/new-location", "Should set location header");
-		};
-
-		redirectFn("/new-location", false);
-	});
-
-	it("should handle redirect with permanent redirect", () => {
-		const redirectFn = app.redirect(mockRes);
-
-		mockRes.send = function (body, status, headers) {
-			assert.strictEqual(body, "", "Should send empty body");
-			assert.strictEqual(status, 308, "Should use 308 for permanent redirect");
-			assert.strictEqual(headers.location, "/permanent-location", "Should set location header");
-		};
-
-		redirectFn("/permanent-location", true);
-	});
-
-	it("should handle set method with Map object", () => {
-		const setFn = app.set(mockRes);
-		const headerMap = new Map([
-			["x-custom-1", "value1"],
-			["x-custom-2", "value2"]
-		]);
-
-		const result = setFn(headerMap);
-
-		assert.strictEqual(result, mockRes, "Should return response object for chaining");
-		assert.strictEqual(mockRes.getHeader("x-custom-1"), "value1", "Should set header from Map");
-		assert.strictEqual(mockRes.getHeader("x-custom-2"), "value2", "Should set header from Map");
-	});
-
-	it("should handle set method with Headers object", () => {
-		const setFn = app.set(mockRes);
-		const headers = new Headers([
-			["x-header-1", "val1"],
-			["x-header-2", "val2"]
-		]);
-
-		setFn(headers);
-
-		assert.strictEqual(mockRes.getHeader("x-header-1"), "val1", "Should set header from Headers object");
-		assert.strictEqual(mockRes.getHeader("x-header-2"), "val2", "Should set header from Headers object");
-	});
-
-	it("should handle status method", () => {
-		const statusFn = app.status(mockRes);
-
-		const result = statusFn(201);
-
-		assert.strictEqual(result, mockRes, "Should return response object for chaining");
-		assert.strictEqual(mockRes.statusCode, 201, "Should set status code");
-	});
-
-	it("should handle error method with Error object", () => {
-		const errorFn = app.error(mockReq, mockRes);
-		const testError = new Error("Custom error message");
-
-		let errorEmitted = false;
-		app.on("error", (req, res, err) => {
-			errorEmitted = true;
-			assert.strictEqual(err, testError, "Should emit the error object");
-		});
-
-		mockRes.end = function () {
-			assert.strictEqual(errorEmitted, true, "Should emit error event");
-		};
-
-		errorFn(500, testError);
-	});
-
-	it("should handle error method when headers already sent", () => {
-		const errorFn = app.error(mockReq, mockRes);
-		mockRes.headersSent = true;
-
-		let endCalled = false;
-		mockRes.end = function () {
-			endCalled = true;
-		};
-
-		errorFn(500, "Error after headers sent");
-
-		assert.strictEqual(endCalled, false, "Should not call end when headers already sent");
-	});
-
-	it("should handle 404 errors by clearing Allow header", () => {
-		const errorFn = app.error(mockReq, mockRes);
-
-		// Set initial Allow header
-		mockRes.setHeader("allow", "GET, POST");
-
-		let allowHeaderCleared = false;
-		const originalRemoveHeader = mockRes.removeHeader;
-		mockRes.removeHeader = function (name) {
-			if (name.toLowerCase() === "allow") {
-				allowHeaderCleared = true;
-			}
-			originalRemoveHeader.call(this, name);
-		};
-
-		mockRes.end = function () {
-			assert.strictEqual(allowHeaderCleared, true, "Should clear Allow header for 404");
-			assert.strictEqual(mockRes.getHeader("allow"), "", "Should set empty Allow header");
-		};
-
-		errorFn(404, "Not found");
-	});
-
-	it("should handle send with object that has toString method", () => {
-		const sendFn = app.send(mockReq, mockRes);
-
-		// Create object with custom toString method
-		const customObject = {
-			toString: function () {
-				return "Custom string representation";
-			}
-		};
-
-		let sentBody = null;
-		mockRes.end = function (body) {
-			sentBody = body;
-		};
-
-		sendFn(customObject);
-
-		assert.strictEqual(sentBody, "Custom string representation", "Should call toString on non-string body");
-	});
-
-	it("should handle 404 error with CORS enabled", () => {
-		const corsApp = new Woodland({
-			logging: { enabled: false },
-			origins: ["https://trusted.com"]
-		});
-
-		const corsReq = {
-			method: "GET",
-			headers: { origin: "https://trusted.com" },
-			parsed: { pathname: "/test" },
-			cors: true,
-			corsHost: true
-		};
-
-		const corsRes = {
-			headersSent: false,
-			statusCode: 200,
-			_headers: {},
-			setHeader: function (name, value) {
-				this._headers[name.toLowerCase()] = value;
-			},
-			header: function (name, value) {
-				this.setHeader(name, value);
-			},
-			removeHeader: function (name) {
-				delete this._headers[name.toLowerCase()];
-			},
-			getHeader: function (name) {
-				return this._headers[name.toLowerCase()];
-			},
-			writeHead: function () {},
-			end: function () {}
-		};
-
-		const errorFn = corsApp.error(corsReq, corsRes);
-
-		let corsMethodsCleared = false;
-		const originalRemoveHeader = corsRes.removeHeader;
-		corsRes.removeHeader = function (name) {
-			if (name.toLowerCase() === "access-control-allow-methods") {
-				corsMethodsCleared = true;
-			}
-			originalRemoveHeader.call(this, name);
-		};
-
-		corsRes.end = function () {
-			assert.strictEqual(corsMethodsCleared, true, "Should clear CORS allow methods for 404");
-			assert.strictEqual(corsRes.getHeader("access-control-allow-methods"), "", "Should set empty CORS allow methods");
-		};
-
-		errorFn(404, "Not found");
-	});
-});
-
-

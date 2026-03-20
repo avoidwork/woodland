@@ -2,9 +2,9 @@
 /**
  * woodland
  *
- * @copyright 2025 Jason Mulligan <jason.mulligan@avoidwork.com>
+ * @copyright 2026 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 20.2.10
+ * @version 21.0.0
  */
 'use strict';
 
@@ -14,59 +14,197 @@ var woodland = require('woodland');
 var node_module = require('node:module');
 var node_path = require('node:path');
 var node_url = require('node:url');
+var mimeDb = require('mime-db');
 
 var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
 const __dirname$1 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('cli.cjs', document.baseURI).href))));
 const require$1 = node_module.createRequire((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('cli.cjs', document.baseURI).href)));
-const {name, version} = require$1(node_path.join(__dirname$1, "..", "package.json"));
+const { name, version } = require$1(node_path.join(__dirname$1, "..", "package.json"));
 const CACHE_CONTROL = "cache-control";
 const CONTENT_TYPE = "content-type";
 const TEXT_PLAIN = "text/plain";
 const CHAR_SET = "charset=utf-8";
-`nodejs/${process.version}, ${process.platform}/${process.arch}`;
-const LOCALHOST = "127.0.0.1";
-const INT_8000 = 8000;
 
 // =============================================================================
 // NUMERIC CONSTANTS
 // =============================================================================
 const INT_0 = 0;
+const INT_1 = 1;
+const INT_2 = 2;
+const INT_5 = 5;
+const INT_8 = 8;
+const INT_10 = 10;
+const INT_255 = 255;
+const INT_8000 = 8000;
 const INT_65535 = 65535;
+const COLON = ":";
+const DOUBLE_COLON = "::";
+const EMPTY = "";
 const EQUAL = "=";
 const HYPHEN = "-";
+`nodejs/${process.version}, ${process.platform}/${process.arch}`;
+const LOCALHOST = "127.0.0.1";
+const EXTENSIONS = "extensions";
 const INFO = "info";
 const NO_CACHE = "no-cache";
-
-// =============================================================================
-// UTILITY & MISC
-// =============================================================================
 const EN_US = "en-US";
 const SHORT = "short";
 
-Object.freeze(Array.from(Array(12).values()).map((i, idx) => {
-	const d = new Date();
-	d.setMonth(idx);
+Object.freeze(
+	Array.from({ length: 12 }, (_, idx) => {
+		const d = new Date();
+		d.setMonth(idx);
 
-	return Object.freeze(d.toLocaleString(EN_US, {month: SHORT}));
-}));
+		return Object.freeze(d.toLocaleString(EN_US, { month: SHORT }));
+	}),
+);
 
-const argv = process.argv.filter(i => i.charAt(0) === HYPHEN && i.charAt(1) === HYPHEN).reduce((a, v) => {
-		const x = v.split(`${HYPHEN}${HYPHEN}`)[1].split(EQUAL);
-
-		a[x[0]] = tinyCoerce.coerce(x[1]);
-
+const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]);
+	valid.reduce((a, v) => {
+		const result = Object.assign({ type: v[0] }, v[1]);
+		const extCount = result.extensions.length;
+		for (let i = 0; i < extCount; i++) {
+			a[`.${result.extensions[i]}`] = result;
+		}
 		return a;
-	}, {}),
+	}, {});
+
+const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/,
+	IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/,
+	IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i,
+	HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
+
+/**
+ * Validates if an IP address is properly formatted
+ * @param {string} ip - IP address to validate
+ * @returns {boolean} True if IP is valid format
+ */
+function isValidIP(ip) {
+	if (!ip || typeof ip !== "string") {
+		return false;
+	}
+
+	if (ip.indexOf(COLON) === -1) {
+		const match = IPV4_PATTERN.exec(ip);
+
+		if (!match) {
+			return false;
+		}
+
+		for (let i = 1; i < INT_5; i++) {
+			const num = parseInt(match[i], INT_10);
+			if (num > INT_255) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	if (!IPV6_CHAR_PATTERN.test(ip)) {
+		return false;
+	}
+
+	const ipv4MappedMatch = IPV4_MAPPED_PATTERN.exec(ip);
+	if (ipv4MappedMatch) {
+		return isValidIP(ipv4MappedMatch[1]);
+	}
+
+	if (ip === DOUBLE_COLON) {
+		return true;
+	}
+
+	const doubleColonIndex = ip.indexOf(DOUBLE_COLON);
+	const isCompressed = doubleColonIndex !== -1;
+
+	if (isCompressed) {
+		if (ip.indexOf(DOUBLE_COLON, doubleColonIndex + INT_2) !== -1) {
+			return false;
+		}
+
+		if (
+			(doubleColonIndex > INT_0 && ip.charAt(doubleColonIndex - INT_1) === COLON) ||
+			(doubleColonIndex + INT_2 < ip.length && ip.charAt(doubleColonIndex + INT_2) === COLON)
+		) {
+			return false;
+		}
+
+		const beforeDoubleColon = ip.substring(INT_0, doubleColonIndex);
+		const afterDoubleColon = ip.substring(doubleColonIndex + INT_2);
+
+		let leftGroups;
+		if (beforeDoubleColon) {
+			leftGroups = beforeDoubleColon.split(COLON);
+		} else {
+			leftGroups = [];
+		}
+
+		let rightGroups;
+		if (afterDoubleColon) {
+			rightGroups = afterDoubleColon.split(COLON);
+		} else {
+			rightGroups = [];
+		}
+
+		const nonEmptyLeft = leftGroups.filter((g) => g !== EMPTY);
+		const nonEmptyRight = rightGroups.filter((g) => g !== EMPTY);
+		const totalGroups = nonEmptyLeft.length + nonEmptyRight.length;
+
+		if (totalGroups >= INT_8) {
+			return false;
+		}
+
+		/* node:coverage ignore next 5 */
+		for (let i = INT_0; i < nonEmptyLeft.length; i++) {
+			if (!HEX_GROUP_PATTERN.test(nonEmptyLeft[i])) {
+				return false;
+			}
+		}
+
+		/* node:coverage ignore next 5 */
+		for (let i = INT_0; i < nonEmptyRight.length; i++) {
+			if (!HEX_GROUP_PATTERN.test(nonEmptyRight[i])) {
+				return false;
+			}
+		}
+
+		return true;
+	} else {
+		const groups = ip.split(COLON);
+		if (groups.length !== INT_8) {
+			return false;
+		}
+
+		/* node:coverage ignore next 5 */
+		for (let i = INT_0; i < INT_8; i++) {
+			if (!groups[i] || !HEX_GROUP_PATTERN.test(groups[i])) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+}
+
+const argv = process.argv
+		.filter((i) => i.charAt(0) === HYPHEN && i.charAt(1) === HYPHEN)
+		.reduce((a, v) => {
+			const x = v.split(`${HYPHEN}${HYPHEN}`)[1].split(EQUAL);
+
+			a[x[0]] = tinyCoerce.coerce(x[1]);
+
+			return a;
+		}, {}),
 	ip = argv.ip ?? LOCALHOST,
 	logging = argv.logging ?? true,
 	port = argv.port ?? INT_8000,
 	app = woodland.woodland({
-		autoindex: true,
-		defaultHeaders: {[CACHE_CONTROL]: NO_CACHE, [CONTENT_TYPE]: `${TEXT_PLAIN}; ${CHAR_SET}`},
+		autoIndex: true,
+		defaultHeaders: { [CACHE_CONTROL]: NO_CACHE, [CONTENT_TYPE]: `${TEXT_PLAIN}; ${CHAR_SET}` },
 		logging: {
-			enabled: logging
+			enabled: logging,
 		},
-		time: true
+		time: true,
 	});
 
 let validPort = Number(port);
@@ -74,7 +212,7 @@ if (!Number.isInteger(validPort) || validPort < INT_0 || validPort > INT_65535) 
 	console.error("Invalid port: must be an integer between 0 and 65535.");
 	process.exit(1);
 }
-let validIP = typeof ip === "string" && (/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/).test(ip);
+let validIP = isValidIP(ip);
 if (!validIP) {
 	console.error("Invalid IP: must be a valid IPv4 address.");
 	process.exit(1);
@@ -82,4 +220,7 @@ if (!validIP) {
 
 app.files();
 node_http.createServer(app.route).listen(validPort, ip);
-app.log(`id=woodland, hostname=localhost, ip=${ip}, port=${validPort}`, INFO);
+app.logger.log(
+	`id=woodland, hostname=${process.env.HOSTNAME ?? "localhost"}, ip=${ip}, port=${validPort}`,
+	INFO,
+);

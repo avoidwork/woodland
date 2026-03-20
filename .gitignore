@@ -38,3 +38,6 @@ jspm_packages
 
 .idea
 .nyc_output
+dist
+
+sensitive.txt

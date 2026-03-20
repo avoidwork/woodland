@@ -1,92 +1,62 @@
 {
   "name": "woodland",
-  "version": "20.2.10",
+  "version": "21.0.0",
   "description": "High-performance HTTP framework",
-  "type": "module",
-  "types": "types/woodland.d.ts",
-  "source": "src/woodland.js",
-  "main": "dist/woodland.cjs",
-  "exports": {
-    "types": "./types/woodland.d.ts",
-    "import": "./dist/woodland.js",
-    "require": "./dist/woodland.cjs"
+  "keywords": [
+    "api",
+    "framework",
+    "http",
+    "https",
+    "middleware",
+    "rest",
+    "router",
+    "routing"
+  ],
+  "homepage": "https://github.com/avoidwork/woodland",
+  "bugs": {
+    "url": "https://github.com/avoidwork/woodland/issues"
   },
+  "license": "BSD-3-Clause",
+  "author": "Jason Mulligan <jason.mulligan@avoidwork.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/avoidwork/woodland.git"
+  },
+  "bin": {
+    "woodland": "dist/cli.cjs"
+  },
+  "source": "src/woodland.js",
   "files": [
     "dist",
     "tpl",
     "types"
   ],
+  "type": "module",
+  "main": "dist/woodland.cjs",
+  "types": "types/woodland.d.ts",
+  "exports": {
+    "types": "./types/woodland.d.ts",
+    "import": "./dist/woodland.js",
+    "require": "./dist/woodland.cjs"
+  },
   "scripts": {
     "benchmark": "npm install express fastify --no-save && node benchmark.js",
-    "build": "npm run test:src && npm run rollup && npm run test:cli",
+    "build": "npm run rollup",
     "changelog": "auto-changelog -p",
-    "clean": "rimraf dist coverage coverage.txt",
-    "coverage": "c8 --reporter=text npm run mocha 2>&1 | sed -n '/^---/,$p' > coverage.txt",
-    "lint": "eslint --fix *.js src/*.js tests/**/*.test.js benchmarks/*.js",
-    "lint:check": "eslint *.js src/*.js tests/**/*.test.js benchmarks/*.js",
-    "mocha": "mocha tests/**/*.test.js",
+    "clean": "rimraf dist",
+    "coverage": "node --test --experimental-test-coverage --test-coverage-exclude=dist/** --test-coverage-exclude=tests/** --test-reporter=spec tests/**/*.test.js 2>&1 | grep -A 1000 \"start of coverage report\" > coverage.txt",
+    "fix": "oxlint --fix *.js benchmarks src tests && oxfmt *.js benchmarks src tests/unit --write",
+    "lint": "oxlint *.js benchmarks src tests && oxfmt *.js benchmarks src tests/unit --check",
+    "prepare": "husky",
     "prebuild": "npm run clean",
     "rollup": "rollup --config",
-    "test": "npm run lint && c8 npm run mocha",
-    "test:cli": "mocha tests/unit/cli.test.js",
-    "test:src": "npm run lint && c8 mocha tests/unit/constants.test.js tests/unit/utility.test.js tests/unit/woodland*.test.js tests/integration/*.test.js",
-    "test:watch": "npm run mocha -- --watch",
-    "precommit": "npm run test"
-  },
-  "pre-commit": [
-    "precommit"
-  ],
-  "c8": {
-    "exclude": [
-      "dist/**",
-      "benchmarks/**",
-      "test-files/**",
-      "tpl/**",
-      "types/**",
-      "tests/**",
-      "rollup.config.js",
-      "eslint.config.js",
-      "benchmark.js"
-    ],
-    "reporter": [
-      "text",
-      "html",
-      "lcov"
-    ],
-    "check-coverage": true,
-    "lines": 100,
-    "functions": 100,
-    "branches": 100,
-    "statements": 100
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/avoidwork/woodland.git"
-  },
-  "keywords": [
-    "router",
-    "http",
-    "https",
-    "routing",
-    "middleware",
-    "framework",
-    "api",
-    "rest"
-  ],
-  "author": "Jason Mulligan <jason.mulligan@avoidwork.com>",
-  "license": "BSD-3-Clause",
-  "bugs": {
-    "url": "https://github.com/avoidwork/woodland/issues"
-  },
-  "engineStrict": true,
-  "engines": {
-    "node": ">=17.0.0"
-  },
-  "homepage": "https://github.com/avoidwork/woodland",
-  "bin": {
-    "woodland": "dist/cli.cjs"
+    "sample": "node sample.js",
+    "test": "npm run lint && node --test tests/**/*.test.js",
+    "test:cli": "node --test tests/unit/cli.test.js",
+    "test:watch": "node --test --watch tests/**/*.test.js"
   },
   "dependencies": {
+    "jsonschema": "^1.5.0",
     "mime-db": "^1.54.0",
     "precise": "^4.0.3",
     "tiny-coerce": "^3.0.2",
@@ -95,11 +65,14 @@
   },
   "devDependencies": {
     "auto-changelog": "^2.5.0",
-    "c8": "^11.0.0",
-    "eslint": "^9.35.0",
-    "mocha": "^11.7.2",
-    "pre-commit": "^1.2.2",
+    "husky": "^9.1.0",
+    "oxfmt": "^0.40.0",
+    "oxlint": "^1.55.0",
     "rimraf": "^6.0.1",
     "rollup": "^4.50.1"
-  }
+  },
+  "engines": {
+    "node": ">=17.0.0"
+  },
+  "engineStrict": true
 }

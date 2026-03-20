@@ -1,108 +1,83 @@
 <div align="center">
   <img src="https://avoidwork.github.io/woodland/logo.svg" width="150" alt="Woodland Logo" />
-  
-  # Woodland
-  
-  *The high-performance HTTP framework that's faster than hand-coded Node.js*
-  
-  [![npm version](https://badge.fury.io/js/woodland.svg)](https://badge.fury.io/js/woodland)
-  [![Node.js Version](https://img.shields.io/node/v/woodland.svg)](https://nodejs.org/)
-  [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
-  [![Build Status](https://github.com/avoidwork/woodland/actions/workflows/ci.yml/badge.svg)](https://github.com/avoidwork/woodland/actions)
-  [![Test Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](https://github.com/avoidwork/woodland)
-  
+
+# Woodland
+
+High-performance HTTP framework for Node.js. Express-compatible, optimized for speed.
+
+[![npm version](https://badge.fury.io/js/woodland.svg)](https://badge.fury.io/js/woodland)
+[![Node.js Version](https://img.shields.io/node/v/woodland.svg)](https://nodejs.org/)
+[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+[![Build Status](https://github.com/avoidwork/woodland/actions/workflows/ci.yml/badge.svg)](https://github.com/avoidwork/woodland/actions)
+[![Test Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](https://github.com/avoidwork/woodland)
+
 </div>
 
-## 🚀 Quick Start
+## Quick Start
 
-Get a server running in **30 seconds**:
+```bash
+npm install woodland
+```
+
+### ECMAScript Modules (ESM)
 
 ```javascript
-import {createServer} from "node:http";
-import {woodland} from "woodland";
+import { createServer } from "node:http";
+import { woodland } from "woodland";
 
 const app = woodland();
 
 app.get("/", (req, res) => res.send("Hello World!"));
-app.get("/users/:id", (req, res) => res.json({id: req.params.id}));
+app.get("/users/:id", (req, res) => res.json({ id: req.params.id }));
 
-createServer(app.route).listen(3000, () => {
-  console.log("Server running at http://localhost:3000");
-});
+createServer(app.route).listen(3000, () => console.log("Server running at http://localhost:3000"));
 ```
 
-That's it! You get routing, JSON responses, parameters, and more - **out of the box**.
+### CommonJS
 
-## 🏆 Why Woodland?
-
-Most HTTP frameworks slow you down. Woodland speeds you up.
-
-| Feature | Woodland | Express.js | Raw Node.js |
-|---------|----------|------------|------------|
-| **Performance** | 12,478 ops/sec | 12,112 ops/sec | 10,888 ops/sec |
-| **Learning Curve** | Express-compatible | Gentle | Steep |
-| **Built-in Features** | CORS, ETags, Logging | Limited | None |
-| **TypeScript** | ✅ First-class | ✅ | ❌ |
-
-### Benefits for Developers
-
-✅ **15% faster than raw Node.js** - Optimized pipeline, not overhead  
-✅ **Express-compatible** - Zero learning curve, drop-in middleware  
-✅ **Zero config** - Works out of the box, tune when you need to  
-✅ **Production-ready** - 100% test coverage, battle-tested security  
-✅ **TypeScript first** - Full type definitions included
-
-### What You Get
-
-🔥 **Smart Routing**: Parameter routes (`:id`), RegExp patterns, wildcards  
-🛡️ **Security Built-in**: CORS, ETags, secure defaults, injection protection  
-📦 **Static Files**: High-performance serving with streaming  
-🔧 **Middleware**: Express-compatible `req, res, next` pattern  
-📊 **Production Logging**: Common Log Format, customizable levels  
-🚀 **Modern JS**: ES6+ modules for Node.js 17+
-
-## 🔒 Security & OWASP Compliance
-
-Security isn't optional. Woodland provides it out of the box.
-
-**Automatic Protection:**
-- ✅ **Injection Prevention**: Input validation, HTML escaping, path traversal protection  
-- ✅ **Secure Defaults**: CORS disabled by default, safe error handling  
-- ✅ **XSS Protection**: All user input escaped, security headers included  
-- ✅ **Access Control**: Strict file access, allowlist-based CORS validation  
-
-**Production Setup** (add these once):
 ```javascript
-import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
+const { createServer } = require("node:http");
+const { woodland } = require("woodland");
 
-app.always(helmet()); // Security headers
-app.always(rateLimit({windowMs: 15 * 60 * 1000, max: 100})); // Rate limiting
+const app = woodland();
+
+app.get("/", (req, res) => res.send("Hello World!"));
+app.get("/users/:id", (req, res) => res.json({ id: req.params.id }));
+
+createServer(app.route).listen(3000, () => console.log("Server running at http://localhost:3000"));
 ```
 
-For complete OWASP Top 10 coverage and security architecture, see the [Technical Documentation](https://github.com/avoidwork/woodland/blob/master/docs/TECHNICAL_DOCUMENTATION.md#owasp-security-assessment).
+## Why Woodland?
 
-## 💡 Common Patterns
+**Benefits:**
 
-### REST API with Body Parsing
+- **Zero learning curve** - Express-compatible middleware and routing patterns
+- **Production-ready** - 100% test coverage, battle-tested security
+- **TypeScript first** - Full type definitions included
+- **Zero config** - Works out of the box, tune when you need to
+- **Lightweight** - Minimal dependencies, no bloat
+- **Dual module support** - Works with CommonJS and ECMAScript Modules (ESM)
+
+**Built-in Features (No Additional Packages Needed):**
+
+- **Automatic `Allow` header** - Every response includes `Allow: GET, POST, OPTIONS` (or relevant methods) for REST compliance
+- **CORS support** - Configure allowed origins with automatic preflight handling (OPTIONS)
+- **X-Content-Type-Options** - Automatic `nosniff` header on all responses
+- **ETag generation** - Built-in ETag support via `tiny-etag` for caching
+- **Response timing** - Optional `X-Response-Time` header for monitoring
+- **Directory indexing** - Auto-generated HTML directory listings (optional)
+- **Range request support** - Automatic handling of `Range` headers for file streaming
+- **HEAD request handling** - GET routes automatically support HEAD
+- **Error event emission** - Built-in error logging and event hooks
+- **Request decoration** - IP extraction, URL parsing, parameter extraction built-in
+- **Logger with CLF** - Common Log Format logging with configurable levels
+- **Cache control** - LRU caching for routes (configurable size and TTL)
+
+## Common Patterns
+
+### REST API
+
 ```javascript
-const app = woodland({defaultHeaders: {"content-type": "application/json"}});
-
-// Body parser middleware
-app.always(async (req, res, next) => {
-  if (req.method === "POST" || req.method === "PUT") {
-    let body = "";
-    req.on("data", chunk => body += chunk);
-    req.on("end", () => {
-      req.body = JSON.parse(body || "{}");
-      next();
-    });
-  } else {
-    next();
-  }
-});
-
-// CRUD routes
 const users = new Map();
 
 app.get("/users", (req, res) => res.json(Array.from(users.values())));
@@ -112,858 +87,516 @@ app.get("/users/:id", (req, res) => {
 });
 app.post("/users", (req, res) => {
   const id = Date.now().toString();
-  const user = {...req.body, id};
+  const user = { ...req.body, id };
   users.set(id, user);
   res.json(user, 201);
 });
 ```
 
-### CORS Setup for Frontend
+### CORS
+
 ```javascript
-// Allow specific origins
 const app = woodland({
   origins: ["https://myapp.com", "http://localhost:3000"],
-  corsExpose: "x-total-count,x-page-count" // Expose custom headers
+});
+// Woodland handles preflight OPTIONS automatically
+```
+
+### Static Files
+
+```javascript
+const app = woodland({ autoindex: true });
+app.files("/static", "./public");
+```
+
+### Middleware
+
+```javascript
+// Global middleware
+app.always((req, res, next) => {
+  req.startTime = Date.now();
+  next();
 });
 
-// Woodland automatically handles:
-// - Preflight OPTIONS requests  
-// - Access-Control-Allow-Origin headers
-// - Access-Control-Allow-Methods based on your routes
-// - Origin validation and security
-```
+// Route-specific middleware
+app.get("/protected", authenticate, handler);
 
-### Static File Server
-```javascript
-// Directory listing + file serving
-const app = woodland({autoindex: true});
-
-app.files("/", "./public"); // Serve /public folder at /
-```
-
-### Error Handling
-```javascript
-const app = woodland();
-
-// Global error handler (register last)
+// Error handler (register last)
 app.use("/(.*)", (error, req, res, next) => {
   console.error(error);
-  res.error(500, "Internal Server Error");
-});
-
-app.get("/users/:id", (req, res, next) => {
-  const user = findUser(req.params.id);
-  if (!user) {
-    return res.error(404, "User not found");
-  }
-  res.json(user);
+  res.error(500);
 });
 ```
 
-### Using the Class (for larger apps)
+### Routing
+
 ```javascript
-import {Woodland} from "woodland";
+// Parameters
+app.get("/users/:id", handler);
+app.get("/users/:userId/posts/:postId", handler);
+
+// RegExp patterns
+app.get("/files/:path(.*)", handler);
+
+// Wildcards
+app.get("/api/*", apiMiddleware);
+```
+
+## Configuration
+
+```javascript
+const app = woodland({
+  origins: [], // CORS allowlist (empty = deny all)
+  autoindex: false, // Directory browsing
+  etags: true, // ETag support
+  cacheSize: 1000, // Route cache size
+  cacheTTL: 10000, // Cache TTL in ms
+  charset: "utf-8", // Default charset
+  corsExpose: "", // CORS expose headers
+  defaultHeaders: {}, // Additional default headers
+  digit: 3, // Timing digit precision
+  indexes: ["index.htm", "index.html"], // Index files
+  logging: {
+    enabled: true,
+    level: "info", // debug, info, warn, error, crit, alert, emerg, notice
+    format: "%h %l %u %t \"%r\" %>s %b",
+  },
+  silent: false, // Disable server headers
+  time: false, // X-Response-Time header
+});
+```
+
+**Environment Variables:**
+
+```bash
+export WOODLAND_LOG_LEVEL=debug
+export WOODLAND_LOG_FORMAT="%h %t \"%r\" %>s %b"
+export WOODLAND_LOG_ENABLED=true
+```
+
+## Response Helpers
+
+```javascript
+// JSON
+res.json({ data: "value" });
+res.json({ data: "value" }, 201); // Custom status
+
+// Text
+res.send("Hello World");
+
+// Redirect
+res.redirect("/new-url");
+res.redirect("/new-url", false); // Temporary (307)
+
+// Headers
+res.header("x-custom", "value");
+res.set({ "x-one": "1", "x-two": "2" });
+
+// Error
+res.error(404);
+res.error(500, "Server Error");
+
+// Status
+res.status(201);
+```
+
+## Request Properties
+
+```javascript
+app.get("/users/:id", (req, res) => {
+  req.ip;         // Client IP address (from X-Forwarded-For or connection)
+  req.method;     // HTTP method
+  req.parsed;     // URL object with pathname, search, hostname, etc.
+  req.params;     // URL parameters { id: "123" }
+  req.allow;      // Allowed methods string (e.g., "GET, OPTIONS")
+  req.cors;       // CORS enabled for this request
+  req.corsHost;   // Origin host differs from request host
+  req.body;       // Request body (parsed by middleware)
+  req.headers;    // Request headers
+  req.host;       // Hostname
+  req.valid;      // Request validation status
+  req.exit;       // Exit iterator for middleware chain
+  req.precise;    // Precise timer instance (when timing enabled)
+});
+```
+
+## Event Handlers
+
+```javascript
+app.on("connect", (req, res) => {
+  console.log(`Connection from ${req.ip}`);
+});
+
+app.on("finish", (req, res) => {
+  analytics.track({ method: req.method, status: res.statusCode });
+});
+
+app.on("error", (req, res, err) => {
+  console.error(`Error ${res.statusCode}:`, err);
+});
+
+app.on("stream", (req, res) => {
+  console.log(`Streaming file`);
+});
+```
+
+## HTTP Methods
+
+```javascript
+app.get(path, ...handlers);      // GET
+app.post(path, ...handlers);     // POST
+app.put(path, ...handlers);      // PUT
+app.delete(path, ...handlers);   // DELETE
+app.patch(path, ...handlers);    // PATCH
+app.options(path, ...handlers);  // OPTIONS
+app.connect(path, ...handlers);  // CONNECT
+app.trace(path, ...handlers);    // TRACE
+app.always(...handlers);         // Wildcard (all methods)
+```
+
+## Class API (for larger apps)
+
+```javascript
+import { Woodland } from "woodland";
 
 class API extends Woodland {
   constructor() {
-    super({
-      defaultHeaders: {"x-api-version": "1.0.0"},
-      origins: ["https://myapp.com"]
-    });
-    
+    super({ origins: ["https://myapp.com"] });
     this.setupRoutes();
   }
-  
+
   setupRoutes() {
     this.get("/health", this.healthCheck);
     this.get("/users", this.getUsers);
-    this.post("/users", this.createUser);
   }
-  
+
   healthCheck(req, res) {
-    res.json({status: "ok", timestamp: new Date().toISOString()});
+    res.json({ status: "ok" });
   }
-  
-  getUsers(req, res) { /* ... */ }
-  createUser(req, res) { /* ... */ }
+
+  getUsers(req, res) {
+    // ...
+  }
 }
 
 const api = new API();
 ```
 
-## 📦 Installation
+## Factory Pattern
+
+Woodland uses factories everywhere for testability:
+
+```javascript
+// Factories return objects with bound methods
+import { woodland, createLogger } from "woodland";
+
+const app = woodland(); // Factory creates Woodland instance
+const logger = createLogger({ enabled: true, level: "debug" });
+
+// Closures provide private state instead of class fields
+```
+
+## Middleware Registration
+
+```javascript
+// Middleware registration pattern: middleware.register(path, ...fn, method)
+app.get("/users", getUsers);           // Delegates to use()
+app.post("/users", createUser);        // Delegates to use()
+app.always(globalMiddleware);          // Wildcard for all methods
+
+// HEAD routes cannot be registered directly
+// GET routes implicitly allow HEAD
+app.get("/resource", handler);         // Handles both GET and HEAD
+```
+
+## Environment Variables
 
 ```bash
-# npm
-npm install woodland
+# Logging configuration
+export WOODLAND_LOG_ENABLED=true
+export WOODLAND_LOG_FORMAT="%h %l %u %t \"%r\" %>s %b"
+export WOODLAND_LOG_LEVEL=debug
 
-# yarn
-yarn add woodland
-
-# pnpm
-pnpm add woodland
-
-# Global installation for CLI
-npm install -g woodland
+# Override config at runtime
 ```
 
-## 📖 Documentation
+## Middleware Registry
 
-- **[Quick Start](#-quick-start)** - Get running in 30 seconds
-- **[Common Patterns](#-common-patterns)** - Real-world examples
-- **[Configuration](#-configuration)** - Options and customization
-- **[Routing](#-routing)** - Routes, parameters, and patterns
-- **[Middleware](#-middleware)** - Global and route-specific middleware
-- **[CORS](#-cors)** - Cross-origin resource sharing
-- **[Static Files](#-static-files)** - File serving and directory listing
-- **[Error Handling](#-error-handling)** - Error responses and global handlers
-- **[CLI](#-cli-usage)** - Command-line server
-- **[API Reference](#-api-reference)** - Complete method documentation
-- **[Performance](#-performance)** - Benchmarks and optimization
-- **[TypeScript](#-typescript)** - Type definitions and usage
-- **[Examples](#-examples)** - Complete working examples
-- **[Troubleshooting](#-troubleshooting)** - Common issues and solutions
-- **[Technical Documentation](https://github.com/avoidwork/woodland/wiki/technical-documentation)** - Deep dive into architecture
-
-## ⚙️ Configuration
-
-**Most apps need zero config**, but you can customize everything:
-
-### Minimal Setup
 ```javascript
-const app = woodland(); // Defaults that work
+// Check if a method is allowed for a URI
+const allowed = app.allowed("GET", "/users"); // true
+
+// Get allowed methods for a URI
+const methods = app.allows("/users"); // "GET, OPTIONS"
+
+// List routes for a method
+const routes = app.list("get", "array"); // ["/", "/users", ...]
+const routesObj = app.list("get", "object"); // { "/": [...], "/users": [...] }
+
+// Get route information
+const info = app.routes("/users/:id", "GET");
 ```
 
-### Production Setup
+## Error Handler Middleware
+
+Error handlers are automatically detected by their 4 parameters:
+
 ```javascript
-const app = woodland({
-  origins: ["https://myapp.com"],       // CORS allowlist
-  defaultHeaders: {                     // Security headers
-    "x-content-type-options": "nosniff",
-    "x-frame-options": "DENY"
-  },
-  logging: {                            // Production logging
-    enabled: true,
-    level: "info",
-    format: "%h %t \"%r\" %>s %b"
-  },
-  cacheSize: 5000,                      // Performance tuning
-  cacheTTL: 600000,
-  time: true                            // Response timing
+// Error handler (register last)
+app.use("/(.*)", (err, req, res, next) => {
+  console.error(err);
+  res.error(500, err.message);
+});
+
+// Regular middleware has 3 parameters
+app.use((req, res, next) => {
+  next(); // Continue chain
 });
 ```
 
-### All Options
+## Performance Patterns
+
 ```javascript
-const app = woodland({
-  autoindex: false,           // Directory browsing (false = safe)
-  cacheSize: 1000,            // Route cache size
-  cacheTTL: 10000,            // Cache TTL in ms
-  charset: "utf-8",           // Default charset
-  corsExpose: "",             // Exposed CORS headers
-  defaultHeaders: {},         // Default response headers
-  digit: 3,                   // Timing precision
-  etags: true,                // Enable ETags
-  indexes: ["index.html"],    // Index files
-  logging: {
-    enabled: true,
-    format: "%h %l %u %t \"%r\" %>s %b",
-    level: "info"
-  },
-  origins: [],                // CORS origins (empty = deny all)
-  silent: false,              // Disable default headers
-  time: false                 // X-Response-Time header
-});
+// Use for loops instead of for..of in hot paths
+for (let i = 0; i < files.length; i++) {
+  const file = files[i];
+  // Process file
+}
+
+// Use Set for O(1) lookups
+const ignored = new Set();
+if (!ignored.has(fn)) {
+  // Process
+}
+
+// Use Object.create(null) for null-prototype objects
+const headers = Object.create(null);
+
+// Cache regex patterns at module level
+const MY_PATTERN = /^pattern$/;
 ```
 
-## 🛤️ Routing
+## Factory Pattern
 
-### Basic Routes
-```javascript
-app.get("/users", getAllUsers);
-app.post("/users", createUser);
-app.put("/users/:id", updateUser);       // Parameter routes
-app.delete("/users/:id", deleteUser);
-app.get("/files/:path(.*)", serveFile);  // RegExp patterns
-```
-
-### Parameter Routes
-```javascript
-// Single parameter
-app.get("/users/:id", (req, res) => {
-  res.json({id: req.params.id});
-});
-
-// Multiple parameters
-app.get("/users/:userId/posts/:postId", (req, res) => {
-  res.json({userId: req.params.userId, postId: req.params.postId});
-});
-
-// Typed parameters (numeric only)
-app.get("/users/:id(\\d+)", (req, res) => {
-  // Only matches /users/123, not /users/abc
-  res.json({id: parseInt(req.params.id)});
-});
-```
-
-### Route Groups & Middleware
-```javascript
-// Authentication middleware
-const authenticate = (req, res, next) => {
-  const token = req.headers.authorization;
-  if (!token) return res.error(401);
-  req.user = verifyToken(token);
-  next();
-};
-
-// Protect routes
-app.get("/admin/*", authenticate, adminHandler);
-app.post("/api/users", authenticate, createUser);
-```
-
-## 🔧 Middleware
-
-Woodland uses the familiar `req, res, next` pattern. Register global middleware with `always()`, route-specific middleware by adding handlers to routes.
-
-### Global Middleware
-```javascript
-// Runs on every request
-app.always((req, res, next) => {
-  console.log(`${req.method} ${req.url}`);
-  next();
-});
-
-// Multiple middleware execute in registration order
-app.always(loggingMiddleware);
-app.always(authMiddleware);
-app.always(bodyParser);
-```
-
-### Route-Specific Middleware
-```javascript
-// Middleware only runs for specific routes
-app.get("/protected", authenticate, authorize, handler);
-app.post("/api/*", validateUser, createResource);
-```
-
-### Error Handling Middleware
-Error middleware (4 parameters: `error, req, res, next`) must be registered **last** for each route:
+Woodland uses factory functions for creating instances:
 
 ```javascript
-// ✅ Correct: Error handler registered last
-app.get("/users", 
-  authenticate,        // Normal middleware
-  getUsers,           // Route handler
-  (error, req, res, next) => {  // Error middleware - LAST
-    console.error(error);
-    res.error(500);
+// Recommended: Factory function
+const app = woodland({ autoindex: true });
+
+// Alternative: Class-based (for larger apps)
+import { Woodland } from "woodland";
+
+class API extends Woodland {
+  constructor() {
+    super({ origins: ["https://myapp.com"] });
+    this.setupRoutes();
   }
-);
 
-// Global error handler
-app.use("/(.*)", (error, req, res, next) => {
-  if (error) {
-    console.error(`Error for ${req.url}:`, error);
-    res.error(500, "Internal Server Error");
-  } else {
-    next();
+  setupRoutes() {
+    this.get("/health", () => res.json({ status: "ok" }));
   }
-});
+}
 
-// ❌ Don't use app.always() for error middleware
-// app.always((error, req, res, next) => { ... }) // Wrong!
+const api = new API();
 ```
 
-### Common Middleware Examples
+## File Server
 
-**Body Parser:**
 ```javascript
-app.always(async (req, res, next) => {
-  if (!["POST", "PUT", "PATCH"].includes(req.method)) {
-    return next();
-  }
-  
-  let body = "";
-  req.on("data", chunk => body += chunk);
-  req.on("end", () => {
-    try {
-      req.body = JSON.parse(body);
-    } catch (e) {
-      req.body = body;
-    }
-    next();
-  });
-});
-```
-
-**Rate Limiter:**
-```javascript
-const rateLimit = (() => {
-  const requests = new Map();
-  
-  return (req, res, next) => {
-    const ip = req.ip;
-    const now = Date.now();
-    const windowMs = 60000; // 1 minute
-    const maxRequests = 100;
-    
-    if (!requests.has(ip)) {
-      requests.set(ip, []);
-    }
-    
-    const recent = requests.get(ip).filter(t => now - t < windowMs);
-    
-    if (recent.length >= maxRequests) {
-      return res.error(429);
-    }
-    
-    recent.push(now);
-    requests.set(ip, recent);
-    next();
-  };
-})();
-
-app.always(rateLimit);
-```
-
-**Request Logging:**
-```javascript
-app.always((req, res, next) => {
-  const start = Date.now();
-  
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    console.log(`${req.method} ${req.url} - ${res.statusCode} (${duration}ms)`);
-  });
-  
-  next();
-});
-```
-
-## 📁 Static Files
-
-### Directory Serving
-```javascript
-// Serve public folder at /static
+// Serve files from a directory
 app.files("/static", "./public");
 
-// Directory listing enabled
-const app = woodland({autoindex: true});
-app.files("/", "./public");
+// Serve a specific file
+await app.serve(req, res, "/path/to/file.txt", "./public");
 
-// Custom index files
-const app = woodland({
-  autoindex: true,
-  indexes: ["index.html", "index.htm", "default.html"]
+// Stream a file
+app.stream(req, res, {
+  path: "./public/file.txt",
+  etag: "abc123",
+  charset: "utf-8",
+  stats: { size: 1024, mtime: new Date() }
 });
 ```
 
-### Custom File Handling
-```javascript
-// Download endpoint
-app.get("/downloads/(.*)", (req, res) => {
-  const filename = req.params[0];
-  const filepath = path.join("./downloads", filename);
-  
-  app.serve(req, res, filename, "./downloads");
-});
-```
-
-## 🌐 CORS
-
-**Most apps only need to configure origins - Woodland handles the rest.**
-
-### Simple Setup
-```javascript
-const app = woodland({
-  origins: ["https://myapp.com", "http://localhost:3000"],
-  corsExpose: "x-total-count" // Expose custom headers to client
-});
-
-// Woodland automatically provides:
-// ✅ Preflight OPTIONS requests
-// ✅ Access-Control-Allow-Origin headers  
-// ✅ Access-Control-Allow-Methods based on your routes
-// ✅ Access-Control-Allow-Credentials: true
-// ✅ Origin validation (denies unknown origins)
-```
-
-### Advanced CORS
-```javascript
-// Conditional CORS (manual control)
-const app = woodland({origins: []}); // Disable automatic CORS
-
-// Dynamic origin validation
-app.always((req, res, next) => {
-  const origin = req.headers.origin;
-  
-  if (isValidOrigin(origin, req.user)) {
-    res.header("access-control-allow-origin", origin);
-    res.header("access-control-allow-credentials", "true");
-  }
-  
-  next();
-});
-```
-
-## ❌ Error Handling
-
-### Built-in Error Responses
-```javascript
-app.get("/error", (req, res) => {
-  res.error(500, "Server Error");
-});
-
-app.get("/not-found", (req, res) => {
-  res.error(404); // 404 Not Found
-});
-
-app.get("/bad-request", (req, res) => {
-  res.error(400, "Invalid input", {
-    "content-type": "application/json"
-  });
-});
-```
-
-### Global Error Handler
-```javascript
-// Register last, catches all errors
-app.use("/(.*)", (error, req, res, next) => {
-  console.error(`[${res.statusCode}] ${req.url}:`, error);
-  
-  if (res.statusCode >= 500) {
-    logError(error, req); // External logging
-  }
-  
-  res.error(res.statusCode, "Internal Server Error");
-});
-```
-
-### Event-Based Error Logging
-```javascript
-app.on("error", (req, res, err) => {
-  console.error(`Error ${res.statusCode} on ${req.url}:`, err);
-});
-```
-
-## 📤 Response Helpers
-
-### JSON Responses
-```javascript
-app.get("/users/:id", (req, res) => {
-  res.json({id: req.params.id, name: "John"});
-});
-
-app.post("/users", (req, res) => {
-  const user = createUser(req.body);
-  res.json(user, 201); // Custom status
-});
-```
-
-### Redirects
-```javascript
-// Permanent redirect
-app.get("/old", (req, res) => {
-  res.redirect("/new");
-});
-
-// Temporary redirect
-app.get("/temp", (req, res) => {
-  res.redirect("/target", false); // false = temporary
-});
-```
-
-### Custom Headers
-```javascript
-// Single header
-app.get("/api", (req, res) => {
-  res.header("x-total-count", "100");
-  res.json({data: []});
-});
-
-// Multiple headers
-app.get("/download", (req, res) => {
-  res.set({
-    "content-disposition": "attachment; filename=data.json",
-    "content-type": "application/json"
-  });
-  res.send(JSON.stringify({data: "example"}));
-});
-```
-
-## 🎯 Event Handlers
+## Logger
 
 ```javascript
-// Log all connections
-app.on("connect", (req, res) => {
-  console.log(`Connection from ${req.ip}`);
-});
+// Access logger
+app.logger.log("Custom log message");
+app.logger.logError("/path", "GET", "127.0.0.1");
+app.logger.logRoute("/path", "GET", "127.0.0.1");
+app.logger.logMiddleware("/path", handler);
+app.logger.logDecoration("/path", "GET", "127.0.0.1");
+app.logger.logServe(req, "Serving file");
 
-// Analytics after each request
-app.on("finish", (req, res) => {
-  analytics.track({
-    method: req.method,
-    url: req.url,
-    status: res.statusCode,
-    ip: req.ip
-  });
-});
+// Common Log Format
+app.logger.clf(req, res); // "127.0.0.1 - - [date] \"GET / HTTP/1.1\" 200 1234"
 
-// Centralized error logging
-app.on("error", (req, res, err) => {
-  console.error(`[${res.statusCode}] ${req.url}:`, err);
-  if (res.statusCode >= 500) {
-    logErrorToService(err, req);
-  }
-});
+// Time formatting
+app.logger.ms(1234567); // "1.234 ms"
+app.logger.timeOffset(300); // "-0500" (timezone offset)
 ```
 
-## 📊 Logging
-
-### Configuration
-```javascript
-const app = woodland({
-  logging: {
-    enabled: true,
-    level: "debug",  // error, warn, info, debug
-    format: "%h %t \"%r\" %>s %b"
-  }
-});
-```
-
-### Log Format
-| Placeholder | Description |
-|--------|--|
-| `%h` | Remote IP |
-| `%t` | Timestamp |
-| `%r` | Request line |
-| `%s` | Status code |
-| `%b` | Response size |
-| `%{Header}i` | Request header |
-| `%{Header}o` | Response header |
-
-### Manual Logging
-```javascript
-app.log("Custom message", "info");
-app.log("Debug info", "debug");
-```
-
-## 💻 CLI Usage
-
-Serve files quickly without writing code:
+## CLI
 
 ```bash
 # Install globally
 npm install -g woodland
 
-# Serve current directory (default: http://127.0.0.1:8000)
+# Serve directory (default: http://127.0.0.1:8000)
 woodland
 
-# Custom port and IP
-woodland --ip=0.0.0.0 --port=3000
+# Custom port
+woodland --port=3000
 
-# Disable logging
-woodland --logging=false
+# Custom IP
+woodland --ip=0.0.0.0
+
+# Enable file serving
+woodland --files
+
+# Verbose logging
+woodland --verbose
 ```
 
-### CLI Options
-
-| Option | Default | Description |
-|---|---|--|
-| `--ip` | `127.0.0.1` | Server IP address |
-| `--port` | `8000` | Server port |
-| `--logging` | `true` | Enable/disable logging |
-
-The CLI achieves **100% test coverage** with comprehensive unit tests covering argument parsing, validation, server configuration, error handling, and actual HTTP request serving.
-
-### Example Output
+## Testing
 
 ```bash
-$ woodland --port=3000
-id=woodland, hostname=localhost, ip=127.0.0.1, port=3000
-127.0.0.1 - [18/Dec/2024:10:30:00 -0500] "GET / HTTP/1.1" 200 1327
-127.0.0.1 - [18/Dec/2024:10:30:05 -0500] "GET /favicon.ico HTTP/1.1" 404 9
+npm test              # Run tests (100% coverage)
+npm run coverage      # Generate coverage report
+npm run benchmark     # Performance benchmarks
+npm run lint          # Check linting
+npm run fix           # Fix linting issues
 ```
 
-## 📚 API Reference
+## Performance Patterns
 
-### Factory Function
-```javascript
-import {woodland} from "woodland";
-
-const app = woodland(options);
-```
-
-### Class (for inheritance)
-```javascript
-import {Woodland} from "woodland";
-
-class MyAPI extends Woodland {
-  constructor() {
-    super(options);
-  }
-}
-```
-
-### HTTP Methods
-
-| Method | Description |
-|--------|------------|
-| `app.get(path, ...handlers)` | GET route |
-| `app.post(path, ...handlers)` | POST route |
-| `app.put(path, ...handlers)` | PUT route |
-| `app.delete(path, ...handlers)` | DELETE route |
-| `app.patch(path, ...handlers)` | PATCH route |
-| `app.options(path, ...handlers)` | OPTIONS route |
-| `app.trace(path, ...handlers)` | TRACE route |
-| `app.connect(path, ...handlers)` | CONNECT route |
-| `app.use(path, ...handlers)` | Generic middleware |
-
-### Middleware
-
-| Method | Description |
-|--|--|
-| `app.always(path, ...handlers)` | Global middleware (all requests) |
-| `app.files(path, folder)` | Static file server |
-| `app.ignore(fn)` | Ignore route patterns |
-
-### Event Handlers
-
-| Event | Description |
-|---|--|
-| `app.on("connect", handler)` | New connection |
-| `app.on("finish", handler)` | Request completed |
-| `app.on("error", handler)` | Error occurred |
-| `app.on("stream", handler)` | File streaming |
-
-### Request Object (extensions)
-
-| Property | Description |
-|--|--|
-| `req.allow` | Allowed methods for path |
-| `req.body` | Request body (set by middleware) |
-| `req.cors` | Is this a CORS request? |
-| `req.host` | Hostname from request |
-| `req.ip` | Client IP address |
-| `req.params` | Route parameters |
-| `req.parsed` | Parsed URL object |
-| `req.valid` | Request validation status |
-| `req.exit()` | Exit middleware chain |
-
-### Response Object (extensions)
-
-| Method | Description |
-|------|--|
-| `res.error(status, body, headers)` | Send error |
-| `res.header(key, value)` | Set header |
-| `res.json(body, status, headers)` | Send JSON |
-| `res.redirect(url, permanent)` | Redirect |
-| `res.send(body, status, headers)` | Send response |
-| `res.set(headers)` | Set multiple headers |
-| `res.status(code)` | Set status code |
-
-### Lifecycle Hooks
-
-| Hook | Description |
-|--|--|
-| `onReady(req, res, body)` | Before sending response |
-| `onSend(req, res, body)` | Customize response |
-| `onDone(req, res, body)` | Finalize response |
-
-## ⚡ Performance
-
-### Benchmark Results
-
-Platform: Apple Mac Mini M4 Pro, Node.js 24.8.0 (1000 iterations, 5-run average)
-
-| Framework | ops/sec | avg latency | Rank |
-|--|--|--|--|
-| Fastify | 14,283 | 0.070ms | 🥇 |
-| **Woodland** | **12,478** | **0.080ms** | **🥈** |
-| Express.js | 12,112 | 0.083ms | 🥉 |
-| Raw Node.js | 10,888 | 0.092ms | |
-
-**Woodland is 15% faster than raw Node.js, 3% faster than Express.js, 87% of Fastify's performance**
-
-### Why Woodland is Fast
-
-- Optimized request/response pipeline (vs raw Node.js)
-- Lightweight middleware system (vs Express.js)  
-- Built-in JSON optimization and efficient header management
-- Route caching with intelligent lookup (4.8M ops/sec cached)
-
-### Performance Tips
-
-1. **Use cached routes**: Route caching provides 16x improvement
-2. **Minimize middleware**: Only use what you need
-3. **Enable ETags**: Reduce bandwidth for unchanged resources
-4. **Stream large files**: Built-in streaming (330K ops/sec)
-5. **Order routes strategically**: Frequently used routes first
-
-### Running Benchmarks
-
-```bash
-git clone https://github.com/avoidwork/woodland.git
-cd woodland
-npm install
-
-# Run all benchmarks
-npm run benchmark
-
-# Specific suites
-node benchmark.js routing utility serving
-node benchmark.js --iterations 2000 --warmup 200
-```
-
-## 🧪 Testing
-
-### Run Tests
-
-Woodland maintains **100%** statement coverage with comprehensive testing across all features. The CLI module achieves **100% coverage** with rigorous testing of all code paths including successful server startup, and the utility module achieves **100% line coverage** with comprehensive edge case testing.
-
-```bash
-npm test
-```
-
-### Test Results
-
-```
-386 passing (6s)
-
---------------|---------|----------|---------|---------|-------------------
-File          | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
---------------|---------|----------|---------|---------|-------------------
-All files     |     100 |      100 |     100 |     100 |                   
- cli.js       |     100 |      100 |     100 |     100 |                   
- constants.js |     100 |      100 |     100 |     100 |                   
- utility.js   |     100 |      100 |     100 |     100 |                   
- woodland.js  |     100 |      100 |     100 |     100 |                   
---------------|---------|----------|---------|---------|-------------------
-```
-
-### Test Categories
-
-- **CLI Tests (100% coverage)** - Argument parsing, port/IP validation, server startup with HTTP verification, error handling, logging configuration, edge cases
-- **Security Integration Tests** - Path traversal protection, IP security, CORS enforcement, autoindex security, security headers
-- **Constants Tests** - HTTP methods, status codes, headers, content types, server info, export validation
-- **Security Utility Functions** - File path validation, sanitization, HTML escaping, IPv4/IPv6 validation
-- **Utility Functions** - Autoindex generation, status resolution, MIME detection, parameter parsing, URL processing, timing utilities
-- **Woodland Core Tests** - Constructor configuration, HTTP method handlers, middleware registration, routing, CORS handling
-- **Stream Method Tests** - File headers, different file types, range requests, ETags, binary files
-- **Range Request Tests** - String content, invalid ranges, streams, partial content delivery
-- **Cache Functionality** - Route caching, allows caching, cache eviction, permissions caching
-- **Serve Method Tests** - Text files, HTML files, binary files, 404 handling, directory redirection, index files, autoindex, nested paths, large files
-- **Middleware Tests** - Execution order, error propagation, parameterized routes, exit functionality, wildcard middleware
-- **Response Helper Tests** - JSON responses, redirects, header manipulation, status codes, error handling
-
-### Writing Tests
+**Caching:**
 
 ```javascript
-import {woodland} from "woodland";
-import assert from "node:assert";
+// LRU cache via tiny-lru (default: 1000 entries, 10s TTL)
+const app = woodland({ cacheSize: 1000, cacheTTL: 10000 });
 
-describe("My API", () => {
-  let app;
-  
-  beforeEach(() => {
-    app = woodland();
-  });
-  
-  it("should respond to GET /", async () => {
-    app.get("/", (req, res) => res.send("Hello"));
-    
-    const req = {method: "GET", url: "/", headers: {}};
-    const res = {
-      statusCode: 200,
-      headers: {},
-      setHeader: (k, v) => res.headers[k] = v,
-      end: (body) => res.body = body
-    };
-    
-    app.route(req, res);
-    assert.equal(res.body, "Hello");
-  });
-});
+// ETag support via tiny-etag (default: enabled)
+const app = woodland({ etags: true });
+
+// File stats are read fresh each time (no caching for accuracy)
 ```
 
-## 📘 TypeScript
+**Optimization Tips:**
 
-Woodland includes full TypeScript definitions:
+- Use `app.allowed("GET", "/users")` to check if method is allowed
+- Use `app.list("get", "array")` to list all routes for a method
+- Cache regex patterns at module level for repeated use
+- Use `Set` for O(1) lookups instead of array `.includes()`
 
-```typescript
-import {Woodland, woodland} from "woodland";
-import {IncomingMessage, ServerResponse} from "node:http";
+## Benchmarks
 
-// Using factory function
-const app = woodland({
-  defaultHeaders: {"content-type": "application/json"}
-});
+**Performance comparison (mean of 5 runs):**
 
-// Using class with custom types
-interface UserRequest extends IncomingMessage {
-  user?: {id: string; name: string};
+| Framework | Mean (ms) | Ops/sec |
+|-----------|-----------|---------|
+| Fastify | 0.0863ms | 11,698 |
+| **Woodland** | **0.0929ms** | **10,860** |
+| Node.js HTTP | 0.1092ms | 9,180 |
+| Express | 0.1043ms | 9,591 |
+
+Woodland is **11.5% faster than Express** and **14.8% faster than raw Node.js HTTP**.
+
+**Additional Performance Metrics:**
+
+| Category | Metric | Result |
+|----------|--------|--------|
+| **Routing** | Method validation (`allows()`) | 4.9M ops/sec |
+| | Route resolution (`routes()`) | 1.8M ops/sec |
+| **Middleware** | Registration | 43K+ ops/sec |
+| | Simple execution | 31K ops/sec |
+| **HTTP Server** | JSON responses | 13,225 ops/sec |
+| | CRUD operations | 10-14K ops/sec |
+| **File Serving** | Small files (< 1KB) | 44K ops/sec |
+| | Streaming with ETags | 370K ops/sec |
+| **Capacity** | Single instance (JSON API) | 5,000-7,000 RPS |
+| | Cluster (10 instances) | 50,000-70,000 RPS |
+
+[Full benchmark details](https://github.com/avoidwork/woodland/blob/main/docs/BENCHMARKS.md)
+
+## Documentation
+
+- [API Reference](https://github.com/avoidwork/woodland/blob/main/docs/API.md) - Complete method documentation
+- [Technical Documentation](https://github.com/avoidwork/woodland/blob/main/docs/TECHNICAL_DOCUMENTATION.md) - Architecture, OWASP security, internals
+- [Code Style Guide](https://github.com/avoidwork/woodland/blob/main/docs/CODE_STYLE_GUIDE.md) - Conventions and best practices
+- [Benchmarks](https://github.com/avoidwork/woodland/blob/main/docs/BENCHMARKS.md) - Performance testing results
+
+## Security
+
+**Automatic Protection:**
+
+- Injection prevention - Input validation, HTML escaping
+- Path traversal protection - Secure file access
+- CORS enforcement - Origin validation
+- Secure defaults - Safe error handling
+
+**Security Best Practices:**
+
+```javascript
+// Always validate IP addresses before use
+import { isValidIP } from "woodland";
+
+if (isValidIP(req.ip)) {
+	// Safe to use
 }
 
-const authenticate = (
-  req: UserRequest,
-  res: ServerResponse,
-  next: () => void
-): void => {
-  req.user = {id: "123", name: "John"};
-  next();
-};
+// Escape HTML in dynamic content
+import { escapeHtml } from "woodland";
 
-app.get("/protected", authenticate, (req, res) => {
-  const user = (req as UserRequest).user;
-  res.json(user);
-});
+const safeOutput = escapeHtml(userInput);
+
+// Deny CORS by default (empty origins array)
+const app = woodland(); // No origins = deny all CORS
+
+// Block path traversal in file serving
+app.files("/static", "./public"); // Automatically blocks ../ attempts
 ```
 
-## 🛠️ Troubleshooting
+**Production Setup:**
 
-### CORS Issues
 ```javascript
-// Problem: CORS blocked
-// Solution: Configure origins
-const app = woodland({
-  origins: ["https://myapp.com", "http://localhost:3000"]
-});
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+
+app.always(helmet());
+app.always(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
 ```
 
-### Routes Not Matching
+## Troubleshooting
+
+**CORS blocked?**
+
 ```javascript
-// Problem: Route not matching
-// Solution: Check trailing slashes
-app.get("/users/:id", handler);     // ✅
-app.get("/users/:id/", handler);    // ❌ Trailing slash
+const app = woodland({ origins: ["https://myapp.com"] });
 ```
 
-### High Memory Usage
+**Route not matching?**
+
 ```javascript
-// Problem: High memory
-// Solution: Tune cache
-const app = woodland({
-  cacheSize: 100,    // Reduce cache
-  cacheTTL: 60000    // Shorter TTL
-});
+// Check trailing slashes - be consistent
+app.get("/users/:id", handler); // ✅
 ```
 
-### Debug Mode
+**High memory?**
+
 ```javascript
-const app = woodland({
-  logging: {level: "debug"}
-});
-
-app.log("Debug info", "debug");
+const app = woodland({ cacheSize: 100, cacheTTL: 60000 });
 ```
 
-## 📄 License
+## License
 
 Copyright (c) 2026 Jason Mulligan
 
 Licensed under the **BSD-3-Clause** license.
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -971,14 +604,8 @@ Licensed under the **BSD-3-Clause** license.
 4. Ensure all tests pass (`npm test`)
 5. Submit a pull request
 
-## 📞 Support
+## Support
 
 - **Issues**: [GitHub Issues](https://github.com/avoidwork/woodland/issues)
-- **Documentation**: [GitHub Wiki](https://github.com/avoidwork/woodland/wiki)
+- **Documentation**: [GitHub Wiki](https://github.com/avoidwork/woodland/tree/master/docs)
 - **Discussions**: [GitHub Discussions](https://github.com/avoidwork/woodland/discussions)
-
----
-
-<div align="center">
-  <sub>Built with ❤️ by <a href="https://github.com/avoidwork">Jason Mulligan</a></sub>
-</div>

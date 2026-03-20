@@ -1,11 +1,11 @@
-import {woodland} from "../dist/woodland.js";
+import { woodland } from "../dist/woodland.js";
 
 // Create test app instance with typical configuration
 const app = woodland({
 	cacheSize: 1000,
 	cacheTTL: 10000,
-	etags: true,
-	logging: {enabled: false} // Disable logging for benchmarks
+	etags: false,
+	logging: { enabled: false }, // Disable logging for benchmarks
 });
 
 // Set up realistic routes for testing
@@ -74,7 +74,7 @@ const testUris = [
 	"/api/v1/resource/123/nested/456",
 	"/api/v5/resource/789/nested/012",
 	"/not-found-route",
-	"/api/not-found"
+	"/api/not-found",
 ];
 
 // Initialize routes once
@@ -83,7 +83,7 @@ setupRoutes();
 /**
  * Benchmark routes() function - core route resolution with caching
  */
-function benchmarkRoutes () {
+function benchmarkRoutes() {
 	const uri = testUris[Math.floor(Math.random() * testUris.length)];
 	const method = ["GET", "POST", "PUT", "DELETE"][Math.floor(Math.random() * 4)];
 
@@ -93,7 +93,7 @@ function benchmarkRoutes () {
 /**
  * Benchmark routes() function without cache - forced cache miss
  */
-function benchmarkRoutesNoCache () {
+function benchmarkRoutesNoCache() {
 	const uri = testUris[Math.floor(Math.random() * testUris.length)];
 	const method = ["GET", "POST", "PUT", "DELETE"][Math.floor(Math.random() * 4)];
 
@@ -103,7 +103,7 @@ function benchmarkRoutesNoCache () {
 /**
  * Benchmark allows() function - determines allowed methods for URI
  */
-function benchmarkAllows () {
+function benchmarkAllows() {
 	const uri = testUris[Math.floor(Math.random() * testUris.length)];
 
 	return app.allows(uri);
@@ -112,7 +112,7 @@ function benchmarkAllows () {
 /**
  * Benchmark allows() function without cache
  */
-function benchmarkAllowsNoCache () {
+function benchmarkAllowsNoCache() {
 	const uri = testUris[Math.floor(Math.random() * testUris.length)];
 
 	return app.allows(uri, true); // override cache
@@ -121,7 +121,7 @@ function benchmarkAllowsNoCache () {
 /**
  * Benchmark allowed() function - checks if method is allowed for URI
  */
-function benchmarkAllowed () {
+function benchmarkAllowed() {
 	const uri = testUris[Math.floor(Math.random() * testUris.length)];
 	const method = ["GET", "POST", "PUT", "DELETE"][Math.floor(Math.random() * 4)];
 
@@ -131,7 +131,7 @@ function benchmarkAllowed () {
 /**
  * Benchmark allowed() function without cache
  */
-function benchmarkAllowedNoCache () {
+function benchmarkAllowedNoCache() {
 	const uri = testUris[Math.floor(Math.random() * testUris.length)];
 	const method = ["GET", "POST", "PUT", "DELETE"][Math.floor(Math.random() * 4)];
 
@@ -141,7 +141,7 @@ function benchmarkAllowedNoCache () {
 /**
  * Benchmark route matching with parameters
  */
-function benchmarkParameterRoutes () {
+function benchmarkParameterRoutes() {
 	const parameterizerdUris = [
 		"/api/users/123",
 		"/api/posts/456/comments/789",
@@ -149,7 +149,7 @@ function benchmarkParameterRoutes () {
 		"/blog/my-awesome-post",
 		"/category/tech/posts",
 		"/api/v1/resource/123/nested/456",
-		"/api/v5/resource/789/nested/012"
+		"/api/v5/resource/789/nested/012",
 	];
 
 	const uri = parameterizerdUris[Math.floor(Math.random() * parameterizerdUris.length)];
@@ -161,7 +161,7 @@ function benchmarkParameterRoutes () {
 /**
  * Benchmark route matching for static routes (no parameters)
  */
-function benchmarkStaticRoutes () {
+function benchmarkStaticRoutes() {
 	const staticUris = [
 		"/",
 		"/api/users",
@@ -173,7 +173,7 @@ function benchmarkStaticRoutes () {
 		"/admin/settings",
 		"/search",
 		"/health",
-		"/metrics"
+		"/metrics",
 	];
 
 	const uri = staticUris[Math.floor(Math.random() * staticUris.length)];
@@ -185,7 +185,7 @@ function benchmarkStaticRoutes () {
 /**
  * Benchmark route matching for non-existent routes
  */
-function benchmarkNotFoundRoutes () {
+function benchmarkNotFoundRoutes() {
 	const notFoundUris = [
 		"/not-found-route",
 		"/api/not-found",
@@ -193,32 +193,13 @@ function benchmarkNotFoundRoutes () {
 		"/static/not-found.js",
 		"/api/users/not-found/comments",
 		"/category/not-found/posts",
-		"/api/v99/resource/123/nested/456"
+		"/api/v99/resource/123/nested/456",
 	];
 
 	const uri = notFoundUris[Math.floor(Math.random() * notFoundUris.length)];
 	const method = ["GET", "POST", "PUT", "DELETE"][Math.floor(Math.random() * 4)];
 
 	return app.routes(uri, method);
-}
-
-/**
- * Benchmark path conversion (parameter routes to regex)
- */
-function benchmarkPathConversion () {
-	const paths = [
-		"/api/users/:id",
-		"/api/posts/:id/comments/:commentId",
-		"/static/images/:filename",
-		"/blog/:slug",
-		"/category/:category/posts",
-		"/api/v:version/resource/:id/nested/:nestedId",
-		"/users/:userId/posts/:postId/comments/:commentId/replies/:replyId"
-	];
-
-	const path = paths[Math.floor(Math.random() * paths.length)];
-
-	return app.path(path);
 }
 
 // Export benchmark functions
@@ -232,5 +213,4 @@ export default {
 	"parameter routes": benchmarkParameterRoutes,
 	"static routes": benchmarkStaticRoutes,
 	"not found routes": benchmarkNotFoundRoutes,
-	"path conversion": benchmarkPathConversion
 };

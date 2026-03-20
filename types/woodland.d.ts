@@ -1,133 +1,110 @@
-import { IncomingMessage, ServerResponse } from "node:http";
 import { EventEmitter } from "node:events";
-import { LRU } from "tiny-lru";
 
 export interface WoodlandConfig {
-    autoindex?: boolean;
-    cacheSize?: number;
-    cacheTTL?: number;
-    charset?: string;
-    corsExpose?: string;
-    defaultHeaders?: Record<string, string>;
-    digit?: number;
-    etags?: boolean;
-    indexes?: string[];
-    logging?: {
-        enabled?: boolean;
-        format?: string;
-        level?: string;
-    };
-    origins?: string[];
-    silent?: boolean;
-    time?: boolean;
+	autoIndex?: boolean;
+	cacheSize?: number;
+	cacheTTL?: number;
+	charset?: string;
+	corsExpose?: string;
+	defaultHeaders?: Record<string, string>;
+	digit?: number;
+	etags?: boolean;
+	indexes?: string[];
+	logging?: object;
+	origins?: string[];
+	silent?: boolean;
+	time?: boolean;
 }
 
-export interface FileInfo {
-    charset: string;
-    etag: string;
-    path: string;
-    stats: {
-        mtime: Date;
-        size: number;
-        ino?: number;
-        mtimeMs?: number;
-    };
+export interface FileDescriptor {
+	charset: string;
+	etag: string;
+	path: string;
+	stats: {
+		mtime: Date;
+		size: number;
+	};
 }
 
-export interface MiddlewareFunction {
-    (req: IncomingMessage, res: ServerResponse, next: (err?: any) => void): void;
-}
-
-export interface ErrorMiddlewareFunction {
-    (err: any, req: IncomingMessage, res: ServerResponse, next: (err?: any) => void): void;
-}
-
-export interface ExtendedRequest extends IncomingMessage {
-    allow?: string;
-    body?: any;
-    cors?: boolean;
-    corsHost?: boolean;
-    host?: string;
-    ip?: string;
-    params?: Record<string, any>;
-    parsed?: URL;
-    precise?: any;
-    range?: { start: number; end: number };
-    valid?: boolean;
-    exit?: (err?: any) => void;
-}
-
-export interface ExtendedResponse extends ServerResponse {
-    locals?: Record<string, any>;
-    error?: (status: number, body?: any, headers?: Record<string, string>) => void;
-    header?: (name: string, value: string) => void;
-    json?: (body: any, status?: number, headers?: Record<string, string>) => void;
-    redirect?: (url: string, permanent?: boolean) => void;
-    send?: (body?: any, status?: number, headers?: Record<string, any>) => void;
-    set?: (headers: Record<string, any> | Map<string, any> | Headers) => ServerResponse;
-    status?: (code: number) => ServerResponse;
+export interface RouteInfo {
+	params?: boolean;
+	getParams?: string;
+	middleware: Function[];
+	exit: number;
 }
 
 export class Woodland extends EventEmitter {
-    constructor(config?: WoodlandConfig);
-    
-    autoindex: boolean;
-    ignored: Set<Function>;
-    cache: LRU<any>;
-    charset: string;
-    corsExpose: string;
-    defaultHeaders: [string, string][];
-    digit: number;
-    etags: any;
-    indexes: string[];
-    permissions: LRU<any>;
-    logging: {
-        enabled: boolean;
-        format: string;
-        level: string;
-    };
-    methods: string[];
-    middleware: Map<string, Map<string, any>>;
-    origins: string[];
-    time: boolean;
-    
-    allowed(method: string, uri: string, override?: boolean): boolean;
-    allows(uri: string, override?: boolean): string;
-    always(...args: (string | MiddlewareFunction | ErrorMiddlewareFunction)[]): this;
-    connect(...args: (string | MiddlewareFunction | ErrorMiddlewareFunction)[]): this;
-    clf(req: IncomingMessage, res: ServerResponse): string;
-    cors(req: IncomingMessage): boolean;
-    corsHost(req: IncomingMessage): boolean;
-    corsRequest(): MiddlewareFunction;
-    decorate(req: IncomingMessage, res: ServerResponse): void;
-    delete(...args: (string | MiddlewareFunction | ErrorMiddlewareFunction)[]): this;
-    error(req: IncomingMessage, res: ServerResponse): (status: number, body?: any, headers?: Record<string, string>) => void;
-    etag(method: string, ino: number, size: number, mtime: number): string;
-    files(root?: string, folder?: string): void;
-    get(...args: (string | MiddlewareFunction | ErrorMiddlewareFunction)[]): this;
-    ignore(fn: Function): this;
-    ip(req: IncomingMessage): string;
-    json(res: ServerResponse): (arg: any, status?: number, headers?: Record<string, string>) => void;
-    list(method?: string, type?: string): any;
-    log(msg: string, level?: string): this;
-    onDone(req: IncomingMessage, res: ServerResponse, body: any, headers: Record<string, any>): void;
-    onReady(req: IncomingMessage, res: ServerResponse, body: any, status: number, headers: Record<string, any>): [any, number, Record<string, any>];
-    onSend(req: IncomingMessage, res: ServerResponse, body: any, status: number, headers: Record<string, any>): [any, number, Record<string, any>];
-    options(...args: (string | MiddlewareFunction | ErrorMiddlewareFunction)[]): this;
-    patch(...args: (string | MiddlewareFunction | ErrorMiddlewareFunction)[]): this;
-    path(arg?: string): string;
-    post(...args: (string | MiddlewareFunction | ErrorMiddlewareFunction)[]): this;
-    put(...args: (string | MiddlewareFunction | ErrorMiddlewareFunction)[]): this;
-    redirect(res: ServerResponse): (uri: string, perm?: boolean) => void;
-    route(req: IncomingMessage, res: ServerResponse): void;
-    routes(uri: string, method: string, override?: boolean): any;
-    send(req: IncomingMessage, res: ServerResponse): (body?: any, status?: number, headers?: Record<string, any>) => void;
-    set(res: ServerResponse): (arg?: Record<string, any> | Map<string, any> | Headers) => ServerResponse;
-    serve(req: IncomingMessage, res: ServerResponse, arg: string, folder?: string): Promise<void>;
-    status(res: ServerResponse): (arg?: number) => ServerResponse;
-    stream(req: IncomingMessage, res: ServerResponse, file?: FileInfo): void;
-    trace(...args: (string | MiddlewareFunction | ErrorMiddlewareFunction)[]): this;
-    use(rpath: string | MiddlewareFunction, ...fn: (MiddlewareFunction | ErrorMiddlewareFunction | string)[]): this;
+	autoIndex: boolean;
+	charset: string;
+	corsExpose: string;
+	defaultHeaders: [string, string][];
+	digit: number;
+	etags: {
+		create: (input: string) => string;
+		middleware: Function;
+	} | null;
+	indexes: string[];
+	logging: {
+		enabled: boolean;
+		format: string;
+		level: string;
+	};
+	origins: Set<string>;
+	time: boolean;
+	cache: Map<any, any>;
+	permissions: Map<string, string>;
+	methods: string[];
+	logger: {
+		log: (...args: any[]) => void;
+		logError: (...args: any[]) => void;
+		logRoute: (...args: any[]) => void;
+		logMiddleware: (...args: any[]) => void;
+		logDecoration: (...args: any[]) => void;
+		logServe: (...args: any[]) => void;
+		clf: (...args: any[]) => string;
+		ms: (...args: any[]) => string;
+		timeOffset: (...args: any[]) => string;
+	};
+	fileServer: {
+		register: (root: string, folder: string, use: Function) => void;
+		serve: (req: any, res: any, arg: string, folder: string) => Promise<void>;
+	};
+	middleware: {
+		ignore: (fn: Function) => void;
+		allowed: (method: string, uri: string, override?: boolean) => boolean;
+		routes: (uri: string, method: string, override?: boolean) => RouteInfo;
+		register: (path: string, ...fns: Function[]) => void;
+		list: (method: string, type: string) => any;
+	};
+
+	constructor(config?: WoodlandConfig);
+
+	allowed(method: string, uri: string, override?: boolean): boolean;
+	allows(uri: string, override?: boolean): string;
+	always(...args: Function[]): Woodland;
+	connect(...args: Function[]): Woodland;
+	decorate(req: any, res: any): void;
+	delete(...args: Function[]): Woodland;
+	etag(method: string, ...args: any[]): string;
+	files(root?: string, folder?: string): void;
+	get(...args: Function[]): Woodland;
+	ignore(fn: Function): Woodland;
+	list(method?: string, type?: string): any | any[];
+	onDone(req: any, res: any, body: any, headers: any): void;
+	onReady(req: any, res: any, body: any, status: number, headers: any): any[];
+	onSend(req: any, res: any, body: any, status: number, headers: any): any[];
+	options(...args: Function[]): Woodland;
+	patch(...args: Function[]): Woodland;
+	post(...args: Function[]): Woodland;
+	put(...args: Function[]): Woodland;
+	route(req: any, res: any): void;
+	routes(uri: string, method: string, override?: boolean): RouteInfo;
+	serve(req: any, res: any, arg: string, folder?: string): Promise<void>;
+	stream(req: any, res: any, file?: FileDescriptor): void;
+	trace(...args: Function[]): Woodland;
+	use(rpath: string | Function, ...fn: Function[]): Woodland;
 }
 
-export function woodland(config?: WoodlandConfig): Woodland;
+export function woodland(arg?: WoodlandConfig): Woodland;
+
+export default woodland;

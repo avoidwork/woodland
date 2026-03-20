@@ -9,9 +9,9 @@ const bannerLong = `/**
  * @license ${pkg.license}
  * @version ${pkg.version}
  */`;
-const defaultOutBase = {compact: true, banner: bannerLong, name: pkg.name};
-const cjOutBase = {...defaultOutBase, compact: false, format: "cjs", exports: "named"};
-const esmOutBase = {...defaultOutBase, format: "esm"};
+const defaultOutBase = { compact: true, banner: bannerLong, name: pkg.name };
+const cjOutBase = { ...defaultOutBase, compact: false, format: "cjs", exports: "named" };
+const esmOutBase = { ...defaultOutBase, format: "esm" };
 
 export default [
 	{
@@ -23,39 +23,42 @@ export default [
 			"node:fs/promises",
 			"node:module",
 			"node:url",
+			"jsonschema",
 			"mime-db",
 			"precise",
 			"tiny-etag",
 			"tiny-lru",
-			"tiny-coerce"
+			"tiny-coerce",
 		],
 		input: "./src/woodland.js",
 		output: [
 			{
 				...cjOutBase,
-				file: `dist/${pkg.name}.cjs`
+				file: `dist/${pkg.name}.cjs`,
 			},
 			{
 				...esmOutBase,
-				file: `dist/${pkg.name}.js`
-			}
-		]
+				file: `dist/${pkg.name}.js`,
+			},
+		],
 	},
 	{
 		external: [
 			"node:http",
+			"node:fs",
 			"node:module",
 			"node:path",
 			"node:url",
+			"mime-db",
 			"tiny-coerce",
-			"woodland"
+			"woodland",
 		],
 		input: "./src/cli.js",
 		output: [
 			{
 				...cjOutBase,
-				file: "dist/cli.cjs"
-			}
-		]
-	}
+				file: "dist/cli.cjs",
+			},
+		],
+	},
 ];

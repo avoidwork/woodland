@@ -1,10 +1,10 @@
-import {createRequire} from "node:module";
-import {join} from "node:path";
-import {fileURLToPath, URL} from "node:url";
+import { createRequire } from "node:module";
+import { join } from "node:path";
+import { fileURLToPath, URL } from "node:url";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const require = createRequire(import.meta.url);
-const {name, version} = require(join(__dirname, "..", "package.json"));
+const { name, version } = require(join(__dirname, "..", "package.json"));
 
 // =============================================================================
 // HTTP METHODS
@@ -18,6 +18,7 @@ export const PATCH = "PATCH";
 export const POST = "POST";
 export const PUT = "PUT";
 export const TRACE = "TRACE";
+export const NODE_METHODS = [CONNECT, DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT, TRACE];
 
 // =============================================================================
 // HTTP STATUS CODES
@@ -55,6 +56,7 @@ export const LOCATION = "location";
 export const NO_SNIFF = "nosniff";
 export const ORIGIN = "origin";
 export const RANGE = "range";
+export const REFERER = "referer";
 export const SERVER = "server";
 export const TIMING_ALLOW_ORIGIN = "timing-allow-origin";
 export const USER_AGENT = "user-agent";
@@ -69,9 +71,53 @@ export const X_RESPONSE_TIME = "x-response-time";
 export const APPLICATION_JSON = "application/json";
 export const APPLICATION_OCTET_STREAM = "application/octet-stream";
 export const TEXT_PLAIN = "text/plain";
+export const TEXT_HTML = "text/html";
 export const CHAR_SET = "charset=utf-8";
 export const UTF8 = "utf8";
 export const UTF_8 = "utf-8";
+
+// =============================================================================
+// NUMERIC CONSTANTS
+// =============================================================================
+export const INT_0 = 0;
+export const INT_1 = 1;
+export const INT_2 = 2;
+export const INT_3 = 3;
+export const INT_4 = 4;
+export const INT_5 = 5;
+export const INT_8 = 8;
+export const INT_10 = 10;
+export const INT_60 = 60;
+export const INT_255 = 255;
+export const INT_1e3 = 1e3;
+export const INT_1e4 = 1e4;
+export const INT_1e6 = 1e6;
+export const INT_8000 = 8000;
+export const INT_65535 = 65535;
+
+// =============================================================================
+// STRING & CHARACTER CONSTANTS
+// =============================================================================
+export const COMMA_SPACE = ", ";
+export const COMMA = ",";
+export const COLON = ":";
+export const DELIMITER = "|";
+export const DOUBLE_COLON = "::";
+export const EMPTY = "";
+export const EQUAL = "=";
+export const HYPHEN = "-";
+export const LEFT_PAREN = "(";
+export const PERCENT = "%";
+export const PERIOD = ".";
+export const SLASH = "/";
+export const STRING_0 = "0";
+export const WILDCARD = "*";
+
+// =============================================================================
+// DATA TYPES
+// =============================================================================
+export const FUNCTION = "function";
+export const STRING = "string";
 
 // =============================================================================
 // SERVER & SYSTEM INFO
@@ -79,7 +125,7 @@ export const UTF_8 = "utf-8";
 export const SERVER_VALUE = `${name}/${version}`;
 export const X_POWERED_BY_VALUE = `nodejs/${process.version}, ${process.platform}/${process.arch}`;
 export const LOCALHOST = "127.0.0.1";
-export const INT_8000 = 8000;
+export const HTTP_PREFIX = "http://";
 
 // =============================================================================
 // FILE SYSTEM & ROUTING
@@ -91,52 +137,11 @@ export const EXTENSIONS = "extensions";
 export const PARAMS_GROUP = "/(?<$1>[^/]+)";
 
 // =============================================================================
-// NUMERIC CONSTANTS
-// =============================================================================
-export const INT_0 = 0;
-export const INT_2 = 2;
-export const INT_3 = 3;
-export const INT_4 = 4;
-export const INT_10 = 10;
-export const INT_60 = 60;
-export const INT_1e3 = 1e3;
-export const INT_1e4 = 1e4;
-export const INT_1e6 = 1e6;
-export const INT_65535 = 65535;
-
-// =============================================================================
-// STRING & CHARACTER CONSTANTS
-// =============================================================================
-export const COLON = ":";
-export const COMMA = ",";
-export const COMMA_SPACE = ", ";
-export const DELIMITER = "|";
-export const EMPTY = "";
-export const EQUAL = "=";
-export const HYPHEN = "-";
-export const LEFT_PAREN = "(";
-export const PERIOD = ".";
-export const SLASH = "/";
-export const STRING_0 = "0";
-export const STRING_00 = "00";
-export const STRING_30 = "30";
-export const WILDCARD = "*";
-
-// =============================================================================
-// DATA TYPES
-// =============================================================================
-export const ARRAY = "array";
-export const FUNCTION = "function";
-export const OBJECT = "object";
-export const STRING = "string";
-
-// =============================================================================
 // LOGGING & DEBUGGING
 // =============================================================================
 export const DEBUG = "debug";
 export const ERROR = "error";
 export const INFO = "info";
-export const LOG = "log";
 
 export const LEVELS = Object.freeze({
 	emerg: 0,
@@ -146,12 +151,12 @@ export const LEVELS = Object.freeze({
 	warn: 4,
 	notice: 5,
 	info: 6,
-	debug: 7
+	debug: 7,
 });
 
 // Log format tokens
 export const LOG_B = "%b";
-export const LOG_FORMAT = "%h %l %u %t \"%r\" %>s %b";
+export const LOG_FORMAT = '%h %l %u %t "%r" %>s %b';
 export const LOG_H = "%h";
 export const LOG_L = "%l";
 export const LOG_R = "%r";
@@ -165,18 +170,12 @@ export const LOG_V = "%v";
 // =============================================================================
 // MESSAGES & RESPONSES
 // =============================================================================
-export const MSG_DECORATED_IP = "Decorated request from %IP";
-export const MSG_DETERMINED_ALLOW = "Determined 'allow' header value";
-export const MSG_ERROR_HEAD_ROUTE = "Cannot set HEAD route, use GET";
-export const MSG_ERROR_INVALID_METHOD = "Invalid HTTP method";
-export const MSG_ERROR_IP = "Handled error response for %IP";
-export const MSG_IGNORED_FN = "Added function to ignored Set";
-export const MSG_REGISTERING_MIDDLEWARE = "Registering middleware";
-export const MSG_RETRIEVED_MIDDLEWARE = "Retrieved middleware for request";
+export const MSG_CONFIG_FIELD = "Config ";
 export const MSG_ROUTING = "Routing request";
 export const MSG_ROUTING_FILE = "Routing request to file system";
-export const MSG_SENDING_BODY = "Sending response body";
-
+export const MSG_SERVE_PATH_OUTSIDE = "Path outside allowed directory";
+export const MSG_VALIDATION_FAILED = "Configuration validation failed: ";
+export const SEMICOLON_SPACE = "; ";
 export const OPTIONS_BODY = "Make a GET request to retrieve the file";
 
 // =============================================================================
@@ -188,27 +187,41 @@ export const NO_CACHE = "no-cache";
 // =============================================================================
 // EVENT & STREAM CONSTANTS
 // =============================================================================
-export const CLOSE = "close";
-export const END = "end";
-export const FINISH = "finish";
-export const START = "start";
-export const STREAM = "stream";
+export const EVT_CLOSE = "close";
+export const EVT_FINISH = "finish";
+export const EVT_STREAM = "stream";
+export const EVT_CONNECT = "connect";
+export const EVT_ERROR = "error";
 
 // =============================================================================
 // UTILITY & MISC
 // =============================================================================
+export const CONSOLE_ERROR = "error";
+export const CONSOLE_LOG = "log";
+export const COLLECTION = "collection";
+export const CRITICAL = "critical";
+export const EMERG = "emerg";
 export const EN_US = "en-US";
-export const IP_TOKEN = "%IP";
+export const FALSE = "false";
+export const HTTP_VERSION = "HTTP/1.1";
+export const ITEM = "item";
+export const NOTICE = "notice";
 export const SHORT = "short";
 export const TIME_MS = "%N ms";
 export const TITLE = "title";
-export const TOKEN_N = "%N";
 export const TO_STRING = "toString";
+export const TOKEN_N = "%N";
 export const TRUE = "true";
+export const WARN = "warn";
+export const ALERT = "alert";
 
-export const MONTHS = Object.freeze(Array.from(Array(12).values()).map((i, idx) => {
-	const d = new Date();
-	d.setMonth(idx);
+export const MONTHS = Object.freeze(
+	Array.from({ length: 12 }, (_, idx) => {
+		const d = new Date();
+		d.setMonth(idx);
 
-	return Object.freeze(d.toLocaleString(EN_US, {month: SHORT}));
-}));
+		return Object.freeze(d.toLocaleString(EN_US, { month: SHORT }));
+	}),
+);
+
+export const VALID_LOG_LEVELS = new Set([DEBUG, INFO, WARN, ERROR, CRITICAL, ALERT, EMERG, NOTICE]);

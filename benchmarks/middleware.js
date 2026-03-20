@@ -1,10 +1,10 @@
-import {woodland} from "../dist/woodland.js";
+import { woodland } from "../dist/woodland.js";
 
 // Create test app instance with typical configuration
 // const app = woodland({
 // 	cacheSize: 1000,
 // 	cacheTTL: 10000,
-// 	etags: true,
+// 	etags: false,
 // 	logging: {enabled: false} // Disable logging for benchmarks
 // });
 
@@ -15,11 +15,16 @@ const createMockRequest = (method = "GET", url = "/", headers = {}) => ({
 	headers: {
 		host: "localhost:3000",
 		"user-agent": "benchmark-test",
-		...headers
+		...headers,
 	},
 	connection: {
-		remoteAddress: "127.0.0.1"
-	}
+		remoteAddress: "127.0.0.1",
+	},
+	socket: {
+		server: {
+			_connectionKey: "6::::3000",
+		},
+	},
 });
 
 const createMockResponse = () => {
@@ -29,9 +34,9 @@ const createMockResponse = () => {
 		headersSent: false,
 		headers: headers,
 		setHeader: (name, value) => headers.set(name.toLowerCase(), value),
-		getHeader: name => headers.get(name.toLowerCase()),
-		removeHeader: name => headers.delete(name.toLowerCase()),
-		setHeaders: hdrs => {
+		getHeader: (name) => headers.get(name.toLowerCase()),
+		removeHeader: (name) => headers.delete(name.toLowerCase()),
+		setHeaders: (hdrs) => {
 			if (hdrs instanceof Map) {
 				for (const [key, value] of hdrs) {
 					headers.set(key.toLowerCase(), value);
@@ -50,16 +55,30 @@ const createMockResponse = () => {
 				});
 			}
 		},
-		end: data => {
+		send: (data) => {
 			response.headersSent = true;
-			// Store response data if needed for testing
+			if (data) {
+				response._responseData = data;
+			}
+		},
+		json: (data) => {
+			response.headersSent = true;
+			response._responseData = JSON.stringify(data);
+		},
+		end: (data) => {
+			response.headersSent = true;
 			if (data) {
 				response._responseData = data;
 			}
 		},
 		on: () => {},
 		emit: () => {},
-		pipe: () => {}
+		pipe: () => {},
+		socket: {
+			server: {
+				_connectionKey: "6::::3000",
+			},
+		},
 	};
 
 	return response;
@@ -70,15 +89,15 @@ const createFreshApp = () => {
 	return woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
-		etags: true,
-		logging: {enabled: false}
+		etags: false,
+		logging: { enabled: false },
 	});
 };
 
 /**
  * Benchmark middleware registration via use() method
  */
-function benchmarkMiddlewareRegistration () {
+function benchmarkMiddlewareRegistration() {
 	const freshApp = createFreshApp();
 	const middleware = (req, res, next) => next();
 
@@ -90,7 +109,7 @@ function benchmarkMiddlewareRegistration () {
 		"/api/posts",
 		"/api/posts/:id",
 		"/admin/dashboard",
-		"/static/css/style.css"
+		"/static/css/style.css",
 	];
 
 	const route = routes[Math.floor(Math.random() * routes.length)];
@@ -101,7 +120,7 @@ function benchmarkMiddlewareRegistration () {
 /**
  * Benchmark middleware registration for specific HTTP methods
  */
-function benchmarkSpecificMethodRegistration () {
+function benchmarkSpecificMethodRegistration() {
 	const freshApp = createFreshApp();
 	const middleware = (req, res, next) => next();
 
@@ -114,7 +133,7 @@ function benchmarkSpecificMethodRegistration () {
 /**
  * Benchmark middleware registration for all methods (always)
  */
-function benchmarkAlwaysMiddlewareRegistration () {
+function benchmarkAlwaysMiddlewareRegistration() {
 	const freshApp = createFreshApp();
 	const middleware = (req, res, next) => next();
 
@@ -124,7 +143,7 @@ function benchmarkAlwaysMiddlewareRegistration () {
 /**
  * Benchmark middleware registration with multiple handlers
  */
-function benchmarkMultipleHandlersRegistration () {
+function benchmarkMultipleHandlersRegistration() {
 	const freshApp = createFreshApp();
 	const middleware1 = (req, res, next) => next();
 	const middleware2 = (req, res, next) => next();
@@ -136,7 +155,7 @@ function benchmarkMultipleHandlersRegistration () {
 /**
  * Benchmark request decoration (adding properties to req/res)
  */
-function benchmarkRequestDecoration () {
+function benchmarkRequestDecoration() {
 	const freshApp = createFreshApp();
 	const req = createMockRequest();
 	const res = createMockResponse();
@@ -152,7 +171,7 @@ function benchmarkRequestDecoration () {
 /**
  * Benchmark middleware execution chain - simple middleware
  */
-function benchmarkSimpleMiddlewareExecution () {
+function benchmarkSimpleMiddlewareExecution() {
 	const freshApp = createFreshApp();
 
 	// Add simple middleware
@@ -174,7 +193,7 @@ function benchmarkSimpleMiddlewareExecution () {
 /**
  * Benchmark middleware execution chain - complex middleware stack
  */
-function benchmarkComplexMiddlewareExecution () {
+function benchmarkComplexMiddlewareExecution() {
 	const freshApp = createFreshApp();
 
 	// Add multiple middleware layers
@@ -199,7 +218,7 @@ function benchmarkComplexMiddlewareExecution () {
 	});
 
 	freshApp.get("/api/users/:id", (req, res) => {
-		res.json({id: req.params.id});
+		res.json({ id: req.params.id });
 	});
 
 	const req = createMockRequest("GET", "/api/users/123");
@@ -211,7 +230,7 @@ function benchmarkComplexMiddlewareExecution () {
 /**
  * Benchmark middleware execution with error handling
  */
-function benchmarkErrorHandlingMiddleware () {
+function benchmarkErrorHandlingMiddleware() {
 	const freshApp = createFreshApp();
 
 	// Add error-producing middleware
@@ -223,20 +242,10 @@ function benchmarkErrorHandlingMiddleware () {
 		}
 	});
 
-	// Error handler middleware
-	freshApp.use((err, req, res) => {
-		if (res.status) {
-			res.status(500).send("Error handled");
-		} else {
-			res.statusCode = 500;
-			if (typeof res.end === "function") {
-				res.end("Error handled");
-			} else {
-				// Fallback for mock responses
-				res.headersSent = true;
-				res._responseData = "Error handled";
-			}
-		}
+	// Error handler middleware - simplified to avoid mock response issues
+	freshApp.use((err, req, res, _next) => {
+		res.statusCode = 500;
+		// Don't call next() to avoid continuing the chain
 	});
 
 	freshApp.get("/error-test", (req, res) => {
@@ -252,7 +261,7 @@ function benchmarkErrorHandlingMiddleware () {
 /**
  * Benchmark list() method - getting registered routes
  */
-function benchmarkRouteList () {
+function benchmarkRouteList() {
 	const freshApp = createFreshApp();
 
 	// Add many routes
@@ -276,7 +285,7 @@ function benchmarkRouteList () {
 /**
  * Benchmark ignore() method - marking middleware as ignored
  */
-function benchmarkIgnoreMiddleware () {
+function benchmarkIgnoreMiddleware() {
 	const freshApp = createFreshApp();
 	const middleware = (req, res, next) => next();
 
@@ -289,14 +298,14 @@ function benchmarkIgnoreMiddleware () {
 /**
  * Benchmark parameter extraction and processing
  */
-function benchmarkParameterExtraction () {
+function benchmarkParameterExtraction() {
 	const freshApp = createFreshApp();
 
 	freshApp.get("/users/:userId/posts/:postId/comments/:commentId", (req, res) => {
 		res.json({
 			userId: req.params.userId,
 			postId: req.params.postId,
-			commentId: req.params.commentId
+			commentId: req.params.commentId,
 		});
 	});
 
@@ -309,15 +318,15 @@ function benchmarkParameterExtraction () {
 /**
  * Benchmark CORS handling middleware
  */
-function benchmarkCorsHandling () {
+function benchmarkCorsHandling() {
 	const freshApp = createFreshApp();
 
 	freshApp.get("/api/cors-test", (req, res) => {
-		res.json({message: "CORS test"});
+		res.json({ message: "CORS test" });
 	});
 
 	const req = createMockRequest("GET", "/api/cors-test", {
-		origin: "https://example.com"
+		origin: "https://example.com",
 	});
 	const res = createMockResponse();
 
@@ -327,14 +336,14 @@ function benchmarkCorsHandling () {
 /**
  * Benchmark response helper methods (json, send, redirect)
  */
-function benchmarkResponseHelpers () {
+function benchmarkResponseHelpers() {
 	const freshApp = createFreshApp();
 
 	freshApp.get("/helpers-test", (req, res) => {
 		const randomChoice = Math.random();
 
 		if (randomChoice < 0.33) {
-			res.json({data: "test"});
+			res.json({ data: "test" });
 		} else if (randomChoice < 0.66) {
 			res.send("Hello World");
 		} else {
@@ -362,5 +371,5 @@ export default {
 	"ignore middleware": benchmarkIgnoreMiddleware,
 	"parameter extraction": benchmarkParameterExtraction,
 	"CORS handling": benchmarkCorsHandling,
-	"response helpers": benchmarkResponseHelpers
+	"response helpers": benchmarkResponseHelpers,
 };

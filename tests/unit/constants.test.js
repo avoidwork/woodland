@@ -1,4 +1,5 @@
 import assert from "node:assert";
+import { describe, it } from "node:test";
 import * as constants from "../../src/constants.js";
 
 describe("Constants", () => {
@@ -50,12 +51,18 @@ describe("Constants", () => {
 		});
 
 		it("should export CORS header constants", () => {
-			assert.strictEqual(constants.ACCESS_CONTROL_ALLOW_CREDENTIALS, "access-control-allow-credentials");
+			assert.strictEqual(
+				constants.ACCESS_CONTROL_ALLOW_CREDENTIALS,
+				"access-control-allow-credentials",
+			);
 			assert.strictEqual(constants.ACCESS_CONTROL_ALLOW_HEADERS, "access-control-allow-headers");
 			assert.strictEqual(constants.ACCESS_CONTROL_ALLOW_METHODS, "access-control-allow-methods");
 			assert.strictEqual(constants.ACCESS_CONTROL_ALLOW_ORIGIN, "access-control-allow-origin");
 			assert.strictEqual(constants.ACCESS_CONTROL_EXPOSE_HEADERS, "access-control-expose-headers");
-			assert.strictEqual(constants.ACCESS_CONTROL_REQUEST_HEADERS, "access-control-request-headers");
+			assert.strictEqual(
+				constants.ACCESS_CONTROL_REQUEST_HEADERS,
+				"access-control-request-headers",
+			);
 			assert.strictEqual(constants.TIMING_ALLOW_ORIGIN, "timing-allow-origin");
 		});
 
@@ -131,20 +138,26 @@ describe("Constants", () => {
 	describe("Export Validation", () => {
 		it("should not export undefined values", () => {
 			const exportedKeys = Object.keys(constants);
-			exportedKeys.forEach(key => {
+			exportedKeys.forEach((key) => {
 				assert.notStrictEqual(constants[key], undefined, `${key} should not be undefined`);
 			});
 		});
 
 		it("should export at least basic required constants", () => {
 			const requiredConstants = [
-				"GET", "POST", "PUT", "DELETE",
-				"INT_200", "INT_404", "INT_500",
-				"CONTENT_TYPE", "CONTENT_LENGTH",
-				"APPLICATION_JSON"
+				"GET",
+				"POST",
+				"PUT",
+				"DELETE",
+				"INT_200",
+				"INT_404",
+				"INT_500",
+				"CONTENT_TYPE",
+				"CONTENT_LENGTH",
+				"APPLICATION_JSON",
 			];
 
-			requiredConstants.forEach(constant => {
+			requiredConstants.forEach((constant) => {
 				assert.ok(constant in constants, `${constant} should be exported`);
 			});
 		});
