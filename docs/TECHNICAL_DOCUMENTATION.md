@@ -53,31 +53,31 @@ The Woodland framework follows a class-based architecture extending EventEmitter
 ```mermaid
 graph TB
     subgraph "Entry Point"
-        A[HTTP Request] --> B[app.route(req, res)]
+        A[HTTP Request] --> B[app.route handler]
     end
 
-    subgraph "Woodland Class (extends EventEmitter)"
-        B --> C[decorate(req, res)]
-        C --> D[allows() - Permission Check]
+    subgraph "Woodland Class extends EventEmitter"
+        B --> C[decorate adds utilities]
+        C --> D[allows permission check]
         D --> E{CORS Validation}
-        E -->|Invalid| F[res.error(403)]
+        E -->|Invalid| F[res.error 403]
         E -->|Valid| G{Route Match?}
-        G -->|No| H[res.error(404/405)]
-        G -->|Yes| I[middleware.routes()]
-        I --> J[params() - Extract Params]
-        J --> K[next() - Middleware Iterator]
+        G -->|No| H[res.error 404/405]
+        G -->|Yes| I[middleware.routes]
+        I --> J[params extract]
+        J --> K[next iterator]
         K --> L[Middleware Chain]
-        L --> M[onReady() - Timing Header]
-        M --> N[onSend() - Response Prep]
-        N --> O[onDone() - Finalize]
+        L --> M[onReady timing]
+        M --> N[onSend prepare]
+        N --> O[onDone finalize]
         O --> P[HTTP Response]
     end
 
     subgraph "Internal Components"
-        Q[cache - LRU]
-        R[permissions - Map]
-        S[middleware - Registry]
-        T[etags - tiny-etag]
+        Q[cache LRU]
+        R[permissions Map]
+        S[middleware Registry]
+        T[etags]
         U[fileServer]
         V[logger]
     end
@@ -86,7 +86,7 @@ graph TB
         W[createLogger]
         X[createMiddlewareRegistry]
         Y[createFileServer]
-        Z[woodland() - Factory]
+        Z[woodland factory]
     end
 
     B -.-> Q
@@ -95,7 +95,7 @@ graph TB
     B -.-> T
     B -.-> U
     B -.-> V
-    Z -->|"new Woodland"| B
+    Z -->|new Woodland| B
 
     style A fill:#2563eb,stroke:#1e40af,stroke-width:2px,color:#ffffff
     style P fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
