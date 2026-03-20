@@ -522,7 +522,7 @@ Woodland extends `EventEmitter` and emits events during request processing.
 | ----------- | ----------------- | ------------------------------ |
 | `"connect"` | `(req, res)`      | New connection received        |
 | `"finish"`  | `(req, res)`      | Request completed              |
-| `"error"`   | `(err, req, res)` | Error occurred                 |
+| `"error"`   | `(req, res, err)` | Error occurred                 |
 | `"stream"`  | `(req, res)`      | File streaming started         |
 
 ```javascript
@@ -534,7 +534,7 @@ app.on("finish", (req, res) => {
   analytics.track({ method: req.method, status: res.statusCode });
 });
 
-app.on("error", (err, req, res) => {
+app.on("error", (req, res, err) => {
   console.error(`Error ${res.statusCode}:`, err);
 });
 ```
@@ -805,84 +805,104 @@ const app = woodland({
 
 The framework is organized into the following internal modules:
 
-### `src/woodland.js` (603 lines)
+### `src/woodland.js` (612 lines)
 
 Main framework file exporting the `Woodland` class and `woodland` factory function.
 
-### `src/request.js` (235 lines)
+**Key Methods:**
 
-Request handling utilities:
-- `isValidIP()` - IP address validation
-- `extractPath()` - Route pattern conversion to regex
-- `params()` - URL parameter extraction with XSS prevention
-- `parse()` - URL parsing with security fallback
-- `extractIP()` - IP extraction from request
-- `createCorsHandler()` - CORS handler creation
-- `cors()` - CORS validation
-- `corsHost()` - Origin host detection
-- `decorate()` - Request/response decoration
-- `logClose()` - Close event logging
-- `logDecoration()` - Decoration logging
+- `constructor(config)` - Initialize with config validation
+- `route(req, res)` - Route requests to middleware
+- `decorate(req, res)` - Decorate request/response objects
+- `allowed(method, uri, override)` - Check if method is allowed
+- `allows(uri, override)` - Get allowed methods for URI
+- `use(rpath, ...fn)` - Register middleware
+- `always(...handlers)` - Register global middleware
+- `get/post/put/delete/patch/options/connect/trace(...args)` - HTTP method shortcuts
+- `ignore(fn)` - Mark middleware as ignored
+- `list(method, type)` - List registered routes
+- `routes(uri, method, override)` - Get route information
+- `files(root, folder)` - Mount static file server
+- `serve(req, res, arg, folder)` - Serve files
+- `stream(req, res, file)` - Stream files to response
+- `etag(method, ...args)` - Generate ETag
+- `onReady/onSend/onDone()` - Lifecycle hooks
 
-### `src/constants.js` (219 lines)
+### `src/constants.js` (236 lines)
 
 All HTTP constants, status codes, headers, and configuration values.
 
-### `src/middleware.js` (234 lines)
+### `src/middleware.js` (279 lines)
 
 Middleware registry and chain management:
-- `createMiddlewareRegistry()` - Create middleware registry
-- `reduce()` - Middleware matching utility
-- `getStatus()` - Status code determination
-- `next()` - Middleware iterator
+- `createMiddlewareRegistry(methods, cache)` - Create middleware registry
+- `registerMiddleware(middleware, ignored, methods, cache, rpath, ...fn)` - Register middleware
+- `computeRoutes(middleware, ignored, uri, method, cache, override)` - Compute route info
+- `reduce(uri, map, arg)` - Middleware matching utility
+- `listRoutes(middleware, method, type)` - List routes
+- `checkAllowed(middleware, ignored, cache, method, uri, override)` - Check method allowed
+- `next(req, res, middleware, immediate)` - Middleware iterator
 
-### `src/response.js` (216 lines)
+### `src/response.js` (402 lines)
 
-Response handler creation:
-- `createResponseHandler()` - Create all response handlers
-- `createErrorHandler()` - Error response handler
-- `createJsonHandler()` - JSON response handler
-- `createRedirectHandler()` - Redirect handler
-- `createSendHandler()` - Send response handler
-- `createSetHandler()` - Set headers handler
-- `createStatusHandler()` - Status code handler
-- `stream()` - File streaming handler
+Response handler creation and utilities:
+- `error(req, res, status)` - Error response handler
+- `json(res, arg, status, headers)` - JSON response handler
+- `redirect(res, uri, perm)` - Redirect handler
+- `send(req, res, body, status, headers, onReady, onDone)` - Send response handler
+- `set(res, arg)` - Set headers handler
+- `status(res, arg)` - Status code handler
+- `stream(req, res, file, emitStream, createReadStream, etags)` - File streaming handler
+- `writeHead(res, headers)` - Write response headers
+- `getStatus(req, res)` - Determine status code
+- `getStatusText(status)` - Get status text
+- `mime(arg)` - Get MIME type for extension
+- `pipeable(method, arg)` - Check if object is pipeable
+- `partialHeaders(req, res, size, status, headers, options)` - Handle range requests
+- `escapeHtml(str)` - Escape HTML for XSS prevention
 
-### `src/request.js` (321 lines)
+### `src/request.js` (270 lines)
 
 Request handling utilities:
-- `isValidIP()` - IP address validation (IPv4/IPv6)
-- `cors()` - CORS origin validation
-- `corsHost()` - Cross-origin host detection
-- `corsRequest()` - CORS preflight handler
-- `extractIP()` - Extract client IP from request
-- `decorate()` - Request/response decoration
-- `logClose()` - Request close logging
-- `params()` - URL parameter extraction
-- `parse()` - URL parsing
-- `extractPath()` - Route pattern to regex conversion
+- `cors(req, origins)` - CORS origin validation
+- `corsHost(req)` - Cross-origin host detection
+- `corsRequest()` - CORS preflight handler (returns 204)
+- `extractIP(req)` - Extract client IP from request
+- `isValidIP(ip)` - IP address validation (IPv4/IPv6)
+- `parse(arg)` - URL parsing with security fallback
+- `params(req, getParams)` - URL parameter extraction with XSS prevention
+- `extractPath(path)` - Route pattern to regex conversion
 
-### `src/fileserver.js` (80 lines)
-
-Static file serving:
-- `createFileServer()` - Create file server instance
-- `serve()` - Serve files and directories
-- `register()` - Mount file routes
-
-### `src/logger.js` (137 lines)
+### `src/logger.js` (231 lines)
 
 Logging system:
-- `createLogger()` - Create logger instance
-- Common Log Format (CLF) formatting via `clf()` method
-- Structured logging for routing, middleware, errors
+- `createLogger(config)` - Create logger instance
+- `log(msg, logLevel, enabled, actualLevel)` - Output log message
+- `clf(req, res, format)` - Common Log Format formatting
+- `logRoute(uri, method, ip, logFn)` - Route logging
+- `logMiddleware(route, method, logFn)` - Middleware logging
+- `logDecoration(uri, method, ip, logFn)` - Decoration logging
+- `logError(uri, method, ip, logFn)` - Error logging
+- `logServe(req, message, logFn)` - File serving logging
+- `ms(arg, digits)` - Format nanoseconds to milliseconds
+- `timeOffset(arg)` - Format timezone offset
 
-### `src/config.js` (130 lines)
+### `src/config.js` (190 lines)
 
 Configuration validation:
-- `validateConfig()` - Validate constructor config
-- `validateLogging()` - Validate logging config
-- `validateOrigins()` - Validate CORS origins
-- `mergeEnvLogging()` - Merge environment variables
+- `validateConfig(config)` - Validate constructor config with jsonschema
+- `validateLogging(logging)` - Validate logging config
+- `validateOrigins(origins)` - Validate CORS origins
+- `resolveLoggingValue(configValue, envValue, defaultValue)` - Resolve config priority
+- `mergeEnvLogging(logging)` - Merge environment variables
+
+### `src/fileserver.js` (164 lines)
+
+Static file serving:
+- `createFileServer(app)` - Create file server instance
+- `serve(app, req, res, arg, folder)` - Serve files and directories
+- `register(app, root, folder, useMiddleware)` - Mount file routes
+- `autoindex(title, files)` - Generate HTML directory listing
 
 ### `src/cli.js` (59 lines)
 

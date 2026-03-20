@@ -47,6 +47,8 @@ import {
 	X_POWERED_BY,
 	X_POWERED_BY_VALUE,
 	X_RESPONSE_TIME,
+	HYPHEN,
+	COMMA_SPACE,
 } from "./constants.js";
 import { createMiddlewareRegistry, next } from "./middleware.js";
 import {
@@ -207,7 +209,7 @@ export class Woodland extends EventEmitter {
 				}
 			}
 
-			result = list.sort().join(", ");
+			result = list.sort().join(COMMA_SPACE);
 			this.permissions.set(uri, result);
 			this.logger.log(
 				`type=allows, uri=${uri}, override=${override}, message="Determined 'allow' header header value"`,
@@ -336,7 +338,7 @@ export class Woodland extends EventEmitter {
 			? this.etags.create(
 					args
 						.map((i) => (typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i))
-						.join("-"),
+						.join(HYPHEN),
 				)
 			: EMPTY;
 	}
@@ -483,8 +485,8 @@ export class Woodland extends EventEmitter {
 
 		this.decorate(req, res);
 
-		if (this.listenerCount("connect") > INT_0) {
-			this.emit("connect", req, res);
+		if (this.listenerCount(CONNECT) > INT_0) {
+			this.emit(CONNECT, req, res);
 		}
 
 		if (this.listenerCount(FINISH) > INT_0) {
@@ -591,7 +593,6 @@ export class Woodland extends EventEmitter {
 	 */
 	use(rpath, ...fn) {
 		this.middleware.register(rpath, ...fn);
-
 		this.logger.logMiddleware(rpath, fn[fn.length - 1]);
 
 		return this;

@@ -98,6 +98,7 @@ export const INT_65535 = 65535;
 // =============================================================================
 // STRING & CHARACTER CONSTANTS
 // =============================================================================
+export const COMMA_SPACE = ", ";
 export const COMMA = ",";
 export const COLON = ":";
 export const DELIMITER = "|";
