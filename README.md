@@ -476,6 +476,19 @@ const app = woodland({ etags: true });
 - Cache regex patterns at module level for repeated use
 - Use `Set` for O(1) lookups instead of array `.includes()`
 
+## Benchmarks
+
+**Performance comparison (mean of 5 runs):**
+
+| Framework | Mean (ms) | Ops/sec |
+|-----------|-----------|---------|
+| Fastify | 0.1138ms | 8794 |
+| **Woodland** | **0.1875ms** | **5334** |
+| Express | 0.1968ms | 5065 |
+| Node.js HTTP | 0.1976ms | 5060 |
+
+Woodland is ~4.6% faster than Express and ~5.6% faster than raw Node.js HTTP.
+
 ## Documentation
 
 - [API Reference](https://github.com/avoidwork/woodland/blob/main/docs/API.md) - Complete method documentation
