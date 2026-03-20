@@ -48,40 +48,74 @@ Woodland is a lightweight, security-focused HTTP server framework for Node.js th
 
 ## Architecture
 
-The Woodland framework follows a layered architecture pattern with clear separation of concerns:
+The Woodland framework follows a class-based architecture extending EventEmitter with factory pattern:
 
 ```mermaid
 graph TB
-    subgraph "Application Layer"
-        A[HTTP Request] --> B[Woodland Instance]
-        B --> C[Request Decoration]
-        C --> D[Route Resolution]
-        D --> E[Middleware Chain]
-        E --> F[Response Generation]
-        F --> G[HTTP Response]
+    subgraph "Entry Point"
+        A[HTTP Request] --> B[app.route(req, res)]
     end
 
-    subgraph "Core Components"
-        H[Router] --> I[Middleware Manager]
-        I --> J[Cache Layer]
-        J --> K[Security Layer]
-        K --> L[File System]
+    subgraph "Woodland Class (extends EventEmitter)"
+        B --> C[decorate(req, res)]
+        C --> D[allows() - Permission Check]
+        D --> E{CORS Validation}
+        E -->|Invalid| F[res.error(403)]
+        E -->|Valid| G{Route Match?}
+        G -->|No| H[res.error(404/405)]
+        G -->|Yes| I[middleware.routes()]
+        I --> J[params() - Extract Params]
+        J --> K[next() - Middleware Iterator]
+        K --> L[Middleware Chain]
+        L --> M[onReady() - Timing Header]
+        M --> N[onSend() - Response Prep]
+        N --> O[onDone() - Finalize]
+        O --> P[HTTP Response]
     end
 
-    subgraph "Support Services"
-        M[Logger] --> N[CORS Handler]
-        N --> O[ETag Generator]
-        O --> P[Stream Handler]
+    subgraph "Internal Components"
+        Q[cache - LRU]
+        R[permissions - Map]
+        S[middleware - Registry]
+        T[etags - tiny-etag]
+        U[fileServer]
+        V[logger]
     end
 
-    B -.-> H
-    H -.-> M
+    subgraph "Factory Functions"
+        W[createLogger]
+        X[createMiddlewareRegistry]
+        Y[createFileServer]
+        Z[woodland() - Factory]
+    end
+
+    B -.-> Q
+    B -.-> R
+    B -.-> S
+    B -.-> T
+    B -.-> U
+    B -.-> V
+    Z -->|"new Woodland"| B
 
     style A fill:#2563eb,stroke:#1e40af,stroke-width:2px,color:#ffffff
-    style G fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
-    style H fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#ffffff
-    style M fill:#7c3aed,stroke:#6d28d9,stroke-width:2px,color:#ffffff
+    style P fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
+    style B fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#ffffff
+    style Z fill:#7c3aed,stroke:#6d28d9,stroke-width:2px,color:#ffffff
 ```
+
+### Component Flow
+
+1. **`woodland()` factory** creates `Woodland` instance (extends `EventEmitter`)
+2. **`app.route(req, res)`** is the HTTP request handler
+3. **`decorate(req, res)`** adds framework utilities (ip, parsed, allow, cors, params, etc.)
+4. **`allows(uri)`** checks permission cache, determines allowed methods
+5. **CORS validation** rejects disallowed origins with 403
+6. **Route matching** via `middleware.routes()` with cached results
+7. **`params(req, regex)`** extracts URL parameters
+8. **`next()`** creates iterator-based middleware executor
+9. **`onReady()`** adds timing header if enabled
+10. **`onSend()`** prepares response array
+11. **`onDone()`** sets content-length, writes headers, ends response
 
 ### Component Responsibilities
 
