@@ -913,34 +913,35 @@ When you configure `origins` in the constructor, Woodland automatically:
 
 ```mermaid
 graph TB
-    A[Request with Origin] --> B{Origins Configured?}
-    B -->|No| C[No CORS Headers]
-    B -->|Yes| D{Origin in Allowlist?}
-    D -->|No| E[Reject/403]
-    D -->|Yes| F[Automatic CORS Headers]
+    A[app.route handler] --> B[decorate sets req.cors]
+    B --> C{Origin Header Present?}
+    C -->|No| D[Skip CORS Check]
+    C -->|Yes| E{Origin in Allowlist?}
+    E -->|No| F{req.corsHost Check}
+    F -->|Cross-origin| G[Reject 403]
+    F -->|Same-origin| D
+    E -->|Yes| H[Set CORS Headers]
 
-    F --> G["Access-Control-Allow-Origin: (origin)"]
-    F --> H["Access-Control-Allow-Credentials: true"]
-    F --> I["Access-Control-Allow-Methods: (req.allow)"]
-    F --> J["Timing-Allow-Origin: (origin)"]
-    F --> K{OPTIONS Request?}
-    K -->|Yes| L["Access-Control-Allow-Headers"]
-    K -->|No| M["Access-Control-Expose-Headers"]
+    H --> I["Access-Control-Allow-Origin"]
+    H --> J["Access-Control-Allow-Credentials"]
+    H --> K["Access-Control-Allow-Methods"]
+    H --> L["Timing-Allow-Origin"]
+    H --> M["Access-Control-Expose-Headers"]
 
-    subgraph "Constructor Auto-Setup"
-        N[if origins.length > 0]
-        O[Register Global OPTIONS Handler]
-        P[Mark as Ignored Middleware]
+    subgraph "Constructor Setup"
+        N[origins.length > 0]
+        O[Register OPTIONS Handler]
+        P[Ignore OPTIONS Handler]
     end
 
-    subgraph "Request Decoration"
-        Q[req.corsHost = corsHost check]
-        R[req.cors = validation result]
-        S[Batch header setting]
+    subgraph "Route Method Logic"
+        Q[hasOriginHeader]
+        R[isOriginAllowed check]
+        S[req.cors validation]
     end
 
-    style E fill:#dc2626,stroke:#b91c1c,stroke-width:2px,color:#ffffff
-    style F fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
+    style G fill:#dc2626,stroke:#b91c1c,stroke-width:2px,color:#ffffff
+    style H fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
     style N fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#ffffff
 ```
 
