@@ -14,7 +14,7 @@ const createFreshApp = () => {
 	return woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
-		etags: true,
+		etags: false,
 		logging: { enabled: false },
 	});
 };

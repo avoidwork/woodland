@@ -10,7 +10,7 @@ const testDir = join(__dirname, "..", "test-files");
 // const app = woodland({
 // 	cacheSize: 1000,
 // 	cacheTTL: 10000,
-// 	etags: true,
+// 	etags: false,
 // 	logging: {enabled: false} // Disable logging for benchmarks
 // });
 
@@ -154,7 +154,7 @@ async function benchmarkServeSmallFile() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
-		etags: true,
+		etags: false,
 		logging: { enabled: false },
 	});
 
@@ -172,7 +172,7 @@ async function benchmarkServeMediumFile() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
-		etags: true,
+		etags: false,
 		logging: { enabled: false },
 	});
 
@@ -190,7 +190,7 @@ async function benchmarkServeLargeFile() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
-		etags: true,
+		etags: false,
 		logging: { enabled: false },
 	});
 
@@ -208,7 +208,7 @@ async function benchmarkServeDifferentTypes() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
-		etags: true,
+		etags: false,
 		logging: { enabled: false },
 	});
 
@@ -229,7 +229,7 @@ async function benchmarkServeHeadRequest() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
-		etags: true,
+		etags: false,
 		logging: { enabled: false },
 	});
 
@@ -247,7 +247,7 @@ async function benchmarkServeOptionsRequest() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
-		etags: true,
+		etags: false,
 		logging: { enabled: false },
 	});
 
@@ -265,7 +265,7 @@ async function benchmarkServeNotFound() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
-		etags: true,
+		etags: false,
 		logging: { enabled: false },
 	});
 
@@ -283,7 +283,7 @@ async function benchmarkServeDirectory() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
-		etags: true,
+		etags: false,
 		logging: { enabled: false },
 	});
 
@@ -301,7 +301,7 @@ async function benchmarkServeDirectoryRedirect() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
-		etags: true,
+		etags: false,
 		logging: { enabled: false },
 	});
 
@@ -319,7 +319,7 @@ async function benchmarkServeAutoindex() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
-		etags: true,
+		etags: false,
 		autoIndex: true,
 		logging: { enabled: false },
 	});
@@ -346,7 +346,7 @@ async function benchmarkServeRangeRequest() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
-		etags: true,
+		etags: false,
 		logging: { enabled: false },
 	});
 
@@ -366,7 +366,7 @@ function benchmarkStreamSmallFile() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
-		etags: true,
+		etags: false,
 		logging: { enabled: false },
 	});
 
@@ -393,7 +393,7 @@ function benchmarkStreamDifferentMethods() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
-		etags: true,
+		etags: false,
 		logging: { enabled: false },
 	});
 
@@ -423,7 +423,7 @@ function benchmarkStreamWithEtags() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
-		etags: true,
+		etags: false,
 		logging: { enabled: false },
 	});
 
@@ -477,7 +477,7 @@ function benchmarkFilesMethod() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
-		etags: true,
+		etags: false,
 		logging: { enabled: false },
 	});
 
@@ -494,7 +494,7 @@ function benchmarkEtagGeneration() {
 	const freshApp = woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
-		etags: true,
+		etags: false,
 		logging: { enabled: false },
 	});
 

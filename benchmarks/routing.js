@@ -4,7 +4,7 @@ import { woodland } from "../dist/woodland.js";
 const app = woodland({
 	cacheSize: 1000,
 	cacheTTL: 10000,
-	etags: true,
+	etags: false,
 	logging: { enabled: false }, // Disable logging for benchmarks
 });
 

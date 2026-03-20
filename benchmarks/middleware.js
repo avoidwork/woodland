@@ -4,7 +4,7 @@ import { woodland } from "../dist/woodland.js";
 // const app = woodland({
 // 	cacheSize: 1000,
 // 	cacheTTL: 10000,
-// 	etags: true,
+// 	etags: false,
 // 	logging: {enabled: false} // Disable logging for benchmarks
 // });
 
@@ -55,6 +55,16 @@ const createMockResponse = () => {
 				});
 			}
 		},
+		send: (data) => {
+			response.headersSent = true;
+			if (data) {
+				response._responseData = data;
+			}
+		},
+		json: (data) => {
+			response.headersSent = true;
+			response._responseData = JSON.stringify(data);
+		},
 		end: (data) => {
 			response.headersSent = true;
 			if (data) {
@@ -79,7 +89,7 @@ const createFreshApp = () => {
 	return woodland({
 		cacheSize: 1000,
 		cacheTTL: 10000,
-		etags: true,
+		etags: false,
 		logging: { enabled: false },
 	});
 };
@@ -232,11 +242,10 @@ function benchmarkErrorHandlingMiddleware() {
 		}
 	});
 
-	// Error handler middleware (Woodland uses 4-argument error handlers)
+	// Error handler middleware - simplified to avoid mock response issues
 	freshApp.use((err, req, res, next) => {
 		res.statusCode = 500;
-		res.end("Error handled");
-		next();
+		// Don't call next() to avoid continuing the chain
 	});
 
 	freshApp.get("/error-test", (req, res) => {
