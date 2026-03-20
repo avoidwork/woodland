@@ -178,17 +178,6 @@ export const MSG_SERVE_PATH_OUTSIDE = "Path outside allowed directory";
 export const MSG_VALIDATION_FAILED = "Configuration validation failed: ";
 export const SEMICOLON_SPACE = "; ";
 export const OPTIONS_BODY = "Make a GET request to retrieve the file";
-export const STATUS_BAD_REQUEST = "Bad Request";
-export const STATUS_ERROR = "Error";
-export const STATUS_FORBIDDEN = "Forbidden";
-export const STATUS_INTERNAL_SERVER_ERROR = "Internal Server Error";
-export const STATUS_METHOD_NOT_ALLOWED = "Method Not Allowed";
-export const STATUS_NO_CONTENT = "No Content";
-export const STATUS_NOT_FOUND = "Not Found";
-export const STATUS_OK = "OK";
-export const STATUS_PERMANENT_REDIRECT = "Permanent Redirect";
-export const STATUS_RANGE_NOT_SATISFIABLE = "Range Not Satisfiable";
-export const STATUS_TEMPORARY_REDIRECT = "Temporary Redirect";
 
 // =============================================================================
 // HTTP RANGE & CACHING
