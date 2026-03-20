@@ -280,32 +280,32 @@ class Woodland extends EventEmitter {
 ```mermaid
 graph TB
     subgraph "Security Layers"
-        A[Input Validation] --> B[Path Resolution]
-        B --> C[Directory Traversal Protection]
-        C --> D[CORS Enforcement]
-        D --> E[File Access Control]
+        A[CORS Validation] --> B[File Access Control]
+        B --> C[Input Validation]
+        C --> D[Path Resolution]
+        D --> E[Path Traversal Check]
     end
 
     subgraph "Validation Functions"
-        F[isValidIP]
-        G[escapeHtml]
-        H[path traversal check]
+        F[escapeHtml]
+        G[isValidIP]
+        H[startsWith check]
     end
 
     subgraph "Protection Mechanisms"
-        I[Allowlist Origins] --> J[fp.startsWith check]
-        J --> K[MIME Type Validation]
-        K --> L[Access Control Headers]
+        I[Allowlist Origins] --> J[Batch Headers]
+        J --> K[MIME Validation]
+        K --> L[Path Sanitization]
     end
 
-    A -.-> F
-    A -.-> G
+    A -.-> I
     B -.-> H
-    D -.-> I
-    E -.-> K
+    C -.-> F
+    C -.-> G
+    D -.-> L
 
     style A fill:#dc2626,stroke:#b91c1c,stroke-width:2px,color:#ffffff
-    style D fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#ffffff
+    style E fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#ffffff
     style I fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
 ```
 
@@ -314,33 +314,33 @@ graph TB
 ```mermaid
 graph LR
     A[Request] --> B{Cache Hit?}
-    B -->|Yes| C[Return Cached]
-    B -->|No| D[Process Request]
+    B -->|Yes| C[Cached Route]
+    B -->|No| D[Route Resolution]
 
-    D --> E[Generate Response]
-    E --> F[Store in Cache]
-    F --> G[Return Response]
+    D --> E[Compile Pattern]
+    E --> F[Store Cache]
+    F --> G[Execute Handlers]
 
     subgraph "Cache Types"
-        H[Route Cache]
+        H[ETag Cache]
         I[Permission Cache]
-        J[ETag Cache]
-        K[File Stats Cache]
+        J[Route Cache]
     end
 
-    subgraph "Cache Configuration"
-        L[LRU Algorithm]
-        M[TTL: 10s default]
-        N[Size: 1000 default]
-        O[Configurable]
+    subgraph "Cache Config"
+        K[LRU Algorithm]
+        L[Size 1000]
+        M[TTL 10s]
     end
 
-    F -.-> H
-    H -.-> L
+    F -.-> J
+    J -.-> K
+    J -.-> L
+    J -.-> M
 
     style C fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
     style D fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#ffffff
-    style L fill:#7c3aed,stroke:#6d28d9,stroke-width:2px,color:#ffffff
+    style K fill:#7c3aed,stroke:#6d28d9,stroke-width:2px,color:#ffffff
 ```
 
 ---
