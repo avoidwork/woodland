@@ -135,78 +135,115 @@ graph TB
 ```mermaid
 sequenceDiagram
     participant C as Client
-    participant W as Woodland
+    participant A as app.route
+    participant D as decorate
+    participant AL as allows
+    participant R as middleware.routes
+    participant P as params
+    participant N as next iterator
     participant M as Middleware
-    participant F as File System
-    participant R as Response
+    participant O as onReady/onSend/onDone
+    participant L as logger
 
-    C->>+W: HTTP Request
-    W->>W: Parse & Validate
-    W->>W: Decorate req/res
-    W->>W: Determine CORS
-    W->>W: Check Permissions
-
-    alt Valid Route
-        W->>+M: Execute Middleware Chain
-        M->>M: Process Request
-        M->>-W: Continue/Response
-
-        alt File Request
-            W->>+F: Serve File
-            F->>F: Security Check
-            F->>F: Path Validation
-            F->>-W: File Stream/Error
+    C->>+A: HTTP Request
+    A->>A: HEAD to GET conversion
+    A->>+D: Decorate req/res
+    D->>D: Add parsed, allow, cors, ip, params
+    D-->>A: Return decorated objects
+    A->>+AL: Check permissions
+    AL->>AL: Map lookup for allowed methods
+    AL-->>A: Return allowed methods
+    A->>A: Validate CORS origin
+    alt Invalid CORS
+        A->>A: res.error 403
+        A->>-C: HTTP Response
+    else Valid CORS
+        A->>+R: Match route
+        R->>R: LRU cache lookup
+        alt Cache Hit
+            R-->>A: Return cached route
+        else Cache Miss
+            R->>R: Iterate compiled patterns
+            R->>R: Store in cache
+            R-->>A: Return route info
         end
-
-        W->>+R: Generate Response
-        R->>R: Set Headers
-        R->>R: Apply ETags
-        R->>-W: Response Data
-    else Invalid Route
-        W->>W: Generate Error
+        alt No Route Match
+            A->>A: res.error 404/405
+            A->>-C: HTTP Response
+        else Route Found
+            A->>+P: Extract URL params
+            P->>P: regex.exec with escapeHtml
+            P-->>A: Return params array
+            A->>+N: Create iterator
+            N->>+M: Execute middleware 1
+            M->>M: Process request
+            alt More middleware
+                M->>N: Call next()
+                N->>+M: Execute middleware N
+                M-->>N: Continue chain
+            else End of chain
+                M-->>N: Final middleware
+            end
+            N-->>A: Middleware complete
+            A->>+O: Finalize response
+            O->>O: onReady - timing header
+            O->>O: onSend - prepare response
+            O->>O: onDone - write headers
+            O-->>A: Response sent
+        end
     end
+    A->>+L: Log request
+    L->>L: CLF format with timeOffset
+    L-->>A: Log complete
+    A->>-C: HTTP Response
+    A->>A: Emit finish event
 
-    W->>-C: HTTP Response
-    W->>W: Log Request
-
-    Note over W: Security: Path traversal protection,<br/>Input validation, CORS enforcement
+    Note over A: Security: Path traversal,<br/>CORS enforcement,<br/>Input validation,<br/>HTML escaping
 ```
 
 ### Middleware Execution Flow
 
 ```mermaid
-graph LR
-    A[Request] --> B{Route Match?}
-    B -->|Yes| C[Extract Parameters]
-    B -->|No| D[404 Error]
-
-    C --> E[Middleware Chain]
-    E --> F[Middleware 1]
-    F --> G[Middleware 2]
-    G --> H[Middleware N]
-
-    H --> I{Error?}
-    I -->|Yes| J[Error Handler]
-    I -->|No| K[Response]
-
-    J --> L[Error Response]
-    K --> M[Success Response]
-
-    subgraph "Security Layer"
-        N[Input Validation]
-        O[Path Sanitization]
-        P[CORS Validation]
+graph TB
+    subgraph "Iterator Pattern"
+        A[next(req, res, iterator)] --> B{immediate?}
+        B -->|true| C[synchronous execution]
+        B -->|false| D[process.nextTick]
+        C --> E[execute middleware[i]]
+        D --> E
+        E --> F{more middleware?}
+        F -->|yes| G[create next iterator]
+        F -->|no| H[chain complete]
+        G --> E
     end
 
-    E -.-> N
-    N -.-> O
-    O -.-> P
+    subgraph "Middleware Functions"
+        I[middleware 1] --> J[middleware 2]
+        J --> K[middleware N]
+        K --> H
+    end
 
-    style A fill:#2563eb,stroke:#1e40af,stroke-width:2px,color:#ffffff
-    style D fill:#dc2626,stroke:#b91c1c,stroke-width:2px,color:#ffffff
-    style J fill:#dc2626,stroke:#b91c1c,stroke-width:2px,color:#ffffff
-    style M fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
-    style N fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#ffffff
+    subgraph "Error Handler Detection"
+        L{function.length === 4}
+        L -->|yes| M[error handler]
+        L -->|no| N[regular middleware]
+    end
+
+    subgraph "Execution Flow"
+        O[Route Match] --> P[Extract Params]
+        P --> Q[Create Iterator]
+        Q --> R[Execute Chain]
+        R --> S{Error Passed?}
+        S -->|yes| L
+        S -->|no| T[Response Generated]
+        M --> U[error handler executes]
+        U --> T
+    end
+
+    style A fill:#7c3aed,stroke:#6d28d9,stroke-width:2px,color:#ffffff
+    style H fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
+    style L fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#ffffff
+    style T fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff
 ```
 
 ---
