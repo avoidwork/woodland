@@ -187,7 +187,7 @@ The main class extending EventEmitter that orchestrates all operations:
 class Woodland extends EventEmitter {
   constructor(config = {}) {
     // Configuration options:
-    // - autoindex: Enable directory listing (default: false)
+    // - autoIndex: Enable directory listing (default: false)
     // - cacheSize: LRU cache size (default: 1000)
     // - cacheTTL: Cache TTL in ms (default: 10000)
     // - charset: Default charset (default: 'utf-8')
@@ -644,6 +644,7 @@ Key events:
 - `finish`: Response completed (with automatic binding)
 - `stream`: File streaming initiated (emitted after file processing)
 - `error`: Error occurred during processing
+- `close`: Connection closed (logging trigger)
 
 #### Request Decoration Model
 
@@ -683,9 +684,16 @@ Key decorations:
 - `req.allow`: Allowed HTTP methods for URI
 - `req.cors`: CORS validation result
 - `req.ip`: Client IP address with validation
+- `req.host`: Request hostname
+- `req.body`: Request body (initialized as empty)
+- `req.valid`: Request validity flag
 - `req.precise`: Timing precision object (if time enabled)
-- `res.send`: Response sending function
+- `req.exit`: Iterator-based middleware exit point
+- `res.locals`: Response-local storage
+- `res.error`: Error response handler
+- `res.header`: Native Node.js header setter
 - `res.json`: JSON response function
+- `res.send`: Response sending function
 - **Batch Headers**: Optimized header setting for performance
 
 #### Memory Management Model
@@ -823,7 +831,7 @@ export function escapeHtml(str = '') {
 
 When you configure `origins` in the constructor, Woodland automatically:
 
-1. **Registers Preflight Routes**: Automatically adds an OPTIONS handler for all paths using `this.options(fnCorsRequest).ignore(fnCorsRequest)`
+1. **Registers Global Preflight Handler**: Adds a single OPTIONS handler (without path) that applies globally using `this.options(fnCorsRequest).ignore(fnCorsRequest)`
 2. **Sets CORS Headers**: Dynamically adds all required CORS headers during request decoration
 3. **Validates Origins**: Checks request origin against configured allowlist with security enforcement
 4. **Manages Credentials**: Sets `Access-Control-Allow-Credentials: true` for valid origins
@@ -850,7 +858,7 @@ graph TB
 
     subgraph "Constructor Auto-Setup"
         N[if origins.length > 0]
-        O[Register OPTIONS Handler]
+        O[Register Global OPTIONS Handler]
         P[Mark as Ignored Middleware]
     end
 
@@ -1149,7 +1157,7 @@ While lightweight by design, Woodland provides the security foundation needed fo
 
 ## Test Coverage
 
-Woodland maintains exceptional test coverage with **100% coverage across all metrics** - statements, branches, functions, and lines. The framework includes 376 comprehensive test cases covering every aspect of functionality, achieving perfect coverage across all modules.
+Woodland maintains comprehensive test coverage with **478 tests passing**. The framework achieves 100% line coverage across all modules, with ongoing work to achieve 100% branch and function coverage.
 
 ### Coverage Metrics
 
@@ -1158,16 +1166,26 @@ File            | % Stmts | % Branch | % Funcs | % Lines | Status
 ----------------|---------|----------|---------|---------|--------
 All files       |     100 |      100 |     100 |     100 | 🎯 Perfect
 cli.js          |     100 |      100 |     100 |     100 | 🎯 Perfect
-config.js       |     100 |      100 |     100 |     100 | 🎯 Perfect
+config.js       |     100 |    89.74 |     100 |     100 | ⚠️ Branch gap
 constants.js    |     100 |      100 |     100 |     100 | 🎯 Perfect
 fileserver.js   |     100 |      100 |     100 |     100 | 🎯 Perfect
-logger.js       |     100 |      100 |     100 |     100 | 🎯 Perfect
+logger.js       |     100 |    96.55 |   95.65 |     100 | ⚠️ Branch/func gap
 middleware.js   |     100 |      100 |     100 |     100 | 🎯 Perfect
 request.js      |     100 |      100 |     100 |     100 | 🎯 Perfect
-response.js     |     100 |      100 |     100 |     100 | 🎯 Perfect
-
-woodland.js     |     100 |      100 |     100 |     100 | 🎯 Perfect
+response.js     |     100 |    98.91 |   94.74 |     100 | ⚠️ Branch/func gap
+woodland.js     |     100 |    96.34 |   89.47 |     100 | ⚠️ Branch/func gap
 ```
+
+### Coverage Status
+
+**Achieved:**
+- ✅ 100% line coverage across all source files
+- ✅ 478 passing tests
+- ✅ CLI module: 100% coverage across all dimensions
+
+**Working towards:**
+- ⏸️ 100% branch coverage (missing in config.js, logger.js, response.js, woodland.js)
+- ⏸️ 100% function coverage (missing in logger.js, response.js, woodland.js)
 
 ### Test Architecture
 
@@ -1280,10 +1298,10 @@ describe("CLI server startup", () => {
 
 ### Test Quality Metrics
 
-- **Code Coverage**: 100% statements, 100% branches, 100% functions, 100% lines
+- **Code Coverage**: 100% lines, ongoing for branches and functions
 - **Test Execution Time**: ~6 seconds for full suite
 - **Test Reliability**: 100% pass rate with deterministic behavior
-- **Edge Case Coverage**: Comprehensive boundary testing with perfect coverage across all modules
+- **Edge Case Coverage**: Comprehensive boundary testing
 - **Error Path Coverage**: All error conditions tested
 - **Performance Testing**: Integrated benchmarks for critical paths
 
@@ -1500,7 +1518,7 @@ server.listen(process.env.PORT || 3000);
 
 ```javascript
 const app = woodland({
-  autoindex: false, // Enable directory listing
+  autoIndex: false, // Enable directory listing (camelCase)
   cacheSize: 1000, // LRU cache size
   cacheTTL: 10000, // Cache TTL in milliseconds
   charset: "utf-8", // Default character encoding
@@ -1546,7 +1564,8 @@ res.send(body, status, headers);
 res.status(code);
 res.set(headers);
 res.redirect(url, permanent);
-res.error(statusCode, body);
+res.error(status, body);
+res.header(name, value); // Native Node.js header setter
 ```
 
 ### Utility Methods
@@ -1562,8 +1581,19 @@ app.files(route, directory);
 app.serve(req, res, path, folder);
 
 // Middleware management
-app.ignore(middleware);
+app.ignore(fn);
 app.list(method, type);
+
+// Response utilities
+res.writeHead(status, headers); // Write response headers
+
+// Event handlers (internal)
+app.onReady(req, res, body, status, headers);
+app.onDone(req, res, body, headers);
+app.onSend(req, res, body, status, headers);
+
+// ETag generation
+app.etag(method, ...values);
 
 // Note: always() middleware is automatically ignored
 ```
@@ -1723,7 +1753,7 @@ spec:
 ### Development Best Practices
 
 1. **Logging**: Use structured logging for debugging
-2. **Testing**: Implement comprehensive test coverage (386 tests with 100% coverage across all metrics including 100% CLI coverage)
+2. **Testing**: Implement comprehensive test coverage (478 tests with 100% line coverage, CLI module at 100% across all dimensions)
 3. **Monitoring**: Add health checks and metrics
 4. **Documentation**: Maintain API documentation
 5. **Versioning**: Use semantic versioning for APIs
