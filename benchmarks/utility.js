@@ -1,7 +1,7 @@
 // Note: Using source utility functions since they are not exported from dist
 import { woodland } from "../src/woodland.js";
 import {
-	autoindex,
+	autoIndex,
 	getStatus,
 	isValidIP,
 	mime,
@@ -226,14 +226,14 @@ function benchmarkTimeOffset() {
 }
 
 /**
- * Benchmark autoindex() function - directory listing generation
+ * Benchmark autoIndex() function - directory listing generation
  */
 function benchmarkAutoindex() {
 	const title = "/test/directory";
 	const files = createMockFiles();
-	// Pass file objects directly as expected by the autoindex function
+	// Pass file objects directly as expected by the autoIndex function
 
-	return autoindex(title, files);
+	return autoIndex(title, files);
 }
 
 /**

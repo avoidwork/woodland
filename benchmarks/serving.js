@@ -311,7 +311,7 @@ async function benchmarkServeAutoindex() {
 		cacheSize: 1000,
 		cacheTTL: 10000,
 		etags: true,
-		autoindex: true,
+		autoIndex: true,
 		logging: { enabled: false },
 	});
 

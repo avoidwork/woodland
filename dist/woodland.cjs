@@ -1413,12 +1413,12 @@ const html = node_fs.readFileSync(node_path.join(__dirname$1, "..", "tpl", "inde
 });
 
 /**
- * Generates an HTML autoindex page for directory listings
- * @param {string} [title=""] - The title for the autoindex page
+ * Generates an HTML index page for directory listings
+ * @param {string} [title=""] - The title for the index page
  * @param {Array} [files=[]] - Array of file objects from fs.readdir with withFileTypes: true
- * @returns {string} The complete HTML string for the autoindex page
+ * @returns {string} The complete HTML string for the index page
  */
-function autoindex(title = EMPTY, files = []) {
+function autoIndex(title = EMPTY, files = []) {
 	const safeTitle = escapeHtml(title);
 
 	if (files.length === 0) {
@@ -1508,7 +1508,7 @@ async function serve(app, req, res, arg, folder = process.cwd()) {
 			if (!app.autoIndex) {
 				res.error(INT_404, new Error(node_http.STATUS_CODES[INT_404]));
 			} else {
-				const body = autoindex(decodeURIComponent(req.parsed.pathname), files);
+				const body = autoIndex(decodeURIComponent(req.parsed.pathname), files);
 				res.header(CONTENT_TYPE, `${TEXT_HTML}; charset=${app.charset}`);
 				res.send(body);
 			}

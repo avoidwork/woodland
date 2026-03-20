@@ -1,6 +1,6 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
-import { createFileServer, serve, register, autoindex } from "../../src/fileserver.js";
+import { createFileServer, serve, register, autoIndex } from "../../src/fileserver.js";
 
 describe("fileserver", () => {
 	describe("createFileServer", () => {
@@ -409,9 +409,9 @@ describe("fileserver", () => {
 		});
 	});
 
-	describe("autoindex", () => {
+	describe("autoIndex", () => {
 		it("should generate HTML for empty directory", () => {
-			const result = autoindex("Test Directory", []);
+			const result = autoIndex("Test Directory", []);
 
 			assert.ok(result.includes("<!doctype html>"));
 			assert.ok(result.includes("Test Directory"));
@@ -424,7 +424,7 @@ describe("fileserver", () => {
 				{ name: "dir1", isDirectory: () => true },
 			];
 
-			const result = autoindex("Test", files);
+			const result = autoIndex("Test", files);
 
 			assert.ok(result.includes("file1.txt"));
 			assert.ok(result.includes("dir1/"));
@@ -433,14 +433,14 @@ describe("fileserver", () => {
 		it("should escape HTML in filenames", () => {
 			const files = [{ name: '<script>alert("xss")</script>', isDirectory: () => false }];
 
-			const result = autoindex("Test", files);
+			const result = autoIndex("Test", files);
 
 			assert.ok(result.includes("&lt;script&gt;"));
 			assert.ok(result.includes('rel="item"'));
 		});
 
 		it("should escape HTML in title", () => {
-			const result = autoindex('<script>alert("xss")</script>', []);
+			const result = autoIndex('<script>alert("xss")</script>', []);
 
 			assert.ok(result.includes("&lt;script&gt;"));
 		});
@@ -448,7 +448,7 @@ describe("fileserver", () => {
 		it("should handle directory entries with trailing slash", () => {
 			const files = [{ name: "folder", isDirectory: () => true }];
 
-			const result = autoindex("Test", files);
+			const result = autoIndex("Test", files);
 
 			assert.ok(result.includes("folder/"));
 			assert.ok(result.includes('href="folder/"'));
@@ -457,7 +457,7 @@ describe("fileserver", () => {
 		it("should handle files with special characters in names", () => {
 			const files = [{ name: "file with spaces.txt", isDirectory: () => false }];
 
-			const result = autoindex("Test", files);
+			const result = autoIndex("Test", files);
 
 			assert.ok(result.includes("file%20with%20spaces.txt"));
 		});
