@@ -360,8 +360,7 @@ These properties are added to the `req` object during decoration.
 | `req.params`   | `Object`   | Route parameters (e.g., `/:id` → `{id: "123"}`) |
 | `req.parsed`   | `URL`      | Parsed URL object                               |
 | `req.valid`    | `boolean`  | Request validation status                       |
-| `req.url`      | `string`   | Original request URL                            |
-| `req.exit()`   | `Function` | Exit middleware chain immediately               |
+| `req.exit`     | `Function` | Exit middleware chain immediately               |
 
 ---
 
@@ -435,46 +434,6 @@ const routes = app.list("post", "object"); // {"/users": middleware}
 - Returns array of route paths or object mapping paths to handlers
 - Does not include `always()` middleware routes
 
-#### `path(arg)`
-
-Convert a route path with parameters to a regex pattern.
-
-```javascript
-const pattern = app.path("/users/:id"); // "/users/([^/]+)"
-```
-
-| Parameter | Type     | Description                           |
-| --------- | -------- | ------------------------------------- |
-| `arg`     | `string` | Route path with `:param` placeholders |
-
-**Returns:** `string` (regex pattern)
-
-**Notes:**
-
-- Converts `:param` to named capture group `(?<param>[^/]+)`
-- Used internally for route parameter extraction
-
-#### `ip(req)`
-
-Extract the client IP address from a request.
-
-```javascript
-const ip = app.ip(req);
-```
-
-| Parameter | Type     | Description         |
-| --------- | -------- | ------------------- |
-| `req`     | `Object` | HTTP request object |
-
-**Returns:** `string` (IP address)
-
-**Notes:**
-
-- Respects `X-Forwarded-For` header
-- Validates IP addresses for security
-- Falls back to connection.remoteAddress or socket.remoteAddress
-- Returns `127.0.0.1` if no IP found
-
 #### `routes(uri, method, override)`
 
 Get route information for a URI and method. Returns internal route data structure.
@@ -524,6 +483,7 @@ Woodland extends `EventEmitter` and emits events during request processing.
 | `"finish"`  | `(req, res)`      | Request completed              |
 | `"error"`   | `(req, res, err)` | Error occurred                 |
 | `"stream"`  | `(req, res)`      | File streaming started         |
+| `"close"`   | `(req, res)`      | Connection closed (logging)    |
 
 ```javascript
 app.on("connect", (req, res) => {
@@ -544,6 +504,7 @@ app.on("error", (req, res, err) => {
 - `"error"` event logs the error via `logger.logError()`
 - `"finish"` event is attached to `res.on("finish")`
 - `"stream"` event is emitted when file streaming starts
+- `"close"` event triggers response logging via `logger.clf()`
 
 #### Lifecycle Hooks
 
