@@ -13,7 +13,7 @@ describe("config", () => {
 		it("should return default values for empty config", () => {
 			const result = validateConfig();
 
-			assert.strictEqual(result.autoindex, false);
+			assert.strictEqual(result.autoIndex, false);
 			assert.strictEqual(result.cacheSize, 1000);
 			assert.strictEqual(result.cacheTTL, 10000);
 			assert.strictEqual(result.charset, "utf-8");
@@ -30,7 +30,7 @@ describe("config", () => {
 
 		it("should accept valid custom config", () => {
 			const config = {
-				autoindex: true,
+				autoIndex: true,
 				cacheSize: 2000,
 				cacheTTL: 20000,
 				charset: "utf-8",
@@ -47,7 +47,7 @@ describe("config", () => {
 
 			const result = validateConfig(config);
 
-			assert.strictEqual(result.autoindex, true);
+			assert.strictEqual(result.autoIndex, true);
 			assert.strictEqual(result.cacheSize, 2000);
 			assert.strictEqual(result.cacheTTL, 20000);
 			assert.strictEqual(result.corsExpose, "x-custom");
@@ -79,8 +79,8 @@ describe("config", () => {
 
 		it("should throw error for invalid boolean type", () => {
 			assert.throws(() => {
-				validateConfig({ autoindex: "true" });
-			}, /Config "autoindex" must be boolean/);
+				validateConfig({ autoIndex: "true" });
+			}, /Config "autoIndex" must be boolean/);
 		});
 
 		it("should throw error for number below minimum", () => {

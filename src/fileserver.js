@@ -19,8 +19,7 @@ import {
 import { escapeHtml } from "./response.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
-
-const html = readFileSync(join(__dirname, "..", "tpl", "autoindex.html"), {
+const html = readFileSync(join(__dirname, "..", "tpl", "index.html"), {
 	encoding: UTF8,
 });
 
@@ -117,7 +116,7 @@ export async function serve(app, req, res, arg, folder = process.cwd()) {
 		}
 
 		if (!result.length) {
-			if (!app.autoindex) {
+			if (!app.autoIndex) {
 				res.error(INT_404, new Error(STATUS_CODES[INT_404]));
 			} else {
 				const body = autoindex(decodeURIComponent(req.parsed.pathname), files);

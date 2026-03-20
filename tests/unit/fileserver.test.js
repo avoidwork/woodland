@@ -124,7 +124,7 @@ describe("fileserver", () => {
 			it("should return 404 for directory with no index and autoindex disabled", async () => {
 				let errorCalled = false;
 				const app = createMockApp();
-				app.autoindex = false;
+				app.autoIndex = false;
 				app.indexes = [];
 				app.logger.logServe = () => ({ log: () => {} });
 				const server = createFileServer(app);
@@ -177,7 +177,7 @@ describe("fileserver", () => {
 			it("should serve directory listing with autoindex enabled", async () => {
 				let sentBody = null;
 				const app = createMockApp();
-				app.autoindex = true;
+				app.autoIndex = true;
 				app.indexes = [];
 				app.logger.logServe = () => ({ log: () => {} });
 				const server = createFileServer(app);
@@ -270,7 +270,7 @@ describe("fileserver", () => {
 			const app = {
 				charset: "utf-8",
 				indexes: ["index.html"],
-				autoindex: true,
+				autoIndex: true,
 				logger: { logServe: () => ({ log: () => {} }) },
 				etag: () => "test-etag",
 				stream: () => {
@@ -294,7 +294,7 @@ describe("fileserver", () => {
 			const app = {
 				charset: "utf-8",
 				indexes: ["index.html"],
-				autoindex: true,
+				autoIndex: true,
 				logger: { logServe: () => {} },
 				etag: () => "test-etag",
 				stream: () => {},
@@ -328,7 +328,7 @@ describe("fileserver", () => {
 			const app = {
 				charset: "utf-8",
 				indexes: ["index.html"],
-				autoindex: true,
+				autoIndex: true,
 				logger: { logServe: () => ({ log: () => {} }) },
 				etag: () => "test-etag",
 				stream: () => {},
@@ -351,7 +351,7 @@ describe("fileserver", () => {
 			const app = {
 				charset: "utf-8",
 				indexes: ["index.html"],
-				autoindex: true,
+				autoIndex: true,
 				logger: { logServe: () => ({ log: () => {} }) },
 				etag: () => "test-etag",
 				stream: () => {},
@@ -372,7 +372,7 @@ describe("fileserver", () => {
 			const app = {
 				charset: "utf-8",
 				indexes: ["index.html"],
-				autoindex: true,
+				autoIndex: true,
 				logger: {
 					logServe: () => ({ log: () => {} }),
 				},

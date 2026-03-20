@@ -1,7 +1,7 @@
 import { EventEmitter } from "node:events";
 
 export interface WoodlandConfig {
-	autoindex?: boolean;
+	autoIndex?: boolean;
 	cacheSize?: number;
 	cacheTTL?: number;
 	charset?: string;
@@ -34,7 +34,7 @@ export interface RouteInfo {
 }
 
 export class Woodland extends EventEmitter {
-	autoindex: boolean;
+	autoIndex: boolean;
 	charset: string;
 	corsExpose: string;
 	defaultHeaders: [string, string][];

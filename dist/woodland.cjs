@@ -1101,7 +1101,7 @@ function registerMiddleware(middleware, ignored, methods, cache, rpath, ...fn) {
 }
 
 const DEFAULTS = {
-	autoindex: false,
+	autoIndex: false,
 	cacheSize: INT_1e3,
 	cacheTTL: INT_1e4,
 	charset: UTF_8,
@@ -1120,7 +1120,7 @@ const CONFIG_SCHEMA = {
 	$schema: "http://json-schema.org/draft-07/schema#",
 	type: "object",
 	properties: {
-		autoindex: { type: "boolean" },
+		autoIndex: { type: "boolean" },
 		cacheSize: { type: "number", minimum: INT_1 },
 		cacheTTL: { type: "number", minimum: INT_1 },
 		charset: { type: "string" },
@@ -1408,8 +1408,7 @@ function timeOffset(arg = INT_0) {
 }
 
 const __dirname$1 = node_url.fileURLToPath(new URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href))));
-
-const html = node_fs.readFileSync(node_path.join(__dirname$1, "..", "tpl", "autoindex.html"), {
+const html = node_fs.readFileSync(node_path.join(__dirname$1, "..", "tpl", "index.html"), {
 	encoding: UTF8,
 });
 
@@ -1506,7 +1505,7 @@ async function serve(app, req, res, arg, folder = process.cwd()) {
 		}
 
 		if (!result.length) {
-			if (!app.autoindex) {
+			if (!app.autoIndex) {
 				res.error(INT_404, new Error(node_http.STATUS_CODES[INT_404]));
 			} else {
 				const body = autoindex(decodeURIComponent(req.parsed.pathname), files);
@@ -1561,7 +1560,7 @@ class Woodland extends node_events.EventEmitter {
 	/**
 	 * Creates a new Woodland instance
 	 * @param {Object} [config={}] - Configuration object
-	 * @param {boolean} [config.autoindex=false] - Enable automatic directory indexing
+	 * @param {boolean} [config.autoIndex=false] - Enable automatic directory indexing
 	 * @param {number} [config.cacheSize=1000] - Size of internal cache
 	 * @param {number} [config.cacheTTL=10000] - Cache TTL in milliseconds
 	 * @param {string} [config.charset='utf-8'] - Default charset
@@ -1580,7 +1579,7 @@ class Woodland extends node_events.EventEmitter {
 
 		const validated = validateConfig(config);
 		const {
-			autoindex,
+			autoIndex,
 			cacheSize,
 			cacheTTL,
 			charset,
@@ -1603,7 +1602,7 @@ class Woodland extends node_events.EventEmitter {
 			finalHeaders[X_POWERED_BY] = X_POWERED_BY_VALUE;
 		}
 
-		this.autoindex = autoindex;
+		this.autoIndex = autoIndex;
 		this.charset = charset;
 		this.corsExpose = corsExpose;
 		this.defaultHeaders = Reflect.ownKeys(finalHeaders).map((key) => [

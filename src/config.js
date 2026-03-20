@@ -22,7 +22,7 @@ import {
 } from "./constants.js";
 
 const DEFAULTS = {
-	autoindex: false,
+	autoIndex: false,
 	cacheSize: INT_1e3,
 	cacheTTL: INT_1e4,
 	charset: UTF_8,
@@ -41,7 +41,7 @@ const CONFIG_SCHEMA = {
 	$schema: "http://json-schema.org/draft-07/schema#",
 	type: "object",
 	properties: {
-		autoindex: { type: "boolean" },
+		autoIndex: { type: "boolean" },
 		cacheSize: { type: "number", minimum: INT_1 },
 		cacheTTL: { type: "number", minimum: INT_1 },
 		charset: { type: "string" },

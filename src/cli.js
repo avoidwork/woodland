@@ -32,7 +32,7 @@ const argv = process.argv
 	logging = argv.logging ?? true,
 	port = argv.port ?? INT_8000,
 	app = woodland({
-		autoindex: true,
+		autoIndex: true,
 		defaultHeaders: { [CACHE_CONTROL]: NO_CACHE, [CONTENT_TYPE]: `${TEXT_PLAIN}; ${CHAR_SET}` },
 		logging: {
 			enabled: logging,

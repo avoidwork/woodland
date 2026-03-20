@@ -28,7 +28,7 @@ describe("woodland", () => {
 		it("should have default properties", () => {
 			const app = new Woodland();
 
-			assert.ok(app.autoindex !== void 0);
+			assert.ok(app.autoIndex !== void 0);
 			assert.ok(app.charset !== void 0);
 			assert.ok(app.corsExpose !== void 0);
 			assert.ok(Array.isArray(app.defaultHeaders));

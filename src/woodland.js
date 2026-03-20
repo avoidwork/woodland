@@ -80,7 +80,7 @@ export class Woodland extends EventEmitter {
 	/**
 	 * Creates a new Woodland instance
 	 * @param {Object} [config={}] - Configuration object
-	 * @param {boolean} [config.autoindex=false] - Enable automatic directory indexing
+	 * @param {boolean} [config.autoIndex=false] - Enable automatic directory indexing
 	 * @param {number} [config.cacheSize=1000] - Size of internal cache
 	 * @param {number} [config.cacheTTL=10000] - Cache TTL in milliseconds
 	 * @param {string} [config.charset='utf-8'] - Default charset
@@ -99,7 +99,7 @@ export class Woodland extends EventEmitter {
 
 		const validated = validateConfig(config);
 		const {
-			autoindex,
+			autoIndex,
 			cacheSize,
 			cacheTTL,
 			charset,
@@ -122,7 +122,7 @@ export class Woodland extends EventEmitter {
 			finalHeaders[X_POWERED_BY] = X_POWERED_BY_VALUE;
 		}
 
-		this.autoindex = autoindex;
+		this.autoIndex = autoIndex;
 		this.charset = charset;
 		this.corsExpose = corsExpose;
 		this.defaultHeaders = Reflect.ownKeys(finalHeaders).map((key) => [
