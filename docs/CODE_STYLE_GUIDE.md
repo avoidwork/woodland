@@ -79,13 +79,12 @@ src/
 
 tests/
 ├── unit/                 # Unit tests (478 tests)
-└── integration/          # Integration tests
+└── test-files/           # Test file assets
 
 docs/                     # Documentation
 types/                    # TypeScript definitions
 benchmarks/               # Performance benchmarks
-tpl/                      # HTML templates (autoindex.html)
-test-files/               # Test file assets
+tpl/                      # HTML templates (index.html)
 dist/                     # Distribution builds
 ```
 
@@ -462,31 +461,6 @@ describe("Woodland", () => {
 
 	it("should throw error for invalid config", () => {
 		assert.throws(() => woodland({ invalidField: true }), /Configuration validation failed/);
-	});
-});
-```
-
-### Integration Tests
-
-- Place integration tests in `tests/integration/`
-- Test complete workflows and interactions
-- Use realistic data and scenarios
-
-```javascript
-import assert from "node:assert";
-import { describe, it } from "node:test";
-import { createServer } from "node:http";
-import { woodland } from "../src/woodland.js";
-
-describe("Woodland Integration", () => {
-	it("should handle complete request lifecycle", async () => {
-		const app = woodland();
-		app.get("/test", (req, res, next) => {
-			res.json({ success: true });
-		});
-
-		const server = createServer(app.route.bind(app));
-		// Test implementation with http.request
 	});
 });
 ```
