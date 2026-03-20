@@ -497,12 +497,29 @@ const app = woodland({ etags: true });
 
 | Framework | Mean (ms) | Ops/sec |
 |-----------|-----------|---------|
-| Fastify | 0.1138ms | 8794 |
-| **Woodland** | **0.1875ms** | **5334** |
-| Express | 0.1968ms | 5065 |
-| Node.js HTTP | 0.1976ms | 5060 |
+| Fastify | 0.1137ms | 8,795 |
+| **Woodland** | **0.1824ms** | **5,482** |
+| Node.js HTTP | 0.1992ms | 5,031 |
+| Express | 0.1998ms | 5,006 |
 
-Woodland is ~4.6% faster than Express and ~5.6% faster than raw Node.js HTTP.
+Woodland is **9.5% faster than Express** and **8.9% faster than raw Node.js HTTP**.
+
+**Additional Performance Metrics:**
+
+| Category | Metric | Result |
+|----------|--------|--------|
+| **Routing** | Method validation (`allows()`) | 3.7M ops/sec |
+| | Route resolution (`routes()`) | 922K ops/sec |
+| **Middleware** | Registration | 20K+ ops/sec |
+| | Simple execution | 29K ops/sec |
+| **HTTP Server** | JSON responses | 7,266 ops/sec |
+| | CRUD operations | 6-7K ops/sec |
+| **File Serving** | Small files (< 1KB) | 44K ops/sec |
+| | Streaming with ETags | 370K ops/sec |
+| **Capacity** | Single instance (JSON API) | 4,000-7,000 RPS |
+| | Cluster (10 instances) | 50,000-70,000 RPS |
+
+[Full benchmark details](https://github.com/avoidwork/woodland/blob/main/docs/BENCHMARKS.md)
 
 ## Documentation
 
