@@ -75,6 +75,9 @@ const createMockResponse = () => {
 		},
 		send: (body, status = 200) => {
 			response.statusCode = status;
+			if (body && typeof body.destroy === "function") {
+				body.destroy();
+			}
 			response.end();
 		},
 		json: (data, status = 200) => {
