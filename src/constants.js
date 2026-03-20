@@ -187,9 +187,11 @@ export const NO_CACHE = "no-cache";
 // =============================================================================
 // EVENT & STREAM CONSTANTS
 // =============================================================================
-export const CLOSE = "close";
-export const FINISH = "finish";
-export const STREAM = "stream";
+export const EVT_CLOSE = "close";
+export const EVT_FINISH = "finish";
+export const EVT_STREAM = "stream";
+export const EVT_CONNECT = "connect";
+export const EVT_ERROR = "error";
 
 // =============================================================================
 // UTILITY & MISC

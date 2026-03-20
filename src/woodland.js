@@ -11,14 +11,12 @@ import {
 	ACCESS_CONTROL_REQUEST_HEADERS,
 	ACCESS_CONTROL_ALLOW_ORIGIN,
 	ALLOW,
-	CLOSE,
 	CONNECT,
 	CONTENT_LENGTH,
 	CONTENT_TYPE,
 	DELETE,
 	EMPTY,
 	ERROR,
-	FINISH,
 	GET,
 	HEAD,
 	INFO,
@@ -33,7 +31,6 @@ import {
 	PATCH,
 	POST,
 	PUT,
-	STREAM,
 	STRING,
 	SERVER,
 	SERVER_VALUE,
@@ -49,6 +46,11 @@ import {
 	HYPHEN,
 	COMMA_SPACE,
 	NODE_METHODS,
+	EVT_CONNECT,
+	EVT_FINISH,
+	EVT_ERROR,
+	EVT_STREAM,
+	EVT_CLOSE,
 } from "./constants.js";
 import { createMiddlewareRegistry, next } from "./middleware.js";
 import {
@@ -296,7 +298,7 @@ export class Woodland extends EventEmitter {
 		res.error = (status = 500, body) => {
 			error(req, res, status);
 			const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
-			this.emit(ERROR, req, res, err);
+			this.emit(EVT_ERROR, req, res, err);
 			res.send(err.message);
 		};
 		res.header = res.setHeader;
@@ -312,7 +314,7 @@ export class Woodland extends EventEmitter {
 		res.status = (arg = INT_200) => status(res, arg);
 
 		res.set(headersBatch);
-		res.on(CLOSE, () => this.logger.log(this.logger.clf(req, res), INFO));
+		res.on(EVT_CLOSE, () => this.logger.log(this.logger.clf(req, res), INFO));
 		this.logger.log(
 			`type=decorate, uri=${parsed.pathname}, method=${req.method}, ip=${clientIP}, message="Decorated request from ${clientIP}"`,
 		);
@@ -485,12 +487,12 @@ export class Woodland extends EventEmitter {
 
 		this.decorate(req, res);
 
-		if (this.listenerCount(CONNECT) > INT_0) {
-			this.emit(CONNECT, req, res);
+		if (this.listenerCount(EVT_CONNECT) > INT_0) {
+			this.emit(EVT_CONNECT, req, res);
 		}
 
-		if (this.listenerCount(FINISH) > INT_0) {
-			res.on(FINISH, () => this.emit(FINISH, req, res));
+		if (this.listenerCount(EVT_FINISH) > INT_0) {
+			res.on(EVT_FINISH, () => this.emit(EVT_FINISH, req, res));
 		}
 
 		this.logger.logRoute(req.parsed.pathname, req.method, req.ip);
@@ -569,7 +571,7 @@ export class Woodland extends EventEmitter {
 			req,
 			res,
 			file,
-			(req, res) => this.emit(STREAM, req, res),
+			(req, res) => this.emit(EVT_STREAM, req, res),
 			createReadStream,
 			this.etags,
 		);

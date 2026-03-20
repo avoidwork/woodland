@@ -1,6 +1,7 @@
 import assert from "node:assert";
 import { describe, it, beforeEach } from "node:test";
 import { Woodland, woodland } from "../../src/woodland.js";
+import { CONNECT } from "../../src/constants.js";
 
 describe("woodland", () => {
 	describe("Woodland class", () => {
@@ -1169,17 +1170,18 @@ describe("woodland", () => {
 			const connectApp = woodland();
 			let connectEmitted = false;
 
-			connectApp.on("connect", () => {
+			connectApp.on(CONNECT, () => {
 				connectEmitted = true;
 			});
 
 			const req = {
 				method: "GET",
+				url: "/test",
 				headers: { host: "example.com" },
 				connection: { remoteAddress: "127.0.0.1" },
 				parsed: { pathname: "/test" },
 				precise: { stop: () => ({ diff: () => 0 }) },
-				allow: "/",
+				allow: "GET,HEAD,OPTIONS",
 				cors: false,
 				corsHost: false,
 				valid: true,
