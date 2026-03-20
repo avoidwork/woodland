@@ -1,201 +1,389 @@
-# AGENTS.md
+# AGENTS.md - Woodland HTTP Framework
 
-## Setup commands
+## Project Overview
 
-- Install deps: `npm install`
-- Build: `npm run build`
-- Run tests: `npm test`
-- Run tests with coverage: `npm run coverage`
-- Run benchmarks: `npm run benchmarks`
-- Fix lint errors: `npm run fix`
-- Check lint only: `npm run lint`
-- Documentation is in `./docs`
+Woodland is a lightweight, security-focused HTTP server framework for Node.js that extends EventEmitter. It provides middleware-based routing with built-in CORS, file serving, caching, and comprehensive logging.
 
-## Development workflow
+**Key Statistics:**
+- 495 tests passing
+- 100% line coverage target
+- Minimal dependencies
+- Express-compatible API
 
-1. Make changes to source files
-2. Run tests: `npm test` (ensure all tests pass)
-3. Fix lint errors: `npm run fix`
-4. Build: `npm run build`
-5. Run coverage: `npm run coverage` (target 100% line coverage)
+---
 
-## Tooling
+## Setup Commands
 
-- **Linting**: oxlint (with `no-console: error` and `no-unused-vars: error` rules)
-- **Formatting**: oxfmt
-- **Testing**: Node.js built-in test runner (`node --test`)
-- **Git hooks**: husky (runs `npm run fix && npm run coverage && git add -A` on pre-commit)
-- **Build**: rollup
-- **Validation**: jsonschema (JSON Schema Draft-07 for config validation)
-
-## Code style
-
-- Use JSDoc standard for creating docblocks of functions and classes
-- Always use camelCase for function names
-- Always use upper-case snake_case for constants
-- Create integration tests in `tests/integration` that use node-assert
-- Create unit tests in `tests/unit` that use node-assert
-- Use node.js community "Best Practices"
-- Fix lint errors by running `npm run fix`
-- Adhere to DRY, KISS, YAGNI, & SOLID principles
-- Adhere to OWASP security guidance
-
-## Codebase structure
-
-| File | Purpose | Exports |
-|------|---------|---------|
-| `src/woodland.js` | Main framework (only class) | `Woodland` class, `woodland` factory |
-| `src/config.js` | Configuration validation | `validateConfig`, `validateLogging`, `validateOrigins`, `mergeEnvLogging` |
-| `src/response.js` | Response handlers | `mime`, `getStatusText`, `getStatus`, `error`, `json`, `redirect`, `send`, `set`, `status`, `stream`, `noop`, `escapeHtml`, `partialHeaders`, `pipeable`, `writeHead`, `mimeExtensions` |
-| `src/request.js` | Request handlers | `cors`, `corsHost`, `corsRequest`, `extractIP`, `decorate`, `logClose`, `params`, `parse`, `extractPath`, `isValidIP` |
-| `src/logger.js` | Logging | `createLogger`, `log`, `clf`, `logRoute`, `logMiddleware`, `logDecoration`, `logError`, `logServe`, `ms`, `timeOffset` |
-| `src/middleware.js` | Middleware registry | `reduce`, `next`, `computeRoutes`, `listRoutes`, `checkAllowed`, `createMiddlewareRegistry`, `registerMiddleware` |
-| `src/fileserver.js` | File server | `serve`, `register`, `createFileServer`, `autoindex` |
-| `src/constants.js` | Constants & patterns | All framework constants (HTTP methods, headers, status codes, etc.) |
-| `src/cli.js` | CLI entry point | CLI server runner |
-| `tpl/autoindex.html` | Directory listing template | HTML template for autoindex |
-
-**Note:** Integration tests are optional when unit tests provide comprehensive coverage of all exported functions.
-
-## Architecture patterns
-
-### Single class, factories everywhere
-- **Only one class exists**: `Woodland` in `woodland.js` (extends `EventEmitter`)
-- **Factory pattern for everything else**: `createLogger`, `createMiddlewareRegistry`, `createFileServer`
-- Factories use closures for private state instead of class fields
-- Factories return objects with bound methods for testability
-
-### HTTP method shortcuts
-All HTTP method shortcuts delegate to `use()`:
-- `get`, `post`, `put`, `delete`, `patch`, `options`, `connect`, `trace`
-- `always` - wildcard middleware for all methods
-
-### Curried response handlers
-Response handlers support currying when bound to `res`:
-```javascript
-res.json = this.json(res); // Returns function that can be called later: res.json(data, status, headers)
-res.send = this.send(req, res); // Returns function: res.send(body, status, headers)
+```bash
+npm install          # Install dependencies
+npm test             # Run tests
+npm run coverage     # Run tests with coverage (target: 100%)
+npm run benchmarks   # Run performance benchmarks
+npm run benchmark comparison  # Compare against Express/Fastify
+npm run lint         # Check linting (oxlint)
+npm run fix          # Auto-fix linting issues
+npm run build        # Build with rollup
 ```
 
-### Middleware execution
-- Middleware executes via `process.nextTick` (async by default)
-- Tests need to await or use `done` callbacks
+---
+
+## Development Workflow
+
+1. Make changes to source files in `src/`
+2. Run tests: `npm test` (ensure all pass)
+3. Fix lint errors: `npm run fix`
+4. Build: `npm run build`
+5. Run coverage: `npm run coverage` (maintain 100% line coverage)
+6. Commit changes (husky pre-commit hook runs fix + coverage + git add)
+
+---
+
+## Tooling Stack
+
+| Tool | Purpose |
+|------|---------|
+| **oxlint** | Linting (with `no-console: error`, `no-unused-vars: error`) |
+| **oxfmt** | Formatting |
+| **node --test** | Test runner (Node.js built-in) |
+| **husky** | Git hooks (pre-commit: fix + coverage + add) |
+| **rollup** | Build bundler |
+| **jsonschema** | Config validation (Draft-07) |
+| **tiny-lru** | LRU caching |
+| **tiny-etag** | ETag generation |
+
+---
+
+## Codebase Structure
+
+### Source Files (`src/`)
+
+| File | Purpose | Key Exports |
+|------|---------|-------------|
+| `woodland.js` | Main framework class | `Woodland` class, `woodland` factory |
+| `config.js` | Configuration validation | `validateConfig`, `validateLogging`, `validateOrigins` |
+| `response.js` | Response handlers | `json`, `send`, `redirect`, `error`, `stream`, `set`, `status` |
+| `request.js` | Request handlers | `cors`, `extractIP`, `params`, `parse`, `isValidIP` |
+| `logger.js` | Logging utilities | `createLogger`, `log`, `clf`, `ms`, `timeOffset` |
+| `middleware.js` | Middleware registry | `reduce`, `next`, `createMiddlewareRegistry` |
+| `fileserver.js` | Static file serving | `serve`, `createFileServer`, `autoindex` |
+| `constants.js` | HTTP constants | Methods, status codes, headers, patterns |
+| `cli.js` | CLI entry point | Server runner |
+
+### Other Directories
+
+- `tests/unit/` - Unit tests (node-assert)
+- `tests/integration/` - Integration tests (node-assert)
+- `benchmarks/` - Performance benchmarks
+- `docs/` - Technical documentation
+- `tpl/` - HTML templates (autoindex)
+
+---
+
+## Architecture Patterns
+
+### Single Class, Factories Everywhere
+
+- **Only one class**: `Woodland` (extends `EventEmitter`)
+- **Factory pattern**: `createLogger`, `createMiddlewareRegistry`, `createFileServer`
+- Factories use closures for private state (not class fields)
+- Factories return objects with bound methods for testability
+
+### HTTP Method Shortcuts
+
+All delegate to `use()`:
+- `get`, `post`, `put`, `delete`, `patch`, `options`, `connect`, `trace`
+- `always(path?, ...fn)` - Wildcard middleware for all methods
+
+### Curried Response Handlers
+
+```javascript
+res.json = this.json(res);  // res.json(data, status, headers)
+res.send = this.send(req, res);  // res.send(body, status, headers)
+```
+
+### Middleware Execution
+
+- Executes via `process.nextTick` (async by default)
+- Tests must `await` or use `done` callbacks
 - `immediate: true` in `next()` bypasses nextTick for sync execution
-- `always()` middleware is automatically ignored for route visibility calculations
+- `always()` middleware ignored for route visibility
+- Error handlers detected by 4-argument signature: `(err, req, res, next)`
 
-### CORS behavior
-- `req.cors` is `true` when origin host differs from request host AND origin is allowed
-- `req.corsHost` is `true` when origin header exists and host differs
-- CORS check only runs when origin header is present
+---
 
-## Performance patterns
+## Key Implementation Details
 
-- Cache regex patterns at module level or in constants.js
-- Use `Object.create(null)` for null-prototype objects (faster property access)
+### Woodland Class (`src/woodland.js`)
+
+```javascript
+const app = woodland({
+  origins: [],          // CORS allowlist (empty = deny all)
+  autoindex: false,     // Directory listing
+  cacheSize: 1000,      // LRU cache size
+  cacheTTL: 10000,      // Cache TTL (ms)
+  etags: true,          // ETag generation
+  time: false,          // X-Response-Time header
+  silent: false,        // Disable server headers
+  logging: {
+    enabled: true,
+    level: "info",
+    format: "%h %l %u %t \"%r\" %>s %b"
+  }
+});
+```
+
+**Important:**
+- Logging delegated to `this.logger.log()` (no `app.log()` method)
+- CLI uses `app.logger.log()` for startup messages
+- HEAD routes cannot be registered directly (GET implies HEAD)
+
+### Request Decorations (`src/request.js`)
+
+After `decorate(req, res)`:
+
+| Property | Description |
+|----------|-------------|
+| `req.parsed` | URL object (pathname, search, hostname) |
+| `req.allow` | Allowed methods string (e.g., "GET, OPTIONS") |
+| `req.cors` | `true` if origin allowed and differs from host |
+| `req.corsHost` | `true` if origin header exists and host differs |
+| `req.ip` | Client IP (from X-Forwarded-For or connection) |
+| `req.params` | URL parameters array |
+| `req.body` | Request body (initialized as `{}`) |
+| `req.valid` | Request validation flag |
+
+**Exported utilities:**
+- `isValidIP(ip)` - Validate IPv4/IPv6
+- `extractIP(req)` - Extract IP from request
+- `params(req, regex)` - Extract URL params with XSS prevention
+- `parse(url)` - Parse URL with security fallback
+
+### Response Handlers (`src/response.js`)
+
+| Method | Usage | Notes |
+|--------|-------|-------|
+| `res.json(data, status, headers)` | JSON response | Always sets `Content-Type: application/json` |
+| `res.send(body, status, headers)` | Text/stream | Handles streams and ranged requests |
+| `res.redirect(url, permanent)` | Redirect | 308 permanent, 307 temporary |
+| `res.error(status, message)` | Error | Removes CORS headers if `req.cors` |
+| `res.set(headers)` | Set headers | Accepts Object, Map, or Headers |
+| `res.status(code)` | Set status | Simple setter |
+| `res.header(name, value)` | Native header | Direct Node.js access |
+
+**Utilities:**
+- `escapeHtml(str)` - XSS prevention (escapes `&<>"'`)
+- `mime(path)` - Get MIME type from path
+- `getStatus(method, req)` - Determine 404/405/500
+
+### Middleware Registry (`src/middleware.js`)
+
+```javascript
+// Middleware registry methods
+app.middleware.register(path, ...fn, method)
+app.middleware.allowed(method, uri, override)
+app.middleware.routes(uri, method, override)
+app.middleware.ignore(fn)
+app.middleware.list(method, type)  // "array" or "object"
+```
+
+**Cache key format:** `${method}${DELIMITER}${uri}` (e.g., `"GET|/test"`)
+
+### File Server (`src/fileserver.js`)
+
+```javascript
+// Serve static files
+app.files("/static", "./public");
+
+// Manual serving
+await app.serve(req, res, "/path/to/file", "./public");
+```
+
+**Security:**
+- Path traversal blocked (resolved path must stay within folder)
+- Directories redirect to add trailing slash, or serve autoindex
+- Index files: `index.htm`, `index.html`
+
+### Logger (`src/logger.js`)
+
+```javascript
+// Create logger
+const logger = createLogger({ enabled: true, level: "debug" });
+
+// Usage
+logger.log("type=woodland, message=started", LOG_INFO);
+logger.clf(req, res);  // Common Log Format
+logger.ms(1234567);    // "1.234 ms"
+logger.timeOffset(300); // "-0500" (timezone)
+```
+
+**Log levels:** emerg (0), alert (1), crit (2), error (3), warn (4), notice (5), info (6), debug (7)
+
+---
+
+## Security Considerations
+
+### Built-in Protections
+
+1. **Path Traversal**: Resolved paths validated against allowed directories
+2. **CORS**: Default deny (empty origins array), explicit allowlist required
+3. **XSS Prevention**: `escapeHtml()` for all user output
+4. **IP Validation**: `isValidIP()` before use
+5. **Error Handling**: No sensitive data exposure in error responses
+
+### Production Hardening
+
+```javascript
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+
+app.always(helmet());
+app.always(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
+```
+
+### Environment Variables
+
+```bash
+WOODLAND_LOG_ENABLED=true|false
+WOODLAND_LOG_FORMAT="<format string>"
+WOODLAND_LOG_LEVEL=debug|info|warn|error|...
+```
+
+---
+
+## Performance Patterns
+
+### Optimization Guidelines
+
+- Cache regex patterns at module level
+- Use `Object.create(null)` for null-prototype objects
 - Use `for` loops instead of `for..of` in hot paths
-- Cache environment variable reads in constructor (not module level) to support test overrides
+- Cache env var reads in constructor (not module level)
 - Avoid optional chaining in hot paths
-- Use `Set` for O(1) lookups instead of array `.includes()`
+- Use `Set` for O(1) lookups instead of `.includes()`
 - Pre-allocate arrays when size is known
 - Batch property assignments and header sets
-- Use spread operator `[...array]` instead of `structuredClone` for simple arrays
+- Use spread `[...array]` instead of `structuredClone`
 
-## Environment variables
+### Benchmark Results (Mean of 5 runs)
 
-- `WOODLAND_LOG_ENABLED` - Enable/disable logging ("true"/"false" or omitted for default)
-- `WOODLAND_LOG_FORMAT` - Custom log format string
-- `WOODLAND_LOG_LEVEL` - Log level (debug, info, warn, error, etc.)
+| Framework | Mean (ms) | Ops/sec |
+|-----------|-----------|---------|
+| Fastify | 0.1147ms | 8723 |
+| **Woodland** | **0.1860ms** | **5384** |
+| Express | 0.1963ms | 5059 |
+| Node.js HTTP | 0.1984ms | 5042 |
 
-## Security considerations
+---
 
-- Validate all IP addresses before use (use `isValidIP` from request.js)
-- Block path traversal attempts in file serving (resolve() + startsWith check)
-- Deny CORS by default (empty origins array)
-- Escape HTML in autoindex to prevent XSS (escapeHtml function)
-- Don't expose sensitive information in error responses
-- Ensure resolved file paths stay within allowed directories
+## Testing Guidelines
 
-## Test count
+### Test Structure
 
-- 478 tests passing
-- 100% line coverage target
+- **Unit tests**: `tests/unit/` - Test individual functions
+- **Integration tests**: `tests/integration/` - Test full request cycles
+- **Benchmarks**: `benchmarks/` - Performance testing
 
-## Key implementation details
+### Test Patterns
 
-### Config validation (`config.js`)
-- Uses jsonschema library with Draft-07 schema
-- `validateConfig` merges validated config with DEFAULTS for missing properties
-- `validateLogging` checks config → env vars → defaults priority chain
-- Invalid log levels fall back to `INFO` (not thrown as error)
+```javascript
+import { describe, it } from "node:test";
+import assert from "node:assert";
 
-### Logger (`logger.js`)
-- `createLogger` returns object with bound methods via closures
-- `clf` generates common log format with `timeOffset` for timezone
-- `timeOffset` convention: positive input (minutes) returns negative string (e.g., 300 → "-0500")
-- `ms` - formats nanoseconds to milliseconds with configurable precision
-- Log levels: emerg, alert, crit, error, warn, notice, info, debug (0-7, lower = more severe)
-- `log()` function outputs to console via `process.nextTick`, does not return chaining object
-- `extractIP` removed from logger, now only available from `request.js`
+describe("module", () => {
+  it("should do something", async () => {
+    const result = await someFunction();
+    assert.strictEqual(result, expected);
+  });
+});
+```
 
-### Woodland class (`woodland.js`)
-- Logging delegated to `this.logger.log()` (no `app.log()` method exists)
-- CLI uses `app.logger.log()` for startup messages
+### Mocking Requirements
 
-### Request handlers (`request.js`)
-- `cors` - returns true if origins array non-empty AND (wildcard OR origin in list)
-- `corsHost` - true if origin header exists and hostname differs from request host
-- `corsRequest` - returns function that sends 204 No Content
-- `extractIP` - checks x-forwarded-for first, then connection.remoteAddress, then socket.remoteAddress; exported for use in other modules
-- `params` - extracts URL parameters using regex named groups, uses `coerce()` to convert numeric strings, applies `escapeHtml()` for XSS prevention
-- `parse` - parses URL string or request object into URL object with security fallback
-- `extractPath` - converts `/:param` to regex `/(?<param>[^/]+)` for route matching
+For benchmark tests, mock responses must include:
+- `send()`, `json()`, `end()`, `pipe()`, `on()`, `emit()` methods
+- `socket.server._connectionKey` property for CORS/IP extraction
+- Stream bodies must be destroyed to prevent EMFILE errors
 
-### Response handlers (`response.js`)
-- `error` - removes "allow" header on 404, removes CORS headers if `req.cors` is true
-- `json` - always sets `Content-Type: application/json; charset=utf-8`
-- `redirect` - 308 for permanent, 307 for temporary
-- `send` - handles streams (pipeable) and ranged requests
-- `set` - accepts Object, Map, or Headers; converts to Headers for iteration
-- `status` - simple statusCode setter
-- `stream` - handles GET, HEAD, OPTIONS methods for file serving
-- `escapeHtml` - escapes HTML special characters (`&<>"'`) for XSS prevention
-- `partialHeaders` - handles HTTP range requests, sets `content-range` and `content-length` headers
-- `pipeable` - checks if object is stream-like (has `on` method and not HEAD method)
-- `writeHead` - writes response headers using `writeHead()` method
-- `mimeExtensions` - MIME type database keyed by file extension
+### Coverage Targets
 
-### Middleware registry (`middleware.js`)
-- `createMiddlewareRegistry` returns object with: `ignore`, `allowed`, `routes`, `register`, `list`
-- `createMiddlewareRegistry(methods, cache)` - takes only methods array and cache, creates internal `middleware` Map and `ignored` Set
-- `allowed(method, uri, override)` - checks if a method is allowed for a URI (method comes BEFORE uri)
-- `routes(uri, method, override)` - returns route information (uri comes BEFORE method)
-- Cache key format: `${method}${DELIMITER}${uri}` (e.g., `"GET|/test"`)
-- `computeRoutes` caches results in Map with key `${method}${DELIMITER}${uri}`
-- `next` - creates iterator-based middleware executor with error handler detection (ERROR_HANDLER_LENGTH = 4)
-- HEAD routes cannot be registered directly; GET routes implicitly allow HEAD
+- 100% line coverage (required)
+- Ongoing work: 100% branch and function coverage
 
-### Response handlers (`response.js`)
-- `getStatus` - determines 404/405/500 based on `req.allow` and method (moved from middleware.js)
+---
 
-### Middleware state management
-- `this.middleware` on Woodland instance is the registry object (not a Map)
-- `this.middleware.ignore(fn)` - adds function to internal ignored Set
-- `this.middleware.allowed(method, uri, override)` - returns boolean
-- `this.middleware.routes(uri, method, override)` - returns route info object
-- `this.middleware.register(path, ...fns, method)` - registers middleware
-- `this.middleware.list(method, type)` - lists routes for a method
+## Common Tasks
 
-### File server (`fileserver.js`)
-- `serve` - resolves path, checks path traversal (startsWith), handles directories
-- Directories redirect to add trailing slash, or serve autoindex if enabled
-- Looks for index files (index.htm, index.html) before autoindex
-- `createFileServer` returns object with `register` and `serve` methods
-- `autoindex` - generates HTML directory listing using `escapeHtml` for XSS prevention
+### Adding a New Route
 
-### Constants (`constants.js`)
-- HTTP methods: GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD, CONNECT, TRACE
-- Status codes: INT_200, INT_204, INT_206, INT_304, INT_307, INT_308, INT_400, INT_403, INT_404, INT_405, INT_416, INT_500
-- Headers: CONTENT_TYPE, CONTENT_LENGTH, CACHE_CONTROL, ETAG, LOCATION, ALLOW, etc.
-- Patterns: TOKEN_N, TIME_MS, KEY_BYTES, etc. for regex generation
-- All hardcoded strings/numbers in source files should use constants from this module
+```javascript
+// src/woodland.js or app setup
+app.get("/api/users/:id", (req, res) => {
+  const userId = req.params.id;
+  res.json({ id: userId });
+});
+```
 
+### Creating Middleware
+
+```javascript
+// Regular middleware (3 params)
+app.always((req, res, next) => {
+  req.startTime = Date.now();
+  next();
+});
+
+// Error handler (4 params - detected automatically)
+app.use("/(.*)", (err, req, res, next) => {
+  console.error(err);
+  res.error(500, err.message);
+});
+```
+
+### Configuring CORS
+
+```javascript
+const app = woodland({
+  origins: ["https://app.example.com", "https://api.example.com"],
+  corsExpose: "x-custom-header,x-request-id"
+});
+// Woodland automatically handles preflight OPTIONS requests
+```
+
+### Serving Static Files
+
+```javascript
+const app = woodland({ autoindex: true });
+app.files("/static", "./public");
+```
+
+---
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| CORS blocked | Add origins to config: `origins: ["https://myapp.com"]` |
+| Route not matching | Check trailing slashes, use consistent patterns |
+| EMFILE errors | Destroy file streams in mock responses |
+| Import errors | Check actual exports in `src/*.js` files |
+| Lint errors | Run `npm run fix` |
+| Test failures | Check mock response includes all required methods |
+
+---
+
+## Git Workflow
+
+- **Main branch**: `main`
+- **Feature branches**: Create from main
+- **Pre-commit hook**: Runs `npm run fix && npm run coverage && git add -A`
+- **Commits**: Only when explicitly requested
+- **Never**: Force push to main, skip hooks, or amend pushed commits
+
+---
+
+## Documentation References
+
+- [API Reference](https://github.com/avoidwork/woodland/blob/main/docs/API.md)
+- [Technical Documentation](https://github.com/avoidwork/woodland/blob/main/docs/TECHNICAL_DOCUMENTATION.md)
+- [Code Style Guide](https://github.com/avoidwork/woodland/blob/main/docs/CODE_STYLE_GUIDE.md)
+- [Benchmarks](https://github.com/avoidwork/woodland/blob/main/docs/BENCHMARKS.md)
