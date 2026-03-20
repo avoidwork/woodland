@@ -319,13 +319,13 @@ M(u, p, r) = \begin{cases}
 \end{cases}
 $$
 
-Route registration in the `use()` method:
+Route registration in the `middleware.register()` method:
 
 $$
 M_{\text{register}}(path, handlers, method) = \begin{cases}
 \text{compile regex pattern} \\
 \text{store handlers, params, regex} \\
-\text{add to middleware.get(method)}
+\text{add to middleware Map}
 \end{cases}
 $$
 
@@ -384,22 +384,21 @@ $$
 
 #### Caching Function
 
-The LRU cache behavior is modeled as:
+The Map-based cache behavior is modeled as:
 
-$$C: K \times V \times T \rightarrow V \cup \{\text{null}\}$$
+$$C: K \times V \rightarrow V \cup \{\text{undefined}\}$$
 
 Where:
 
 - $K$ = Cache key space
 - $V$ = Value space
-- $T$ = Time domain
 
-Cache lookup with TTL:
+Cache lookup:
 
 $$
-C(k, v, t) = \begin{cases}
-v & \text{if } t - t_{\text{insert}} < \text{TTL} \\
-\text{null} & \text{otherwise}
+C(k) = \begin{cases}
+v & \text{if } k \in \text{Map} \\
+\text{undefined} & \text{otherwise}
 \end{cases}
 $$
 
@@ -409,13 +408,13 @@ $$C_{\text{key}}(method, uri) = \text{method} + \text{DELIMITER} + \text{uri}$$
 
 Cache types:
 
-- **Route Cache**: Cached route resolution results
-- **Permission Cache**: Cached allowed methods per URI
-- **ETag Cache**: Cached ETag values for files
-- **File Stats Cache**: Cached file system statistics
+- **Route Cache**: Cached route resolution results (Map in `this.cache`)
+- **Permission Cache**: Cached allowed methods per URI (Map in `this.permissions`)
+- **ETag Cache**: External `tiny-etag` package (provides its own LRU cache)
+- **File Stats**: No caching - fresh `fs.stat()` on each request
 
 Cache initialization:
-$$C_{\text{init}}(size, ttl) = \text{lru(size, ttl)} \text{ for both route and permission caches}$$
+$$C_{\text{init}}() = \text{new Map()} \text{ for both route and permission caches}$$
 
 #### Security Validation Functions
 

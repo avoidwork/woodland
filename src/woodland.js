@@ -2,6 +2,7 @@ import { STATUS_CODES } from "node:http";
 import { EventEmitter } from "node:events";
 import { createReadStream } from "node:fs";
 import { etag } from "tiny-etag";
+import { lru } from "tiny-lru";
 import { precise } from "precise";
 import {
 	ACCESS_CONTROL_ALLOW_CREDENTIALS,
@@ -135,7 +136,7 @@ export class Woodland extends EventEmitter {
 		this.logging = validateLogging(logging);
 		this.origins = new Set(origins);
 		this.time = time;
-		this.cache = new Map();
+		this.cache = lru(cacheSize, cacheTTL);
 		this.permissions = new Map();
 		this.methods = [];
 		this.logger = createLogger({

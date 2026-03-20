@@ -11,6 +11,7 @@ var node_http = require('node:http');
 var node_events = require('node:events');
 var node_fs = require('node:fs');
 var tinyEtag = require('tiny-etag');
+var tinyLru = require('tiny-lru');
 var precise = require('precise');
 var node_module = require('node:module');
 var node_path = require('node:path');
@@ -1615,7 +1616,7 @@ class Woodland extends node_events.EventEmitter {
 		this.logging = validateLogging(logging);
 		this.origins = new Set(origins);
 		this.time = time;
-		this.cache = new Map();
+		this.cache = tinyLru.lru(cacheSize, cacheTTL);
 		this.permissions = new Map();
 		this.methods = [];
 		this.logger = createLogger({
