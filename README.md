@@ -508,15 +508,15 @@ Woodland is **11.5% faster than Express** and **14.8% faster than raw Node.js HT
 
 | Category | Metric | Result |
 |----------|--------|--------|
-| **Routing** | Method validation (`allows()`) | 3.7M ops/sec |
-| | Route resolution (`routes()`) | 922K ops/sec |
-| **Middleware** | Registration | 20K+ ops/sec |
-| | Simple execution | 29K ops/sec |
-| **HTTP Server** | JSON responses | 7,266 ops/sec |
-| | CRUD operations | 6-7K ops/sec |
+| **Routing** | Method validation (`allows()`) | 4.9M ops/sec |
+| | Route resolution (`routes()`) | 1.8M ops/sec |
+| **Middleware** | Registration | 43K+ ops/sec |
+| | Simple execution | 31K ops/sec |
+| **HTTP Server** | JSON responses | 13,225 ops/sec |
+| | CRUD operations | 10-14K ops/sec |
 | **File Serving** | Small files (< 1KB) | 44K ops/sec |
 | | Streaming with ETags | 370K ops/sec |
-| **Capacity** | Single instance (JSON API) | 4,000-7,000 RPS |
+| **Capacity** | Single instance (JSON API) | 5,000-7,000 RPS |
 | | Cluster (10 instances) | 50,000-70,000 RPS |
 
 [Full benchmark details](https://github.com/avoidwork/woodland/blob/main/docs/BENCHMARKS.md)
