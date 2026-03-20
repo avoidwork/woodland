@@ -58,7 +58,8 @@ import {
 	status,
 	stream as responseStream,
 	getStatus,
-	writeHead, getStatusText
+	writeHead,
+	getStatusText,
 } from "./response.js";
 import { validateConfig, validateLogging } from "./config.js";
 import { createLogger } from "./logger.js";
