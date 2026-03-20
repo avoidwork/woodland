@@ -5,13 +5,13 @@
 
 High-performance HTTP framework for Node.js. Express-compatible, optimized for speed.
 
-</div>
-
 [![npm version](https://badge.fury.io/js/woodland.svg)](https://badge.fury.io/js/woodland)
 [![Node.js Version](https://img.shields.io/node/v/woodland.svg)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![Build Status](https://github.com/avoidwork/woodland/actions/workflows/ci.yml/badge.svg)](https://github.com/avoidwork/woodland/actions)
 [![Test Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](https://github.com/avoidwork/woodland)
+
+</div>
 
 ## Quick Start
 
