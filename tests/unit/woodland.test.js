@@ -1,7 +1,7 @@
 import assert from "node:assert";
 import { describe, it, beforeEach } from "node:test";
 import { Woodland, woodland } from "../../src/woodland.js";
-import { CONNECT } from "../../src/constants.js";
+import { EVT_CONNECT } from "../../src/constants.js";
 
 describe("woodland", () => {
 	describe("Woodland class", () => {
@@ -1170,7 +1170,7 @@ describe("woodland", () => {
 			const connectApp = woodland();
 			let connectEmitted = false;
 
-			connectApp.on(CONNECT, () => {
+			connectApp.on(EVT_CONNECT, () => {
 				connectEmitted = true;
 			});
 

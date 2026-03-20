@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="https://avoidwork.github.io/woodland/logo.svg" width="150" alt="Woodland Logo" />
+</div>
+
 # Woodland
 
 High-performance HTTP framework for Node.js. Express-compatible, optimized for speed.
