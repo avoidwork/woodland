@@ -1,18 +1,10 @@
 import { woodland } from "../dist/woodland.js";
 import { join } from "node:path";
-import { writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
-const testDir = join(__dirname, "..", "test-files");
-
-// Create test app instance
-// const app = woodland({
-// 	cacheSize: 1000,
-// 	cacheTTL: 10000,
-// 	etags: false,
-// 	logging: {enabled: false} // Disable logging for benchmarks
-// });
+const testDir = join(__dirname, "..", "tests", "test-files");
 
 // Mock request and response objects for testing
 const createMockRequest = (method = "GET", url = "/", headers = {}) => ({
@@ -94,61 +86,6 @@ const createMockResponse = () => {
 
 	return response;
 };
-
-// Test file contents of different sizes
-const testContents = {
-	small: "Hello World",
-	medium: "A".repeat(1000),
-	large: "B".repeat(10000),
-	xlarge: "C".repeat(100000),
-};
-
-/**
- * Setup test files for benchmarking
- */
-function setupTestFiles() {
-	try {
-		mkdirSync(testDir, { recursive: true });
-
-		// Create files of different sizes
-		writeFileSync(join(testDir, "small.txt"), testContents.small);
-		writeFileSync(join(testDir, "medium.txt"), testContents.medium);
-		writeFileSync(join(testDir, "large.txt"), testContents.large);
-		writeFileSync(join(testDir, "xlarge.txt"), testContents.xlarge);
-
-		// Create different file types
-		writeFileSync(join(testDir, "test.js"), 'console.log("test");');
-		writeFileSync(join(testDir, "test.css"), "body { color: red; }");
-		writeFileSync(join(testDir, "test.json"), '{"test": true}');
-		writeFileSync(join(testDir, "test.html"), "<html><body>Test</body></html>");
-		writeFileSync(join(testDir, "test.xml"), '<?xml version="1.0"?><root>test</root>');
-
-		// Create binary-like file
-		const binaryData = Buffer.from(Array.from({ length: 1000 }, (_, i) => i % 256));
-		writeFileSync(join(testDir, "binary.dat"), binaryData);
-
-		// Create subdirectory with files
-		mkdirSync(join(testDir, "subdir"), { recursive: true });
-		writeFileSync(join(testDir, "subdir", "nested.txt"), "Nested file content");
-		writeFileSync(join(testDir, "subdir", "index.html"), "<html><body>Index</body></html>");
-	} catch (error) {
-		console.warn("Could not setup test files:", error.message);
-	}
-}
-
-/**
- * Cleanup test files after benchmarking
- */
-function cleanupTestFiles() {
-	try {
-		rmSync(testDir, { recursive: true, force: true });
-	} catch (error) {
-		console.warn("Could not cleanup test files:", error.message);
-	}
-}
-
-// Setup test files
-setupTestFiles();
 
 /**
  * Benchmark serve() function for small files
@@ -378,68 +315,11 @@ function benchmarkStreamSmallFile() {
 
 	const file = {
 		charset: "utf-8",
-		etag: "test-etag",
-		path: join(testDir, "small.txt"),
-		stats: {
-			mtime: new Date(),
-			size: testContents.small.length,
-		},
-	};
-
-	return freshApp.stream(req, res, file);
-}
-
-/**
- * Benchmark stream() function with different HTTP methods
- */
-function benchmarkStreamDifferentMethods() {
-	const freshApp = woodland({
-		cacheSize: 1000,
-		cacheTTL: 10000,
-		etags: false,
-		logging: { enabled: false },
-	});
-
-	const methods = ["GET", "HEAD", "OPTIONS"];
-	const method = methods[Math.floor(Math.random() * methods.length)];
-
-	const req = createMockRequest(method, "/test.txt");
-	const res = createMockResponse();
-
-	const file = {
-		charset: "utf-8",
-		etag: "test-etag",
-		path: join(testDir, "small.txt"),
-		stats: {
-			mtime: new Date(),
-			size: testContents.small.length,
-		},
-	};
-
-	return freshApp.stream(req, res, file);
-}
-
-/**
- * Benchmark stream() function with ETags
- */
-function benchmarkStreamWithEtags() {
-	const freshApp = woodland({
-		cacheSize: 1000,
-		cacheTTL: 10000,
-		etags: false,
-		logging: { enabled: false },
-	});
-
-	const req = createMockRequest("GET", "/test.txt");
-	const res = createMockResponse();
-
-	const file = {
-		charset: "utf-8",
 		etag: '"test-etag-value"',
 		path: join(testDir, "small.txt"),
 		stats: {
 			mtime: new Date(),
-			size: testContents.small.length,
+			size: 11,
 		},
 	};
 
@@ -466,7 +346,7 @@ function benchmarkStreamWithoutEtags() {
 		path: join(testDir, "small.txt"),
 		stats: {
 			mtime: new Date(),
-			size: testContents.small.length,
+			size: 11,
 		},
 	};
 
@@ -529,8 +409,3 @@ export default {
 	"files() - static serving": benchmarkFilesMethod,
 	"etag() - generation": benchmarkEtagGeneration,
 };
-
-// Cleanup function to be called after benchmarks
-export function cleanup() {
-	cleanupTestFiles();
-}

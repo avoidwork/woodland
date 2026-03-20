@@ -126,7 +126,7 @@ function createTestApp() {
 	});
 
 	// Static file serving
-	app.files("/static", join(__dirname, "..", "test-files"));
+	app.files("/static", join(__dirname, "..", "tests", "test-files"));
 
 	return app;
 }
