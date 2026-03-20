@@ -475,6 +475,32 @@ const ip = app.ip(req);
 - Falls back to connection.remoteAddress or socket.remoteAddress
 - Returns `127.0.0.1` if no IP found
 
+#### `routes(uri, method, override)`
+
+Get route information for a URI and method. Returns internal route data structure.
+
+```javascript
+const route = app.routes("/users", "get");
+```
+
+| Parameter | Type      | Default  | Description             |
+| --------- | --------- | -------- | ----------------------- |
+| `uri`     | `string`  | Required | Request URI             |
+| `method`  | `string`  | Required | HTTP method             |
+| `override`| `boolean` | `false`  | Skip cache lookup       |
+
+**Returns:** `Object` (route information with middleware array, params, etc.)
+
+**Route Object Properties:**
+
+| Property     | Type      | Description                          |
+| ------------ | --------- | ------------------------------------ |
+| `middleware` | `Array`   | Array of middleware functions        |
+| `params`     | `boolean` | Whether route parameters were found  |
+| `getParams`  | `RegExp`  | RegExp with named capture groups     |
+| `visible`    | `number`  | Count of non-ignored middleware      |
+| `exit`       | `number`  | Index where exit middleware starts   |
+
 #### `decorate(req, res)`
 
 Decorate request and response objects with additional properties and methods. Called automatically by `route()`.
@@ -492,12 +518,12 @@ Woodland extends `EventEmitter` and emits events during request processing.
 
 #### Events
 
-| Event       | Parameters        | Description             |
-| ----------- | ----------------- | ----------------------- |
-| `"connect"` | `(req, res)`      | New connection received |
-| `"finish"`  | `(req, res)`      | Request completed       |
-| `"error"`   | `(req, res, err)` | Error occurred          |
-| `"stream"`  | `(req, res)`      | File streaming started  |
+| Event       | Parameters        | Description                    |
+| ----------- | ----------------- | ------------------------------ |
+| `"connect"` | `(req, res)`      | New connection received        |
+| `"finish"`  | `(req, res)`      | Request completed              |
+| `"error"`   | `(err, req, res)` | Error occurred                 |
+| `"stream"`  | `(req, res)`      | File streaming started         |
 
 ```javascript
 app.on("connect", (req, res) => {
@@ -508,10 +534,16 @@ app.on("finish", (req, res) => {
   analytics.track({ method: req.method, status: res.statusCode });
 });
 
-app.on("error", (req, res, err) => {
+app.on("error", (err, req, res) => {
   console.error(`Error ${res.statusCode}:`, err);
 });
 ```
+
+**Notes:**
+
+- `"error"` event logs the error via `logger.logError()`
+- `"finish"` event is attached to `res.on("finish")`
+- `"stream"` event is emitted when file streaming starts
 
 #### Lifecycle Hooks
 
@@ -520,15 +552,21 @@ Override these methods to customize response handling:
 ```javascript
 app.onReady(req, res, body, status, headers);
 // Called before sending response
-// Return [body, status, headers]
+// Returns [body, status, headers]
 
 app.onSend(req, res, body, status, headers);
 // Called to modify response data
-// Return [body, status, headers]
+// Returns [body, status, headers]
 
 app.onDone(req, res, body, headers);
-// Called to finalize response
+// Called to finalize response (sets headers and ends response)
 ```
+
+**Notes:**
+
+- `onReady()` adds X-Response-Time header if `time: true` in config
+- `onSend()` is a no-op by default (can be overridden for custom logic)
+- `onDone()` sets Content-Length if not already set and writes headers
 
 ---
 

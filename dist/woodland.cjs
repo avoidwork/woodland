@@ -1635,7 +1635,7 @@ class Woodland extends node_events.EventEmitter {
 			this.options(fnCorsRequest).ignore(fnCorsRequest);
 		}
 
-		this.on(ERROR, (err, req, _res) =>
+		this.on(ERROR, (req, _res, _error) =>
 			this.logger.logError(req.parsed.pathname, req.method, req.ip),
 		);
 	}
@@ -1778,7 +1778,7 @@ class Woodland extends node_events.EventEmitter {
 		res.error = (status = 500, body) => {
 			error(req, res, status);
 			const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
-			this.emit(ERROR, err, req, res);
+			this.emit(ERROR, req, res, err);
 			res.send(err.message);
 		};
 		res.header = res.setHeader;
