@@ -134,71 +134,71 @@ graph TB
 
 ```mermaid
 sequenceDiagram
-    participant C as Client
-    participant A as app.route
-    participant D as decorate
-    participant AL as allows
-    participant R as middleware.routes
-    participant P as params
-    participant N as next iterator
-    participant M as Middleware
-    participant O as onReady/onSend/onDone
-    participant L as logger
+    participant Client
+    participant Route as app.route
+    participant Decorate as decorate
+    participant Allows as allows
+    participant Routes as middleware.routes
+    participant Params as params
+    participant Next as next iterator
+    participant Middleware
+    participant Response as onReady/onSend/onDone
+    participant Logger as logger
 
-    C->>+A: HTTP Request
-    A->>A: HEAD to GET conversion
-    A->>+D: Decorate req/res
-    D->>D: Add parsed, allow, cors, ip, params
-    D-->>A: Return decorated objects
-    A->>+AL: Check permissions
-    AL->>AL: Map lookup for allowed methods
-    AL-->>A: Return allowed methods
-    A->>A: Validate CORS origin
+    Client->>+Route: HTTP Request
+    Route->>Route: HEAD to GET conversion
+    Route->>+Decorate: Decorate req/res
+    Decorate->>Decorate: Add parsed, allow, cors, ip, params
+    Decorate-->>-Route: Return decorated objects
+    Route->>+Allows: Check permissions
+    Allows->>Allows: Map lookup for allowed methods
+    Allows-->>-Allows: Return allowed methods
+    Route->>Route: Validate CORS origin
     alt Invalid CORS
-        A->>A: res.error 403
-        A->>-C: HTTP Response
+        Route->>Route: res.error 403
+        Route->>-Client: HTTP Response
     else Valid CORS
-        A->>+R: Match route
-        R->>R: LRU cache lookup
+        Route->>+Routes: Match route
+        Routes->>Routes: LRU cache lookup
         alt Cache Hit
-            R-->>A: Return cached route
+            Routes-->>-Route: Return cached route
         else Cache Miss
-            R->>R: Iterate compiled patterns
-            R->>R: Store in cache
-            R-->>A: Return route info
+            Routes->>Routes: Iterate compiled patterns
+            Routes->>Routes: Store in cache
+            Routes-->>-Route: Return route info
         end
         alt No Route Match
-            A->>A: res.error 404/405
-            A->>-C: HTTP Response
+            Route->>Route: res.error 404/405
+            Route->>-Client: HTTP Response
         else Route Found
-            A->>+P: Extract URL params
-            P->>P: regex.exec with escapeHtml
-            P-->>A: Return params array
-            A->>+N: Create iterator
-            N->>+M: Execute middleware 1
-            M->>M: Process request
+            Route->>+Params: Extract URL params
+            Params->>Params: regex.exec with escapeHtml
+            Params-->>-Route: Return params array
+            Route->>+Next: Create iterator
+            Next->>+Middleware: Execute middleware 1
+            Middleware->>Middleware: Process request
             alt More middleware
-                M->>N: Call next()
-                N->>+M: Execute middleware N
-                M-->>N: Continue chain
+                Middleware->>Next: Call next()
+                Next->>+Middleware: Execute middleware N
+                Middleware-->>-Next: Continue chain
             else End of chain
-                M-->>N: Final middleware
+                Middleware-->>-Next: Final middleware
             end
-            N-->>A: Middleware complete
-            A->>+O: Finalize response
-            O->>O: onReady - timing header
-            O->>O: onSend - prepare response
-            O->>O: onDone - write headers
-            O-->>A: Response sent
+            Next-->>-Route: Middleware complete
+            Route->>+Response: Finalize response
+            Response->>Response: onReady - timing header
+            Response->>Response: onSend - prepare response
+            Response->>Response: onDone - write headers
+            Response-->>-Route: Response sent
         end
     end
-    A->>+L: Log request
-    L->>L: CLF format with timeOffset
-    L-->>A: Log complete
-    A->>-C: HTTP Response
-    A->>A: Emit finish event
+    Route->>+Logger: Log request
+    Logger->>Logger: CLF format with timeOffset
+    Logger-->>-Route: Log complete
+    Route->>-Client: HTTP Response
+    Route->>Route: Emit finish event
 
-    Note over A: Security: Path traversal,<br/>CORS enforcement,<br/>Input validation,<br/>HTML escaping
+    Note over Route: Security: Path traversal,<br/>CORS enforcement,<br/>Input validation,<br/>HTML escaping
 ```
 
 ### Middleware Execution Flow
