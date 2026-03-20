@@ -169,6 +169,17 @@ const MSG_SERVE_PATH_OUTSIDE = "Path outside allowed directory";
 const MSG_VALIDATION_FAILED = "Configuration validation failed: ";
 const SEMICOLON_SPACE = "; ";
 const OPTIONS_BODY = "Make a GET request to retrieve the file";
+const STATUS_BAD_REQUEST = "Bad Request";
+const STATUS_ERROR = "Error";
+const STATUS_FORBIDDEN = "Forbidden";
+const STATUS_INTERNAL_SERVER_ERROR = "Internal Server Error";
+const STATUS_METHOD_NOT_ALLOWED = "Method Not Allowed";
+const STATUS_NO_CONTENT = "No Content";
+const STATUS_NOT_FOUND = "Not Found";
+const STATUS_OK = "OK";
+const STATUS_PERMANENT_REDIRECT = "Permanent Redirect";
+const STATUS_RANGE_NOT_SATISFIABLE = "Range Not Satisfiable";
+const STATUS_TEMPORARY_REDIRECT = "Temporary Redirect";
 
 // =============================================================================
 // HTTP RANGE & CACHING
@@ -339,6 +350,24 @@ function mime(arg = EMPTY) {
 }
 
 /**
+ * Gets HTTP status text for status code
+ * @param {number} status - HTTP status code
+ * @returns {string} Status text string
+ */
+const STATUS_TEXTS = Object.freeze({
+	INT_200: STATUS_OK,
+	INT_204: STATUS_NO_CONTENT,
+	INT_307: STATUS_TEMPORARY_REDIRECT,
+	INT_308: STATUS_PERMANENT_REDIRECT,
+	INT_400: STATUS_BAD_REQUEST,
+	INT_403: STATUS_FORBIDDEN,
+	INT_404: STATUS_NOT_FOUND,
+	INT_405: STATUS_METHOD_NOT_ALLOWED,
+	INT_416: STATUS_RANGE_NOT_SATISFIABLE,
+	INT_500: STATUS_INTERNAL_SERVER_ERROR,
+});
+
+/**
  * Determines the appropriate HTTP status code based on request and response state
  * @param {Object} req - The HTTP request object
  * @param {Object} res - The HTTP response object
@@ -355,6 +384,10 @@ function getStatus(req, res) {
 		return INT_404;
 	}
 	return res.statusCode > INT_500 ? res.statusCode : INT_500;
+}
+
+function getStatusText(status) {
+	return STATUS_TEXTS[`INT_${status}`] || STATUS_ERROR;
 }
 
 /**
@@ -1743,13 +1776,11 @@ class Woodland extends EventEmitter {
 
 		res.locals = {};
 		res.error = (status = 500, body) => {
-			error(
-				req,
-				res,
-				status,
-			);
+			const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
+			error(req, res, status);
+			this.emit(ERROR, err, req, res);
 			this.logger.logError(req.parsed.pathname, req.method, req.ip);
-			this.logger.log(this.logger.clf(req, res), INFO);
+			res.send(err.message);
 		};
 		res.header = res.setHeader;
 		res.json = (

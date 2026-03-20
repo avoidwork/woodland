@@ -58,7 +58,7 @@ import {
 	status,
 	stream as responseStream,
 	getStatus,
-	writeHead,
+	writeHead, getStatusText
 } from "./response.js";
 import { validateConfig, validateLogging } from "./config.js";
 import { createLogger } from "./logger.js";
@@ -289,9 +289,11 @@ export class Woodland extends EventEmitter {
 
 		res.locals = {};
 		res.error = (status = 500, body) => {
+			const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
 			error(req, res, status);
+			this.emit(ERROR, err, req, res);
 			this.logger.logError(req.parsed.pathname, req.method, req.ip);
-			this.logger.log(this.logger.clf(req, res), INFO);
+			res.send(err.message);
 		};
 		res.header = res.setHeader;
 		res.json = (
