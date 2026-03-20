@@ -145,57 +145,57 @@ sequenceDiagram
     participant Response as onReady/onSend/onDone
     participant Logger as logger
 
-    Client->>+Route: HTTP Request
+    Client->>Route: HTTP Request
     Route->>Route: HEAD to GET conversion
-    Route->>+Decorate: Decorate req/res
+    Route->>Decorate: Decorate req/res
     Decorate->>Decorate: Add parsed, allow, cors, ip, params
-    Decorate-->>-Route: Return decorated objects
-    Route->>+Allows: Check permissions
+    Decorate-->>Route: Return decorated objects
+    Route->>Allows: Check permissions
     Allows->>Allows: Map lookup for allowed methods
-    Allows-->>-Allows: Return allowed methods
+    Allows-->>Route: Return allowed methods
     Route->>Route: Validate CORS origin
     alt Invalid CORS
         Route->>Route: res.error 403
-        Route->>-Client: HTTP Response
+        Route->>Client: HTTP Response
     else Valid CORS
-        Route->>+Routes: Match route
+        Route->>Routes: Match route
         Routes->>Routes: LRU cache lookup
         alt Cache Hit
-            Routes-->>-Route: Return cached route
+            Routes-->>Route: Return cached route
         else Cache Miss
             Routes->>Routes: Iterate compiled patterns
             Routes->>Routes: Store in cache
-            Routes-->>-Route: Return route info
+            Routes-->>Route: Return route info
         end
         alt No Route Match
             Route->>Route: res.error 404/405
-            Route->>-Client: HTTP Response
+            Route->>Client: HTTP Response
         else Route Found
-            Route->>+Params: Extract URL params
+            Route->>Params: Extract URL params
             Params->>Params: regex.exec with escapeHtml
-            Params-->>-Route: Return params array
-            Route->>+Next: Create iterator
-            Next->>+Middleware: Execute middleware 1
+            Params-->>Route: Return params array
+            Route->>Next: Create iterator
+            Next->>Middleware: Execute middleware 1
             Middleware->>Middleware: Process request
             alt More middleware
                 Middleware->>Next: Call next()
-                Next->>+Middleware: Execute middleware N
-                Middleware-->>-Next: Continue chain
+                Next->>Middleware: Execute middleware N
+                Middleware-->>Next: Continue chain
             else End of chain
-                Middleware-->>-Next: Final middleware
+                Middleware-->>Next: Final middleware
             end
-            Next-->>-Route: Middleware complete
-            Route->>+Response: Finalize response
+            Next-->>Route: Middleware complete
+            Route->>Response: Finalize response
             Response->>Response: onReady - timing header
             Response->>Response: onSend - prepare response
             Response->>Response: onDone - write headers
-            Response-->>-Route: Response sent
+            Response-->>Route: Response sent
         end
     end
-    Route->>+Logger: Log request
+    Route->>Logger: Log request
     Logger->>Logger: CLF format with timeOffset
-    Logger-->>-Route: Log complete
-    Route->>-Client: HTTP Response
+    Logger-->>Route: Log complete
+    Route->>Client: HTTP Response
     Route->>Route: Emit finish event
 
     Note over Route: Security: Path traversal,<br/>CORS enforcement,<br/>Input validation,<br/>HTML escaping
@@ -206,10 +206,10 @@ sequenceDiagram
 ```mermaid
 graph TB
     subgraph "Iterator Pattern"
-        A[next(req, res, iterator)] --> B{immediate?}
+        A[next iterator] --> B{immediate?}
         B -->|true| C[synchronous execution]
         B -->|false| D[process.nextTick]
-        C --> E[execute middleware[i]]
+        C --> E[execute middleware]
         D --> E
         E --> F{more middleware?}
         F -->|yes| G[create next iterator]
@@ -224,7 +224,7 @@ graph TB
     end
 
     subgraph "Error Handler Detection"
-        L{function.length === 4}
+        L{function length equals 4}
         L -->|yes| M[error handler]
         L -->|no| N[regular middleware]
     end
