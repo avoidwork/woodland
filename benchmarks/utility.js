@@ -1,21 +1,18 @@
 // Note: Using source utility functions since they are not exported from dist
 import { woodland } from "../src/woodland.js";
+import { autoIndex } from "../src/fileserver.js";
 import {
-	autoIndex,
 	getStatus,
 	isValidIP,
 	mime,
 	ms,
-	next,
-	pad,
-	params,
-	parse,
 	partialHeaders,
 	pipeable,
-	reduce,
-	timeOffset,
 	writeHead,
-} from "../src/utility.js";
+} from "../src/response.js";
+import { next, reduce } from "../src/middleware.js";
+import { params, parse } from "../src/request.js";
+import { timeOffset } from "../src/logger.js";
 
 /**
  * Create a fresh Woodland app instance for benchmarks
@@ -73,11 +70,6 @@ const testFiles = [
 const testTimeValues = [
 	0, 1000000, 5000000, 10000000, 50000000, 100000000, 500000000, 1000000000, 5000000000,
 	10000000000,
-];
-
-const testNumbers = [
-	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 25, 30, 35, 40, 45, 50,
-	55, 60, 99, 100, 999, 1000, 9999, 10000,
 ];
 
 const testTimezoneOffsets = [
@@ -205,15 +197,6 @@ function benchmarkMs() {
 	const digits = Math.floor(Math.random() * 5) + 1;
 
 	return ms(time, digits);
-}
-
-/**
- * Benchmark pad() function - number padding
- */
-function benchmarkPad() {
-	const num = testNumbers[Math.floor(Math.random() * testNumbers.length)];
-
-	return pad(num);
 }
 
 /**
@@ -476,7 +459,6 @@ export default {
 	"mime() - basic files": benchmarkMime,
 	"mime() - complex files": benchmarkComplexMime,
 	"ms() - time formatting": benchmarkMs,
-	"pad() - number padding": benchmarkPad,
 	"timeOffset() - timezone": benchmarkTimeOffset,
 	"autoindex() - directory listing": benchmarkAutoindex,
 	"getStatus() - status determination": benchmarkGetStatus,

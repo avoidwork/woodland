@@ -63,7 +63,6 @@ const createMockResponse = () => {
 		emit: () => {},
 		pipe: () => {},
 		headers: headers,
-		// Add woodland-specific methods
 		header: (name, value) => headers.set(name.toLowerCase(), value),
 		error: (status = 500) => {
 			response.statusCode = status;
@@ -76,7 +75,17 @@ const createMockResponse = () => {
 		},
 		send: (body, status = 200) => {
 			response.statusCode = status;
-			response.end(body);
+			response.end();
+		},
+		json: (data, status = 200) => {
+			response.statusCode = status;
+			headers.set("content-type", "application/json");
+			response.end();
+		},
+		socket: {
+			server: {
+				_connectionKey: "6::::3000",
+			},
 		},
 	};
 

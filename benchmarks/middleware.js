@@ -20,6 +20,11 @@ const createMockRequest = (method = "GET", url = "/", headers = {}) => ({
 	connection: {
 		remoteAddress: "127.0.0.1",
 	},
+	socket: {
+		server: {
+			_connectionKey: "6::::3000",
+		},
+	},
 });
 
 const createMockResponse = () => {
@@ -52,7 +57,6 @@ const createMockResponse = () => {
 		},
 		end: (data) => {
 			response.headersSent = true;
-			// Store response data if needed for testing
 			if (data) {
 				response._responseData = data;
 			}
@@ -60,6 +64,11 @@ const createMockResponse = () => {
 		on: () => {},
 		emit: () => {},
 		pipe: () => {},
+		socket: {
+			server: {
+				_connectionKey: "6::::3000",
+			},
+		},
 	};
 
 	return response;
@@ -223,20 +232,11 @@ function benchmarkErrorHandlingMiddleware() {
 		}
 	});
 
-	// Error handler middleware
-	freshApp.use((err, req, res) => {
-		if (res.status) {
-			res.status(500).send("Error handled");
-		} else {
-			res.statusCode = 500;
-			if (typeof res.end === "function") {
-				res.end("Error handled");
-			} else {
-				// Fallback for mock responses
-				res.headersSent = true;
-				res._responseData = "Error handled";
-			}
-		}
+	// Error handler middleware (Woodland uses 4-argument error handlers)
+	freshApp.use((err, req, res, next) => {
+		res.statusCode = 500;
+		res.end("Error handled");
+		next();
 	});
 
 	freshApp.get("/error-test", (req, res) => {

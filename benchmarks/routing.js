@@ -202,25 +202,6 @@ function benchmarkNotFoundRoutes() {
 	return app.routes(uri, method);
 }
 
-/**
- * Benchmark path conversion (parameter routes to regex)
- */
-function benchmarkPathConversion() {
-	const paths = [
-		"/api/users/:id",
-		"/api/posts/:id/comments/:commentId",
-		"/static/images/:filename",
-		"/blog/:slug",
-		"/category/:category/posts",
-		"/api/v:version/resource/:id/nested/:nestedId",
-		"/users/:userId/posts/:postId/comments/:commentId/replies/:replyId",
-	];
-
-	const path = paths[Math.floor(Math.random() * paths.length)];
-
-	return app.path(path);
-}
-
 // Export benchmark functions
 export default {
 	"routes() - with cache": benchmarkRoutes,
@@ -232,5 +213,4 @@ export default {
 	"parameter routes": benchmarkParameterRoutes,
 	"static routes": benchmarkStaticRoutes,
 	"not found routes": benchmarkNotFoundRoutes,
-	"path conversion": benchmarkPathConversion,
 };
