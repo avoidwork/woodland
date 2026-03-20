@@ -35,25 +35,25 @@ Woodland delivers **enterprise-grade performance** with architectural optimizati
 
 | Framework | Mean (ms) | Ops/sec | Relative |
 |-----------|-----------|---------|----------|
-| Fastify | 0.1137ms | 8,795 | 100% |
-| **Woodland** | **0.1824ms** | **5,482** | **62%** |
-| Node.js HTTP | 0.1992ms | 5,031 | 57% |
-| Express | 0.1998ms | 5,006 | 57% |
+| Fastify | 0.0863ms | 11,698 | 100% |
+| **Woodland** | **0.0929ms** | **10,860** | **93%** |
+| Node.js HTTP | 0.1092ms | 9,180 | 78% |
+| Express | 0.1043ms | 9,591 | 82% |
 
 ### Performance Analysis
 
 **Woodland vs Express.js:**
-- **9.5% faster** for JSON response scenarios
+- **11.5% faster** for JSON response scenarios
 - Lower memory overhead (minimal dependencies)
 - Built-in features that require Express middleware (CORS, ETags, logging)
 
 **Woodland vs Raw Node.js:**
-- **8.9% faster** despite abstraction layer
+- **14.8% faster** despite abstraction layer
 - Optimized request/response pipeline
 - Efficient header management and caching
 
 **Woodland vs Fastify:**
-- 62% of Fastify's raw throughput
+- 93% of Fastify's raw throughput
 - Trade-off: Woodland includes more built-in features (CORS, file serving, directory indexing, comprehensive logging)
 - Fastify's schema validation and serialization optimizations are specialized; Woodland prioritizes general-purpose HTTP handling
 
@@ -416,7 +416,7 @@ Woodland delivers **production-grade performance** suitable for:
 
 **Key Takeaways:**
 
-1. Woodland is **9.5% faster than Express.js** with more built-in features
+1. Woodland is **11.5% faster than Express.js** with more built-in features
 2. Routing performance (**2-4M ops/sec**) is not a bottleneck at any scale
 3. Utility functions execute in **sub-microsecond** time
 4. Horizontal scaling enables **100K+ RPS** with modest infrastructure

@@ -268,10 +268,10 @@ WOODLAND_LOG_LEVEL=debug|info|warn|error|...
 
 | Framework | Mean (ms) | Ops/sec |
 |-----------|-----------|---------|
-| Fastify | 0.1137ms | 8,795 |
-| **Woodland** | **0.1824ms** | **5,482** |
-| Node.js HTTP | 0.1992ms | 5,031 |
-| Express | 0.1998ms | 5,006 |
+| Fastify | 0.0863ms | 11,698 |
+| **Woodland** | **0.0929ms** | **10,860** |
+| Node.js HTTP | 0.1092ms | 9,180 |
+| Express | 0.1043ms | 9,591 |
 
 **Additional Performance Metrics:**
 
