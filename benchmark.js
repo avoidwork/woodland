@@ -149,7 +149,7 @@ async function runAllBenchmarks(specificBenchmarks = [], options = {}) {
 
 		for (const file of benchmarkFiles) {
 			try {
-				const benchmarkPath = join(BENCHMARKS_DIR, file);
+				const benchmarkPath = new URL(`./benchmarks/${file}`, import.meta.url);
 				const benchmarkModule = await import(benchmarkPath);
 				const suiteName = file.replace(".js", "");
 

@@ -1,18 +1,10 @@
 // Note: Using source utility functions since they are not exported from dist
 import { woodland } from "../src/woodland.js";
 import { autoIndex } from "../src/fileserver.js";
-import {
-	getStatus,
-	isValidIP,
-	mime,
-	ms,
-	partialHeaders,
-	pipeable,
-	writeHead,
-} from "../src/response.js";
+import { getStatus, mime, partialHeaders, pipeable, writeHead } from "../src/response.js";
 import { next, reduce } from "../src/middleware.js";
-import { params, parse } from "../src/request.js";
-import { timeOffset } from "../src/logger.js";
+import { isValidIP, params, parse } from "../src/request.js";
+import { ms, timeOffset } from "../src/logger.js";
 
 /**
  * Create a fresh Woodland app instance for benchmarks
