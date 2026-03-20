@@ -189,16 +189,19 @@ res.status(201);
 
 ```javascript
 app.get("/users/:id", (req, res) => {
-  req.ip;         // Client IP address
+  req.ip;         // Client IP address (from X-Forwarded-For or connection)
   req.method;     // HTTP method
-  req.parsed;     // URL object
+  req.parsed;     // URL object with pathname, search, hostname, etc.
   req.params;     // URL parameters { id: "123" }
-  req.allow;      // Allowed methods string
+  req.allow;      // Allowed methods string (e.g., "GET, OPTIONS")
   req.cors;       // CORS enabled for this request
-  req.corsHost;   // Origin host differs
+  req.corsHost;   // Origin host differs from request host
   req.body;       // Request body (parsed by middleware)
   req.headers;    // Request headers
   req.host;       // Hostname
+  req.valid;      // Request validation status
+  req.exit;       // Exit iterator for middleware chain
+  req.precise;    // Precise timer instance (when timing enabled)
 });
 ```
 
@@ -264,6 +267,44 @@ class API extends Woodland {
 const api = new API();
 ```
 
+## Factory Pattern
+
+Woodland uses factories everywhere for testability:
+
+```javascript
+// Factories return objects with bound methods
+import { woodland, createLogger } from "woodland";
+
+const app = woodland(); // Factory creates Woodland instance
+const logger = createLogger({ enabled: true, level: "debug" });
+
+// Closures provide private state instead of class fields
+```
+
+## Middleware Registration
+
+```javascript
+// Middleware registration pattern: middleware.register(path, ...fn, method)
+app.get("/users", getUsers);           // Delegates to use()
+app.post("/users", createUser);        // Delegates to use()
+app.always(globalMiddleware);          // Wildcard for all methods
+
+// HEAD routes cannot be registered directly
+// GET routes implicitly allow HEAD
+app.get("/resource", handler);         // Handles both GET and HEAD
+```
+
+## Environment Variables
+
+```bash
+# Logging configuration
+export WOODLAND_LOG_ENABLED=true
+export WOODLAND_LOG_FORMAT="%h %l %u %t \"%r\" %>s %b"
+export WOODLAND_LOG_LEVEL=debug
+
+# Override config at runtime
+```
+
 ## Middleware Registry
 
 ```javascript
@@ -279,6 +320,70 @@ const routesObj = app.list("get", "object"); // { "/": [...], "/users": [...] }
 
 // Get route information
 const info = app.routes("/users/:id", "GET");
+```
+
+## Error Handler Middleware
+
+Error handlers are automatically detected by their 4 parameters:
+
+```javascript
+// Error handler (register last)
+app.use("/(.*)", (err, req, res, next) => {
+  console.error(err);
+  res.error(500, err.message);
+});
+
+// Regular middleware has 3 parameters
+app.use((req, res, next) => {
+  next(); // Continue chain
+});
+```
+
+## Performance Patterns
+
+```javascript
+// Use for loops instead of for..of in hot paths
+for (let i = 0; i < files.length; i++) {
+  const file = files[i];
+  // Process file
+}
+
+// Use Set for O(1) lookups
+const ignored = new Set();
+if (!ignored.has(fn)) {
+  // Process
+}
+
+// Use Object.create(null) for null-prototype objects
+const headers = Object.create(null);
+
+// Cache regex patterns at module level
+const MY_PATTERN = /^pattern$/;
+```
+
+## Factory Pattern
+
+Woodland uses factory functions for creating instances:
+
+```javascript
+// Recommended: Factory function
+const app = woodland({ autoindex: true });
+
+// Alternative: Class-based (for larger apps)
+import { Woodland } from "woodland";
+
+class API extends Woodland {
+  constructor() {
+    super({ origins: ["https://myapp.com"] });
+    this.setupRoutes();
+  }
+
+  setupRoutes() {
+    this.get("/health", () => res.json({ status: "ok" }));
+  }
+}
+
+const api = new API();
 ```
 
 ## File Server
@@ -307,12 +412,15 @@ app.logger.log("Custom log message");
 app.logger.logError("/path", "GET", "127.0.0.1");
 app.logger.logRoute("/path", "GET", "127.0.0.1");
 app.logger.logMiddleware("/path", handler);
+app.logger.logDecoration("/path", "GET", "127.0.0.1");
+app.logger.logServe(req, "Serving file");
 
 // Common Log Format
 app.logger.clf(req, res); // "127.0.0.1 - - [date] \"GET / HTTP/1.1\" 200 1234"
 
 // Time formatting
 app.logger.ms(1234567); // "1.234 ms"
+app.logger.timeOffset(300); // "-0500" (timezone offset)
 ```
 
 ## CLI
@@ -347,6 +455,27 @@ npm run lint          # Check linting
 npm run fix           # Fix linting issues
 ```
 
+## Performance Patterns
+
+**Caching:**
+
+```javascript
+// LRU cache via tiny-lru (default: 1000 entries, 10s TTL)
+const app = woodland({ cacheSize: 1000, cacheTTL: 10000 });
+
+// ETag support via tiny-etag (default: enabled)
+const app = woodland({ etags: true });
+
+// File stats are read fresh each time (no caching for accuracy)
+```
+
+**Optimization Tips:**
+
+- Use `app.allowed("GET", "/users")` to check if method is allowed
+- Use `app.list("get", "array")` to list all routes for a method
+- Cache regex patterns at module level for repeated use
+- Use `Set` for O(1) lookups instead of array `.includes()`
+
 ## Documentation
 
 - [API Reference](https://github.com/avoidwork/woodland/blob/main/docs/API.md) - Complete method documentation
@@ -362,6 +491,28 @@ npm run fix           # Fix linting issues
 - Path traversal protection - Secure file access
 - CORS enforcement - Origin validation
 - Secure defaults - Safe error handling
+
+**Security Best Practices:**
+
+```javascript
+// Always validate IP addresses before use
+import { isValidIP } from "woodland";
+
+if (isValidIP(req.ip)) {
+	// Safe to use
+}
+
+// Escape HTML in dynamic content
+import { escapeHtml } from "woodland";
+
+const safeOutput = escapeHtml(userInput);
+
+// Deny CORS by default (empty origins array)
+const app = woodland(); // No origins = deny all CORS
+
+// Block path traversal in file serving
+app.files("/static", "./public"); // Automatically blocks ../ attempts
+```
 
 **Production Setup:**
 
