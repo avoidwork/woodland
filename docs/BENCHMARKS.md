@@ -214,7 +214,7 @@ Based on benchmark data, a single Woodland instance can handle:
 | REST API (CRUD) | 4,000-6,000 | 2 vCPU, 2GB RAM |
 | Middleware-heavy | 2,000-4,000 | 4 vCPU, 4GB RAM |
 | File serving | 40,000+ | Depends on disk I/O |
-| Static content | 60,000+ | With autoindex disabled |
+| Static content | 60,000+ | With autoIndex disabled |
 
 **Horizontal Scaling:**
 - Stateless design enables infinite horizontal scaling

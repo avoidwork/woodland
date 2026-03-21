@@ -34,7 +34,7 @@ import { woodland } from "woodland";
 
 const app = woodland({
   origins: ["https://myapp.com"],
-  autoindex: true,
+  autoIndex: true,
   time: true
 });
 ```

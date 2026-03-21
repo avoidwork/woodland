@@ -105,7 +105,7 @@ const app = woodland({
 ### Static Files
 
 ```javascript
-const app = woodland({ autoindex: true });
+const app = woodland({ autoIndex: true });
 app.files("/static", "./public");
 ```
 
@@ -147,7 +147,7 @@ app.get("/api/*", apiMiddleware);
 ```javascript
 const app = woodland({
   origins: [], // CORS allowlist (empty = deny all)
-  autoindex: false, // Directory browsing
+  autoIndex: false, // Directory browsing
   etags: true, // ETag support
   cacheSize: 1000, // Route cache size
   cacheTTL: 10000, // Cache TTL in ms
@@ -382,7 +382,7 @@ Woodland uses factory functions for creating instances:
 
 ```javascript
 // Recommended: Factory function
-const app = woodland({ autoindex: true });
+const app = woodland({ autoIndex: true });
 
 // Alternative: Class-based (for larger apps)
 import { Woodland } from "woodland";

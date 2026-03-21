@@ -810,8 +810,8 @@ res.send("Hello World", 200, { "X-Custom": "value" });
 
 - Use `createFileServer(app)` for static file serving
 - `serve()` reads file stats fresh each time (no caching)
-- Directories redirect to add trailing slash, or serve autoindex if enabled
-- Looks for index files (index.htm, index.html) before autoindex
+- Directories redirect to add trailing slash, or serve autoIndex if enabled
+- Looks for index files (index.htm, index.html) before autoIndex
 
 ```javascript
 // Good - File serving

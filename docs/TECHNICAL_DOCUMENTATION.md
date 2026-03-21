@@ -882,7 +882,7 @@ async serve(req, res, arg, folder = process.cwd()) {
   // ... rest of file serving logic
 }
 
-// HTML escaping for output safety in autoindex
+// HTML escaping for output safety in autoIndex
 export function escapeHtml(str = '') {
   const htmlEscapes = {
     "&": "&amp;",
@@ -1173,7 +1173,7 @@ Woodland includes comprehensive security tests covering:
 - **Path traversal attempts** (including encoded attacks)
 - **CORS policy enforcement** (default deny, explicit allow, wildcard handling)
 - **Input validation** (null bytes, newlines, malformed URIs)
-- **HTML escaping in autoindex** (XSS prevention)
+- **HTML escaping in autoIndex** (XSS prevention)
 - **Error handling security** (information disclosure prevention)
 - **IP address extraction security** (header spoofing prevention)
 
@@ -1358,7 +1358,7 @@ describe("CLI server startup", () => {
 #### 4. File Serving Tests - 35+ tests
 
 - **Static file serving**: Text, HTML, binary files with proper MIME types
-- **Directory handling**: Index files, autoindex generation, nested paths
+- **Directory handling**: Index files, autoIndex generation, nested paths
 - **Stream operations**: Large file streaming, range requests, ETags
 - **Error scenarios**: 404 handling, permission errors, malformed requests
 - **Security validation**: Path sanitization, access control
@@ -1556,7 +1556,7 @@ import { woodland } from "woodland";
 import { createServer } from "node:http";
 
 const app = woodland({
-  autoindex: process.env.NODE_ENV === "development",
+  autoIndex: process.env.NODE_ENV === "development",
   defaultHeaders: {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
