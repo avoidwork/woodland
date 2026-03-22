@@ -484,9 +484,9 @@ export class Woodland extends EventEmitter {
 	 * @param {Object} res - HTTP response object
 	 */
 	route(req, res) {
-		this.decorate(req, res);
-
 		const method = req.method === HEAD ? GET : req.method;
+
+		this.decorate(req, res);
 
 		if (this.listenerCount(EVT_CONNECT) > INT_0) {
 			this.emit(EVT_CONNECT, req, res);
