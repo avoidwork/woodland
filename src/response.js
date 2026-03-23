@@ -228,7 +228,7 @@ export function error(req, res, status = 500) {
 export function json(
 	res,
 	arg,
-	status = 200,
+	status = res.statusCode,
 	headers = { [CONTENT_TYPE]: `${APPLICATION_JSON}; charset=utf-8` },
 ) {
 	res.send(JSON.stringify(arg), status, headers);
