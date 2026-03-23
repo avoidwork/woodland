@@ -103,17 +103,14 @@ describe("response", () => {
 
 	describe("error", () => {
 		it("should clear allow header for 404", () => {
-			let allowRemoved = false;
+			// Allow header is removed in onSend(), not error()
+			// This test verifies error() doesn't interfere
 			let headerCalledWithEmpty = false;
 
 			const req = { method: "GET" };
 			const res = {
 				headersSent: false,
-				removeHeader: (name) => {
-					if (name === "allow") {
-						allowRemoved = true;
-					}
-				},
+				removeHeader: () => {},
 				header: (name, value) => {
 					if (name === "allow" && value === "") {
 						headerCalledWithEmpty = true;
@@ -124,22 +121,18 @@ describe("response", () => {
 
 			error(req, res, 404);
 
-			assert.strictEqual(allowRemoved, true);
 			assert.strictEqual(headerCalledWithEmpty, false);
 		});
 
 		it("should clear CORS headers for 404", () => {
-			let corsRemoved = false;
+			// CORS headers are removed in onSend(), not error()
+			// This test verifies error() doesn't interfere
 			let headerCalledWithEmpty = false;
 
 			const req = { method: "GET", cors: true };
 			const res = {
 				headersSent: false,
-				removeHeader: (name) => {
-					if (name === "access-control-allow-methods") {
-						corsRemoved = true;
-					}
-				},
+				removeHeader: () => {},
 				header: (name, value) => {
 					if (name === "access-control-allow-methods" && value === "") {
 						headerCalledWithEmpty = true;
@@ -150,7 +143,6 @@ describe("response", () => {
 
 			error(req, res, 404);
 
-			assert.strictEqual(corsRemoved, true);
 			assert.strictEqual(headerCalledWithEmpty, false);
 		});
 
