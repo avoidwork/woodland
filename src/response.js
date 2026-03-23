@@ -2,8 +2,6 @@ import { extname } from "node:path";
 import { STATUS_CODES } from "node:http";
 import mimeDb from "mime-db";
 import {
-	ACCESS_CONTROL_ALLOW_METHODS,
-	ALLOW,
 	APPLICATION_JSON,
 	APPLICATION_OCTET_STREAM,
 	CACHE_CONTROL,
@@ -204,14 +202,6 @@ export function noop() {}
  */
 export function error(req, res, status = res.status) {
 	if (res.headersSent === false) {
-		if (status === INT_404) {
-			res.removeHeader(ALLOW);
-
-			if (req.cors) {
-				res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
-			}
-		}
-
 		if (status < INT_400) {
 			status = 500;
 		}

@@ -428,6 +428,13 @@ export class Woodland extends EventEmitter {
 	 * @returns {Array} Response array
 	 */
 	onSend(req, res, body, status, headers) {
+		if (status === 404) {
+			delete headers[ALLOW];
+			delete headers[ACCESS_CONTROL_ALLOW_METHODS];
+			res.removeHeader(ALLOW);
+			res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
+		}
+
 		return [body, status, headers];
 	}
 
