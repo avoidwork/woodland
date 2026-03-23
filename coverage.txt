@@ -10,35 +10,9 @@
 ℹ  logger.js     | 100.00 |    96.55 |   95.65 | 
 ℹ  middleware.js | 100.00 |   100.00 |  100.00 | 
 ℹ  request.js    | 100.00 |   100.00 |  100.00 | 
-ℹ  response.js   |  99.51 |    97.85 |   94.74 | 218-219
+ℹ  response.js   | 100.00 |    98.92 |   94.74 | 
 ℹ  woodland.js   | 100.00 |    96.34 |   89.47 | 
 ℹ ---------------------------------------------------------------
-ℹ all files      |  99.92 |    97.64 |   95.28 | 
+ℹ all files      | 100.00 |    97.85 |   95.28 | 
 ℹ ---------------------------------------------------------------
 ℹ end of coverage report
-
-✖ failing tests:
-
-test at tests\unit\response.test.js:195:3
-✖ should create json response function (0.7378ms)
-  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-  
-  undefined !== 200
-  
-      at TestContext.<anonymous> (file:///C:/Users/jason/Projects/woodland/tests/unit/response.test.js:209:11)
-      at Test.runInAsyncScope (node:async_hooks:226:14)
-      at Test.run (node:internal/test_runner/test:1201:25)
-      at Test.start (node:internal/test_runner/test:1096:17)
-      at node:internal/test_runner/test:1617:71
-      at node:internal/per_context/primordials:466:82
-      at new Promise (<anonymous>)
-      at new SafePromise (node:internal/per_context/primordials:435:3)
-      at node:internal/per_context/primordials:466:9
-      at Array.map (<anonymous>) {
-    generatedMessage: true,
-    code: 'ERR_ASSERTION',
-    actual: undefined,
-    expected: 200,
-    operator: 'strictEqual',
-    diff: 'simple'
-  }
