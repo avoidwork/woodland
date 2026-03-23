@@ -24,6 +24,7 @@ import {
 	INT_206,
 	INT_307,
 	INT_308,
+	INT_400,
 	INT_404,
 	INT_405,
 	INT_416,
@@ -201,7 +202,7 @@ export function noop() {}
  * @param {Object} res - Response object
  * @param {number} [status=500] - HTTP status code
  */
-export function error(req, res, status = 500) {
+export function error(req, res, status = res.status) {
 	if (res.headersSent === false) {
 		if (status === INT_404) {
 			res.removeHeader(ALLOW);
@@ -211,6 +212,10 @@ export function error(req, res, status = 500) {
 				res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
 				res.header(ACCESS_CONTROL_ALLOW_METHODS, EMPTY);
 			}
+		}
+
+		if (status < INT_400) {
+			status = 500;
 		}
 
 		res.removeHeader(CONTENT_LENGTH);
@@ -228,7 +233,7 @@ export function error(req, res, status = 500) {
 export function json(
 	res,
 	arg,
-	status = 200,
+	status = res.statusCode,
 	headers = { [CONTENT_TYPE]: `${APPLICATION_JSON}; charset=utf-8` },
 ) {
 	res.send(JSON.stringify(arg), status, headers);
