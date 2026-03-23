@@ -197,6 +197,7 @@ describe("response", () => {
 			let sentStatus = null;
 
 			const res = {
+				statusCode: 200,
 				send: (data, status) => {
 					sentData = data;
 					sentStatus = status;
