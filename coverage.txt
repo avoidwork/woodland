@@ -10,17 +10,17 @@
 ℹ  logger.js     | 100.00 |    96.55 |   95.65 | 
 ℹ  middleware.js | 100.00 |   100.00 |  100.00 | 
 ℹ  request.js    | 100.00 |   100.00 |  100.00 | 
-ℹ  response.js   | 100.00 |    98.91 |   94.74 | 
+ℹ  response.js   |  99.51 |    97.85 |   94.74 | 218-219
 ℹ  woodland.js   | 100.00 |    96.34 |   89.47 | 
 ℹ ---------------------------------------------------------------
-ℹ all files      | 100.00 |    97.85 |   95.28 | 
+ℹ all files      |  99.92 |    97.64 |   95.28 | 
 ℹ ---------------------------------------------------------------
 ℹ end of coverage report
 
 ✖ failing tests:
 
 test at tests\unit\response.test.js:195:3
-✖ should create json response function (0.9788ms)
+✖ should create json response function (0.7378ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   
   undefined !== 200
