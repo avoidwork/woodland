@@ -189,6 +189,27 @@ describe("response", () => {
 
 			assert.strictEqual(contentLengthRemoved, true);
 		});
+
+		it("should set status to 500 when status < 400", () => {
+			let finalStatus = null;
+
+			const req = { method: "GET", cors: false };
+			const res = {
+				headersSent: false,
+				removeHeader: () => {},
+				header: () => {},
+				get statusCode() {
+					return finalStatus;
+				},
+				set statusCode(val) {
+					finalStatus = val;
+				},
+			};
+
+			error(req, res, 200);
+
+			assert.strictEqual(finalStatus, 500);
+		});
 	});
 
 	describe("json", () => {
