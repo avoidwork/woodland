@@ -3,7 +3,7 @@
  *
  * @copyright 2026 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 21.0.6
+ * @version 21.0.7
  */
 'use strict';
 
@@ -393,14 +393,6 @@ function getStatusText(status) {
  */
 function error(req, res, status = res.status) {
 	if (res.headersSent === false) {
-		if (status === INT_404) {
-			res.removeHeader(ALLOW);
-
-			if (req.cors) {
-				res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
-			}
-		}
-
 		if (status < INT_400) {
 			status = 500;
 		}
@@ -1912,6 +1904,13 @@ class Woodland extends node_events.EventEmitter {
 	 * @returns {Array} Response array
 	 */
 	onSend(req, res, body, status, headers) {
+		if (status === 404) {
+			delete headers[ALLOW];
+			delete headers[ACCESS_CONTROL_ALLOW_METHODS];
+			res.removeHeader(ALLOW);
+			res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
+		}
+
 		return [body, status, headers];
 	}
 

@@ -3,7 +3,7 @@
  *
  * @copyright 2026 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 21.0.6
+ * @version 21.0.7
  */
 import {STATUS_CODES}from'node:http';import {EventEmitter}from'node:events';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {lru}from'tiny-lru';import {precise}from'precise';import {createRequire}from'node:module';import {join,extname,resolve}from'node:path';import {fileURLToPath,URL as URL$1}from'node:url';import mimeDb from'mime-db';import {coerce}from'tiny-coerce';import {Validator}from'jsonschema';import {stat,readdir}from'node:fs/promises';const __dirname$2 = fileURLToPath(new URL$1(".", import.meta.url));
 const require$1 = createRequire(import.meta.url);
@@ -374,14 +374,6 @@ function getStatusText(status) {
  */
 function error(req, res, status = res.status) {
 	if (res.headersSent === false) {
-		if (status === INT_404) {
-			res.removeHeader(ALLOW);
-
-			if (req.cors) {
-				res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
-			}
-		}
-
 		if (status < INT_400) {
 			status = 500;
 		}
@@ -1881,6 +1873,13 @@ class Woodland extends EventEmitter {
 	 * @returns {Array} Response array
 	 */
 	onSend(req, res, body, status, headers) {
+		if (status === 404) {
+			delete headers[ALLOW];
+			delete headers[ACCESS_CONTROL_ALLOW_METHODS];
+			res.removeHeader(ALLOW);
+			res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
+		}
+
 		return [body, status, headers];
 	}
 
