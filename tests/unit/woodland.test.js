@@ -343,17 +343,12 @@ describe("woodland", () => {
 				assert.ok(result.includes("GET"));
 			});
 
-			it("should return all methods for wildcard middleware", () => {
+			it("should not return methods for wildcard middleware only", () => {
 				app.always(() => {});
 
 				const result = app.allows("/test");
 
-				assert.ok(result.includes("GET"));
-				assert.ok(result.includes("POST"));
-				assert.ok(result.includes("PUT"));
-				assert.ok(result.includes("DELETE"));
-				assert.ok(result.includes("HEAD"));
-				assert.ok(result.includes("OPTIONS"));
+				assert.strictEqual(result, "");
 			});
 
 			it("should include HEAD when GET is allowed", () => {

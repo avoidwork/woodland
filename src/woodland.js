@@ -182,27 +182,17 @@ export class Woodland extends EventEmitter {
 		let result = override === false ? this.permissions.get(uri) : void 0;
 
 		if (override || result === void 0) {
-			const routes = this.middleware.routes(uri, WILDCARD, override);
-			const allMethods = routes.middleware.length > INT_0;
-			let list;
+			const methodSet = new Set();
 
-			if (allMethods) {
-				list = [...NODE_METHODS];
-			} else {
-				const methodSet = new Set();
-
-				for (let i = 0; i < this.methods.length; i++) {
-					if (this.allowed(this.methods[i], uri, override)) {
-						methodSet.add(this.methods[i]);
-					}
+			for (let i = 0; i < this.methods.length; i++) {
+				if (this.allowed(this.methods[i], uri, override)) {
+					methodSet.add(this.methods[i]);
 				}
-
-				list = [...methodSet];
 			}
 
-			if (list.length > INT_0) {
-				const methodSet = new Set(list);
+			const list = [...methodSet];
 
+			if (list.length > 0) {
 				if (methodSet.has(GET) && !methodSet.has(HEAD)) {
 					list.push(HEAD);
 				}
