@@ -3,7 +3,7 @@
  *
  * @copyright 2026 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 21.0.4
+ * @version 21.0.5
  */
 'use strict';
 
@@ -1781,7 +1781,7 @@ class Woodland extends node_events.EventEmitter {
 		}
 
 		res.locals = {};
-		res.error = (status = 500, body) => {
+		res.error = (status = res.statusCode, body) => {
 			error(req, res, status);
 			const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
 			this.emit(EVT_ERROR, req, res, err);
@@ -1790,7 +1790,7 @@ class Woodland extends node_events.EventEmitter {
 		res.header = res.setHeader;
 		res.json = (
 			arg,
-			status = 200,
+			status = res.statusCode,
 			headers = { [CONTENT_TYPE]: `${APPLICATION_JSON}; charset=utf-8` },
 		) => json(res, arg, status, headers);
 		res.redirect = (uri, perm = true) => redirect(res, uri, perm);

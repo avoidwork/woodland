@@ -3,7 +3,7 @@
  *
  * @copyright 2026 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 21.0.4
+ * @version 21.0.5
  */
 import {STATUS_CODES}from'node:http';import {EventEmitter}from'node:events';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {lru}from'tiny-lru';import {precise}from'precise';import {createRequire}from'node:module';import {join,extname,resolve}from'node:path';import {fileURLToPath,URL as URL$1}from'node:url';import mimeDb from'mime-db';import {coerce}from'tiny-coerce';import {Validator}from'jsonschema';import {stat,readdir}from'node:fs/promises';const __dirname$2 = fileURLToPath(new URL$1(".", import.meta.url));
 const require$1 = createRequire(import.meta.url);
@@ -1750,7 +1750,7 @@ class Woodland extends EventEmitter {
 		}
 
 		res.locals = {};
-		res.error = (status = 500, body) => {
+		res.error = (status = res.statusCode, body) => {
 			error(req, res, status);
 			const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
 			this.emit(EVT_ERROR, req, res, err);
@@ -1759,7 +1759,7 @@ class Woodland extends EventEmitter {
 		res.header = res.setHeader;
 		res.json = (
 			arg,
-			status = 200,
+			status = res.statusCode,
 			headers = { [CONTENT_TYPE]: `${APPLICATION_JSON}; charset=utf-8` },
 		) => json(res, arg, status, headers);
 		res.redirect = (uri, perm = true) => redirect(res, uri, perm);
