@@ -206,11 +206,9 @@ export function error(req, res, status = res.status) {
 	if (res.headersSent === false) {
 		if (status === INT_404) {
 			res.removeHeader(ALLOW);
-			res.header(ALLOW, EMPTY);
 
 			if (req.cors) {
 				res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
-				res.header(ACCESS_CONTROL_ALLOW_METHODS, EMPTY);
 			}
 		}
 
