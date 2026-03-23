@@ -3,7 +3,7 @@
  *
  * @copyright 2026 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 21.0.5
+ * @version 21.0.6
  */
 'use strict';
 
@@ -395,11 +395,9 @@ function error(req, res, status = res.status) {
 	if (res.headersSent === false) {
 		if (status === INT_404) {
 			res.removeHeader(ALLOW);
-			res.header(ALLOW, EMPTY);
 
 			if (req.cors) {
 				res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
-				res.header(ACCESS_CONTROL_ALLOW_METHODS, EMPTY);
 			}
 		}
 
@@ -1667,27 +1665,17 @@ class Woodland extends node_events.EventEmitter {
 		let result = override === false ? this.permissions.get(uri) : void 0;
 
 		if (override || result === void 0) {
-			const routes = this.middleware.routes(uri, WILDCARD, override);
-			const allMethods = routes.middleware.length > INT_0;
-			let list;
+			const methodSet = new Set();
 
-			if (allMethods) {
-				list = [...NODE_METHODS];
-			} else {
-				const methodSet = new Set();
-
-				for (let i = 0; i < this.methods.length; i++) {
-					if (this.allowed(this.methods[i], uri, override)) {
-						methodSet.add(this.methods[i]);
-					}
+			for (let i = 0; i < this.methods.length; i++) {
+				if (this.allowed(this.methods[i], uri, override)) {
+					methodSet.add(this.methods[i]);
 				}
-
-				list = [...methodSet];
 			}
 
-			if (list.length > INT_0) {
-				const methodSet = new Set(list);
+			const list = [...methodSet];
 
+			if (list.length > 0) {
 				if (methodSet.has(GET) && !methodSet.has(HEAD)) {
 					list.push(HEAD);
 				}

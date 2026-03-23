@@ -3,7 +3,7 @@
  *
  * @copyright 2026 Jason Mulligan <jason.mulligan@avoidwork.com>
  * @license BSD-3-Clause
- * @version 21.0.5
+ * @version 21.0.6
  */
 import {STATUS_CODES}from'node:http';import {EventEmitter}from'node:events';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {lru}from'tiny-lru';import {precise}from'precise';import {createRequire}from'node:module';import {join,extname,resolve}from'node:path';import {fileURLToPath,URL as URL$1}from'node:url';import mimeDb from'mime-db';import {coerce}from'tiny-coerce';import {Validator}from'jsonschema';import {stat,readdir}from'node:fs/promises';const __dirname$2 = fileURLToPath(new URL$1(".", import.meta.url));
 const require$1 = createRequire(import.meta.url);
@@ -376,11 +376,9 @@ function error(req, res, status = res.status) {
 	if (res.headersSent === false) {
 		if (status === INT_404) {
 			res.removeHeader(ALLOW);
-			res.header(ALLOW, EMPTY);
 
 			if (req.cors) {
 				res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
-				res.header(ACCESS_CONTROL_ALLOW_METHODS, EMPTY);
 			}
 		}
 
@@ -1636,27 +1634,17 @@ class Woodland extends EventEmitter {
 		let result = override === false ? this.permissions.get(uri) : void 0;
 
 		if (override || result === void 0) {
-			const routes = this.middleware.routes(uri, WILDCARD, override);
-			const allMethods = routes.middleware.length > INT_0;
-			let list;
+			const methodSet = new Set();
 
-			if (allMethods) {
-				list = [...NODE_METHODS];
-			} else {
-				const methodSet = new Set();
-
-				for (let i = 0; i < this.methods.length; i++) {
-					if (this.allowed(this.methods[i], uri, override)) {
-						methodSet.add(this.methods[i]);
-					}
+			for (let i = 0; i < this.methods.length; i++) {
+				if (this.allowed(this.methods[i], uri, override)) {
+					methodSet.add(this.methods[i]);
 				}
-
-				list = [...methodSet];
 			}
 
-			if (list.length > INT_0) {
-				const methodSet = new Set(list);
+			const list = [...methodSet];
 
+			if (list.length > 0) {
 				if (methodSet.has(GET) && !methodSet.has(HEAD)) {
 					list.push(HEAD);
 				}
