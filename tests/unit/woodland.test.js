@@ -607,12 +607,69 @@ describe("woodland", () => {
 					header: (key, _value) => {
 						headerCalled = true;
 						assert.ok(key.includes("response-time"));
+						assert.ok(/^\d+(\.\d+)? ms$/.test(_value), `Expected format "X ms", got "${_value}"`);
 					},
 				};
 
 				appWithTiming.onReady(req, res, "body", 200, {});
 
 				assert.ok(headerCalled);
+			});
+
+			it("should format response time with configured digit precision", () => {
+				const appWithTiming = woodland({ time: true, digit: 3 });
+				const captured = [];
+				const req = {
+					parsed: { pathname: "/test" },
+					method: "GET",
+					headers: { host: "example.com" },
+					connection: { remoteAddress: "127.0.0.1" },
+					precise: {
+						stop: () => ({ diff: () => 1234567 }),
+					},
+				};
+				const res = {
+					statusCode: 200,
+					getHeader: () => void 0,
+					header: (key, value) => {
+						if (key === "x-response-time") {
+							captured.push(value);
+						}
+					},
+				};
+
+				appWithTiming.onReady(req, res, "body", 200, {});
+
+				assert.strictEqual(captured.length, 1);
+				assert.strictEqual(captured[0], "1.235 ms");
+			});
+
+			it("should format integer milliseconds when digit is 1", () => {
+				const appWithTiming = woodland({ time: true, digit: 1 });
+				const captured = [];
+				const req = {
+					parsed: { pathname: "/test" },
+					method: "GET",
+					headers: { host: "example.com" },
+					connection: { remoteAddress: "127.0.0.1" },
+					precise: {
+						stop: () => ({ diff: () => 1234567890 }),
+					},
+				};
+				const res = {
+					statusCode: 200,
+					getHeader: () => void 0,
+					header: (key, value) => {
+						if (key === "x-response-time") {
+							captured.push(value);
+						}
+					},
+				};
+
+				appWithTiming.onReady(req, res, "body", 200, {});
+
+				assert.strictEqual(captured.length, 1);
+				assert.strictEqual(captured[0], "1234.6 ms");
 			});
 		});
 
