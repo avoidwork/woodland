@@ -104,6 +104,7 @@ describe("response", () => {
 	describe("error", () => {
 		it("should clear allow header for 404", () => {
 			let allowRemoved = false;
+			let headerCalledWithEmpty = false;
 
 			const req = { method: "GET" };
 			const res = {
@@ -113,17 +114,23 @@ describe("response", () => {
 						allowRemoved = true;
 					}
 				},
-				header: () => {},
+				header: (name, value) => {
+					if (name === "allow" && value === "") {
+						headerCalledWithEmpty = true;
+					}
+				},
 				statusCode: 500,
 			};
 
 			error(req, res, 404);
 
 			assert.strictEqual(allowRemoved, true);
+			assert.strictEqual(headerCalledWithEmpty, false);
 		});
 
 		it("should clear CORS headers for 404", () => {
 			let corsRemoved = false;
+			let headerCalledWithEmpty = false;
 
 			const req = { method: "GET", cors: true };
 			const res = {
@@ -133,13 +140,18 @@ describe("response", () => {
 						corsRemoved = true;
 					}
 				},
-				header: () => {},
+				header: (name, value) => {
+					if (name === "access-control-allow-methods" && value === "") {
+						headerCalledWithEmpty = true;
+					}
+				},
 				statusCode: 500,
 			};
 
 			error(req, res, 404);
 
 			assert.strictEqual(corsRemoved, true);
+			assert.strictEqual(headerCalledWithEmpty, false);
 		});
 
 		it("should not handle when headers already sent", () => {
