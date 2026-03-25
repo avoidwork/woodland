@@ -370,7 +370,7 @@ function getStatusText(status) {
  * Error response handler
  * @param {Object} req - Request object
  * @param {Object} res - Response object
- * @param {number} [status=500] - HTTP status code
+ * @param {number} [status=res.statusCode] - HTTP status code (coerces to 500 if < 400)
  */
 function error(req, res, status = res.statusCode) {
 	if (res.headersSent === false) {
@@ -1306,6 +1306,7 @@ function logError(uri, method, ip, logFn) {
 function logServe(req, message, logFn) {
 	return logFn(
 		`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${message}"`,
+		ERROR,
 	);
 }
 
