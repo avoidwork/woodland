@@ -200,7 +200,7 @@ export function noop() {}
  * @param {Object} res - Response object
  * @param {number} [status=500] - HTTP status code
  */
-export function error(req, res, status = res.status) {
+export function error(req, res, status = res.statusCode) {
 	if (res.headersSent === false) {
 		if (status < INT_400) {
 			status = 500;

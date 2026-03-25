@@ -150,7 +150,6 @@ export function logError(uri, method, ip, logFn) {
 export function logServe(req, message, logFn) {
 	return logFn(
 		`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${message}"`,
-		ERROR,
 	);
 }
 
