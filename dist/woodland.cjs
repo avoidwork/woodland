@@ -391,7 +391,7 @@ function getStatusText(status) {
  * @param {Object} res - Response object
  * @param {number} [status=500] - HTTP status code
  */
-function error(req, res, status = res.status) {
+function error(req, res, status = res.statusCode) {
 	if (res.headersSent === false) {
 		if (status < INT_400) {
 			status = 500;
@@ -1333,7 +1333,6 @@ function logError(uri, method, ip, logFn) {
 function logServe(req, message, logFn) {
 	return logFn(
 		`type=serve, uri=${req.parsed.pathname}, method=${req.method}, ip=${req.ip}, message="${message}"`,
-		ERROR,
 	);
 }
 
@@ -1680,7 +1679,7 @@ class Woodland extends node_events.EventEmitter {
 			result = list.sort().join(COMMA_SPACE);
 			this.permissions.set(uri, result);
 			this.logger.log(
-				`type=allows, uri=${uri}, override=${override}, message="Determined 'allow' header header value"`,
+				`type=allows, uri=${uri}, override=${override}, message="Determined 'allow' header value"`,
 			);
 		}
 
