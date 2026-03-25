@@ -1,6 +1,6 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
-import { createLogger, ms, clf, timeOffset } from "../../src/logger.js";
+import { createLogger, ms, clf, timeOffset, logDecoration, logError } from "../../src/logger.js";
 
 describe("logger", () => {
 	describe("createLogger", () => {
@@ -116,6 +116,36 @@ describe("logger", () => {
 			assert.strictEqual(timeOffset(0), "-0000");
 			assert.strictEqual(timeOffset(330), "-0530");
 			assert.strictEqual(timeOffset(65), "-0104");
+		});
+	});
+
+	describe("logDecoration", () => {
+		it("should create decoration log message", () => {
+			let loggedMessage = null;
+			const logFn = (msg) => {
+				loggedMessage = msg;
+			};
+
+			logDecoration("/test", "GET", "192.168.1.1", logFn);
+
+			assert.ok(loggedMessage.includes("type=decorate"));
+			assert.ok(loggedMessage.includes("/test"));
+			assert.ok(loggedMessage.includes("GET"));
+			assert.ok(loggedMessage.includes("192.168.1.1"));
+		});
+	});
+
+	describe("logError", () => {
+		it("should create error log message", () => {
+			let loggedMessage = null;
+			const logFn = (msg) => {
+				loggedMessage = msg;
+			};
+
+			logError("/test", "GET", "192.168.1.1", logFn);
+
+			assert.ok(loggedMessage.includes("type=error"));
+			assert.ok(loggedMessage.includes("Handled error response"));
 		});
 	});
 });

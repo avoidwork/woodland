@@ -971,5 +971,52 @@ describe("woodland", () => {
 			noListenersApp.route(req, res);
 			assert.ok(true);
 		});
+
+		it("should register finish listener when listener exists", () => {
+			const finishApp = woodland();
+			let finishEmitted = false;
+
+			finishApp.on("finish", () => {
+				finishEmitted = true;
+			});
+
+			const req = {
+				method: "GET",
+				headers: { host: "example.com" },
+				connection: { remoteAddress: "127.0.0.1" },
+				parsed: { pathname: "/test" },
+				precise: { stop: () => ({ diff: () => 0 }) },
+			};
+			let finishOnCalled = false;
+			const res = {
+				statusCode: 200,
+				setHeader: () => {},
+				writeHead: () => {},
+				on: (event, callback) => {
+					if (event === "finish") {
+						finishOnCalled = true;
+						setTimeout(callback, 0);
+					}
+				},
+				end: () => {},
+				error: () => {},
+				set: () => {},
+				send: () => {},
+				header: () => {},
+				getHeader: () => void 0,
+				removeHeader: () => {},
+				headersSent: false,
+			};
+
+			finishApp.route(req, res);
+
+			return new Promise((resolve) => {
+				setTimeout(() => {
+					assert.ok(finishOnCalled);
+					assert.ok(finishEmitted);
+					resolve();
+				}, 10);
+			});
+		});
 	});
 });

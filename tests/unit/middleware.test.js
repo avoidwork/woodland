@@ -134,6 +134,31 @@ describe("middleware", () => {
 			assert.strictEqual(errorHandlerCalled, true);
 			assert.strictEqual(errorArg, testError);
 		});
+
+		it("should send value when middleware returns non-function", async () => {
+			let sentValue = null;
+
+			const req = { allow: ["GET"], method: "GET" };
+			const res = {
+				statusCode: 500,
+				error: () => {},
+				send: (val) => {
+					sentValue = val;
+				},
+			};
+
+			const middleware = {
+				next: () => {
+					return { done: false, value: "test value" };
+				},
+			};
+
+			const fn = next(req, res, middleware, true);
+			fn();
+
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			assert.strictEqual(sentValue, "test value");
+		});
 	});
 
 	describe("createMiddlewareRegistry", () => {
