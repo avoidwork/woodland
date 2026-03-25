@@ -275,7 +275,7 @@ class API extends Woodland {
   }
 
   getUsers(req, res) {
-    // ...
+    res.json([]);
   }
 }
 
@@ -307,17 +307,6 @@ app.always(globalMiddleware);          // Wildcard for all methods
 // HEAD routes cannot be registered directly
 // GET routes implicitly allow HEAD
 app.get("/resource", handler);         // Handles both GET and HEAD
-```
-
-## Environment Variables
-
-```bash
-# Logging configuration
-export WOODLAND_LOG_ENABLED=true
-export WOODLAND_LOG_FORMAT="%h %l %u %t \"%r\" %>s %b"
-export WOODLAND_LOG_LEVEL=debug
-
-# Override config at runtime
 ```
 
 ## Middleware Registry
@@ -371,34 +360,6 @@ if (!ignored.has(fn)) {
 
 // Use Object.create(null) for null-prototype objects
 const headers = Object.create(null);
-
-// Cache regex patterns at module level
-const MY_PATTERN = /^pattern$/;
-```
-
-## Factory Pattern
-
-Woodland uses factory functions for creating instances:
-
-```javascript
-// Recommended: Factory function
-const app = woodland({ autoIndex: true });
-
-// Alternative: Class-based (for larger apps)
-import { Woodland } from "woodland";
-
-class API extends Woodland {
-  constructor() {
-    super({ origins: ["https://myapp.com"] });
-    this.setupRoutes();
-  }
-
-  setupRoutes() {
-    this.get("/health", () => res.json({ status: "ok" }));
-  }
-}
-
-const api = new API();
 ```
 
 ## File Server
@@ -453,9 +414,6 @@ woodland --port=3000
 # Custom IP
 woodland --ip=0.0.0.0
 
-# Enable file serving
-woodland --files
-
 # Verbose logging
 woodland --verbose
 ```
@@ -469,27 +427,6 @@ npm run benchmark     # Performance benchmarks
 npm run lint          # Check linting
 npm run fix           # Fix linting issues
 ```
-
-## Performance Patterns
-
-**Caching:**
-
-```javascript
-// LRU cache via tiny-lru (default: 1000 entries, 10s TTL)
-const app = woodland({ cacheSize: 1000, cacheTTL: 10000 });
-
-// ETag support via tiny-etag (default: enabled)
-const app = woodland({ etags: true });
-
-// File stats are read fresh each time (no caching for accuracy)
-```
-
-**Optimization Tips:**
-
-- Use `app.allowed("GET", "/users")` to check if method is allowed
-- Use `app.list("get", "array")` to list all routes for a method
-- Cache regex patterns at module level for repeated use
-- Use `Set` for O(1) lookups instead of array `.includes()`
 
 ## Benchmarks
 
