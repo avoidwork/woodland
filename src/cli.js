@@ -60,9 +60,13 @@ export function validateIP(ip) {
 	return { valid: true, ip };
 }
 
-// CLI entry point - only run when executed directly
-if (process.argv[1] && process.argv[1].includes("cli.js")) {
-	const argv = parseArgs(process.argv);
+/**
+ * Main CLI entry point function
+ * @param {Array} [args=process.argv] - Arguments array (defaults to process.argv)
+ * @returns {Object} Server object for testing purposes
+ */
+export function main(args = process.argv) {
+	const argv = parseArgs(args);
 	const ip = argv.ip ?? LOCALHOST;
 	const logging = argv.logging ?? true;
 	const port = argv.port ?? INT_8000;
@@ -97,4 +101,11 @@ if (process.argv[1] && process.argv[1].includes("cli.js")) {
 			INFO,
 		);
 	});
+
+	return server;
+}
+
+// CLI entry point - only run when executed directly
+if (process.argv[1] && process.argv[1].includes("cli.js")) {
+	main();
 }

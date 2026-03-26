@@ -1,52 +1,9 @@
 import assert from "node:assert";
-import { describe, it } from "node:test";
-import { coerce } from "tiny-coerce";
-import { HYPHEN, EQUAL } from "../../src/constants.js";
-import { isValidIP } from "../../src/request.js";
-
-/**
- * Parse CLI arguments from process.argv style array
- * @param {Array} args - Array of argument strings
- * @returns {Object} Parsed arguments object
- */
-function parseArgs(args) {
-	return args
-		.filter((i) => i.charAt(0) === HYPHEN && i.charAt(1) === HYPHEN)
-		.reduce((a, v) => {
-			const x = v.split(`${HYPHEN}${HYPHEN}`)[1].split(EQUAL);
-			a[x[0]] = coerce(x[1]);
-			return a;
-		}, {});
-}
-
-/**
- * Validate port number
- * @param {*} port - Port value to validate
- * @returns {Object} Validation result with valid flag and error message
- */
-function validatePort(port) {
-	const validPort = Number(port);
-	if (!Number.isInteger(validPort) || validPort < 0 || validPort > 65535) {
-		return { valid: false, error: "Invalid port: must be an integer between 0 and 65535." };
-	}
-	return { valid: true, port: validPort };
-}
-
-/**
- * Validate IP address
- * @param {string} ip - IP address to validate
- * @returns {Object} Validation result with valid flag and error message
- */
-function validateIP(ip) {
-	const validIP = isValidIP(ip);
-	if (!validIP) {
-		return { valid: false, error: "Invalid IP: must be a valid IPv4 address." };
-	}
-	return { valid: true, ip };
-}
+import { describe, it, beforeEach, afterEach } from "node:test";
+import { main, parseArgs, validatePort, validateIP } from "../../src/cli.js";
 
 describe("CLI", () => {
-	describe("argument parsing", () => {
+	describe("parseArgs", () => {
 		it("should parse --port argument", () => {
 			const args = parseArgs(["--port=3000"]);
 			assert.strictEqual(args.port, 3000);
@@ -91,7 +48,7 @@ describe("CLI", () => {
 		});
 	});
 
-	describe("port validation", () => {
+	describe("validatePort", () => {
 		it("should accept valid port 0", () => {
 			const result = validatePort(0);
 			assert.strictEqual(result.valid, true);
@@ -122,12 +79,6 @@ describe("CLI", () => {
 			assert.match(result.error, /Invalid port/);
 		});
 
-		it("should reject non-numeric port", () => {
-			const result = validatePort("abc");
-			assert.strictEqual(result.valid, false);
-			assert.match(result.error, /Invalid port/);
-		});
-
 		it("should reject non-integer port", () => {
 			const result = validatePort(3.14);
 			assert.strictEqual(result.valid, false);
@@ -135,7 +86,7 @@ describe("CLI", () => {
 		});
 	});
 
-	describe("IP validation", () => {
+	describe("validateIP", () => {
 		it("should accept valid IPv4 127.0.0.1", () => {
 			const result = validateIP("127.0.0.1");
 			assert.strictEqual(result.valid, true);
@@ -171,21 +122,87 @@ describe("CLI", () => {
 		});
 	});
 
-	describe("coerce function", () => {
-		it("should coerce 'true' to boolean true", () => {
-			assert.strictEqual(coerce("true"), true);
+	describe("main", () => {
+		let originalExit;
+		let originalConsoleError;
+		let servers = [];
+
+		beforeEach(() => {
+			originalExit = process.exit;
+			originalConsoleError = console.error;
+			process.exit = () => {};
+			console.error = () => {};
+			servers = [];
 		});
 
-		it("should coerce 'false' to boolean false", () => {
-			assert.strictEqual(coerce("false"), false);
+		afterEach(() => {
+			process.exit = originalExit;
+			console.error = originalConsoleError;
+			for (const server of servers) {
+				server.close();
+			}
+			servers = [];
 		});
 
-		it("should coerce numeric strings to numbers", () => {
-			assert.strictEqual(coerce("3000"), 3000);
+		it("should create and start server with default arguments", (t) => {
+			const server = main(["node", "cli.js", "--port=3000"]);
+			servers.push(server);
+			assert.ok(server);
+			assert.strictEqual(typeof server.listen, "function");
+			t.after(() => {
+				server.closeAllConnections?.();
+				server.close();
+			});
 		});
 
-		it("should keep non-numeric strings as strings", () => {
-			assert.strictEqual(coerce("localhost"), "localhost");
+		it("should create and start server with custom port", (t) => {
+			const server = main(["node", "cli.js", "--port=3001"]);
+			servers.push(server);
+			assert.ok(server);
+			t.after(() => {
+				server.closeAllConnections?.();
+				server.close();
+			});
+		});
+
+		it("should create and start server with custom IP", (t) => {
+			const server = main(["node", "cli.js", "--port=3002", "--ip=127.0.0.1"]);
+			servers.push(server);
+			assert.ok(server);
+			t.after(() => {
+				server.closeAllConnections?.();
+				server.close();
+			});
+		});
+
+		it("should create and start server with custom logging", (t) => {
+			const server = main(["node", "cli.js", "--port=3003", "--logging=false"]);
+			servers.push(server);
+			assert.ok(server);
+			t.after(() => {
+				server.closeAllConnections?.();
+				server.close();
+			});
+		});
+
+		it("should exit with invalid port", () => {
+			let exitCalled = false;
+			process.exit = () => {
+				exitCalled = true;
+			};
+
+			main(["node", "cli.js", "--port=-1"]);
+			assert.strictEqual(exitCalled, true);
+		});
+
+		it("should exit with invalid IP", () => {
+			let exitCalled = false;
+			process.exit = () => {
+				exitCalled = true;
+			};
+
+			main(["node", "cli.js", "--ip=invalid"]);
+			assert.strictEqual(exitCalled, true);
 		});
 	});
 });

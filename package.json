@@ -44,15 +44,15 @@
     "build": "npm run rollup",
     "changelog": "auto-changelog -p",
     "clean": "rimraf dist",
-    "coverage": "node --test --experimental-test-coverage --test-coverage-exclude=dist/** --test-coverage-exclude=tests/** --test-reporter=spec tests/**/*.test.js 2>&1 | grep -A 1000 \"start of coverage report\" > coverage.txt",
+    "coverage": "node --test --test-force-exit --experimental-test-coverage --test-coverage-exclude=dist/** --test-coverage-exclude=tests/** --test-reporter=spec tests/**/*.test.js 2>&1 | grep -A 1000 \"start of coverage report\" > coverage.txt",
     "fix": "oxlint --fix *.js benchmarks src tests && oxfmt *.js benchmarks src tests/unit --write",
     "lint": "oxlint *.js benchmarks src tests && oxfmt *.js benchmarks src tests/unit --check",
     "prepare": "husky",
     "prebuild": "npm run clean",
     "rollup": "rollup --config",
     "sample": "node sample.js",
-    "test": "npm run lint && node --test tests/**/*.test.js",
-    "test:cli": "node --test tests/unit/cli.test.js",
+    "test": "npm run lint && node --test --test-force-exit tests/**/*.test.js",
+    "test:cli": "node --test --test-force-exit tests/unit/cli.test.js",
     "test:watch": "node --test --watch tests/**/*.test.js"
   },
   "dependencies": {
