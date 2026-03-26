@@ -1231,7 +1231,7 @@ While lightweight by design, Woodland provides the security foundation needed fo
 
 ## Test Coverage
 
-Woodland maintains comprehensive test coverage with **323 tests passing**. The framework achieves 100% line coverage across all modules, with ongoing work to achieve 100% branch and function coverage.
+Woodland maintains comprehensive test coverage with **324 tests passing**. The framework achieves 100% line coverage across all modules, with ongoing work to achieve 100% branch and function coverage.
 
 ### Coverage Metrics
 
@@ -1254,7 +1254,7 @@ woodland.js     |     100 |    96.34 |   89.47 |     100 | ⚠️ Branch/func ga
 
 **Achieved:**
 - ✅ 100% line coverage across all source files
-- ✅ 323 passing tests
+- ✅ 324 passing tests
 - ✅ CLI module: 100% coverage across all dimensions
 
 **Working towards:**
