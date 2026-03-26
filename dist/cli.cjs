@@ -251,12 +251,14 @@ function main(args = process.argv) {
 	if (!portValidation.valid) {
 		console.error(portValidation.error);
 		process.exit(1);
+		return;
 	}
 
 	const ipValidation = validateIP(ip);
 	if (!ipValidation.valid) {
 		console.error(ipValidation.error);
 		process.exit(1);
+		return;
 	}
 
 	app.files();
