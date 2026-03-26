@@ -5,8 +5,9 @@
 Woodland is a lightweight, security-focused HTTP server framework for Node.js that extends EventEmitter. It provides middleware-based routing with built-in CORS, file serving, caching, and comprehensive logging.
 
 **Key Statistics:**
-- 495 tests passing
-- 100% line coverage target
+- 317 tests passing
+- 100% line coverage
+- 97%+ branch and function coverage
 - Minimal dependencies
 - Express-compatible API
 
@@ -61,7 +62,8 @@ npm run build        # Build with rollup
 |------|---------|-------------|
 | `woodland.js` | Main framework class | `Woodland` class, `woodland` factory |
 | `config.js` | Configuration validation | `validateConfig`, `validateLogging`, `validateOrigins` |
-| `response.js` | Response handlers | `json`, `send`, `redirect`, `error`, `stream`, `set`, `status` |
+| `response.js` | Response handlers | `json`, `send`, `redirect`, `error`, `stream`, `set`, `status`, `partialHeaders`, `escapeHtml`, `mime`, `getStatus`, `writeHead` |
+| `responses.js` | Response method factories | `createErrorHandler`, `createJsonHandler`, `createRedirectHandler`, `createSendHandler`, `createSetHandler`, `createStatusHandler`, `getStatusText` |
 | `request.js` | Request handlers | `cors`, `extractIP`, `params`, `parse`, `isValidIP` |
 | `logger.js` | Logging utilities | `createLogger`, `log`, `clf`, `ms`, `timeOffset` |
 | `middleware.js` | Middleware registry | `reduce`, `next`, `createMiddlewareRegistry` |

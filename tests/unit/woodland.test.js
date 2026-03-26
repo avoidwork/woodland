@@ -395,6 +395,176 @@ describe("woodland", () => {
 
 				assert.strictEqual(req.cors, true);
 			});
+
+			it("should invoke res.error when called", () => {
+				const app = woodland();
+				const req = {
+					headers: { host: "example.com" },
+					url: "/test",
+					socket: { server: { _connectionKey: "test" } },
+					method: "GET",
+				};
+				let errorEmitted = false;
+				let endCalled = false;
+				const res = {
+					setHeader: () => {},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+					getHeader: () => void 0,
+					statusCode: 404,
+					removeHeader: () => {},
+					headersSent: false,
+					writeHead: () => {},
+					end: () => {
+						endCalled = true;
+					},
+				};
+
+				app.once("error", () => {
+					errorEmitted = true;
+				});
+
+				app.decorate(req, res);
+				res.error(404, new Error("Not found"));
+
+				assert.ok(errorEmitted);
+				assert.ok(endCalled);
+			});
+
+			it("should invoke res.redirect when called", () => {
+				const app = woodland();
+				const req = {
+					headers: { host: "example.com" },
+					url: "/test",
+					socket: { server: { _connectionKey: "test" } },
+					method: "GET",
+				};
+				let writeHeadHeaders = null;
+				const res = {
+					setHeader: () => {},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+					getHeader: () => void 0,
+					statusCode: 200,
+					headersSent: false,
+					writeHead: (status, statusText, headers) => {
+						writeHeadHeaders = headers;
+					},
+					end: () => {},
+				};
+
+				app.decorate(req, res);
+				res.redirect("/new-location", true);
+
+				assert.strictEqual(writeHeadHeaders?.location, "/new-location");
+			});
+
+			it("should invoke res.set when called", () => {
+				const app = woodland();
+				const req = {
+					headers: { host: "example.com" },
+					url: "/test",
+					socket: { server: { _connectionKey: "test" } },
+					method: "GET",
+				};
+				const setHeaderCalls = [];
+				const res = {
+					setHeader: (name, value) => {
+						setHeaderCalls.push([name, value]);
+					},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+					getHeader: () => void 0,
+					statusCode: 200,
+				};
+
+				app.decorate(req, res);
+				const callsBefore = setHeaderCalls.length;
+				res.set({ "X-Custom": "value", "X-Another": "test" });
+
+				assert.strictEqual(setHeaderCalls.length - callsBefore, 2);
+			});
+
+			it("should invoke res.status when called", () => {
+				const app = woodland();
+				const req = {
+					headers: { host: "example.com" },
+					url: "/test",
+					socket: { server: { _connectionKey: "test" } },
+					method: "GET",
+				};
+				const res = {
+					setHeader: () => {},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+					getHeader: () => void 0,
+					statusCode: 200,
+				};
+
+				app.decorate(req, res);
+				res.status(500);
+
+				assert.strictEqual(res.statusCode, 500);
+			});
+
+			it("should register ERROR event handler in constructor", () => {
+				const app = woodland();
+				let logErrorCalled = false;
+				const mockReq = {
+					parsed: { pathname: "/error-test" },
+					method: "POST",
+					ip: "192.168.1.1",
+				};
+
+				// Override logError to track calls
+				const originalLogError = app.logger.logError;
+				app.logger.logError = (...args) => {
+					logErrorCalled = true;
+					return originalLogError(...args);
+				};
+
+				// Emit ERROR event
+				app.emit("error", mockReq, {}, new Error("test error"));
+
+				assert.ok(logErrorCalled);
+			});
+
+			it("should register EVT_CLOSE listener in decorate", () => {
+				const app = woodland();
+				const req = {
+					headers: { host: "example.com" },
+					url: "/test",
+					socket: { server: { _connectionKey: "test" } },
+					method: "GET",
+				};
+				let closeOnCalled = false;
+				let closeCallback = null;
+				const res = {
+					setHeader: () => {},
+					on: (event, callback) => {
+						if (event === "close") {
+							closeOnCalled = true;
+							closeCallback = callback;
+						}
+					},
+					set: () => {},
+					send: () => {},
+					getHeader: () => void 0,
+					statusCode: 200,
+				};
+
+				app.decorate(req, res);
+
+				assert.ok(closeOnCalled);
+				assert.strictEqual(typeof closeCallback, "function");
+
+				// Invoke the callback to test the arrow function
+				closeCallback();
+			});
 		});
 
 		describe("routes", () => {
@@ -1017,6 +1187,7 @@ describe("woodland", () => {
 				precise: { stop: () => ({ diff: () => 0 }) },
 			};
 			let finishOnCalled = false;
+			let finishCallback = null;
 			const res = {
 				statusCode: 200,
 				setHeader: () => {},
@@ -1024,7 +1195,7 @@ describe("woodland", () => {
 				on: (event, callback) => {
 					if (event === "finish") {
 						finishOnCalled = true;
-						setTimeout(callback, 0);
+						finishCallback = callback;
 					}
 				},
 				end: () => {},
@@ -1039,13 +1210,13 @@ describe("woodland", () => {
 
 			finishApp.route(req, res);
 
-			return new Promise((resolve) => {
-				setTimeout(() => {
-					assert.ok(finishOnCalled);
-					assert.ok(finishEmitted);
-					resolve();
-				}, 10);
-			});
+			// Invoke the finish callback to test the arrow function
+			if (finishCallback) {
+				finishCallback();
+			}
+
+			assert.ok(finishOnCalled);
+			assert.ok(finishEmitted);
 		});
 	});
 });

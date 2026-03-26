@@ -182,18 +182,7 @@ export class Woodland extends EventEmitter {
 				}
 			}
 
-			const list = [...methodSet];
-
-			if (list.length > 0) {
-				if (methodSet.has(GET) && !methodSet.has(HEAD)) {
-					list.push(HEAD);
-				}
-
-				if (!methodSet.has(OPTIONS)) {
-					list.push(OPTIONS);
-				}
-			}
-
+			const list = this.buildAllowedList(methodSet);
 			result = list.sort().join(COMMA_SPACE);
 			this.permissions.set(uri, result);
 			this.logger.log(
@@ -202,6 +191,27 @@ export class Woodland extends EventEmitter {
 		}
 
 		return result;
+	}
+
+	/**
+	 * Builds the list of allowed methods including implicit HEAD and OPTIONS
+	 * @param {Set} methodSet - Set of explicitly registered methods
+	 * @returns {Array} Array of allowed methods
+	 */
+	buildAllowedList(methodSet) {
+		const list = [...methodSet];
+
+		if (list.length > 0) {
+			if (methodSet.has(GET) && !methodSet.has(HEAD)) {
+				list.push(HEAD);
+			}
+
+			if (!methodSet.has(OPTIONS)) {
+				list.push(OPTIONS);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -262,19 +272,7 @@ export class Woodland extends EventEmitter {
 		}
 
 		if (req.cors) {
-			const origin = req.headers.origin;
-			const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
-
-			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
-			headersBatch[TIMING_ALLOW_ORIGIN] = origin;
-			headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
-			headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = allowString;
-
-			if (corsHeaders !== void 0) {
-				headersBatch[
-					req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS
-				] = corsHeaders;
-			}
+			this.addCorsHeaders(req, headersBatch);
 		}
 
 		res.locals = {};
@@ -294,6 +292,27 @@ export class Woodland extends EventEmitter {
 	}
 
 	/**
+	 * Adds CORS headers to the headers batch
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} headersBatch - Headers batch object
+	 */
+	addCorsHeaders(req, headersBatch) {
+		const origin = req.headers.origin;
+		const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
+
+		headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
+		headersBatch[TIMING_ALLOW_ORIGIN] = origin;
+		headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
+		headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = req.allow;
+
+		if (corsHeaders !== void 0) {
+			headersBatch[
+				req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS
+			] = corsHeaders;
+		}
+	}
+
+	/**
 	 * Registers DELETE middleware
 	 * @param {...*} args - Middleware function(s)
 	 * @returns {Woodland} Returns self for chaining
@@ -309,18 +328,40 @@ export class Woodland extends EventEmitter {
 	 * @returns {string} ETag string or empty string
 	 */
 	etag(method, ...args) {
-		const isHashableMethod = method === GET || method === HEAD || method === OPTIONS;
-		const etagsEnabled = this.etags !== null;
-
-		if (!isHashableMethod || !etagsEnabled) {
+		if (!this.isHashableMethod(method) || !this.etagsEnabled()) {
 			return EMPTY;
 		}
 
-		const hashed = args
+		const hashed = this.hashArgs(args);
+		return this.etags.create(hashed);
+	}
+
+	/**
+	 * Checks if a method can be hashed for ETag generation
+	 * @param {string} method - HTTP method
+	 * @returns {boolean} True if method is GET, HEAD, or OPTIONS
+	 */
+	isHashableMethod(method) {
+		return method === GET || method === HEAD || method === OPTIONS;
+	}
+
+	/**
+	 * Checks if ETags are enabled
+	 * @returns {boolean} True if ETags are enabled
+	 */
+	etagsEnabled() {
+		return this.etags !== null;
+	}
+
+	/**
+	 * Hashes arguments for ETag generation
+	 * @param {Array} args - Arguments to hash
+	 * @returns {string} Hashed string
+	 */
+	hashArgs(args) {
+		return args
 			.map((i) => (typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i))
 			.join(HYPHEN);
-
-		return this.etags.create(hashed);
 	}
 
 	/**
@@ -494,21 +535,31 @@ export class Woodland extends EventEmitter {
 			req.valid = false;
 			res.error(INT_403, new Error(STATUS_CODES[INT_403]));
 		} else if (req.allow.includes(method)) {
-			const result = this.middleware.routes(req.parsed.pathname, method);
-
-			if (result.params) {
-				params(req, result.getParams);
-			}
-
-			const middleware = result.middleware;
-			const exitIndex = result.exit;
-			req.exit = next(req, res, middleware.slice(exitIndex)[Symbol.iterator](), true);
-			next(req, res, middleware[Symbol.iterator]())();
+			this.handleAllowedRoute(req, res, method);
 		} else {
 			req.valid = false;
 			const newStatus = getStatus(req, res);
 			res.error(newStatus, new Error(STATUS_CODES[newStatus]));
 		}
+	}
+
+	/**
+	 * Handles routing for allowed methods
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {string} method - Normalized HTTP method
+	 */
+	handleAllowedRoute(req, res, method) {
+		const result = this.middleware.routes(req.parsed.pathname, method);
+
+		if (result.params) {
+			params(req, result.getParams);
+		}
+
+		const middleware = result.middleware;
+		const exitIndex = result.exit;
+		req.exit = next(req, res, middleware.slice(exitIndex)[Symbol.iterator](), true);
+		next(req, res, middleware[Symbol.iterator]())();
 	}
 
 	/**
