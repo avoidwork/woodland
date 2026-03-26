@@ -156,7 +156,10 @@ describe("CLI", () => {
 
 	describe("argument parsing", () => {
 		it("should handle malformed arguments gracefully", async () => {
-			const result = await spawnCli(["--port=0"], { waitFor: "port=", timeout: 1000 });
+			const result = await spawnCli(["--unknown-flag", "--invalid=arg"], {
+				waitFor: "port=",
+				timeout: 1000,
+			});
 
 			assert.ok(
 				!result.timeout && result.stdout.length > 0,
