@@ -4,7 +4,6 @@ import {
 	validateConfig,
 	validateLogging,
 	validateOrigins,
-	mergeEnvLogging,
 	resolveLoggingValue,
 } from "../../src/config.js";
 
@@ -150,56 +149,6 @@ describe("config", () => {
 			const result = validateOrigins(["https://example.com", "invalid", 123, null]);
 
 			assert.deepStrictEqual(result, ["https://example.com"]);
-		});
-	});
-
-	describe("mergeEnvLogging", () => {
-		it("should return defaults for empty logging config", () => {
-			const result = mergeEnvLogging();
-
-			assert.strictEqual(result.enabled, true);
-			assert.ok(result.format);
-			assert.strictEqual(result.level, "info");
-		});
-
-		it("should accept custom logging config", () => {
-			const result = mergeEnvLogging({ enabled: false, format: "custom", level: "debug" });
-
-			assert.strictEqual(result.enabled, false);
-			assert.strictEqual(result.format, "custom");
-			assert.strictEqual(result.level, "debug");
-		});
-
-		it("should use environment variables when config is empty", () => {
-			process.env.WOODLAND_LOG_ENABLED = "false";
-			process.env.WOODLAND_LOG_FORMAT = "env-format";
-			process.env.WOODLAND_LOG_LEVEL = "error";
-
-			const result = mergeEnvLogging({});
-
-			assert.strictEqual(result.enabled, false);
-			assert.strictEqual(result.format, "env-format");
-			assert.strictEqual(result.level, "error");
-
-			delete process.env.WOODLAND_LOG_ENABLED;
-			delete process.env.WOODLAND_LOG_FORMAT;
-			delete process.env.WOODLAND_LOG_LEVEL;
-		});
-
-		it("should prioritize config over environment variables", () => {
-			process.env.WOODLAND_LOG_ENABLED = "false";
-			process.env.WOODLAND_LOG_FORMAT = "env-format";
-			process.env.WOODLAND_LOG_LEVEL = "error";
-
-			const result = mergeEnvLogging({ enabled: true, format: "config-format", level: "warn" });
-
-			assert.strictEqual(result.enabled, true);
-			assert.strictEqual(result.format, "config-format");
-			assert.strictEqual(result.level, "warn");
-
-			delete process.env.WOODLAND_LOG_ENABLED;
-			delete process.env.WOODLAND_LOG_FORMAT;
-			delete process.env.WOODLAND_LOG_LEVEL;
 		});
 	});
 

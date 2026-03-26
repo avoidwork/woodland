@@ -177,21 +177,3 @@ export function validateOrigins(origins = []) {
 		}
 	});
 }
-
-/**
- * Merges logging configuration with environment variables
- * @param {Object} [logging={}] - Logging configuration object
- * @returns {Object} Merged logging configuration with enabled, format, and level
- */
-export function mergeEnvLogging(logging = {}) {
-	const envLogEnabled = process.env.WOODLAND_LOG_ENABLED;
-	const envLogFormat = process.env.WOODLAND_LOG_FORMAT;
-	const envLogLevel = process.env.WOODLAND_LOG_LEVEL;
-
-	const enabled = logging.enabled ?? (envLogEnabled ?? TRUE) !== FALSE;
-
-	const format = resolveLoggingValue(logging.format, envLogFormat, LOG_FORMAT);
-	const level = resolveLoggingValue(logging.level, envLogLevel, INFO);
-
-	return { enabled, format, level };
-}
