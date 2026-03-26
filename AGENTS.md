@@ -5,7 +5,7 @@
 Woodland is a lightweight, security-focused HTTP server framework for Node.js that extends EventEmitter. It provides middleware-based routing with built-in CORS, file serving, caching, and comprehensive logging.
 
 **Key Statistics:**
-- 313 tests passing
+- 311 tests passing
 - 100% line coverage
 - 97%+ branch and function coverage
 - Minimal dependencies
@@ -62,7 +62,7 @@ npm run build        # Build with rollup
 |------|---------|-------------|
 | `woodland.js` | Main framework class | `Woodland` class, `woodland` factory |
 | `config.js` | Configuration validation | `validateConfig`, `validateLogging`, `validateOrigins`, `resolveLoggingValue` |
-| `response.js` | Response handlers | `json`, `send`, `redirect`, `error`, `stream`, `set`, `status`, `partialHeaders`, `escapeHtml`, `mime`, `getStatus`, `getStatusText`, `writeHead`, `pipeable` |
+| `response.js` | Response handlers | `json`, `send`, `redirect`, `error`, `stream`, `set`, `status`, `partialHeaders`, `escapeHtml`, `mime`, `getStatus`, `getStatusText`, `writeHead`, `pipeable`, `createErrorHandler`, `createJsonHandler`, `createRedirectHandler`, `createSendHandler`, `createSetHandler`, `createStatusHandler` |
 | `request.js` | Request handlers | `cors`, `extractIP`, `params`, `parse`, `isValidIP` |
 | `logger.js` | Logging utilities | `createLogger`, `log`, `clf`, `ms`, `timeOffset` |
 | `middleware.js` | Middleware registry | `reduce`, `next`, `createMiddlewareRegistry` |
