@@ -226,13 +226,13 @@ const VALID_LOG_LEVELS = new Set([DEBUG, INFO, WARN, ERROR, CRITICAL, ALERT, EME
 // =============================================================================
 // HTML ESCAPE MAPPING
 // =============================================================================
-const HTML_ESCAPES = {
+const HTML_ESCAPES = Object.freeze({
 	"&": "&amp;",
 	"<": "&lt;",
 	">": "&gt;",
 	'"': "&quot;",
 	"'": "&#39;",
-};const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
+});const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
 	mimeExtensions = valid.reduce((a, v) => {
 		const result = Object.assign({ type: v[0] }, v[1]);
 		const extCount = result.extensions.length;
