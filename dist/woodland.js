@@ -185,7 +185,6 @@ const EVT_CLOSE = "close";
 const EVT_FINISH = "finish";
 const EVT_STREAM = "stream";
 const EVT_CONNECT = "connect";
-const EVT_ERROR = "error";
 
 // =============================================================================
 // UTILITY & MISC
@@ -287,12 +286,18 @@ function partialHeaders(req, res, size, status, headers = {}, options = {}) {
 		}
 	}
 
+	// Check if range is valid
+	const startValid = !isNaN(start) && start >= 0;
+	const endValid = !isNaN(end) && end < size;
+	const rangeOrderValid = start <= end;
+	const rangeValid = startValid && endValid && rangeOrderValid;
+
 	res.removeHeader(CONTENT_RANGE);
 	res.removeHeader(CONTENT_LENGTH);
 	res.removeHeader(ETAG);
 	delete headers.etag;
 
-	if (!isNaN(start) && !isNaN(end) && start <= end && start >= 0 && end < size) {
+	if (rangeValid) {
 		const rangeOptions = { start, end };
 		req.range = rangeOptions;
 		const contentLength = end - start + 1;
@@ -360,10 +365,6 @@ function getStatus(req, res) {
 		return INT_404;
 	}
 	return res.statusCode > INT_500 ? res.statusCode : INT_500;
-}
-
-function getStatusText(status) {
-	return STATUS_CODES[status] || STATUS_CODES[INT_500];
 }
 
 /**
@@ -1517,6 +1518,99 @@ function createFileServer(app) {
 		serve: (req, res, arg, folder) => serve(app, req, res, arg, folder),
 	};
 }/**
+ * Gets status text for a status code
+ * @param {number} status - HTTP status code
+ * @returns {string} Status text
+ */
+function getStatusText(status) {
+	const codes = {
+		200: "OK",
+		201: "Created",
+		204: "No Content",
+		301: "Moved Permanently",
+		302: "Found",
+		304: "Not Modified",
+		307: "Temporary Redirect",
+		308: "Permanent Redirect",
+		400: "Bad Request",
+		401: "Unauthorized",
+		403: "Forbidden",
+		404: "Not Found",
+		405: "Method Not Allowed",
+		416: "Range Not Satisfiable",
+		500: "Internal Server Error",
+	};
+	return codes[status] || "Internal Server Error";
+}
+
+/**
+ * Creates error response handler
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @param {EventEmitter} emitter - EventEmitter for error events
+ * @returns {Function} Error handler function
+ */
+function createErrorHandler(req, res, emitter) {
+	return (status = res.statusCode, body) => {
+		error(req, res, status);
+		const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
+		emitter.emit("error", req, res, err);
+		res.send(err.message);
+	};
+}
+
+/**
+ * Creates JSON response handler
+ * @param {Object} res - Response object
+ * @returns {Function} JSON handler function
+ */
+function createJsonHandler(res) {
+	return (
+		arg,
+		status = res.statusCode,
+		headers = { [CONTENT_TYPE]: `${APPLICATION_JSON}; charset=utf-8` },
+	) => json(res, arg, status, headers);
+}
+
+/**
+ * Creates redirect response handler
+ * @param {Object} res - Response object
+ * @returns {Function} Redirect handler function
+ */
+function createRedirectHandler(res) {
+	return (uri, perm = true) => redirect(res, uri, perm);
+}
+
+/**
+ * Creates send response handler
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @param {Function} onReady - Ready callback
+ * @param {Function} onDone - Done callback
+ * @returns {Function} Send handler function
+ */
+function createSendHandler(req, res, onReady, onDone) {
+	return (body = "", status = res.statusCode, headers = {}) =>
+		send(req, res, body, status, headers, onReady, onDone);
+}
+
+/**
+ * Creates set headers handler
+ * @param {Object} res - Response object
+ * @returns {Function} Set handler function
+ */
+function createSetHandler(res) {
+	return (arg = {}) => set(res, arg);
+}
+
+/**
+ * Creates status handler
+ * @param {Object} res - Response object
+ * @returns {Function} Status handler function
+ */
+function createStatusHandler(res) {
+	return (arg = INT_200) => status(res, arg);
+}/**
  * Woodland HTTP server framework class extending EventEmitter
  * @class
  * @extends {EventEmitter}
@@ -1634,18 +1728,7 @@ class Woodland extends EventEmitter {
 				}
 			}
 
-			const list = [...methodSet];
-
-			if (list.length > 0) {
-				if (methodSet.has(GET) && !methodSet.has(HEAD)) {
-					list.push(HEAD);
-				}
-
-				if (!methodSet.has(OPTIONS)) {
-					list.push(OPTIONS);
-				}
-			}
-
+			const list = this.buildAllowedList(methodSet);
 			result = list.sort().join(COMMA_SPACE);
 			this.permissions.set(uri, result);
 			this.logger.log(
@@ -1654,6 +1737,27 @@ class Woodland extends EventEmitter {
 		}
 
 		return result;
+	}
+
+	/**
+	 * Builds the list of allowed methods including implicit HEAD and OPTIONS
+	 * @param {Set} methodSet - Set of explicitly registered methods
+	 * @returns {Array} Array of allowed methods
+	 */
+	buildAllowedList(methodSet) {
+		const list = [...methodSet];
+
+		if (list.length > 0) {
+			if (methodSet.has(GET) && !methodSet.has(HEAD)) {
+				list.push(HEAD);
+			}
+
+			if (!methodSet.has(OPTIONS)) {
+				list.push(OPTIONS);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -1714,45 +1818,44 @@ class Woodland extends EventEmitter {
 		}
 
 		if (req.cors) {
-			const origin = req.headers.origin;
-			const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
-
-			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
-			headersBatch[TIMING_ALLOW_ORIGIN] = origin;
-			headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
-			headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = allowString;
-
-			if (corsHeaders !== void 0) {
-				headersBatch[
-					req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS
-				] = corsHeaders;
-			}
+			this.addCorsHeaders(req, headersBatch);
 		}
 
 		res.locals = {};
-		res.error = (status = res.statusCode, body) => {
-			error(req, res, status);
-			const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
-			this.emit(EVT_ERROR, req, res, err);
-			res.send(err.message);
-		};
+		res.error = createErrorHandler(req, res, this);
 		res.header = res.setHeader;
-		res.json = (
-			arg,
-			status = res.statusCode,
-			headers = { [CONTENT_TYPE]: `${APPLICATION_JSON}; charset=utf-8` },
-		) => json(res, arg, status, headers);
-		res.redirect = (uri, perm = true) => redirect(res, uri, perm);
-		res.send = (body = EMPTY, status = res.statusCode, headers = {}) =>
-			send(req, res, body, status, headers, this.onReady.bind(this), this.onDone.bind(this));
-		res.set = (arg = {}) => set(res, arg);
-		res.status = (arg = INT_200) => status(res, arg);
+		res.json = createJsonHandler(res);
+		res.redirect = createRedirectHandler(res);
+		res.send = createSendHandler(req, res, this.onReady.bind(this), this.onDone.bind(this));
+		res.set = createSetHandler(res);
+		res.status = createStatusHandler(res);
 
 		res.set(headersBatch);
 		res.on(EVT_CLOSE, () => this.logger.log(this.logger.clf(req, res), INFO));
 		this.logger.log(
 			`type=decorate, uri=${parsed.pathname}, method=${req.method}, ip=${clientIP}, message="Decorated request from ${clientIP}"`,
 		);
+	}
+
+	/**
+	 * Adds CORS headers to the headers batch
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} headersBatch - Headers batch object
+	 */
+	addCorsHeaders(req, headersBatch) {
+		const origin = req.headers.origin;
+		const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
+
+		headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
+		headersBatch[TIMING_ALLOW_ORIGIN] = origin;
+		headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
+		headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = req.allow;
+
+		if (corsHeaders !== void 0) {
+			headersBatch[
+				req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS
+			] = corsHeaders;
+		}
 	}
 
 	/**
@@ -1771,13 +1874,40 @@ class Woodland extends EventEmitter {
 	 * @returns {string} ETag string or empty string
 	 */
 	etag(method, ...args) {
-		return (method === GET || method === HEAD || method === OPTIONS) && this.etags !== null
-			? this.etags.create(
-					args
-						.map((i) => (typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i))
-						.join(HYPHEN),
-				)
-			: EMPTY;
+		if (!this.isHashableMethod(method) || !this.etagsEnabled()) {
+			return EMPTY;
+		}
+
+		const hashed = this.hashArgs(args);
+		return this.etags.create(hashed);
+	}
+
+	/**
+	 * Checks if a method can be hashed for ETag generation
+	 * @param {string} method - HTTP method
+	 * @returns {boolean} True if method is GET, HEAD, or OPTIONS
+	 */
+	isHashableMethod(method) {
+		return method === GET || method === HEAD || method === OPTIONS;
+	}
+
+	/**
+	 * Checks if ETags are enabled
+	 * @returns {boolean} True if ETags are enabled
+	 */
+	etagsEnabled() {
+		return this.etags !== null;
+	}
+
+	/**
+	 * Hashes arguments for ETag generation
+	 * @param {Array} args - Arguments to hash
+	 * @returns {string} Hashed string
+	 */
+	hashArgs(args) {
+		return args
+			.map((i) => (typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i))
+			.join(HYPHEN);
 	}
 
 	/**
@@ -1832,11 +1962,10 @@ class Woodland extends EventEmitter {
 	 * @param {Object} headers - Response headers
 	 */
 	onDone(req, res, body, headers) {
-		if (
-			res.statusCode !== INT_204 &&
-			res.statusCode !== INT_304 &&
-			res.getHeader(CONTENT_LENGTH) === void 0
-		) {
+		const isNoContent = res.statusCode === INT_204 || res.statusCode === INT_304;
+		const hasContentLength = res.getHeader(CONTENT_LENGTH) !== void 0;
+
+		if (!isNoContent && !hasContentLength) {
 			res.header(CONTENT_LENGTH, Buffer.byteLength(body));
 		}
 
@@ -1943,25 +2072,40 @@ class Woodland extends EventEmitter {
 		const origin = hasOriginHeader ? req.headers.origin : EMPTY;
 		const isOriginAllowed = hasOriginHeader && this.origins.has(origin);
 
-		if (req.cors === false && hasOriginHeader && req.corsHost && !isOriginAllowed) {
+		// Check if CORS request is disallowed
+		const isCorsRequest = req.corsHost;
+		const isCorsDisallowed =
+			req.cors === false && hasOriginHeader && isCorsRequest && !isOriginAllowed;
+
+		if (isCorsDisallowed) {
 			req.valid = false;
 			res.error(INT_403, new Error(STATUS_CODES[INT_403]));
 		} else if (req.allow.includes(method)) {
-			const result = this.middleware.routes(req.parsed.pathname, method);
-
-			if (result.params) {
-				params(req, result.getParams);
-			}
-
-			const middleware = result.middleware;
-			const exitIndex = result.exit;
-			req.exit = next(req, res, middleware.slice(exitIndex)[Symbol.iterator](), true);
-			next(req, res, middleware[Symbol.iterator]())();
+			this.handleAllowedRoute(req, res, method);
 		} else {
 			req.valid = false;
 			const newStatus = getStatus(req, res);
 			res.error(newStatus, new Error(STATUS_CODES[newStatus]));
 		}
+	}
+
+	/**
+	 * Handles routing for allowed methods
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {string} method - Normalized HTTP method
+	 */
+	handleAllowedRoute(req, res, method) {
+		const result = this.middleware.routes(req.parsed.pathname, method);
+
+		if (result.params) {
+			params(req, result.getParams);
+		}
+
+		const middleware = result.middleware;
+		const exitIndex = result.exit;
+		req.exit = next(req, res, middleware.slice(exitIndex)[Symbol.iterator](), true);
+		next(req, res, middleware[Symbol.iterator]())();
 	}
 
 	/**

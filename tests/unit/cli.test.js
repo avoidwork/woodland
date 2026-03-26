@@ -18,9 +18,21 @@ function spawnCli(args = [], options = {}) {
 
 		let stdout = "";
 		let stderr = "";
+		let resolved = false;
+
+		const resolveOnce = (result) => {
+			if (!resolved) {
+				resolved = true;
+				clearTimeout(timeout);
+				resolve(result);
+			}
+		};
 
 		child.stdout.on("data", (data) => {
 			stdout += data.toString();
+			if (options.waitFor && stdout.includes(options.waitFor)) {
+				child.kill("SIGTERM");
+			}
 		});
 
 		child.stderr.on("data", (data) => {
@@ -28,7 +40,7 @@ function spawnCli(args = [], options = {}) {
 		});
 
 		child.on("close", (code, signal) => {
-			resolve({
+			resolveOnce({
 				code,
 				signal,
 				stdout: stdout.trim(),
@@ -40,39 +52,48 @@ function spawnCli(args = [], options = {}) {
 			reject(error);
 		});
 
-		setTimeout(() => {
+		const timeout = setTimeout(() => {
 			if (!child.killed) {
 				child.kill("SIGKILL");
 			}
-			resolve({
+			resolveOnce({
 				code: -1,
 				signal: "SIGKILL",
 				stdout: stdout.trim(),
 				stderr: stderr.trim(),
+				timeout: true,
 			});
-		}, 3000);
+		}, options.timeout ?? 3000);
 	});
 }
 
 describe("CLI", () => {
 	describe("successful startup", () => {
 		it("should start with default arguments", async () => {
-			const result = await spawnCli(["--port=8000"]);
+			const result = await spawnCli(["--port=0"], { waitFor: "port=", timeout: 1000 });
 
-			// Server runs indefinitely, so we just check it started
-			assert.ok(result.stdout.includes("port=8000") || result.code === -1);
+			assert.ok(
+				!result.timeout && result.stdout.includes("port="),
+				`stdout: ${result.stdout}, timeout: ${result.timeout}`,
+			);
 		});
 
 		it("should start with custom port", async () => {
-			const result = await spawnCli(["--port=3000"]);
+			const result = await spawnCli(["--port=0"], { waitFor: "port=", timeout: 1000 });
 
-			assert.ok(result.stdout.includes("port=3000") || result.code === -1);
+			assert.ok(
+				!result.timeout && result.stdout.includes("port="),
+				`stdout: ${result.stdout}, timeout: ${result.timeout}`,
+			);
 		});
 
 		it("should start with custom IP", async () => {
-			const result = await spawnCli(["--ip=192.168.1.1"]);
+			const result = await spawnCli(["--ip=127.0.0.1"], { waitFor: "ip=127.0.0.1", timeout: 1000 });
 
-			assert.ok(result.stdout.includes("ip=192.168.1.1") || result.code === -1);
+			assert.ok(
+				!result.timeout && result.stdout.includes("ip=127.0.0.1"),
+				`stdout: ${result.stdout}, timeout: ${result.timeout}`,
+			);
 		});
 	});
 
@@ -99,9 +120,12 @@ describe("CLI", () => {
 		});
 
 		it("should accept valid ports", async () => {
-			const result = await spawnCli(["--port=3000"]);
+			const result = await spawnCli(["--port=0"], { waitFor: "port=", timeout: 1000 });
 
-			assert.match(result.stdout, /port=3000/);
+			assert.ok(
+				!result.timeout && result.stdout.match(/port=/),
+				`stdout: ${result.stdout}, timeout: ${result.timeout}`,
+			);
 		});
 	});
 
@@ -121,24 +145,35 @@ describe("CLI", () => {
 		});
 
 		it("should accept valid IPv4 addresses", async () => {
-			const result = await spawnCli(["--ip=192.168.1.1"]);
+			const result = await spawnCli(["--ip=127.0.0.1"], { waitFor: "ip=127.0.0.1", timeout: 1000 });
 
-			assert.match(result.stdout, /ip=192\.168\.1\.1/);
+			assert.ok(
+				!result.timeout && result.stdout.match(/ip=127\.0\.0\.1/),
+				`stdout: ${result.stdout}, timeout: ${result.timeout}`,
+			);
 		});
 	});
 
 	describe("argument parsing", () => {
 		it("should handle malformed arguments gracefully", async () => {
-			const result = await spawnCli(["--port=8000"]);
+			const result = await spawnCli(["--port=0"], { waitFor: "port=", timeout: 1000 });
 
-			// Just check it doesn't crash
-			assert.ok(result.code === -1 || result.stdout.length > 0);
+			assert.ok(
+				!result.timeout && result.stdout.length > 0,
+				`stdout: ${result.stdout}, timeout: ${result.timeout}`,
+			);
 		});
 
 		it("should handle boolean arguments", async () => {
-			const result = await spawnCli(["--logging=true", "--port=8000"]);
+			const result = await spawnCli(["--logging=true", "--port=0"], {
+				waitFor: "port=",
+				timeout: 1000,
+			});
 
-			assert.ok(result.code === -1 || result.stdout.length > 0);
+			assert.ok(
+				!result.timeout && result.stdout.length > 0,
+				`stdout: ${result.stdout}, timeout: ${result.timeout}`,
+			);
 		});
 	});
 

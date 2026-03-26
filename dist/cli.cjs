@@ -219,8 +219,12 @@ if (!validIP) {
 }
 
 app.files();
-node_http.createServer(app.route).listen(validPort, ip);
-app.logger.log(
-	`id=woodland, hostname=${process.env.HOSTNAME ?? "localhost"}, ip=${ip}, port=${validPort}`,
-	INFO,
-);
+const server = node_http.createServer(app.route);
+server.listen(validPort, ip);
+server.on("listening", () => {
+	const actualPort = server.address().port;
+	app.logger.log(
+		`id=woodland, hostname=${process.env.HOSTNAME ?? "localhost"}, ip=${ip}, port=${actualPort}`,
+		INFO,
+	);
+});
