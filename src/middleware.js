@@ -1,4 +1,3 @@
-import { STATUS_CODES } from "node:http";
 import {
 	DELIMITER,
 	FUNCTION,
@@ -11,7 +10,7 @@ import {
 	STRING,
 	WILDCARD,
 } from "./constants.js";
-import { getStatus } from "./response.js";
+import { getStatus, getStatusText } from "./response.js";
 import { extractPath } from "./request.js";
 
 /**
@@ -82,7 +81,7 @@ export function next(req, res, middleware, immediate = false) {
 			obj.value(err, req, res, nextFn);
 		} else {
 			const newStatus = getStatus(req, res);
-			res.error(newStatus, new Error(STATUS_CODES[newStatus]));
+			res.error(newStatus, new Error(getStatusText(newStatus)));
 		}
 	};
 
@@ -102,7 +101,7 @@ export function next(req, res, middleware, immediate = false) {
 			}
 		} else {
 			const newStatus = getStatus(req, res);
-			res.error(newStatus, new Error(STATUS_CODES[newStatus]));
+			res.error(newStatus, new Error(getStatusText(newStatus)));
 		}
 	};
 

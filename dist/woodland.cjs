@@ -985,7 +985,7 @@ function next(req, res, middleware, immediate = false) {
 			obj.value(err, req, res, nextFn);
 		} else {
 			const newStatus = getStatus(req, res);
-			res.error(newStatus, new Error(node_http.STATUS_CODES[newStatus]));
+			res.error(newStatus, new Error(getStatusText(newStatus)));
 		}
 	};
 
@@ -1005,7 +1005,7 @@ function next(req, res, middleware, immediate = false) {
 			}
 		} else {
 			const newStatus = getStatus(req, res);
-			res.error(newStatus, new Error(node_http.STATUS_CODES[newStatus]));
+			res.error(newStatus, new Error(getStatusText(newStatus)));
 		}
 	};
 
