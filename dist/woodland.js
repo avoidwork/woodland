@@ -202,6 +202,7 @@ const ITEM = "item";
 const NOTICE = "notice";
 const SHORT = "short";
 const TO_STRING = "toString";
+const TOKEN_TITLE = "TITLE";
 const TRUE = "true";
 const WARN = "warn";
 const ALERT = "alert";
@@ -1474,7 +1475,9 @@ function autoIndex(title = EMPTY, files = []) {
 
 	if (files.length === 0) {
 		return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) => {
-			return key === "TITLE" ? safeTitle : `    <li><a href=".." rel="${COLLECTION}">../</a></li>`;
+			return key === TOKEN_TITLE
+				? safeTitle
+				: `    <li><a href=".." rel="${COLLECTION}">../</a></li>`;
 		});
 	}
 
@@ -1497,7 +1500,7 @@ function autoIndex(title = EMPTY, files = []) {
 	const safeFiles = listItems.join("\n");
 
 	return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) =>
-		key === "TITLE" ? safeTitle : safeFiles,
+		key === TOKEN_TITLE ? safeTitle : safeFiles,
 	);
 }
 

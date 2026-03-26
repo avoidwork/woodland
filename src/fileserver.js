@@ -7,13 +7,14 @@ import {
 	COLLECTION,
 	CONTENT_TYPE,
 	EMPTY,
+	ITEM,
 	INT_403,
 	INT_404,
-	ITEM,
-	MSG_SERVE_PATH_OUTSIDE,
 	MSG_ROUTING_FILE,
+	MSG_SERVE_PATH_OUTSIDE,
 	SLASH,
 	TEXT_HTML,
+	TOKEN_TITLE,
 	UTF8,
 } from "./constants.js";
 import { escapeHtml } from "./response.js";
@@ -34,7 +35,9 @@ export function autoIndex(title = EMPTY, files = []) {
 
 	if (files.length === 0) {
 		return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) => {
-			return key === "TITLE" ? safeTitle : `    <li><a href=".." rel="${COLLECTION}">../</a></li>`;
+			return key === TOKEN_TITLE
+				? safeTitle
+				: `    <li><a href=".." rel="${COLLECTION}">../</a></li>`;
 		});
 	}
 
@@ -57,7 +60,7 @@ export function autoIndex(title = EMPTY, files = []) {
 	const safeFiles = listItems.join("\n");
 
 	return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) =>
-		key === "TITLE" ? safeTitle : safeFiles,
+		key === TOKEN_TITLE ? safeTitle : safeFiles,
 	);
 }
 
