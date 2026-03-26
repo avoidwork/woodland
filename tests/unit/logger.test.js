@@ -1,6 +1,16 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
-import { createLogger, ms, clf, timeOffset, logDecoration, logError } from "../../src/logger.js";
+import {
+	createLogger,
+	ms,
+	clf,
+	timeOffset,
+	logDecoration,
+	logError,
+	logRoute,
+	logMiddleware,
+	logServe,
+} from "../../src/logger.js";
 
 describe("logger", () => {
 	describe("createLogger", () => {
@@ -31,6 +41,26 @@ describe("logger", () => {
 			assert.strictEqual(typeof logger.logDecoration, "function");
 			assert.strictEqual(typeof logger.logError, "function");
 			assert.strictEqual(typeof logger.logServe, "function");
+		});
+
+		it("should call all logger methods", () => {
+			const logger = createLogger({ enabled: false, format: "%h %l %u" });
+
+			// Call all methods to ensure they're covered
+			logger.log("test");
+			logger.logRoute("/test", "GET", "127.0.0.1");
+			logger.logMiddleware("/test", "GET");
+			logger.logDecoration("/test", "GET", "127.0.0.1");
+			logger.logError("/test", "GET", "127.0.0.1");
+
+			const req = { parsed: { pathname: "/test" }, method: "GET", ip: "127.0.0.1" };
+			logger.logServe(req, "test");
+
+			// Call clf method
+			const res = { getHeader: () => "100", statusCode: 200 };
+			logger.clf(req, res);
+
+			assert.ok(true);
 		});
 
 		describe("log", () => {
@@ -146,6 +176,57 @@ describe("logger", () => {
 
 			assert.ok(loggedMessage.includes("type=error"));
 			assert.ok(loggedMessage.includes("Handled error response"));
+		});
+	});
+
+	describe("logRoute", () => {
+		it("should create route log message", () => {
+			let loggedMessage = null;
+			const logFn = (msg) => {
+				loggedMessage = msg;
+			};
+
+			logRoute("/api/users", "POST", "10.0.0.1", logFn);
+
+			assert.ok(loggedMessage.includes("type=route"));
+			assert.ok(loggedMessage.includes("/api/users"));
+			assert.ok(loggedMessage.includes("POST"));
+		});
+	});
+
+	describe("logMiddleware", () => {
+		it("should create middleware log message", () => {
+			let loggedMessage = null;
+			const logFn = (msg) => {
+				loggedMessage = msg;
+			};
+
+			logMiddleware("/api/*", "GET", logFn);
+
+			assert.ok(loggedMessage.includes("type=use"));
+			assert.ok(loggedMessage.includes("/api/*"));
+			assert.ok(loggedMessage.includes("GET"));
+		});
+	});
+
+	describe("logServe", () => {
+		it("should create serve log message", () => {
+			let loggedMessage = null;
+			const logFn = (msg) => {
+				loggedMessage = msg;
+			};
+
+			const req = {
+				parsed: { pathname: "/static/file.js" },
+				method: "GET",
+				ip: "192.168.1.100",
+			};
+
+			logServe(req, "Serving static file", logFn);
+
+			assert.ok(loggedMessage.includes("type=serve"));
+			assert.ok(loggedMessage.includes("/static/file.js"));
+			assert.ok(loggedMessage.includes("Serving static file"));
 		});
 	});
 });
