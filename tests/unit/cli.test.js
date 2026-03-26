@@ -79,10 +79,10 @@ describe("CLI", () => {
 		});
 
 		it("should start with custom port", async () => {
-			const result = await spawnCli(["--port=0"], { waitFor: "port=", timeout: 1000 });
+			const result = await spawnCli(["--port=3000"], { waitFor: "port=3000", timeout: 1000 });
 
 			assert.ok(
-				!result.timeout && result.stdout.includes("port="),
+				!result.timeout && result.stdout.includes("port=3000"),
 				`stdout: ${result.stdout}, timeout: ${result.timeout}`,
 			);
 		});
