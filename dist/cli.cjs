@@ -42,6 +42,7 @@ const DOUBLE_COLON = "::";
 const EMPTY = "";
 const EQUAL = "=";
 const HYPHEN = "-";
+const STRING = "string";
 `nodejs/${process.version}, ${process.platform}/${process.arch}`;
 const LOCALHOST = "127.0.0.1";
 const EXTENSIONS = "extensions";
@@ -80,7 +81,7 @@ const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/,
  * @returns {boolean} True if IP is valid format
  */
 function isValidIP(ip) {
-	if (!ip || typeof ip !== "string") {
+	if (!ip || typeof ip !== STRING) {
 		return false;
 	}
 

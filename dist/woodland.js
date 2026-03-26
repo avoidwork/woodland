@@ -114,8 +114,13 @@ const WILDCARD = "*";
 // =============================================================================
 // DATA TYPES
 // =============================================================================
+const ARRAY = "array";
+const BOOLEAN = "boolean";
 const FUNCTION = "function";
+const NUMBER = "number";
+const OBJECT = "object";
 const STRING = "string";
+const TYPE = "type";
 
 // =============================================================================
 // SERVER & SYSTEM INFO
@@ -703,9 +708,9 @@ function extractIP(req) {
 		return fallbackIP;
 	}
 
-	const forwardedIPs = forwardedHeader.split(",");
+	const forwardedIPs = forwardedHeader.split(COMMA);
 
-	for (let i = 0; i < forwardedIPs.length; i++) {
+	for (let i = INT_0; i < forwardedIPs.length; i++) {
 		const ip = forwardedIPs[i].trim();
 		if (isValidIP(ip)) {
 			return ip;
@@ -792,7 +797,7 @@ const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/,
  * @returns {boolean} True if IP is valid format
  */
 function isValidIP(ip) {
-	if (!ip || typeof ip !== "string") {
+	if (!ip || typeof ip !== STRING) {
 		return false;
 	}
 
@@ -1176,21 +1181,21 @@ function registerMiddleware(middleware, ignored, methods, cache, rpath, ...fn) {
 
 const CONFIG_SCHEMA = {
 	$schema: "http://json-schema.org/draft-07/schema#",
-	type: "object",
+	type: OBJECT,
 	properties: {
-		autoIndex: { type: "boolean" },
-		cacheSize: { type: "number", minimum: INT_1 },
-		cacheTTL: { type: "number", minimum: INT_1 },
-		charset: { type: "string" },
-		corsExpose: { type: "string" },
-		defaultHeaders: { type: "object" },
-		digit: { type: "number", minimum: INT_1, maximum: INT_10 },
-		etags: { type: "boolean" },
-		indexes: { type: "array", items: { type: "string" } },
-		logging: { type: "object" },
-		origins: { type: "array", items: { type: "string" } },
-		silent: { type: "boolean" },
-		time: { type: "boolean" },
+		autoIndex: { type: BOOLEAN },
+		cacheSize: { type: NUMBER, minimum: INT_1 },
+		cacheTTL: { type: NUMBER, minimum: INT_1 },
+		charset: { type: STRING },
+		corsExpose: { type: STRING },
+		defaultHeaders: { type: OBJECT },
+		digit: { type: NUMBER, minimum: INT_1, maximum: INT_10 },
+		etags: { type: BOOLEAN },
+		indexes: { type: ARRAY, items: { type: STRING } },
+		logging: { type: OBJECT },
+		origins: { type: ARRAY, items: { type: STRING } },
+		silent: { type: BOOLEAN },
+		time: { type: BOOLEAN },
 	},
 	additionalProperties: false,
 };
@@ -1215,7 +1220,7 @@ function validateConfig(config = {}) {
 
 			if (msg.includes("is not of a type(s)")) {
 				const types = msg.match(/type\(s\) ([a-z, ]+)/i);
-				const type = types ? types[1].split(",")[0].trim() : "type";
+				const type = types ? types[1].split(COMMA)[0].trim() : TYPE;
 				msg = `must be ${type}`;
 			} else if (msg.includes("must be greater than or equal to")) {
 				const val = msg.match(/greater than or equal to (\d+)/);

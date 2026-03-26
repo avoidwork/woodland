@@ -116,8 +116,13 @@ export const WILDCARD = "*";
 // =============================================================================
 // DATA TYPES
 // =============================================================================
+export const ARRAY = "array";
+export const BOOLEAN = "boolean";
 export const FUNCTION = "function";
+export const NUMBER = "number";
+export const OBJECT = "object";
 export const STRING = "string";
+export const TYPE = "type";
 
 // =============================================================================
 // SERVER & SYSTEM INFO

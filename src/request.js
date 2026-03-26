@@ -1,5 +1,6 @@
 import {
 	COLON,
+	COMMA,
 	DOUBLE_COLON,
 	EMPTY,
 	HTTP_PREFIX,
@@ -74,9 +75,9 @@ export function extractIP(req) {
 		return fallbackIP;
 	}
 
-	const forwardedIPs = forwardedHeader.split(",");
+	const forwardedIPs = forwardedHeader.split(COMMA);
 
-	for (let i = 0; i < forwardedIPs.length; i++) {
+	for (let i = INT_0; i < forwardedIPs.length; i++) {
 		const ip = forwardedIPs[i].trim();
 		if (isValidIP(ip)) {
 			return ip;
@@ -163,7 +164,7 @@ const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/,
  * @returns {boolean} True if IP is valid format
  */
 export function isValidIP(ip) {
-	if (!ip || typeof ip !== "string") {
+	if (!ip || typeof ip !== STRING) {
 		return false;
 	}
 
