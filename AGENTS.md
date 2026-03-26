@@ -5,7 +5,7 @@
 Woodland is a lightweight, security-focused HTTP server framework for Node.js that extends EventEmitter. It provides middleware-based routing with built-in CORS, file serving, caching, and comprehensive logging.
 
 **Key Statistics:**
-- 323 tests passing
+- 324 tests passing
 - 100% line coverage
 - 97%+ branch and function coverage
 - Minimal dependencies
@@ -68,7 +68,7 @@ npm run build        # Build with rollup
 | `middleware.js` | Middleware registry | `reduce`, `next`, `createMiddlewareRegistry` |
 | `fileserver.js` | Static file serving | `serve`, `createFileServer`, `autoindex` |
 | `constants.js` | HTTP constants | Methods, status codes, headers, patterns |
-| `cli.js` | CLI entry point | Server runner |
+| `cli.js` | CLI entry point | `main`, `parseArgs`, `validatePort`, `validateIP` |
 
 ### Other Directories
 
@@ -176,7 +176,7 @@ After `decorate(req, res)`:
 - `mime(path)` - Get MIME type from path
 - `getStatus(method, req)` - Determine 404/405/500
 - `getStatusText(code)` - Get status text from `STATUS_CODES`
-- `pipeable(req, body)` - Check if body is pipeable (excludes HEAD/DELETE)
+- `pipeable(method, arg)` - Check if body is pipeable (excludes HEAD)
 
 ### Middleware Registry (`src/middleware.js`)
 
