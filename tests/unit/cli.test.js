@@ -125,54 +125,45 @@ describe("CLI", () => {
 	describe("main", () => {
 		let originalExit;
 		let originalConsoleError;
+		let server;
 
 		beforeEach(() => {
 			originalExit = process.exit;
 			originalConsoleError = console.error;
 			process.exit = () => {};
 			console.error = () => {};
+			server = null;
 		});
 
 		afterEach(() => {
 			process.exit = originalExit;
 			console.error = originalConsoleError;
+			if (server) {
+				server.closeAllConnections?.();
+				server.close();
+				server = null;
+			}
 		});
 
-		it("should create and start server with default arguments", (t) => {
-			const server = main(["node", "cli.js", "--port=0"]);
+		it("should create and start server with default arguments", () => {
+			server = main(["node", "cli.js", "--port=0"]);
 			assert.ok(server);
 			assert.strictEqual(typeof server.listen, "function");
-			t.after(() => {
-				server.closeAllConnections?.();
-				server.close();
-			});
 		});
 
-		it("should create and start server with custom port", (t) => {
-			const server = main(["node", "cli.js", "--port=0"]);
+		it("should create and start server with custom port", () => {
+			server = main(["node", "cli.js", "--port=0"]);
 			assert.ok(server);
-			t.after(() => {
-				server.closeAllConnections?.();
-				server.close();
-			});
 		});
 
-		it("should create and start server with custom IP", (t) => {
-			const server = main(["node", "cli.js", "--port=0", "--ip=127.0.0.1"]);
+		it("should create and start server with custom IP", () => {
+			server = main(["node", "cli.js", "--port=0", "--ip=127.0.0.1"]);
 			assert.ok(server);
-			t.after(() => {
-				server.closeAllConnections?.();
-				server.close();
-			});
 		});
 
-		it("should create and start server with custom logging", (t) => {
-			const server = main(["node", "cli.js", "--port=0", "--logging=false"]);
+		it("should create and start server with custom logging", () => {
+			server = main(["node", "cli.js", "--port=0", "--logging=false"]);
 			assert.ok(server);
-			t.after(() => {
-				server.closeAllConnections?.();
-				server.close();
-			});
 		});
 
 		it("should exit with invalid port", () => {
