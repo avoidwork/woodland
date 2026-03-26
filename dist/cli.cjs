@@ -187,19 +187,58 @@ function isValidIP(ip) {
 	}
 }
 
-const argv = process.argv
+/**
+ * Parse CLI arguments from process.argv style array
+ * @param {Array} args - Array of argument strings
+ * @returns {Object} Parsed arguments object
+ */
+function parseArgs(args) {
+	return args
 		.filter((i) => i.charAt(0) === HYPHEN && i.charAt(1) === HYPHEN)
 		.reduce((a, v) => {
 			const x = v.split(`${HYPHEN}${HYPHEN}`)[1].split(EQUAL);
-
 			a[x[0]] = tinyCoerce.coerce(x[1]);
-
 			return a;
-		}, {}),
-	ip = argv.ip ?? LOCALHOST,
-	logging = argv.logging ?? true,
-	port = argv.port ?? INT_8000,
-	app = woodland.woodland({
+		}, {});
+}
+
+/**
+ * Validate port number
+ * @param {*} port - Port value to validate
+ * @returns {Object} Validation result with valid flag and error message
+ */
+function validatePort(port) {
+	const validPort = Number(port);
+	if (!Number.isInteger(validPort) || validPort < INT_0 || validPort > INT_65535) {
+		return { valid: false, error: "Invalid port: must be an integer between 0 and 65535." };
+	}
+	return { valid: true, port: validPort };
+}
+
+/**
+ * Validate IP address
+ * @param {string} ip - IP address to validate
+ * @returns {Object} Validation result with valid flag and error message
+ */
+function validateIP(ip) {
+	const validIP = isValidIP(ip);
+	if (!validIP) {
+		return { valid: false, error: "Invalid IP: must be a valid IPv4 address." };
+	}
+	return { valid: true, ip };
+}
+
+/**
+ * Main CLI entry point function
+ * @param {Array} [args=process.argv] - Arguments array (defaults to process.argv)
+ * @returns {Object} Server object for testing purposes
+ */
+function main(args = process.argv) {
+	const argv = parseArgs(args);
+	const ip = argv.ip ?? LOCALHOST;
+	const logging = argv.logging ?? true;
+	const port = argv.port ?? INT_8000;
+	const app = woodland.woodland({
 		autoIndex: true,
 		defaultHeaders: { [CACHE_CONTROL]: NO_CACHE, [CONTENT_TYPE]: `${TEXT_PLAIN}; ${CHAR_SET}` },
 		logging: {
@@ -208,24 +247,38 @@ const argv = process.argv
 		time: true,
 	});
 
-let validPort = Number(port);
-if (!Number.isInteger(validPort) || validPort < INT_0 || validPort > INT_65535) {
-	console.error("Invalid port: must be an integer between 0 and 65535.");
-	process.exit(1);
-}
-let validIP = isValidIP(ip);
-if (!validIP) {
-	console.error("Invalid IP: must be a valid IPv4 address.");
-	process.exit(1);
+	const portValidation = validatePort(port);
+	if (!portValidation.valid) {
+		console.error(portValidation.error);
+		process.exit(1);
+	}
+
+	const ipValidation = validateIP(ip);
+	if (!ipValidation.valid) {
+		console.error(ipValidation.error);
+		process.exit(1);
+	}
+
+	app.files();
+	const server = node_http.createServer(app.route);
+	server.listen(portValidation.port, ip);
+	server.on("listening", () => {
+		const actualPort = server.address().port;
+		app.logger.log(
+			`id=woodland, hostname=${process.env.HOSTNAME ?? "localhost"}, ip=${ip}, port=${actualPort}`,
+			INFO,
+		);
+	});
+
+	return server;
 }
 
-app.files();
-const server = node_http.createServer(app.route);
-server.listen(validPort, ip);
-server.on("listening", () => {
-	const actualPort = server.address().port;
-	app.logger.log(
-		`id=woodland, hostname=${process.env.HOSTNAME ?? "localhost"}, ip=${ip}, port=${actualPort}`,
-		INFO,
-	);
-});
+// CLI entry point - only run when executed directly
+if (process.argv[1] && process.argv[1].includes("cli.js")) {
+	main();
+}
+
+exports.main = main;
+exports.parseArgs = parseArgs;
+exports.validateIP = validateIP;
+exports.validatePort = validatePort;
