@@ -405,7 +405,7 @@ export function escapeHtml(str = EMPTY) {
 export function createErrorHandler(req, res, emitter) {
 	return (status = res.statusCode, body) => {
 		error(req, res, status);
-		const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
+		const err = body instanceof Error ? body : new Error(body ?? getStatusText(res.statusCode));
 		emitter.emit(EVT_ERROR, req, res, err);
 		if (req.headers) {
 			delete req.headers.range;
