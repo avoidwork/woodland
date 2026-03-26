@@ -70,6 +70,14 @@ import { createLogger } from "./logger.js";
 import { cors, corsHost, corsRequest, params, parse, extractIP } from "./request.js";
 import { createFileServer } from "./fileserver.js";
 import { APPLICATION_JSON } from "./constants.js";
+import {
+	createErrorHandler,
+	createJsonHandler,
+	createRedirectHandler,
+	createSendHandler,
+	createSetHandler,
+	createStatusHandler,
+} from "./responses.js";
 
 /**
  * Woodland HTTP server framework class extending EventEmitter
@@ -285,23 +293,13 @@ export class Woodland extends EventEmitter {
 		}
 
 		res.locals = {};
-		res.error = (status = res.statusCode, body) => {
-			error(req, res, status);
-			const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
-			this.emit(EVT_ERROR, req, res, err);
-			res.send(err.message);
-		};
+		res.error = createErrorHandler(req, res, this);
 		res.header = res.setHeader;
-		res.json = (
-			arg,
-			status = res.statusCode,
-			headers = { [CONTENT_TYPE]: `${APPLICATION_JSON}; charset=utf-8` },
-		) => json(res, arg, status, headers);
-		res.redirect = (uri, perm = true) => redirect(res, uri, perm);
-		res.send = (body = EMPTY, status = res.statusCode, headers = {}) =>
-			send(req, res, body, status, headers, this.onReady.bind(this), this.onDone.bind(this));
-		res.set = (arg = {}) => set(res, arg);
-		res.status = (arg = INT_200) => status(res, arg);
+		res.json = createJsonHandler(res);
+		res.redirect = createRedirectHandler(res);
+		res.send = createSendHandler(req, res, this.onReady.bind(this), this.onDone.bind(this));
+		res.set = createSetHandler(res);
+		res.status = createStatusHandler(res);
 
 		res.set(headersBatch);
 		res.on(EVT_CLOSE, () => this.logger.log(this.logger.clf(req, res), INFO));
