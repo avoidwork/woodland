@@ -1,7 +1,6 @@
 import {
 	ARRAY,
 	DELIMITER,
-	DELETE,
 	FUNCTION,
 	GET,
 	HEAD,
