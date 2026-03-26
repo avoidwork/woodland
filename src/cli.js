@@ -106,6 +106,9 @@ export function main(args = process.argv) {
 }
 
 // CLI entry point - only run when executed directly
-if (process.argv[1] && process.argv[1].includes("cli.js")) {
+if (
+	process.argv[1] &&
+	(process.argv[1].includes("cli.js") || process.argv[1].includes("cli.cjs"))
+) {
 	main();
 }
