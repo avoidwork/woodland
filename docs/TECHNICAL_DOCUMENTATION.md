@@ -1231,7 +1231,7 @@ While lightweight by design, Woodland provides the security foundation needed fo
 
 ## Test Coverage
 
-Woodland maintains comprehensive test coverage with **313 tests passing**. The framework achieves 100% line coverage across all modules, with ongoing work to achieve 100% branch and function coverage.
+Woodland maintains comprehensive test coverage with **323 tests passing**. The framework achieves 100% line coverage across all modules, with ongoing work to achieve 100% branch and function coverage.
 
 ### Coverage Metrics
 
@@ -1254,7 +1254,7 @@ woodland.js     |     100 |    96.34 |   89.47 |     100 | ⚠️ Branch/func ga
 
 **Achieved:**
 - ✅ 100% line coverage across all source files
-- ✅ 313 passing tests
+- ✅ 323 passing tests
 - ✅ CLI module: 100% coverage across all dimensions
 
 **Working towards:**
@@ -1331,7 +1331,7 @@ describe("CLI server startup", () => {
 
 ### Test Categories
 
-#### 1. CLI Tests (100% Coverage) - 13 tests
+#### 1. CLI Tests (100% Coverage) - 26 tests
 
 - **Successful startup scenarios**: Default args, custom port/IP, logging configuration
 - **Validation logic**: Port ranges (0-65535), IPv4 address format, argument parsing
@@ -1341,7 +1341,7 @@ describe("CLI server startup", () => {
 
 #### 2. Security Integration Tests - 18 tests
 
-#### 3. Core Functionality Tests - 180+ tests
+#### 3. Core Functionality Tests - 200+ tests
 
 - **HTTP methods**: All standard methods with middleware support
 - **Routing engine**: Parameter extraction, pattern matching, wildcard routes
