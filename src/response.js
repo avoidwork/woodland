@@ -189,12 +189,6 @@ export function getStatusText(status) {
 }
 
 /**
- * No-op function for default parameters
- * @returns {void}
- */
-export function noop() {}
-
-/**
  * Error response handler
  * @param {Object} req - Request object
  * @param {Object} res - Response object
