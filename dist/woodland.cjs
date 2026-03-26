@@ -354,13 +354,7 @@ function partialHeaders(req, res, size, status, headers = {}, options = {}) {
  * @returns {boolean} True if the object is pipeable
  */
 function pipeable(method, arg) {
-	return (
-		method !== HEAD &&
-		method !== DELETE &&
-		arg !== null &&
-		arg !== undefined &&
-		typeof arg.on === FUNCTION
-	);
+	return method !== HEAD && arg !== null && arg !== undefined && typeof arg.on === FUNCTION;
 }
 
 /**
