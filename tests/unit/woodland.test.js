@@ -332,6 +332,35 @@ describe("woodland", () => {
 				assert.ok(res.send);
 			});
 
+			it("should call res.json when invoked", () => {
+				let writeHeadCalled = false;
+				let endCalled = false;
+
+				const req = { headers: { host: "example.com" }, url: "/test", socket: null };
+				const res = {
+					setHeader: () => {},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+					getHeader: () => void 0,
+					statusCode: 200,
+					writeHead: () => {
+						writeHeadCalled = true;
+					},
+					end: () => {
+						endCalled = true;
+					},
+					headersSent: false,
+				};
+
+				const app = woodland();
+				app.decorate(req, res);
+				res.json({ message: "hello" }, 201);
+
+				// The send function uses writeHead and end, not the original send
+				assert.ok(writeHeadCalled || endCalled);
+			});
+
 			it("should set req.precise when timing enabled", () => {
 				const appWithTiming = woodland({ time: true });
 				const req = { headers: { host: "example.com" }, url: "/test", socket: null };
