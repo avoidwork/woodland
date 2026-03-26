@@ -599,6 +599,9 @@ function createErrorHandler(req, res, emitter) {
 		error(req, res, status);
 		const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
 		emitter.emit(EVT_ERROR, req, res, err);
+		if (req.headers) {
+			delete req.headers.range;
+		}
 		res.send(err.message);
 	};
 }
