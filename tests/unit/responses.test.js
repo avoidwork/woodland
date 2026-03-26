@@ -8,7 +8,7 @@ import {
 	createSetHandler,
 	createStatusHandler,
 	getStatusText,
-} from "../../src/responses.js";
+} from "../../src/response.js";
 
 describe("responses", () => {
 	describe("getStatusText", () => {

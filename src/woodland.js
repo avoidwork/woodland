@@ -62,7 +62,7 @@ import {
 	createSendHandler,
 	createSetHandler,
 	createStatusHandler,
-} from "./responses.js";
+} from "./response.js";
 
 /**
  * Woodland HTTP server framework class extending EventEmitter

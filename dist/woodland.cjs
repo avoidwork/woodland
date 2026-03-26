@@ -386,6 +386,10 @@ function getStatus(req, res) {
 	return res.statusCode > INT_500 ? res.statusCode : INT_500;
 }
 
+function getStatusText(status) {
+	return node_http.STATUS_CODES[status] || node_http.STATUS_CODES[INT_500];
+}
+
 /**
  * Error response handler
  * @param {Object} req - Request object
@@ -584,6 +588,75 @@ function stream(req, res, file, emitStream, createReadStream, etags) {
  */
 function escapeHtml(str = EMPTY) {
 	return str.replace(/[&<>"']/g, (match) => htmlEscapes[match]);
+}
+
+/**
+ * Creates error response handler
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @param {EventEmitter} emitter - EventEmitter for error events
+ * @returns {Function} Error handler function
+ */
+function createErrorHandler(req, res, emitter) {
+	return (status = res.statusCode, body) => {
+		error(req, res, status);
+		const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
+		emitter.emit("error", req, res, err);
+		res.send(err.message);
+	};
+}
+
+/**
+ * Creates JSON response handler
+ * @param {Object} res - Response object
+ * @returns {Function} JSON handler function
+ */
+function createJsonHandler(res) {
+	return (
+		arg,
+		status = res.statusCode,
+		headers = { [CONTENT_TYPE]: `${APPLICATION_JSON}; charset=utf-8` },
+	) => json(res, arg, status, headers);
+}
+
+/**
+ * Creates redirect response handler
+ * @param {Object} res - Response object
+ * @returns {Function} Redirect handler function
+ */
+function createRedirectHandler(res) {
+	return (uri, perm = true) => redirect(res, uri, perm);
+}
+
+/**
+ * Creates send response handler
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @param {Function} onReady - Ready callback
+ * @param {Function} onDone - Done callback
+ * @returns {Function} Send handler function
+ */
+function createSendHandler(req, res, onReady, onDone) {
+	return (body = "", status = res.statusCode, headers = {}) =>
+		send(req, res, body, status, headers, onReady, onDone);
+}
+
+/**
+ * Creates set headers handler
+ * @param {Object} res - Response object
+ * @returns {Function} Set handler function
+ */
+function createSetHandler(res) {
+	return (arg = {}) => set(res, arg);
+}
+
+/**
+ * Creates status handler
+ * @param {Object} res - Response object
+ * @returns {Function} Status handler function
+ */
+function createStatusHandler(res) {
+	return (arg = INT_200) => status(res, arg);
 }
 
 /**
@@ -1546,101 +1619,6 @@ function createFileServer(app) {
 			register(app, root, folder, useMiddleware || app.use.bind(app)),
 		serve: (req, res, arg, folder) => serve(app, req, res, arg, folder),
 	};
-}
-
-/**
- * Gets status text for a status code
- * @param {number} status - HTTP status code
- * @returns {string} Status text
- */
-function getStatusText(status) {
-	const codes = {
-		200: "OK",
-		201: "Created",
-		204: "No Content",
-		301: "Moved Permanently",
-		302: "Found",
-		304: "Not Modified",
-		307: "Temporary Redirect",
-		308: "Permanent Redirect",
-		400: "Bad Request",
-		401: "Unauthorized",
-		403: "Forbidden",
-		404: "Not Found",
-		405: "Method Not Allowed",
-		416: "Range Not Satisfiable",
-		500: "Internal Server Error",
-	};
-	return codes[status] || "Internal Server Error";
-}
-
-/**
- * Creates error response handler
- * @param {Object} req - Request object
- * @param {Object} res - Response object
- * @param {EventEmitter} emitter - EventEmitter for error events
- * @returns {Function} Error handler function
- */
-function createErrorHandler(req, res, emitter) {
-	return (status = res.statusCode, body) => {
-		error(req, res, status);
-		const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
-		emitter.emit("error", req, res, err);
-		res.send(err.message);
-	};
-}
-
-/**
- * Creates JSON response handler
- * @param {Object} res - Response object
- * @returns {Function} JSON handler function
- */
-function createJsonHandler(res) {
-	return (
-		arg,
-		status = res.statusCode,
-		headers = { [CONTENT_TYPE]: `${APPLICATION_JSON}; charset=utf-8` },
-	) => json(res, arg, status, headers);
-}
-
-/**
- * Creates redirect response handler
- * @param {Object} res - Response object
- * @returns {Function} Redirect handler function
- */
-function createRedirectHandler(res) {
-	return (uri, perm = true) => redirect(res, uri, perm);
-}
-
-/**
- * Creates send response handler
- * @param {Object} req - Request object
- * @param {Object} res - Response object
- * @param {Function} onReady - Ready callback
- * @param {Function} onDone - Done callback
- * @returns {Function} Send handler function
- */
-function createSendHandler(req, res, onReady, onDone) {
-	return (body = "", status = res.statusCode, headers = {}) =>
-		send(req, res, body, status, headers, onReady, onDone);
-}
-
-/**
- * Creates set headers handler
- * @param {Object} res - Response object
- * @returns {Function} Set handler function
- */
-function createSetHandler(res) {
-	return (arg = {}) => set(res, arg);
-}
-
-/**
- * Creates status handler
- * @param {Object} res - Response object
- * @returns {Function} Status handler function
- */
-function createStatusHandler(res) {
-	return (arg = INT_200) => status(res, arg);
 }
 
 /**

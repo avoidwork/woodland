@@ -393,3 +393,72 @@ export function stream(req, res, file, emitStream, createReadStream, etags) {
 export function escapeHtml(str = EMPTY) {
 	return str.replace(/[&<>"']/g, (match) => htmlEscapes[match]);
 }
+
+/**
+ * Creates error response handler
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @param {EventEmitter} emitter - EventEmitter for error events
+ * @returns {Function} Error handler function
+ */
+export function createErrorHandler(req, res, emitter) {
+	return (status = res.statusCode, body) => {
+		error(req, res, status);
+		const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
+		emitter.emit("error", req, res, err);
+		res.send(err.message);
+	};
+}
+
+/**
+ * Creates JSON response handler
+ * @param {Object} res - Response object
+ * @returns {Function} JSON handler function
+ */
+export function createJsonHandler(res) {
+	return (
+		arg,
+		status = res.statusCode,
+		headers = { [CONTENT_TYPE]: `${APPLICATION_JSON}; charset=utf-8` },
+	) => json(res, arg, status, headers);
+}
+
+/**
+ * Creates redirect response handler
+ * @param {Object} res - Response object
+ * @returns {Function} Redirect handler function
+ */
+export function createRedirectHandler(res) {
+	return (uri, perm = true) => redirect(res, uri, perm);
+}
+
+/**
+ * Creates send response handler
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @param {Function} onReady - Ready callback
+ * @param {Function} onDone - Done callback
+ * @returns {Function} Send handler function
+ */
+export function createSendHandler(req, res, onReady, onDone) {
+	return (body = "", status = res.statusCode, headers = {}) =>
+		send(req, res, body, status, headers, onReady, onDone);
+}
+
+/**
+ * Creates set headers handler
+ * @param {Object} res - Response object
+ * @returns {Function} Set handler function
+ */
+export function createSetHandler(res) {
+	return (arg = {}) => set(res, arg);
+}
+
+/**
+ * Creates status handler
+ * @param {Object} res - Response object
+ * @returns {Function} Status handler function
+ */
+export function createStatusHandler(res) {
+	return (arg = INT_200) => status(res, arg);
+}
