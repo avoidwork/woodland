@@ -14,7 +14,6 @@ import {
 	ALLOW,
 	CONNECT,
 	CONTENT_LENGTH,
-	CONTENT_TYPE,
 	DELETE,
 	EMPTY,
 	ERROR,
@@ -22,7 +21,6 @@ import {
 	HEAD,
 	INFO,
 	INT_0,
-	INT_200,
 	INT_204,
 	INT_304,
 	INT_403,
@@ -48,28 +46,15 @@ import {
 	COMMA_SPACE,
 	EVT_CONNECT,
 	EVT_FINISH,
-	EVT_ERROR,
 	EVT_STREAM,
 	EVT_CLOSE,
 } from "./constants.js";
 import { createMiddlewareRegistry, next } from "./middleware.js";
-import {
-	error,
-	json,
-	redirect,
-	send,
-	set,
-	status,
-	stream as responseStream,
-	getStatus,
-	writeHead,
-	getStatusText,
-} from "./response.js";
+import { stream as responseStream, getStatus, writeHead } from "./response.js";
 import { validateConfig, validateLogging } from "./config.js";
 import { createLogger } from "./logger.js";
 import { cors, corsHost, corsRequest, params, parse, extractIP } from "./request.js";
 import { createFileServer } from "./fileserver.js";
-import { APPLICATION_JSON } from "./constants.js";
 import {
 	createErrorHandler,
 	createJsonHandler,
