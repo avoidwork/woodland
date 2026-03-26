@@ -125,28 +125,21 @@ describe("CLI", () => {
 	describe("main", () => {
 		let originalExit;
 		let originalConsoleError;
-		let servers = [];
 
 		beforeEach(() => {
 			originalExit = process.exit;
 			originalConsoleError = console.error;
 			process.exit = () => {};
 			console.error = () => {};
-			servers = [];
 		});
 
 		afterEach(() => {
 			process.exit = originalExit;
 			console.error = originalConsoleError;
-			for (const server of servers) {
-				server.close();
-			}
-			servers = [];
 		});
 
 		it("should create and start server with default arguments", (t) => {
-			const server = main(["node", "cli.js", "--port=3000"]);
-			servers.push(server);
+			const server = main(["node", "cli.js", "--port=0"]);
 			assert.ok(server);
 			assert.strictEqual(typeof server.listen, "function");
 			t.after(() => {
@@ -156,8 +149,7 @@ describe("CLI", () => {
 		});
 
 		it("should create and start server with custom port", (t) => {
-			const server = main(["node", "cli.js", "--port=3001"]);
-			servers.push(server);
+			const server = main(["node", "cli.js", "--port=0"]);
 			assert.ok(server);
 			t.after(() => {
 				server.closeAllConnections?.();
@@ -166,8 +158,7 @@ describe("CLI", () => {
 		});
 
 		it("should create and start server with custom IP", (t) => {
-			const server = main(["node", "cli.js", "--port=3002", "--ip=127.0.0.1"]);
-			servers.push(server);
+			const server = main(["node", "cli.js", "--port=0", "--ip=127.0.0.1"]);
 			assert.ok(server);
 			t.after(() => {
 				server.closeAllConnections?.();
@@ -176,8 +167,7 @@ describe("CLI", () => {
 		});
 
 		it("should create and start server with custom logging", (t) => {
-			const server = main(["node", "cli.js", "--port=3003", "--logging=false"]);
-			servers.push(server);
+			const server = main(["node", "cli.js", "--port=0", "--logging=false"]);
 			assert.ok(server);
 			t.after(() => {
 				server.closeAllConnections?.();
