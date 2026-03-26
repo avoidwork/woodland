@@ -233,7 +233,10 @@ const MONTHS = Object.freeze(
 
 const VALID_LOG_LEVELS = new Set([DEBUG, INFO, WARN, ERROR, CRITICAL, ALERT, EMERG, NOTICE]);
 
-const htmlEscapes = {
+// =============================================================================
+// HTML ESCAPE MAPPING
+// =============================================================================
+const HTML_ESCAPES = {
 	"&": "&amp;",
 	"<": "&lt;",
 	">": "&gt;",
@@ -344,7 +347,13 @@ function partialHeaders(req, res, size, status, headers = {}, options = {}) {
  * @returns {boolean} True if the object is pipeable
  */
 function pipeable(method, arg) {
-	return method !== HEAD && arg !== null && arg !== undefined && typeof arg.on === FUNCTION;
+	return (
+		method !== HEAD &&
+		method !== DELETE &&
+		arg !== null &&
+		arg !== undefined &&
+		typeof arg.on === FUNCTION
+	);
 }
 
 /**
@@ -587,7 +596,7 @@ function stream(req, res, file, emitStream, createReadStream, etags) {
  * @returns {string} The escaped string with HTML entities
  */
 function escapeHtml(str = EMPTY) {
-	return str.replace(/[&<>"']/g, (match) => htmlEscapes[match]);
+	return str.replace(/[&<>"']/g, (match) => HTML_ESCAPES[match]);
 }
 
 /**

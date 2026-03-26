@@ -225,3 +225,14 @@ export const MONTHS = Object.freeze(
 );
 
 export const VALID_LOG_LEVELS = new Set([DEBUG, INFO, WARN, ERROR, CRITICAL, ALERT, EMERG, NOTICE]);
+
+// =============================================================================
+// HTML ESCAPE MAPPING
+// =============================================================================
+export const HTML_ESCAPES = {
+	"&": "&amp;",
+	"<": "&lt;",
+	">": "&gt;",
+	'"': "&quot;",
+	"'": "&#39;",
+};

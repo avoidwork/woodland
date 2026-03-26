@@ -9,6 +9,7 @@ import {
 	CONTENT_RANGE,
 	CONTENT_TYPE,
 	COMMA,
+	DELETE,
 	EMPTY,
 	ETAG,
 	ERROR,
@@ -17,6 +18,7 @@ import {
 	GET,
 	HEAD,
 	HYPHEN,
+	HTML_ESCAPES,
 	INT_10,
 	INT_200,
 	INT_206,
@@ -36,14 +38,6 @@ import {
 	STRING,
 	TO_STRING,
 } from "./constants.js";
-
-const htmlEscapes = {
-	"&": "&amp;",
-	"<": "&lt;",
-	">": "&gt;",
-	'"': "&quot;",
-	"'": "&#39;",
-};
 
 const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
 	mimeExtensions = valid.reduce((a, v) => {
@@ -148,7 +142,13 @@ export function partialHeaders(req, res, size, status, headers = {}, options = {
  * @returns {boolean} True if the object is pipeable
  */
 export function pipeable(method, arg) {
-	return method !== HEAD && arg !== null && arg !== undefined && typeof arg.on === FUNCTION;
+	return (
+		method !== HEAD &&
+		method !== DELETE &&
+		arg !== null &&
+		arg !== undefined &&
+		typeof arg.on === FUNCTION
+	);
 }
 
 /**
@@ -391,7 +391,7 @@ export function stream(req, res, file, emitStream, createReadStream, etags) {
  * @returns {string} The escaped string with HTML entities
  */
 export function escapeHtml(str = EMPTY) {
-	return str.replace(/[&<>"']/g, (match) => htmlEscapes[match]);
+	return str.replace(/[&<>"']/g, (match) => HTML_ESCAPES[match]);
 }
 
 /**

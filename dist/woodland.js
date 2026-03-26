@@ -214,15 +214,18 @@ const MONTHS = Object.freeze(
 	}),
 );
 
-const VALID_LOG_LEVELS = new Set([DEBUG, INFO, WARN, ERROR, CRITICAL, ALERT, EMERG, NOTICE]);const htmlEscapes = {
+const VALID_LOG_LEVELS = new Set([DEBUG, INFO, WARN, ERROR, CRITICAL, ALERT, EMERG, NOTICE]);
+
+// =============================================================================
+// HTML ESCAPE MAPPING
+// =============================================================================
+const HTML_ESCAPES = {
 	"&": "&amp;",
 	"<": "&lt;",
 	">": "&gt;",
 	'"': "&quot;",
 	"'": "&#39;",
-};
-
-const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
+};const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
 	mimeExtensions = valid.reduce((a, v) => {
 		const result = Object.assign({ type: v[0] }, v[1]);
 		const extCount = result.extensions.length;
@@ -325,7 +328,13 @@ function partialHeaders(req, res, size, status, headers = {}, options = {}) {
  * @returns {boolean} True if the object is pipeable
  */
 function pipeable(method, arg) {
-	return method !== HEAD && arg !== null && arg !== undefined && typeof arg.on === FUNCTION;
+	return (
+		method !== HEAD &&
+		method !== DELETE &&
+		arg !== null &&
+		arg !== undefined &&
+		typeof arg.on === FUNCTION
+	);
 }
 
 /**
@@ -568,7 +577,7 @@ function stream(req, res, file, emitStream, createReadStream, etags) {
  * @returns {string} The escaped string with HTML entities
  */
 function escapeHtml(str = EMPTY) {
-	return str.replace(/[&<>"']/g, (match) => htmlEscapes[match]);
+	return str.replace(/[&<>"']/g, (match) => HTML_ESCAPES[match]);
 }
 
 /**
