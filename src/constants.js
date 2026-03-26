@@ -236,10 +236,10 @@ export const VALID_LOG_LEVELS = new Set([DEBUG, INFO, WARN, ERROR, CRITICAL, ALE
 // =============================================================================
 // HTML ESCAPE MAPPING
 // =============================================================================
-export const HTML_ESCAPES = {
+export const HTML_ESCAPES = Object.freeze({
 	"&": "&amp;",
 	"<": "&lt;",
 	">": "&gt;",
 	'"': "&quot;",
 	"'": "&#39;",
-};
+});
