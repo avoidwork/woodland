@@ -55,7 +55,7 @@ export function validatePort(port) {
 export function validateIP(ip) {
 	const validIP = isValidIP(ip);
 	if (!validIP) {
-		return { valid: false, error: "Invalid IP: must be a valid IPv4 address." };
+		return { valid: false, error: "Invalid IP: must be a valid IPv4 or IPv6 address." };
 	}
 	return { valid: true, ip };
 }
