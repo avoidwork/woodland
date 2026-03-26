@@ -8,6 +8,8 @@ import {
 	NODE_METHODS,
 	SLASH,
 	STRING,
+	TYPE_ARRAY,
+	TYPE_OBJECT,
 	WILDCARD,
 } from "./constants.js";
 import { getStatus, getStatusText } from "./response.js";
@@ -166,13 +168,13 @@ export function computeRoutes(middleware, ignored, uri, method, cache, override 
  * @param {string} [type=array] - Return type (array or object)
  * @returns {Array|Object} List of routes
  */
-export function listRoutes(middleware, method = GET.toLowerCase(), type = "array") {
+export function listRoutes(middleware, method = GET.toLowerCase(), type = TYPE_ARRAY) {
 	let result;
 	const methodMap = middleware.get(method.toUpperCase());
 
-	if (type === "array") {
+	if (type === TYPE_ARRAY) {
 		result = [...methodMap.keys()];
-	} else if (type === "object") {
+	} else if (type === TYPE_OBJECT) {
 		result = {};
 		const entries = Array.from(methodMap.entries());
 		const entryCount = entries.length;

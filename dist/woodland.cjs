@@ -221,6 +221,8 @@ const SHORT = "short";
 const TO_STRING = "toString";
 const TOKEN_TITLE = "TITLE";
 const TRUE = "true";
+const TYPE_ARRAY = "array";
+const TYPE_OBJECT = "object";
 const WARN = "warn";
 const ALERT = "alert";
 
@@ -1070,13 +1072,13 @@ function computeRoutes(middleware, ignored, uri, method, cache, override = false
  * @param {string} [type=array] - Return type (array or object)
  * @returns {Array|Object} List of routes
  */
-function listRoutes(middleware, method = GET.toLowerCase(), type = "array") {
+function listRoutes(middleware, method = GET.toLowerCase(), type = TYPE_ARRAY) {
 	let result;
 	const methodMap = middleware.get(method.toUpperCase());
 
-	if (type === "array") {
+	if (type === TYPE_ARRAY) {
 		result = [...methodMap.keys()];
-	} else if (type === "object") {
+	} else if (type === TYPE_OBJECT) {
 		result = {};
 		const entries = Array.from(methodMap.entries());
 		const entryCount = entries.length;
