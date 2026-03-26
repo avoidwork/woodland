@@ -13,6 +13,7 @@ import {
 	EMPTY,
 	ETAG,
 	ERROR,
+	EVT_ERROR,
 	EXTENSIONS,
 	FUNCTION,
 	GET,
@@ -351,7 +352,7 @@ export function stream(req, res, file, emitStream, createReadStream, etags) {
 		res.removeHeader(CACHE_CONTROL);
 	}
 
-	if (req.method === "GET") {
+	if (req.method === GET) {
 		let status = INT_200;
 		let options = {};
 		let headers = {};
@@ -375,7 +376,7 @@ export function stream(req, res, file, emitStream, createReadStream, etags) {
 			createReadStream(file.path, Object.keys(options).length > 0 ? options : undefined),
 			status,
 		);
-	} else if (req.method === "HEAD") {
+	} else if (req.method === HEAD) {
 		res.send(EMPTY);
 	} else if (req.method === OPTIONS) {
 		res.removeHeader(CONTENT_LENGTH);
@@ -405,7 +406,7 @@ export function createErrorHandler(req, res, emitter) {
 	return (status = res.statusCode, body) => {
 		error(req, res, status);
 		const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
-		emitter.emit("error", req, res, err);
+		emitter.emit(EVT_ERROR, req, res, err);
 		res.send(err.message);
 	};
 }
@@ -441,7 +442,7 @@ export function createRedirectHandler(res) {
  * @returns {Function} Send handler function
  */
 export function createSendHandler(req, res, onReady, onDone) {
-	return (body = "", status = res.statusCode, headers = {}) =>
+	return (body = EMPTY, status = res.statusCode, headers = {}) =>
 		send(req, res, body, status, headers, onReady, onDone);
 }
 
