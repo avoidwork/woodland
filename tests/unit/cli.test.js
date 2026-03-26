@@ -168,22 +168,32 @@ describe("CLI", () => {
 
 		it("should exit with invalid port", () => {
 			let exitCalled = false;
+			let errorMessage = "";
 			process.exit = () => {
 				exitCalled = true;
+			};
+			console.error = (msg) => {
+				errorMessage = msg;
 			};
 
 			main(["node", "cli.js", "--port=-1"]);
 			assert.strictEqual(exitCalled, true);
+			assert.match(errorMessage, /Invalid port/);
 		});
 
 		it("should exit with invalid IP", () => {
 			let exitCalled = false;
+			let errorMessage = "";
 			process.exit = () => {
 				exitCalled = true;
+			};
+			console.error = (msg) => {
+				errorMessage = msg;
 			};
 
 			main(["node", "cli.js", "--ip=invalid"]);
 			assert.strictEqual(exitCalled, true);
+			assert.match(errorMessage, /Invalid IP/);
 		});
 	});
 });
