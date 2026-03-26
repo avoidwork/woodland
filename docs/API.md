@@ -865,4 +865,4 @@ import { createLogger, isValidIP, escapeHtml } from "woodland";
 ---
 
 *Last updated: March 2026*
-*Version: 21.0.0*
+*Version: 21.0.8*
