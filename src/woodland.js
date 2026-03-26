@@ -326,13 +326,18 @@ export class Woodland extends EventEmitter {
 	 * @returns {string} ETag string or empty string
 	 */
 	etag(method, ...args) {
-		return (method === GET || method === HEAD || method === OPTIONS) && this.etags !== null
-			? this.etags.create(
-					args
-						.map((i) => (typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i))
-						.join(HYPHEN),
-				)
-			: EMPTY;
+		const isHashableMethod = method === GET || method === HEAD || method === OPTIONS;
+		const etagsEnabled = this.etags !== null;
+
+		if (!isHashableMethod || !etagsEnabled) {
+			return EMPTY;
+		}
+
+		const hashed = args
+			.map((i) => (typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i))
+			.join(HYPHEN);
+
+		return this.etags.create(hashed);
 	}
 
 	/**
@@ -387,11 +392,10 @@ export class Woodland extends EventEmitter {
 	 * @param {Object} headers - Response headers
 	 */
 	onDone(req, res, body, headers) {
-		if (
-			res.statusCode !== INT_204 &&
-			res.statusCode !== INT_304 &&
-			res.getHeader(CONTENT_LENGTH) === void 0
-		) {
+		const isNoContent = res.statusCode === INT_204 || res.statusCode === INT_304;
+		const hasContentLength = res.getHeader(CONTENT_LENGTH) !== void 0;
+
+		if (!isNoContent && !hasContentLength) {
 			res.header(CONTENT_LENGTH, Buffer.byteLength(body));
 		}
 
@@ -498,7 +502,12 @@ export class Woodland extends EventEmitter {
 		const origin = hasOriginHeader ? req.headers.origin : EMPTY;
 		const isOriginAllowed = hasOriginHeader && this.origins.has(origin);
 
-		if (req.cors === false && hasOriginHeader && req.corsHost && !isOriginAllowed) {
+		// Check if CORS request is disallowed
+		const isCorsRequest = req.corsHost;
+		const isCorsDisallowed =
+			req.cors === false && hasOriginHeader && isCorsRequest && !isOriginAllowed;
+
+		if (isCorsDisallowed) {
 			req.valid = false;
 			res.error(INT_403, new Error(STATUS_CODES[INT_403]));
 		} else if (req.allow.includes(method)) {
