@@ -219,8 +219,6 @@ export const TOKEN_FILES = "FILES";
 export const TOKEN_N = "%N";
 export const TOKEN_TITLE = "TITLE";
 export const TRUE = "true";
-export const TYPE_ARRAY = "array";
-export const TYPE_OBJECT = "object";
 export const WARN = "warn";
 export const ALERT = "alert";
 

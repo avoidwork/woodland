@@ -1,15 +1,16 @@
 import {
+	ARRAY,
 	DELIMITER,
+	DELETE,
 	FUNCTION,
 	GET,
 	HEAD,
 	INT_0,
 	LEFT_PAREN,
 	NODE_METHODS,
+	OBJECT,
 	SLASH,
 	STRING,
-	TYPE_ARRAY,
-	TYPE_OBJECT,
 	WILDCARD,
 } from "./constants.js";
 import { getStatus, getStatusText } from "./response.js";
@@ -168,13 +169,13 @@ export function computeRoutes(middleware, ignored, uri, method, cache, override 
  * @param {string} [type=array] - Return type (array or object)
  * @returns {Array|Object} List of routes
  */
-export function listRoutes(middleware, method = GET.toLowerCase(), type = TYPE_ARRAY) {
+export function listRoutes(middleware, method = GET.toLowerCase(), type = ARRAY) {
 	let result;
 	const methodMap = middleware.get(method.toUpperCase());
 
-	if (type === TYPE_ARRAY) {
+	if (type === ARRAY) {
 		result = [...methodMap.keys()];
-	} else if (type === TYPE_OBJECT) {
+	} else if (type === OBJECT) {
 		result = {};
 		const entries = Array.from(methodMap.entries());
 		const entryCount = entries.length;
