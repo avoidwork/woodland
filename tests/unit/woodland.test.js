@@ -1145,7 +1145,7 @@ describe("woodland", () => {
 
 		it("should not emit connect/finish when no listeners", () => {
 			const noListenersApp = woodland();
-			let connectOnCalled = false;
+			let connectEmitCalled = false;
 			let finishOnCalled = false;
 
 			const req = {
@@ -1160,9 +1160,6 @@ describe("woodland", () => {
 				setHeader: () => {},
 				writeHead: () => {},
 				on: (event) => {
-					if (event === EVT_CONNECT) {
-						connectOnCalled = true;
-					}
 					if (event === "finish") {
 						finishOnCalled = true;
 					}
@@ -1177,9 +1174,17 @@ describe("woodland", () => {
 				headersSent: false,
 			};
 
+			const originalEmit = noListenersApp.emit;
+			noListenersApp.emit = (event, ...args) => {
+				if (event === EVT_CONNECT) {
+					connectEmitCalled = true;
+				}
+				return originalEmit.call(noListenersApp, event, ...args);
+			};
+
 			noListenersApp.route(req, res);
 
-			assert.strictEqual(connectOnCalled, false);
+			assert.strictEqual(connectEmitCalled, false);
 			assert.strictEqual(finishOnCalled, false);
 		});
 
