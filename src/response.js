@@ -109,12 +109,18 @@ export function partialHeaders(req, res, size, status, headers = {}, options = {
 		}
 	}
 
+	// Check if range is valid
+	const startValid = !isNaN(start) && start >= 0;
+	const endValid = !isNaN(end) && end < size;
+	const rangeOrderValid = start <= end;
+	const rangeValid = startValid && endValid && rangeOrderValid;
+
 	res.removeHeader(CONTENT_RANGE);
 	res.removeHeader(CONTENT_LENGTH);
 	res.removeHeader(ETAG);
 	delete headers.etag;
 
-	if (!isNaN(start) && !isNaN(end) && start <= end && start >= 0 && end < size) {
+	if (rangeValid) {
 		const rangeOptions = { start, end };
 		req.range = rangeOptions;
 		const contentLength = end - start + 1;

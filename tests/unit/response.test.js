@@ -1170,6 +1170,89 @@ describe("response", () => {
 
 			assert.strictEqual(capturedRange, "bytes 500-999/1000");
 		});
+
+		it("should return unchanged when range header does not start with bytes=", () => {
+			const req = { headers: { range: "chunks=0-499" } };
+			const res = {
+				removeHeader: () => {},
+				header: () => {},
+				statusCode: 200,
+			};
+			const headers = { "content-type": "text/html" };
+			const options = { custom: "option" };
+
+			const [resultHeaders, resultOptions] = partialHeaders(req, res, 1000, 200, headers, options);
+
+			assert.deepStrictEqual(resultHeaders, headers);
+			assert.deepStrictEqual(resultOptions, options);
+		});
+
+		it("should return unchanged when both start and end are empty", () => {
+			const req = { headers: { range: "bytes=-" } };
+			const res = {
+				removeHeader: () => {},
+				header: () => {},
+				statusCode: 200,
+			};
+			const headers = { "content-type": "text/html" };
+
+			const [resultHeaders] = partialHeaders(req, res, 1000, 200, headers);
+
+			assert.deepStrictEqual(resultHeaders, headers);
+		});
+
+		it("should return unchanged when start is negative and exceeds size", () => {
+			const req = { headers: { range: "bytes=-2000" } };
+			const res = {
+				removeHeader: () => {},
+				header: () => {},
+				statusCode: 200,
+			};
+			const headers = { "content-type": "text/html" };
+
+			const [resultHeaders] = partialHeaders(req, res, 1000, 200, headers);
+
+			// start would be 1000 - 2000 = -1000, which is < 0, so invalid
+			assert.deepStrictEqual(resultHeaders, headers);
+		});
+
+		it("should handle range where start equals end", () => {
+			const req = { headers: { range: "bytes=500-500" } };
+			let capturedRange = null;
+			const res = {
+				removeHeader: () => {},
+				header: (key, val) => {
+					if (key === "content-range") {
+						capturedRange = val;
+					}
+				},
+				statusCode: 200,
+			};
+			const headers = {};
+
+			partialHeaders(req, res, 1000, 200, headers);
+
+			assert.strictEqual(capturedRange, "bytes 500-500/1000");
+		});
+
+		it("should handle range where start is 0", () => {
+			const req = { headers: { range: "bytes=0-999" } };
+			let capturedRange = null;
+			const res = {
+				removeHeader: () => {},
+				header: (key, val) => {
+					if (key === "content-range") {
+						capturedRange = val;
+					}
+				},
+				statusCode: 200,
+			};
+			const headers = {};
+
+			partialHeaders(req, res, 1000, 200, headers);
+
+			assert.strictEqual(capturedRange, "bytes 0-999/1000");
+		});
 	});
 
 	describe("pipeable", () => {
