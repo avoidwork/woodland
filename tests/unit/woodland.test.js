@@ -1145,6 +1145,9 @@ describe("woodland", () => {
 
 		it("should not emit connect/finish when no listeners", () => {
 			const noListenersApp = woodland();
+			let connectOnCalled = false;
+			let finishOnCalled = false;
+
 			const req = {
 				method: "GET",
 				headers: { host: "example.com" },
@@ -1156,7 +1159,14 @@ describe("woodland", () => {
 				statusCode: 200,
 				setHeader: () => {},
 				writeHead: () => {},
-				on: () => {},
+				on: (event) => {
+					if (event === EVT_CONNECT) {
+						connectOnCalled = true;
+					}
+					if (event === "finish") {
+						finishOnCalled = true;
+					}
+				},
 				end: () => {},
 				error: () => {},
 				set: () => {},
@@ -1168,7 +1178,9 @@ describe("woodland", () => {
 			};
 
 			noListenersApp.route(req, res);
-			assert.ok(true);
+
+			assert.strictEqual(connectOnCalled, false);
+			assert.strictEqual(finishOnCalled, false);
 		});
 
 		it("should register finish listener when listener exists", () => {
