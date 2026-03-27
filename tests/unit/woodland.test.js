@@ -631,11 +631,6 @@ describe("woodland", () => {
 			// The serve method should be defined to delegate to this.#fileServer.serve
 			assert.strictEqual(typeof app.serve, "function");
 
-			// Create mock objects to verify delegation works
-			let delegationHappened = false;
-			const mockReq = { parsed: { pathname: "/test.txt" }, method: "GET" };
-			const mockRes = { error: () => {} };
-
 			// Since we can't mock the private field, verify the method signature
 			// and that it's callable without errors with proper arguments
 			const serveStr = app.serve.toString();
