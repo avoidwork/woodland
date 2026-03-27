@@ -50,14 +50,14 @@ export class Woodland extends EventEmitter {
 
 	// Public routing methods
 	always(...args: Function[]): Woodland;
-	connect(...args: Function[]): Woodland;
-	delete(...args: Function[]): Woodland;
-	get(...args: Function[]): Woodland;
-	options(...args: Function[]): Woodland;
-	patch(...args: Function[]): Woodland;
-	post(...args: Function[]): Woodland;
-	put(...args: Function[]): Woodland;
-	trace(...args: Function[]): Woodland;
+	connect(rpath: string, ...fn: Function[]): Woodland;
+	delete(rpath: string, ...fn: Function[]): Woodland;
+	get(rpath: string, ...fn: Function[]): Woodland;
+	options(rpath: string, ...fn: Function[]): Woodland;
+	patch(rpath: string, ...fn: Function[]): Woodland;
+	post(rpath: string, ...fn: Function[]): Woodland;
+	put(rpath: string, ...fn: Function[]): Woodland;
+	trace(rpath: string, ...fn: Function[]): Woodland;
 
 	// Middleware methods
 	ignore(fn: Function): Woodland;
