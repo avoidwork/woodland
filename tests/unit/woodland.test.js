@@ -398,8 +398,10 @@ describe("woodland", () => {
 			const app1 = woodland({ silent: true });
 			const app2 = woodland({ defaultHeaders: { "x-custom": "value" } });
 
-			assert.strictEqual(app1.logger, app1.logger);
+			assert.ok(app1.logger);
 			assert.ok(app2.logger);
+			assert.strictEqual(app1.logging.enabled, true);
+			assert.strictEqual(app2.logging.enabled, true);
 		});
 
 		it("should configure logging", () => {
