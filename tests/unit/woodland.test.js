@@ -419,7 +419,7 @@ describe("woodland", () => {
 				header: (name, value) => {
 					headersSet[name] = value;
 				},
-				send: (body) => {
+				send: (_body) => {
 					res.statusCode = 200;
 				},
 				end: () => {},
@@ -465,7 +465,7 @@ describe("woodland", () => {
 				header: (name, value) => {
 					headersSet[name] = value;
 				},
-				send: (body) => {
+				send: (_body) => {
 					res.statusCode = 200;
 				},
 				end: () => {},
