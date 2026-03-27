@@ -48,8 +48,8 @@ Extends `EventEmitter`. Provides HTTP server functionality with middleware routi
 **Implementation Notes:**
 - Uses ES2022 private fields (`#`) for internal state
 - All private fields are inaccessible from outside the class
-- Public getters return copies/frozen objects where applicable (`indexes`, `origins`, `logging`, `logger`)
-- Some getters return internal objects directly (`fileServer`, `etags`)
+- Public getters return copies/frozen objects where applicable (`indexes`, `origins`, `logging`, `logger`, `fileServer`)
+- Some getters return internal objects directly (`etags`)
 
 ### Constructor
 
@@ -75,10 +75,12 @@ The following read-only properties are available via public getters:
 | `corsExpose` | `string` | CORS expose headers |
 | `digit` | `number` | Digit precision for timing |
 | `etags` | `Object\|null` | ETag helper (`{create, middleware}`) or `null` if disabled |
-| `indexes` | `Array<string>` | Index files for directories |
+| `indexes` | `Array<string>` | Copy of index files array |
 | `logging` | `Object` | Logging configuration (frozen copy) |
-| `origins` | `Set<string>` | Allowed CORS origins |
+| `origins` | `Set<string>` | Copy of CORS origins set |
 | `time` | `boolean` | X-Response-Time header enabled |
+| `logger` | `Object` | Frozen logger object |
+| `fileServer` | `Object` | Frozen file server with `register`, `serve` |
 
 **Note:** Getters return copies/frozen objects to prevent external mutation.
 

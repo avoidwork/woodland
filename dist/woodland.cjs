@@ -1300,10 +1300,10 @@ function validateLogging(logging = {}) {
 	const level = resolveLoggingValue(logging.level, envLogLevel, INFO);
 
 	if (!VALID_LOG_LEVELS.has(level)) {
-		return { enabled, format, level: INFO };
+		return Object.freeze({ enabled, format, level: INFO });
 	}
 
-	return { enabled, format, level };
+	return Object.freeze({ enabled, format, level });
 }
 
 /**
@@ -1629,11 +1629,11 @@ function register(app, root, folder, useMiddleware) {
  * @returns {Object} File server with register, serve methods
  */
 function createFileServer(app) {
-	return {
+	return Object.freeze({
 		register: (root, folder, useMiddleware) =>
 			register(app, root, folder, useMiddleware || app.use.bind(app)),
 		serve: (req, res, arg, folder) => serve(app, req, res, arg, folder),
-	};
+	});
 }
 
 /**

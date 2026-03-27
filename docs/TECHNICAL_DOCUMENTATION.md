@@ -265,14 +265,14 @@ class Woodland extends EventEmitter {
   #digit;          // Private: timing precision
   #etags;          // Private: etag function or null
   #indexes;        // Private: index files array
-  #logging;        // Private: logging config
+  #logging;        // Private: logging config (frozen)
   #origins;        // Private: CORS origins Set
   #time;           // Private: timing enabled
   #cache;          // Private: LRU cache
   #permissions;    // Private: permissions Map
   #methods;        // Private: registered methods array
-  #logger;         // Private: logger instance
-  #fileServer;     // Private: file server instance
+  #logger;         // Private: logger instance (frozen)
+  #fileServer;     // Private: file server instance (frozen)
   #middleware;     // Private: middleware registry
 
   constructor(config = {}) {
