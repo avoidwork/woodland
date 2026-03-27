@@ -1713,7 +1713,7 @@ class Woodland extends node_events.EventEmitter {
 		this.#digit = digit;
 		this.#etags = etags ? tinyEtag.etag({ cacheSize, cacheTTL }) : null;
 		this.#indexes = [...indexes];
-		this.#logging = validateLogging(logging);
+		this.#logging = Object.freeze(validateLogging(logging));
 		this.#origins = new Set(origins);
 		this.#time = time;
 		this.#cache = tinyLru.lru(cacheSize, cacheTTL);
@@ -1960,6 +1960,8 @@ class Woodland extends node_events.EventEmitter {
 	 */
 	files(root = SLASH, folder = process.cwd()) {
 		this.#fileServer.register(root, folder, this.use.bind(this));
+
+		return this;
 	}
 
 	/**
@@ -2254,7 +2256,7 @@ class Woodland extends node_events.EventEmitter {
 	}
 
 	get logging() {
-		return this.#logging;
+		return { ...this.#logging };
 	}
 
 	get origins() {

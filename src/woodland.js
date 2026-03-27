@@ -141,7 +141,7 @@ export class Woodland extends EventEmitter {
 		this.#digit = digit;
 		this.#etags = etags ? etag({ cacheSize, cacheTTL }) : null;
 		this.#indexes = [...indexes];
-		this.#logging = validateLogging(logging);
+		this.#logging = Object.freeze(validateLogging(logging));
 		this.#origins = new Set(origins);
 		this.#time = time;
 		this.#cache = lru(cacheSize, cacheTTL);
