@@ -106,20 +106,7 @@ This minimizes the public surface area and enforces encapsulation.
 
 ### Closure-Based Config Injection
 
-File server receives config via closure instead of app instance:
-
-```javascript
-// In woodland.js
-this.#fileServer = createFileServer({
-  autoIndex: this.#autoIndex,
-  charset: this.#charset,
-  indexes: this.#indexes,
-  logger: this.#logger,
-  stream: this.stream.bind(this),
-  etag: this.etag.bind(this),
-  use: this.use.bind(this)
-});
-```
+File server receives config via closure instead of app instance (see File Server section for details).
 
 This eliminates the need for public getters and provides better encapsulation.
 
@@ -302,23 +289,6 @@ registry.list(method, type)  // "array" or "object"
 ---
 
 ## File Server (`src/fileserver.js`)
-
-### Closure-Based Config
-
-File server receives config via closure, not the full app instance:
-
-```javascript
-// woodland.js creates file server with config object
-this.#fileServer = createFileServer({
-  autoIndex: this.#autoIndex,
-  charset: this.#charset,
-  indexes: this.#indexes,
-  logger: this.#logger,
-  stream: this.stream.bind(this),
-  etag: this.etag.bind(this),
-  use: this.use.bind(this)
-});
-```
 
 ### Usage
 
