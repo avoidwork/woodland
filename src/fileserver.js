@@ -158,8 +158,14 @@ export function register(config, root, folder, useMiddleware) {
 
 	useMiddleware(rootPattern, (req, res) => {
 		const pathname = req.parsed.pathname;
+		// For root mount "/", strip leading "/" (slice(1))
+		// For other mounts like "/static", strip "/static" prefix
 		const relativePath =
-			pathname === normalizedRoot ? EMPTY : pathname.slice(normalizedRoot.length + 1);
+			pathname === normalizedRoot
+				? EMPTY
+				: normalizedRoot === SLASH
+					? pathname.slice(1)
+					: pathname.slice(normalizedRoot.length + 1);
 		return serve(config, req, res, relativePath, folder);
 	});
 }
