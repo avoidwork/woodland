@@ -28,7 +28,7 @@ export interface FileDescriptor {
 
 export interface RouteInfo {
 	params?: boolean;
-	getParams?: string;
+	getParams?: RegExp | null;
 	middleware: Function[];
 	exit: number;
 	visible: number;
