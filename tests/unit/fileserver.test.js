@@ -220,7 +220,7 @@ describe("fileserver", () => {
 				const server = createFileServer(app);
 				server.register("/files", "/tmp", app.useMiddleware.bind(app));
 
-				assert.strictEqual(registeredPath, "/files/(.*)?");
+				assert.strictEqual(registeredPath, "/files(/.*)?");
 				assert.ok(typeof registeredHandler === "function");
 			});
 
@@ -236,7 +236,7 @@ describe("fileserver", () => {
 				const server = createFileServer(app);
 				server.register("/files/", "/tmp", app.useMiddleware.bind(app));
 
-				assert.strictEqual(registeredPath, "/files/(.*)?");
+				assert.strictEqual(registeredPath, "/files(/.*)?");
 			});
 
 			it("should use app.use.bind when useMiddleware is not provided", () => {
@@ -253,7 +253,7 @@ describe("fileserver", () => {
 				const server = createFileServer(app);
 				server.register("/files", "/tmp");
 
-				assert.strictEqual(registeredPath, "/files/(.*)?");
+				assert.strictEqual(registeredPath, "/files(/.*)?");
 				assert.ok(typeof registeredHandler === "function");
 			});
 
@@ -516,7 +516,7 @@ describe("fileserver", () => {
 
 			register(app, "/test", "/tmp", useMiddleware);
 
-			assert.strictEqual(registeredPath, "/test/(.*)?");
+			assert.strictEqual(registeredPath, "/test(/.*)?");
 			assert.strictEqual(typeof registeredHandler, "function");
 		});
 
@@ -538,7 +538,8 @@ describe("fileserver", () => {
 
 			register(app, "/", "/tmp", useMiddleware);
 
-			assert.strictEqual(registeredPath, "/(.*)?");
+			// Root path "/" becomes pattern "(/.*)" which matches "/" and "/foo"
+			assert.strictEqual(registeredPath, "(/.*)?");
 		});
 
 		it("should execute registered middleware handler", async () => {

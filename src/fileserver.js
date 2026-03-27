@@ -152,8 +152,9 @@ export async function serve(config, req, res, arg, folder = process.cwd()) {
  * @param {Function} useMiddleware - Middleware registration function
  */
 export function register(config, root, folder, useMiddleware) {
-	const normalizedRoot = root.replace(/\/$/, EMPTY);
-	const rootPattern = `${normalizedRoot}/(.*)?`;
+	const normalizedRoot = root.replace(/\/$/, EMPTY) || SLASH;
+	// Match mount root and any path beneath it: /static, /static/, /static/foo
+	const rootPattern = normalizedRoot === SLASH ? "(/.*)?" : `${normalizedRoot}(/.*)?`;
 
 	useMiddleware(rootPattern, (req, res) => {
 		const pathname = req.parsed.pathname;
