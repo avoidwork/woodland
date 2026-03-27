@@ -159,7 +159,7 @@ export function register(config, root, folder, useMiddleware) {
 		const pathname = req.parsed.pathname;
 		const relativePath =
 			pathname === normalizedRoot ? EMPTY : pathname.slice(normalizedRoot.length + 1);
-		serve(config, req, res, relativePath, folder);
+		return serve(config, req, res, relativePath, folder);
 	});
 }
 
