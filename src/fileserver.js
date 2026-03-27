@@ -158,9 +158,9 @@ export function register(app, root, folder, useMiddleware) {
  * @returns {Object} File server with register, serve methods
  */
 export function createFileServer(app) {
-	return {
+	return Object.freeze({
 		register: (root, folder, useMiddleware) =>
 			register(app, root, folder, useMiddleware || app.use.bind(app)),
 		serve: (req, res, arg, folder) => serve(app, req, res, arg, folder),
-	};
+	});
 }
