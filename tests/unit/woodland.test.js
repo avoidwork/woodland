@@ -399,6 +399,7 @@ describe("woodland", () => {
 		it("should configure silent mode", () => {
 			const app = woodland({ silent: true });
 
+			assert.ok(app instanceof Woodland);
 			assert.strictEqual(app.logging.enabled, true);
 			assert.strictEqual(app.logging.level, "info");
 		});
@@ -406,6 +407,7 @@ describe("woodland", () => {
 		it("should configure custom default headers", () => {
 			const app = woodland({ defaultHeaders: { "x-custom": "value" } });
 
+			assert.ok(app instanceof Woodland);
 			assert.strictEqual(app.logging.enabled, true);
 			assert.strictEqual(app.logging.level, "info");
 		});
