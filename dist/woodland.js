@@ -1518,7 +1518,11 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
 	const fp = resolve(folder, arg);
 	const resolvedFolder = resolve(folder);
 
-	if (!fp.startsWith(resolvedFolder)) {
+	// Path traversal protection: ensure fp is within resolvedFolder
+	// Must match exactly or be a subdirectory (not a sibling like /public2 vs /public)
+	const isWithin = fp === resolvedFolder || (fp.startsWith(resolvedFolder) && fp[resolvedFolder.length] === SLASH);
+
+	if (!isWithin) {
 		config.logger.logServe(req, MSG_SERVE_PATH_OUTSIDE);
 		res.error(INT_403, new Error(STATUS_CODES[INT_403]));
 
@@ -1588,9 +1592,16 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
  * @param {Function} useMiddleware - Middleware registration function
  */
 function register(config, root, folder, useMiddleware) {
-	useMiddleware(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) =>
-		serve(config, req, res, req.parsed.pathname.substring(1), folder),
-	);
+	const normalizedRoot = root.replace(/\/$/, EMPTY);
+	const rootPattern = `${normalizedRoot}/(.*)?`;
+
+	useMiddleware(rootPattern, (req, res) => {
+		const pathname = req.parsed.pathname;
+		const relativePath = pathname === normalizedRoot
+			? EMPTY
+			: pathname.slice(normalizedRoot.length + 1);
+		serve(config, req, res, relativePath, folder);
+	});
 }
 
 /**
@@ -1600,8 +1611,13 @@ function register(config, root, folder, useMiddleware) {
  */
 function createFileServer(config) {
 	return Object.freeze({
-		register: (root, folder, useMiddleware) =>
-			register(config, root, folder, useMiddleware || config.use),
+		register: (root, folder, useMiddleware) => {
+			const fn = useMiddleware ?? config.use;
+			if (typeof fn !== "function") {
+				throw new TypeError("useMiddleware is required or config.use must be a function");
+			}
+			register(config, root, folder, fn);
+		},
 		serve: (req, res, arg, folder) => serve(config, req, res, arg, folder),
 	});
 }/**
