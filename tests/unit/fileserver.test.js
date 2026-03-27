@@ -373,9 +373,9 @@ describe("fileserver", () => {
 				stream: () => {},
 			};
 
-			// Test sibling directory bypass: arg="public2" with folder="/public"
-			// After resolve: /public/public2 starts with /public but next char is '/', so it's valid
-			// This test verifies the fix handles exact boundary conditions
+			// Test sibling directory bypass: arg="../public2/file.txt" with folder="/public"
+			// After resolve: /public2/file.txt starts with "/public" but next char is "2", not "/"
+			// This correctly blocks access to sibling directory /public2 (outside /public)
 			await serve(
 				app,
 				{ method: "GET", parsed: { pathname: "/test" } },
@@ -384,13 +384,44 @@ describe("fileserver", () => {
 						errorStatus = status;
 					},
 				},
-				"public2",
+				"../public2/file.txt",
 				"/public",
 			);
 
-			// Path resolves to /public/public2 which is a valid subdirectory
-			// Should not be blocked by path traversal check (may get 404 for missing file)
-			assert.strictEqual(errorStatus !== 403, true);
+			// Path resolves to /public2/file.txt which is outside /public
+			// Should be blocked with 403
+			assert.strictEqual(errorStatus, 403);
+		});
+
+		it("should allow valid subdirectory access (not sibling bypass)", async () => {
+			let errorStatus = null;
+			const app = {
+				charset: "utf-8",
+				indexes: ["index.html"],
+				autoIndex: true,
+				logger: { logServe: () => {} },
+				etag: () => "test-etag",
+				stream: () => {},
+			};
+
+			// Test valid subdirectory: arg="subdir/file.txt" with folder="/public"
+			// After resolve: /public/subdir/file.txt starts with /public/ so it's valid
+			// This should NOT be blocked by path traversal (may get 404 for missing file)
+			await serve(
+				app,
+				{ method: "GET", parsed: { pathname: "/test" } },
+				{
+					error: (status) => {
+						errorStatus = status;
+					},
+				},
+				"subdir/file.txt",
+				"/public",
+			);
+
+			// Path resolves to /public/subdir/file.txt which is inside /public
+			// Should NOT be blocked by path traversal (403), may get 404 for missing file
+			assert.notStrictEqual(errorStatus, 403);
 		});
 	});
 
