@@ -60,8 +60,6 @@ export class Woodland extends EventEmitter {
 		logDecoration: (...args: any[]) => void;
 		logServe: (...args: any[]) => void;
 		clf: (...args: any[]) => string;
-		ms: (...args: any[]) => string;
-		timeOffset: (...args: any[]) => string;
 	};
 	readonly fileServer: {
 		register: (root: string, folder: string, use?: Function) => void;
