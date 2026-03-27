@@ -36,22 +36,6 @@ export interface RouteInfo {
 
 export class Woodland extends EventEmitter {
 	// Public read-only properties (getters)
-	readonly autoIndex: boolean;
-	readonly charset: string;
-	readonly corsExpose: string;
-	readonly digit: number;
-	readonly etags: Readonly<{
-		create: (input: string) => string;
-		middleware: Function;
-	}> | null;
-	readonly indexes: string[];
-	readonly logging: Readonly<{
-		enabled: boolean;
-		format: string;
-		level: string;
-	}>;
-	readonly origins: Set<string>;
-	readonly time: boolean;
 	readonly logger: Readonly<{
 		log: (...args: any[]) => void;
 		logError: (...args: any[]) => void;
@@ -60,10 +44,6 @@ export class Woodland extends EventEmitter {
 		logDecoration: (...args: any[]) => void;
 		logServe: (...args: any[]) => void;
 		clf: (...args: any[]) => string;
-	}>;
-	readonly fileServer: Readonly<{
-		register: (root: string, folder: string, use?: Function) => void;
-		serve: (req: any, res: any, arg: string, folder?: string) => Promise<void>;
 	}>;
 
 	constructor(config?: WoodlandConfig);
@@ -97,14 +77,6 @@ export class Woodland extends EventEmitter {
 	allowed(method: string, uri: string, override?: boolean): boolean;
 	/** @deprecated Internal method - use routes() instead */
 	allows(uri: string, override?: boolean): string;
-	/** @internal */
-	decorate(req: any, res: any): void;
-	/** @internal */
-	onDone(req: any, res: any, body: any, headers: any): void;
-	/** @internal */
-	onReady(req: any, res: any, body: any, status: number, headers: any): any[];
-	/** @internal */
-	onSend(req: any, res: any, body: any, status: number, headers: any): any[];
 }
 
 export function woodland(arg?: WoodlandConfig): Woodland;

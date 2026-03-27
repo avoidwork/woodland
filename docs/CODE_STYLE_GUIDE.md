@@ -24,9 +24,10 @@
 
 - **Clarity over cleverness**: Write code that is easy to understand and maintain
 - **Consistency**: Follow established patterns throughout the codebase
-- **Security first**: Always consider security implications
+- **Security first**: Always consider security implications (CORS, path traversal, XSS, IP validation)
 - **Performance awareness**: Write efficient code without premature optimization
 - **Documentation**: Code should be self-documenting with appropriate JSDoc comments
+- **Encapsulation**: Use ES2022 private fields (`#`) for all internal state
 - **Pragmatic formatting**: Prioritize readability over strict line length limits for logging and complex expressions
 
 ### Formatting
@@ -69,18 +70,18 @@ const config = {
 
 ```
 src/
-├── woodland.js           # Main framework (616 lines) - Woodland class & factory
-├── constants.js          # All constants & regex patterns (227 lines)
-├── middleware.js         # Middleware registry (279 lines)
-├── response.js           # Response handlers (402 lines)
-├── request.js            # Request utilities (270 lines)
-├── fileserver.js         # Static file serving (163 lines)
-├── logger.js             # Logging system (231 lines)
-├── config.js             # Config validation (190 lines)
+├── woodland.js           # Main framework - Woodland class & factory
+├── constants.js          # All constants & regex patterns
+├── middleware.js         # Middleware registry
+├── response.js           # Response handlers
+├── request.js            # Request utilities
+├── fileserver.js         # Static file serving (closure-based config)
+├── logger.js             # Logging system
+├── config.js             # Config validation
 └── cli.js                # CLI entry point
 
 tests/
-├── unit/                 # Unit tests (478 tests)
+├── unit/                 # Unit tests
 └── test-files/           # Test file assets
 
 docs/                     # Documentation
@@ -234,9 +235,11 @@ const config = { autoIndex: autoIndex, cacheSize: cacheSize };
 - Use factory functions for creating instances instead of constructors
 - Factories use closures for private state instead of class fields
 - Factories return objects with bound methods for testability
+- **Woodland class**: Uses ES2022 private fields (`#`) for encapsulation
+- **Config injection**: File server receives config via closure, not app property access
 
 ```javascript
-// Good - Factory pattern
+// Good - Factory pattern for utilities
 export function createLogger(config = {}) {
 	const { enabled = true, format, level = INFO } = config;
 
@@ -246,11 +249,27 @@ export function createLogger(config = {}) {
 	};
 }
 
-// Good - Class with factory
+// Good - Class with ES2022 private fields
 export class Woodland extends EventEmitter {
+	#autoIndex;
+	#charset;
+	#logger;
+	#fileServer;
+
 	constructor(config = {}) {
 		super();
-		// Implementation
+		// All internal state uses # private fields
+		this.#logger = createLogger(config.logging);
+		this.#fileServer = createFileServer({
+			autoIndex: this.#autoIndex,
+			charset: this.#charset,
+			// Config passed via closure, not app property access
+		});
+	}
+
+	// Only public getter: logger
+	get logger() {
+		return this.#logger;
 	}
 }
 
@@ -336,9 +355,10 @@ const ignored = new Set();
 
 ### Input Validation
 
-- **Always validate** user input
-- **Sanitize** data before processing
+- **Always validate** user input before processing
+- **Sanitize** data before using in file paths, SQL, or HTML output
 - Use **allowlists** instead of blocklists when possible
+- Validate IP addresses, file paths, and URLs
 
 ```javascript
 // Good - Input validation and sanitization
@@ -399,11 +419,12 @@ export function escapeHtml(str = EMPTY) {
 ### Safe File Operations
 
 - Validate file paths before operations
-- Use path normalization
-- Implement proper access controls
+- Use `path.resolve()` for normalization
+- Implement path traversal protection
+- Check that resolved path stays within allowed directory
 
 ```javascript
-// Good - Safe file path handling using actual Woodland implementation
+// Good - Safe file path handling with path traversal protection
 async function serve(app, req, res, arg, folder = process.cwd()) {
 	const fp = resolve(folder, arg);
 	const resolvedFolder = resolve(folder);
@@ -422,19 +443,27 @@ async function serve(app, req, res, arg, folder = process.cwd()) {
 ### CORS Security
 
 - Deny CORS by default (empty origins array)
-- Validate origins against allowlist
+- Validate origins against strict allowlist
 - Never expose sensitive headers
+- Use `corsHost()` to detect cross-origin requests
+- Automatic preflight handling when origins configured
 
 ```javascript
-// Good - CORS validation
+// Good - CORS validation with default deny
 export function cors(req, origins) {
 	if (origins.size === 0) {
-		return false;
+		return false; // Default deny - no CORS allowed
 	}
 
 	const origin = req.headers.origin;
 	const corsWildcard = origins.has(WILDCARD);
 	return req.corsHost && (corsWildcard || origins.has(origin));
+}
+
+// Good - Automatic CORS setup in constructor
+if (this.#origins.size > 0) {
+	const fnCorsRequest = corsRequest();
+	this.options(fnCorsRequest).ignore(fnCorsRequest);
 }
 ```
 
@@ -636,6 +665,58 @@ app.use((err, req, res, next) => {
 ---
 
 ## Modern JavaScript Features
+
+### ES2022 Private Fields
+
+- Use **ES2022 private fields** (`#`) for all internal state in classes
+- Private fields provide true encapsulation (inaccessible from outside)
+- Only expose what is functionally necessary via public getters
+- Use closures for config injection in factory functions
+
+```javascript
+// Good - ES2022 private fields for encapsulation
+export class Woodland extends EventEmitter {
+	#autoIndex;
+	#charset;
+	#corsExpose;
+	#defaultHeaders;
+	#digit;
+	#etags;
+	#indexes;
+	#logging;
+	#origins;
+	#time;
+	#cache;
+	#permissions;
+	#methods;
+	#logger;
+	#fileServer;
+	#middleware;
+
+	constructor(config = {}) {
+		super();
+		// Initialize all private fields
+		this.#autoIndex = config.autoIndex ?? false;
+		this.#logger = createLogger(config.logging);
+	}
+
+	// Only public getter - minimal API surface
+	get logger() {
+		return this.#logger;
+	}
+
+	// Private methods use # prefix
+	#decorate(req, res) {
+		// Internal implementation
+	}
+}
+```
+
+**Guidelines:**
+- All configuration (`autoIndex`, `charset`, `origins`, etc.) should be private
+- All internal state (`cache`, `permissions`, `middleware`, etc.) should be private
+- Only expose `logger` as public getter (frozen object)
+- Use private methods (`#method`) for internal implementation details
 
 ### ES Modules
 

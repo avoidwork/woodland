@@ -153,19 +153,40 @@ function benchmarkMultipleHandlersRegistration() {
 }
 
 /**
- * Benchmark request decoration (adding properties to req/res)
+ * Benchmark route list with list() method
  */
-function benchmarkRequestDecoration() {
+function benchmarkRouteList() {
 	const freshApp = createFreshApp();
-	const req = createMockRequest();
-	const res = createMockResponse();
 
-	// Add some routes first
-	freshApp.get("/", (request, response) => response.send("OK"));
-	freshApp.get("/api/users", (request, response) => response.json([]));
-	freshApp.post("/api/users", (request, response) => response.json({}));
+	// Add many routes
+	for (let i = 0; i < 20; i++) {
+		freshApp.get(`/route-${i}`, (req, res) => res.send(`Route ${i}`));
+		freshApp.post(`/route-${i}`, (req, res) => res.send(`Route ${i}`));
+	}
 
-	return freshApp.decorate(req, res);
+	const methods = ["get", "post"];
+	const method = methods[Math.floor(Math.random() * methods.length)];
+	const type = Math.random() > 0.5 ? "array" : "object";
+
+	try {
+		return freshApp.list(method, type);
+	} catch {
+		// If list fails, just return an empty array/object
+		return type === "array" ? [] : {};
+	}
+}
+
+/**
+ * Benchmark ignore() method - marking middleware as ignored
+ */
+function benchmarkIgnoreMiddleware() {
+	const freshApp = createFreshApp();
+	const middleware = (req, res, next) => next();
+
+	// Register middleware then ignore it
+	freshApp.use("/test", middleware);
+
+	return freshApp.ignore(middleware);
 }
 
 /**
@@ -256,43 +277,6 @@ function benchmarkErrorHandlingMiddleware() {
 	const res = createMockResponse();
 
 	return freshApp.route(req, res);
-}
-
-/**
- * Benchmark list() method - getting registered routes
- */
-function benchmarkRouteList() {
-	const freshApp = createFreshApp();
-
-	// Add many routes
-	for (let i = 0; i < 20; i++) {
-		freshApp.get(`/route-${i}`, (req, res) => res.send(`Route ${i}`));
-		freshApp.post(`/route-${i}`, (req, res) => res.send(`Route ${i}`));
-	}
-
-	const methods = ["get", "post"];
-	const method = methods[Math.floor(Math.random() * methods.length)];
-	const type = Math.random() > 0.5 ? "array" : "object";
-
-	try {
-		return freshApp.list(method, type);
-	} catch {
-		// If list fails, just return an empty array/object
-		return type === "array" ? [] : {};
-	}
-}
-
-/**
- * Benchmark ignore() method - marking middleware as ignored
- */
-function benchmarkIgnoreMiddleware() {
-	const freshApp = createFreshApp();
-	const middleware = (req, res, next) => next();
-
-	// Register middleware then ignore it
-	freshApp.use("/test", middleware);
-
-	return freshApp.ignore(middleware);
 }
 
 /**

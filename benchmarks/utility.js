@@ -1,22 +1,57 @@
 // Note: Using source utility functions since they are not exported from dist
-import { woodland } from "../src/woodland.js";
 import { autoIndex } from "../src/fileserver.js";
 import { getStatus, mime, partialHeaders, pipeable, writeHead } from "../src/response.js";
 import { next, reduce } from "../src/middleware.js";
 import { isValidIP, params, parse } from "../src/request.js";
 import { ms, timeOffset } from "../src/logger.js";
 
-/**
- * Create a fresh Woodland app instance for benchmarks
- * @returns {Object} Woodland app instance
- */
-const createFreshApp = () => {
-	return woodland({
-		cacheSize: 1000,
-		cacheTTL: 10000,
-		etags: false,
-		logging: { enabled: false },
-	});
+// Mock request/response for benchmarks
+const createMockRequest = (method = "GET", url = "/", headers = {}) => ({
+	method,
+	url,
+	headers: {
+		host: "localhost:3000",
+		"user-agent": "benchmark-test",
+		...headers,
+	},
+	connection: {
+		remoteAddress: "127.0.0.1",
+	},
+	socket: {
+		server: {
+			_connectionKey: "6::::3000",
+		},
+	},
+});
+
+const createMockResponse = () => {
+	const headers = new Map();
+
+	return {
+		statusCode: 200,
+		headersSent: false,
+		setHeader: (name, value) => headers.set(name.toLowerCase(), value),
+		getHeader: (name) => headers.get(name.toLowerCase()),
+		removeHeader: (name) => headers.delete(name.toLowerCase()),
+		header: (name, value) => headers.set(name.toLowerCase(), value),
+		writeHead: (statusCode, statusMessage, headerObj) => {
+			if (headerObj) {
+				Object.entries(headerObj).forEach(([key, value]) => {
+					headers.set(key.toLowerCase(), value);
+				});
+			}
+		},
+		headers: headers,
+		end: () => {},
+		// Add event handling methods that Woodland expects
+		on: (_event, _callback) => {},
+		once: (_event, _callback) => {},
+		emit: (_event, ..._args) => {},
+		// Add response helper methods
+		send: (_data) => {},
+		json: (_data) => {},
+		redirect: (_url, _statusCode) => {},
+	};
 };
 
 // Test data for benchmarking
@@ -87,55 +122,6 @@ const testIPAddresses = [
 	"192.168.1",
 	"gggg::1",
 ];
-
-// Mock request objects for testing
-const createMockRequest = (method = "GET", url = "/", headers = {}) => ({
-	method,
-	url,
-	headers: {
-		host: "localhost:3000",
-		"user-agent": "benchmark-test",
-		...headers,
-	},
-	connection: {
-		remoteAddress: "127.0.0.1",
-	},
-	socket: {
-		server: {
-			_connectionKey: "6::::3000",
-		},
-	},
-});
-
-const createMockResponse = () => {
-	const headers = new Map();
-
-	return {
-		statusCode: 200,
-		headersSent: false,
-		setHeader: (name, value) => headers.set(name.toLowerCase(), value),
-		getHeader: (name) => headers.get(name.toLowerCase()),
-		removeHeader: (name) => headers.delete(name.toLowerCase()),
-		header: (name, value) => headers.set(name.toLowerCase(), value),
-		writeHead: (statusCode, statusMessage, headerObj) => {
-			if (headerObj) {
-				Object.entries(headerObj).forEach(([key, value]) => {
-					headers.set(key.toLowerCase(), value);
-				});
-			}
-		},
-		headers: headers,
-		end: () => {},
-		// Add event handling methods that Woodland expects
-		on: (_event, _callback) => {},
-		once: (_event, _callback) => {},
-		emit: (_event, ..._args) => {},
-		// Add response helper methods
-		send: (_data) => {},
-		json: (_data) => {},
-		redirect: (_url, _statusCode) => {},
-	};
-};
 
 // Mock file objects for autoindex testing
 const createMockFiles = () => [
@@ -348,18 +334,6 @@ function benchmarkWriteHead() {
  * Benchmark next() function - middleware chain progression
  */
 function benchmarkNext() {
-	// Create a realistic Woodland app to properly set up the request
-	const freshApp = createFreshApp();
-
-	// Add a route so the app has allowed methods
-	freshApp.get("/test", (req, res) => res.send("OK"));
-
-	const req = createMockRequest("GET", "/test");
-	const res = createMockResponse();
-
-	// Use Woodland's actual decorate method to properly set up req.allow and other properties
-	freshApp.decorate(req, res);
-
 	// Create a simple middleware iterator
 	const middleware = [
 		(request, response, nextFn) => {
@@ -376,6 +350,8 @@ function benchmarkNext() {
 		},
 	];
 
+	const req = createMockRequest();
+	const res = createMockResponse();
 	const iterator = middleware[Symbol.iterator]();
 	const immediate = Math.random() > 0.5;
 
