@@ -544,6 +544,17 @@ describe("woodland", () => {
 		});
 
 		it("should delegate to file server in serve", async () => {
+			const app = woodland();
+			const originalServe = app.fileServer.serve;
+			let serveCalled = false;
+			let serveArgs = null;
+
+			app.fileServer.serve = (req, res, arg, folder) => {
+				serveCalled = true;
+				serveArgs = { req, res, arg, folder };
+				return Promise.resolve();
+			};
+
 			const req = { method: "GET", headers: {}, url: "/test.txt", socket: null };
 			const res = {
 				statusCode: 200,
@@ -559,9 +570,15 @@ describe("woodland", () => {
 				headersSent: false,
 			};
 
-			const result = app.serve(req, res, "/test.txt", "/tmp");
-			await result.catch(() => {});
-			assert.ok(true);
+			const result = await app.serve(req, res, "/test.txt", "/tmp");
+
+			assert.ok(serveCalled);
+			assert.strictEqual(serveArgs.arg, "/test.txt");
+			assert.strictEqual(serveArgs.folder, "/tmp");
+			assert.ok(result === void 0);
+
+			// Restore original
+			app.fileServer.serve = originalServe;
 		});
 
 		it("should delegate to response stream in stream", () => {
