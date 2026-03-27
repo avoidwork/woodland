@@ -1549,8 +1549,9 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
 
 	// Path traversal protection: ensure fp is within resolvedFolder
 	// Must match exactly or be a subdirectory (not a sibling like /public2 vs /public)
+	// Use path.sep for platform compatibility (\\ on Windows, / on Unix)
 	const isWithin =
-		fp === resolvedFolder || (fp.startsWith(resolvedFolder) && fp[resolvedFolder.length] === SLASH);
+		fp === resolvedFolder || (fp.startsWith(resolvedFolder) && fp[resolvedFolder.length] === node_path.sep);
 
 	if (!isWithin) {
 		config.logger.logServe(req, MSG_SERVE_PATH_OUTSIDE);
@@ -1622,14 +1623,21 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
  * @param {Function} useMiddleware - Middleware registration function
  */
 function register(config, root, folder, useMiddleware) {
-	const normalizedRoot = root.replace(/\/$/, EMPTY);
-	const rootPattern = `${normalizedRoot}/(.*)?`;
+	const normalizedRoot = root.replace(/\/$/, EMPTY) || SLASH;
+	// Match mount root and any path beneath it: /static, /static/, /static/foo
+	const rootPattern = normalizedRoot === SLASH ? "(/.*)?" : `${normalizedRoot}(/.*)?`;
 
 	useMiddleware(rootPattern, (req, res) => {
 		const pathname = req.parsed.pathname;
+		// For root mount "/", strip leading "/" (slice(1))
+		// For other mounts like "/static", strip "/static" prefix
 		const relativePath =
-			pathname === normalizedRoot ? EMPTY : pathname.slice(normalizedRoot.length + 1);
-		serve(config, req, res, relativePath, folder);
+			pathname === normalizedRoot
+				? EMPTY
+				: normalizedRoot === SLASH
+					? pathname.slice(1)
+					: pathname.slice(normalizedRoot.length + 1);
+		return serve(config, req, res, relativePath, folder);
 	});
 }
 

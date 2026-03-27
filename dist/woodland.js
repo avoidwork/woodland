@@ -5,7 +5,7 @@
  * @license BSD-3-Clause
  * @version 21.0.10
  */
-import {STATUS_CODES}from'node:http';import {EventEmitter}from'node:events';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {lru}from'tiny-lru';import {precise}from'precise';import {createRequire}from'node:module';import {join,extname,resolve}from'node:path';import {fileURLToPath,URL as URL$1}from'node:url';import mimeDb from'mime-db';import {coerce}from'tiny-coerce';import {Validator}from'jsonschema';import {stat,readdir}from'node:fs/promises';const __dirname$2 = fileURLToPath(new URL$1(".", import.meta.url));
+import {STATUS_CODES}from'node:http';import {EventEmitter}from'node:events';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {lru}from'tiny-lru';import {precise}from'precise';import {createRequire}from'node:module';import {join,extname,resolve,sep}from'node:path';import {fileURLToPath,URL as URL$1}from'node:url';import mimeDb from'mime-db';import {coerce}from'tiny-coerce';import {Validator}from'jsonschema';import {stat,readdir}from'node:fs/promises';const __dirname$2 = fileURLToPath(new URL$1(".", import.meta.url));
 const require$1 = createRequire(import.meta.url);
 const { name, version } = require$1(join(__dirname$2, "..", "package.json"));
 
@@ -1520,8 +1520,9 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
 
 	// Path traversal protection: ensure fp is within resolvedFolder
 	// Must match exactly or be a subdirectory (not a sibling like /public2 vs /public)
+	// Use path.sep for platform compatibility (\\ on Windows, / on Unix)
 	const isWithin =
-		fp === resolvedFolder || (fp.startsWith(resolvedFolder) && fp[resolvedFolder.length] === SLASH);
+		fp === resolvedFolder || (fp.startsWith(resolvedFolder) && fp[resolvedFolder.length] === sep);
 
 	if (!isWithin) {
 		config.logger.logServe(req, MSG_SERVE_PATH_OUTSIDE);
@@ -1593,14 +1594,21 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
  * @param {Function} useMiddleware - Middleware registration function
  */
 function register(config, root, folder, useMiddleware) {
-	const normalizedRoot = root.replace(/\/$/, EMPTY);
-	const rootPattern = `${normalizedRoot}/(.*)?`;
+	const normalizedRoot = root.replace(/\/$/, EMPTY) || SLASH;
+	// Match mount root and any path beneath it: /static, /static/, /static/foo
+	const rootPattern = normalizedRoot === SLASH ? "(/.*)?" : `${normalizedRoot}(/.*)?`;
 
 	useMiddleware(rootPattern, (req, res) => {
 		const pathname = req.parsed.pathname;
+		// For root mount "/", strip leading "/" (slice(1))
+		// For other mounts like "/static", strip "/static" prefix
 		const relativePath =
-			pathname === normalizedRoot ? EMPTY : pathname.slice(normalizedRoot.length + 1);
-		serve(config, req, res, relativePath, folder);
+			pathname === normalizedRoot
+				? EMPTY
+				: normalizedRoot === SLASH
+					? pathname.slice(1)
+					: pathname.slice(normalizedRoot.length + 1);
+		return serve(config, req, res, relativePath, folder);
 	});
 }
 
