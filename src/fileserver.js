@@ -1,6 +1,6 @@
 import { STATUS_CODES } from "node:http";
 import { readdir, stat } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { join, resolve, sep } from "node:path";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
@@ -78,8 +78,9 @@ export async function serve(config, req, res, arg, folder = process.cwd()) {
 
 	// Path traversal protection: ensure fp is within resolvedFolder
 	// Must match exactly or be a subdirectory (not a sibling like /public2 vs /public)
+	// Use path.sep for platform compatibility (\\ on Windows, / on Unix)
 	const isWithin =
-		fp === resolvedFolder || (fp.startsWith(resolvedFolder) && fp[resolvedFolder.length] === SLASH);
+		fp === resolvedFolder || (fp.startsWith(resolvedFolder) && fp[resolvedFolder.length] === sep);
 
 	if (!isWithin) {
 		config.logger.logServe(req, MSG_SERVE_PATH_OUTSIDE);
