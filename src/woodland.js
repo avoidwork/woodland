@@ -151,7 +151,14 @@ export class Woodland extends EventEmitter {
 			format: this.#logging.format,
 			level: this.#logging.level,
 		});
-		this.#fileServer = createFileServer(this);
+		this.#fileServer = createFileServer({
+			autoIndex: this.#autoIndex,
+			charset: this.#charset,
+			indexes: this.#indexes,
+			logger: this.#logger,
+			stream: this.stream.bind(this),
+			etag: this.etag.bind(this),
+		});
 		this.#middleware = createMiddlewareRegistry(this.#methods, this.#cache);
 
 		if (this.#etags !== null) {
@@ -657,49 +664,8 @@ export class Woodland extends EventEmitter {
 		return this;
 	}
 
-	// Public getters for configuration (read-only)
-	get autoIndex() {
-		return this.#autoIndex;
-	}
-
-	get charset() {
-		return this.#charset;
-	}
-
-	get corsExpose() {
-		return this.#corsExpose;
-	}
-
-	get digit() {
-		return this.#digit;
-	}
-
-	get etags() {
-		return this.#etags;
-	}
-
-	get indexes() {
-		return [...this.#indexes];
-	}
-
-	get logging() {
-		return { ...this.#logging };
-	}
-
-	get origins() {
-		return new Set(this.#origins);
-	}
-
-	get time() {
-		return this.#time;
-	}
-
 	get logger() {
 		return this.#logger;
-	}
-
-	get fileServer() {
-		return this.#fileServer;
 	}
 }
 

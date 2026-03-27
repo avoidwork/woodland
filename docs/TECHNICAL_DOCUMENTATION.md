@@ -283,7 +283,7 @@ class Woodland extends EventEmitter {
   #permissions;    // Private: permissions Map
   #methods;        // Private: registered methods array
   #logger;         // Private: logger instance (frozen)
-  #fileServer;     // Private: file server instance (frozen)
+  #fileServer;     // Private: file server instance (frozen, wrapped by files/serve/stream)
   #middleware;     // Private: middleware registry
 
   constructor(config = {}) {

@@ -66,18 +66,18 @@ export function autoIndex(title = EMPTY, files = []) {
 
 /**
  * Serves files from filesystem
- * @param {Object} app - Woodland application instance
+ * @param {Object} config - File server config (autoIndex, charset, indexes, logger, stream, etag)
  * @param {Object} req - Request object
  * @param {Object} res - Response object
  * @param {string} arg - File path argument
  * @param {string} [folder=process.cwd()] - Root folder to serve from
  */
-export async function serve(app, req, res, arg, folder = process.cwd()) {
+export async function serve(config, req, res, arg, folder = process.cwd()) {
 	const fp = resolve(folder, arg);
 	const resolvedFolder = resolve(folder);
 
 	if (!fp.startsWith(resolvedFolder)) {
-		app.logger.logServe(req, MSG_SERVE_PATH_OUTSIDE);
+		config.logger.logServe(req, MSG_SERVE_PATH_OUTSIDE);
 		res.error(INT_403, new Error(STATUS_CODES[INT_403]));
 
 		return;
@@ -86,7 +86,7 @@ export async function serve(app, req, res, arg, folder = process.cwd()) {
 	let valid = true;
 	let stats;
 
-	app.logger.logServe(req, MSG_ROUTING_FILE);
+	config.logger.logServe(req, MSG_ROUTING_FILE);
 
 	try {
 		stats = await stat(fp, { bigint: false });
@@ -97,9 +97,9 @@ export async function serve(app, req, res, arg, folder = process.cwd()) {
 	if (!valid) {
 		res.error(INT_404, new Error(STATUS_CODES[INT_404]));
 	} else if (!stats.isDirectory()) {
-		app.stream(req, res, {
-			charset: app.charset,
-			etag: app.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
+		config.stream(req, res, {
+			charset: config.charset,
+			etag: config.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
 			path: fp,
 			stats: stats,
 		});
@@ -109,29 +109,28 @@ export async function serve(app, req, res, arg, folder = process.cwd()) {
 		const files = await readdir(fp, { encoding: UTF8, withFileTypes: true });
 		let result = EMPTY;
 
-		const indexes = app.indexes;
 		for (let i = 0; i < files.length; i++) {
 			const file = files[i];
-			if (indexes.includes(file.name)) {
+			if (config.indexes.includes(file.name)) {
 				result = join(fp, file.name);
 				break;
 			}
 		}
 
 		if (!result.length) {
-			if (!app.autoIndex) {
+			if (!config.autoIndex) {
 				res.error(INT_404, new Error(STATUS_CODES[INT_404]));
 			} else {
 				const body = autoIndex(decodeURIComponent(req.parsed.pathname), files);
-				res.header(CONTENT_TYPE, `${TEXT_HTML}; charset=${app.charset}`);
+				res.header(CONTENT_TYPE, `${TEXT_HTML}; charset=${config.charset}`);
 				res.send(body);
 			}
 		} else {
 			const rstats = await stat(result, { bigint: false });
 
-			app.stream(req, res, {
-				charset: app.charset,
-				etag: app.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
+			config.stream(req, res, {
+				charset: config.charset,
+				etag: config.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
 				path: result,
 				stats: rstats,
 			});
@@ -141,26 +140,26 @@ export async function serve(app, req, res, arg, folder = process.cwd()) {
 
 /**
  * Registers file serving middleware for a root path
- * @param {Object} app - Woodland application instance
+ * @param {Object} config - File server config
  * @param {string} root - Root path to register
  * @param {string} folder - Folder to serve files from
  * @param {Function} useMiddleware - Middleware registration function
  */
-export function register(app, root, folder, useMiddleware) {
+export function register(config, root, folder, useMiddleware) {
 	useMiddleware(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) =>
-		serve(app, req, res, req.parsed.pathname.substring(1), folder),
+		serve(config, req, res, req.parsed.pathname.substring(1), folder),
 	);
 }
 
 /**
  * Creates file server middleware for serving static files
- * @param {Object} app - Woodland application instance
+ * @param {Object} config - File server config (autoIndex, charset, indexes, logger, stream, etag)
  * @returns {Object} File server with register, serve methods
  */
-export function createFileServer(app) {
+export function createFileServer(config) {
 	return Object.freeze({
 		register: (root, folder, useMiddleware) =>
-			register(app, root, folder, useMiddleware || app.use.bind(app)),
-		serve: (req, res, arg, folder) => serve(app, req, res, arg, folder),
+			register(config, root, folder, useMiddleware || config.use),
+		serve: (req, res, arg, folder) => serve(config, req, res, arg, folder),
 	});
 }

@@ -48,11 +48,12 @@ const app = woodland({
 Extends `EventEmitter`. Provides HTTP server functionality with middleware routing.
 
 **Implementation Notes:**
-- Uses ES2022 private fields (`#`) for internal state
+- Uses ES2022 private fields (`#`) for all internal state
 - All private fields are inaccessible from outside the class
-- Public getters return copies or frozen objects to prevent mutation:
-  - `indexes`, `origins`, `logging` return copies
-  - `logger`, `fileServer`, `etags` return frozen objects
+- Only 1 getter is exposed: `logger` (returns frozen object)
+- All configuration (`autoIndex`, `charset`, `corsExpose`, `digit`, `time`, `etags`, `indexes`, `logging`, `origins`) is private
+- All internal state (`cache`, `permissions`, `methods`, `fileServer`, `middleware`, `defaultHeaders`) is private
+- File server receives config via closure (no app property access needed)
 
 ### Constructor
 
@@ -69,21 +70,13 @@ new Woodland(config)
 
 ### Public Getters
 
-The following read-only properties are available via public getters:
+The following read-only property is available via public getter:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `autoIndex` | `boolean` | Directory indexing enabled |
-| `charset` | `string` | Default character set |
-| `corsExpose` | `string` | CORS expose headers |
-| `digit` | `number` | Digit precision for timing |
-| `etags` | `Object\|null` | ETag helper (`{create, middleware}`) or `null` if disabled |
-| `indexes` | `Array<string>` | Copy of index files array |
-| `logging` | `Object` | Logging configuration (frozen copy) |
-| `origins` | `Set<string>` | Copy of CORS origins set |
-| `time` | `boolean` | X-Response-Time header enabled |
 | `logger` | `Object` | Frozen logger object |
-| `fileServer` | `Object` | Frozen file server with `register`, `serve` |
+
+**Note:** All other configuration and internal state is private and inaccessible from outside the class. The file server uses closure-based config injection instead of property access.
 
 **Note:** Getters return copies/frozen objects to prevent external mutation.
 
@@ -93,8 +86,7 @@ The following are **private** (ES2022 `#` fields) and not accessible from outsid
 
 - `#autoIndex`, `#charset`, `#corsExpose`, `#defaultHeaders`, `#digit`
 - `#etags`, `#indexes`, `#logging`, `#origins`, `#time`
-- `#cache`, `#permissions`, `#methods`, `#logger`
-- `#fileServer`, `#middleware`
+- `#cache`, `#permissions`, `#methods`, `#logger`, `#fileServer`, `#middleware`
 
 All internal state is encapsulated and only accessible through public methods.
 

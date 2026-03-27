@@ -1537,18 +1537,18 @@ function autoIndex(title = EMPTY, files = []) {
 
 /**
  * Serves files from filesystem
- * @param {Object} app - Woodland application instance
+ * @param {Object} config - File server config (autoIndex, charset, indexes, logger, stream, etag)
  * @param {Object} req - Request object
  * @param {Object} res - Response object
  * @param {string} arg - File path argument
  * @param {string} [folder=process.cwd()] - Root folder to serve from
  */
-async function serve(app, req, res, arg, folder = process.cwd()) {
+async function serve(config, req, res, arg, folder = process.cwd()) {
 	const fp = node_path.resolve(folder, arg);
 	const resolvedFolder = node_path.resolve(folder);
 
 	if (!fp.startsWith(resolvedFolder)) {
-		app.logger.logServe(req, MSG_SERVE_PATH_OUTSIDE);
+		config.logger.logServe(req, MSG_SERVE_PATH_OUTSIDE);
 		res.error(INT_403, new Error(node_http.STATUS_CODES[INT_403]));
 
 		return;
@@ -1557,7 +1557,7 @@ async function serve(app, req, res, arg, folder = process.cwd()) {
 	let valid = true;
 	let stats;
 
-	app.logger.logServe(req, MSG_ROUTING_FILE);
+	config.logger.logServe(req, MSG_ROUTING_FILE);
 
 	try {
 		stats = await promises.stat(fp, { bigint: false });
@@ -1568,9 +1568,9 @@ async function serve(app, req, res, arg, folder = process.cwd()) {
 	if (!valid) {
 		res.error(INT_404, new Error(node_http.STATUS_CODES[INT_404]));
 	} else if (!stats.isDirectory()) {
-		app.stream(req, res, {
-			charset: app.charset,
-			etag: app.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
+		config.stream(req, res, {
+			charset: config.charset,
+			etag: config.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
 			path: fp,
 			stats: stats,
 		});
@@ -1580,29 +1580,28 @@ async function serve(app, req, res, arg, folder = process.cwd()) {
 		const files = await promises.readdir(fp, { encoding: UTF8, withFileTypes: true });
 		let result = EMPTY;
 
-		const indexes = app.indexes;
 		for (let i = 0; i < files.length; i++) {
 			const file = files[i];
-			if (indexes.includes(file.name)) {
+			if (config.indexes.includes(file.name)) {
 				result = node_path.join(fp, file.name);
 				break;
 			}
 		}
 
 		if (!result.length) {
-			if (!app.autoIndex) {
+			if (!config.autoIndex) {
 				res.error(INT_404, new Error(node_http.STATUS_CODES[INT_404]));
 			} else {
 				const body = autoIndex(decodeURIComponent(req.parsed.pathname), files);
-				res.header(CONTENT_TYPE, `${TEXT_HTML}; charset=${app.charset}`);
+				res.header(CONTENT_TYPE, `${TEXT_HTML}; charset=${config.charset}`);
 				res.send(body);
 			}
 		} else {
 			const rstats = await promises.stat(result, { bigint: false });
 
-			app.stream(req, res, {
-				charset: app.charset,
-				etag: app.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
+			config.stream(req, res, {
+				charset: config.charset,
+				etag: config.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
 				path: result,
 				stats: rstats,
 			});
@@ -1612,27 +1611,27 @@ async function serve(app, req, res, arg, folder = process.cwd()) {
 
 /**
  * Registers file serving middleware for a root path
- * @param {Object} app - Woodland application instance
+ * @param {Object} config - File server config
  * @param {string} root - Root path to register
  * @param {string} folder - Folder to serve files from
  * @param {Function} useMiddleware - Middleware registration function
  */
-function register(app, root, folder, useMiddleware) {
+function register(config, root, folder, useMiddleware) {
 	useMiddleware(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) =>
-		serve(app, req, res, req.parsed.pathname.substring(1), folder),
+		serve(config, req, res, req.parsed.pathname.substring(1), folder),
 	);
 }
 
 /**
  * Creates file server middleware for serving static files
- * @param {Object} app - Woodland application instance
+ * @param {Object} config - File server config (autoIndex, charset, indexes, logger, stream, etag)
  * @returns {Object} File server with register, serve methods
  */
-function createFileServer(app) {
+function createFileServer(config) {
 	return Object.freeze({
 		register: (root, folder, useMiddleware) =>
-			register(app, root, folder, useMiddleware || app.use.bind(app)),
-		serve: (req, res, arg, folder) => serve(app, req, res, arg, folder),
+			register(config, root, folder, useMiddleware || config.use),
+		serve: (req, res, arg, folder) => serve(config, req, res, arg, folder),
 	});
 }
 
@@ -1723,7 +1722,14 @@ class Woodland extends node_events.EventEmitter {
 			format: this.#logging.format,
 			level: this.#logging.level,
 		});
-		this.#fileServer = createFileServer(this);
+		this.#fileServer = createFileServer({
+			autoIndex: this.#autoIndex,
+			charset: this.#charset,
+			indexes: this.#indexes,
+			logger: this.#logger,
+			stream: this.stream.bind(this),
+			etag: this.etag.bind(this),
+		});
 		this.#middleware = createMiddlewareRegistry(this.#methods, this.#cache);
 
 		if (this.#etags !== null) {
@@ -2229,49 +2235,8 @@ class Woodland extends node_events.EventEmitter {
 		return this;
 	}
 
-	// Public getters for configuration (read-only)
-	get autoIndex() {
-		return this.#autoIndex;
-	}
-
-	get charset() {
-		return this.#charset;
-	}
-
-	get corsExpose() {
-		return this.#corsExpose;
-	}
-
-	get digit() {
-		return this.#digit;
-	}
-
-	get etags() {
-		return this.#etags;
-	}
-
-	get indexes() {
-		return [...this.#indexes];
-	}
-
-	get logging() {
-		return { ...this.#logging };
-	}
-
-	get origins() {
-		return new Set(this.#origins);
-	}
-
-	get time() {
-		return this.#time;
-	}
-
 	get logger() {
 		return this.#logger;
-	}
-
-	get fileServer() {
-		return this.#fileServer;
 	}
 }
 

@@ -7,12 +7,13 @@ describe("fileserver", () => {
 		const createMockApp = () => ({
 			charset: "utf-8",
 			indexes: ["index.html", "index.htm"],
-			autoindex: true,
+			autoIndex: true,
 			logger: {
 				logServe: () => ({ log: () => {} }),
 			},
 			etag: () => "test-etag",
 			stream: () => {},
+			use: () => {},
 		});
 
 		it("should create file server with serve and register methods", () => {
