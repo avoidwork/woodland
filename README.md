@@ -414,10 +414,15 @@ app.logger.logServe(req, "Serving file");
 
 // Common Log Format
 app.logger.clf(req, res); // "127.0.0.1 - - [date] \"GET / HTTP/1.1\" 200 1234"
+```
 
-// Time formatting
-app.logger.ms(1234567); // "1.234 ms"
-app.logger.timeOffset(300); // "-0500" (timezone offset)
+**Standalone utilities** (import separately):
+
+```javascript
+import { ms, timeOffset } from "woodland";
+
+ms(1234567); // "1.234 ms"
+timeOffset(300); // "-0500" (timezone offset)
 ```
 
 ## CLI
