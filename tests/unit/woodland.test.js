@@ -206,7 +206,7 @@ describe("woodland", () => {
 		});
 
 		describe("ignore", () => {
-			it("should return app instance for chaining", () => {
+			it("should add function to ignored set", () => {
 				const handler = () => {};
 				app.ignore(handler);
 				assert.strictEqual(app.ignore(handler), app);
