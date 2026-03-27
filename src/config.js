@@ -145,10 +145,10 @@ export function validateLogging(logging = {}) {
 	const level = resolveLoggingValue(logging.level, envLogLevel, INFO);
 
 	if (!VALID_LOG_LEVELS.has(level)) {
-		return { enabled, format, level: INFO };
+		return Object.freeze({ enabled, format, level: INFO });
 	}
 
-	return { enabled, format, level };
+	return Object.freeze({ enabled, format, level });
 }
 
 /**

@@ -623,28 +623,6 @@ describe("woodland", () => {
 		it("should delegate to file server in serve", async () => {
 			const app = woodland();
 
-			const req = {
-				method: "GET",
-				headers: {},
-				url: "/test.txt",
-				socket: null,
-				parsed: { pathname: "/test.txt" },
-			};
-			const res = {
-				statusCode: 200,
-				setHeader: () => {},
-				on: () => {},
-				end: () => {},
-				error: () => {},
-				set: () => {},
-				send: () => {},
-				header: () => {},
-				getHeader: () => void 0,
-				removeHeader: () => {},
-				headersSent: false,
-				logServe: () => {},
-			};
-
 			// Verify fileServer methods exist and are callable
 			assert.strictEqual(typeof app.fileServer.serve, "function");
 			assert.strictEqual(typeof app.fileServer.register, "function");
