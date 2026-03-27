@@ -408,6 +408,44 @@ describe("woodland", () => {
 			assert.strictEqual(app.logging.enabled, true);
 			assert.strictEqual(app.logging.level, "debug");
 		});
+
+		it("should expose public getters for configuration", () => {
+			const app = woodland({
+				autoIndex: true,
+				charset: "utf-8",
+				corsExpose: "x-custom",
+				digit: 2,
+				etags: true,
+				indexes: ["index.html"],
+				origins: ["http://example.com"],
+				time: true,
+			});
+
+			assert.strictEqual(app.autoIndex, true);
+			assert.strictEqual(app.charset, "utf-8");
+			assert.strictEqual(app.corsExpose, "x-custom");
+			assert.strictEqual(app.digit, 2);
+			assert.ok(app.etags);
+			assert.deepStrictEqual(app.indexes, ["index.html"]);
+			assert.strictEqual(app.origins.size, 1);
+			assert.strictEqual(app.time, true);
+		});
+
+		it("should return copies from getters to prevent mutation", () => {
+			const app = woodland({
+				indexes: ["index.html"],
+				origins: ["http://example.com"],
+			});
+
+			const indexes = app.indexes;
+			const origins = app.origins;
+
+			indexes.push("other.html");
+			origins.add("http://other.com");
+
+			assert.deepStrictEqual(app.indexes, ["index.html"]);
+			assert.strictEqual(app.origins.size, 1);
+		});
 	});
 
 	describe("Woodland request handling", () => {
