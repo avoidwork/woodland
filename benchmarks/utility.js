@@ -51,6 +51,7 @@ const createMockResponse = () => {
 		send: (_data) => {},
 		json: (_data) => {},
 		redirect: (_url, _statusCode) => {},
+		error: (_status, _err) => {},
 	};
 };
 
