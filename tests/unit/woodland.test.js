@@ -206,10 +206,17 @@ describe("woodland", () => {
 		});
 
 		describe("ignore", () => {
-			it("should add function to ignored set", () => {
+			it("should add function to ignored set and exclude from visible routes", () => {
 				const handler = () => {};
+
+				app.use("/test", handler);
 				app.ignore(handler);
-				assert.strictEqual(app.ignore(handler), app);
+
+				const routes = app.routes("/test", "GET");
+				// Handler should still be in middleware array
+				assert.ok(routes.middleware.includes(handler));
+				// But should not be counted as visible
+				assert.strictEqual(routes.visible, 0);
 			});
 
 			it("should return app instance for chaining", () => {
