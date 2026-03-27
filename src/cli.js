@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { createServer } from "node:http";
+import { fileURLToPath } from "node:url";
 import { coerce } from "tiny-coerce";
 import { woodland } from "woodland";
 import { isValidIP } from "./request.js";
@@ -114,7 +115,7 @@ export function main(args = process.argv) {
 }
 
 // CLI entry point - only run when executed directly
-const path = process.argv[1];
-if (path && (path.endsWith("cli.js") || path.endsWith("cli.cjs"))) {
+const __filename = fileURLToPath(import.meta.url);
+if (process.argv[1] && process.argv[1] === __filename) {
 	main();
 }
