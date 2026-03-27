@@ -129,9 +129,15 @@ describe("Constants", () => {
 	describe("String and Symbol Constants", () => {
 		it("should export common symbols and strings", () => {
 			// Test some common constants that might be used
-			assert.ok(typeof constants.EMPTY === "string" || constants.EMPTY === undefined);
-			assert.ok(typeof constants.SLASH === "string" || constants.SLASH === undefined);
-			assert.ok(typeof constants.COMMA === "string" || constants.COMMA === undefined);
+			if (constants.EMPTY !== undefined) {
+				assert.strictEqual(typeof constants.EMPTY, "string");
+			}
+			if (constants.SLASH !== undefined) {
+				assert.strictEqual(typeof constants.SLASH, "string");
+			}
+			if (constants.COMMA !== undefined) {
+				assert.strictEqual(typeof constants.COMMA, "string");
+			}
 		});
 	});
 

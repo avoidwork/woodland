@@ -195,7 +195,8 @@ registry.list(method, type)  // "array" or "object"
 **Cache key format:** `${method}${DELIMITER}${uri}` (e.g., `"GET|/test"`)
 
 **Important:**
-- Middleware registry is internal, accessed via `app.middleware` getter
+- Middleware registry is entirely internal (private field `#middleware`)
+- Public API for route inspection: `app.allowed()`, `app.routes()`, `app.list()`
 - `allowed()` and `allows()` are now private methods (`#allowed`, `#allows`)
 
 ### File Server (`src/fileserver.js`)

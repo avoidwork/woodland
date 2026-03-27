@@ -30,6 +30,7 @@ describe("logger", () => {
 		it("should normalize invalid log level to info", () => {
 			const logger = createLogger({ level: "invalid" });
 			assert.ok(logger.log);
+			assert.strictEqual(typeof logger.log, "function");
 		});
 
 		it("should return logger object with all methods", () => {
