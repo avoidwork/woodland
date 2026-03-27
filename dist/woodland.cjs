@@ -1711,7 +1711,7 @@ class Woodland extends node_events.EventEmitter {
 			finalHeaders[key],
 		]);
 		this.#digit = digit;
-		this.#etags = etags ? tinyEtag.etag({ cacheSize, cacheTTL }) : null;
+		this.#etags = etags ? Object.freeze(tinyEtag.etag({ cacheSize, cacheTTL })) : null;
 		this.#indexes = [...indexes];
 		this.#logging = Object.freeze(validateLogging(logging));
 		this.#origins = new Set(origins);

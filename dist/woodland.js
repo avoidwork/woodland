@@ -1680,7 +1680,7 @@ class Woodland extends EventEmitter {
 			finalHeaders[key],
 		]);
 		this.#digit = digit;
-		this.#etags = etags ? etag({ cacheSize, cacheTTL }) : null;
+		this.#etags = etags ? Object.freeze(etag({ cacheSize, cacheTTL })) : null;
 		this.#indexes = [...indexes];
 		this.#logging = Object.freeze(validateLogging(logging));
 		this.#origins = new Set(origins);
