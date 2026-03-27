@@ -258,7 +258,10 @@ describe("woodland", () => {
 				app.files("/static", "/tmp");
 
 				const routes = app.routes("/static/test.txt", "GET");
+				// Verify file server registered middleware by checking route has handlers
 				assert.ok(routes.middleware.length > 0);
+				// File server registers a handler function - verify it's callable
+				assert.strictEqual(typeof routes.middleware[0], "function");
 			});
 
 			it("should use process.cwd() as default folder", () => {
