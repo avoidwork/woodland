@@ -1642,6 +1642,23 @@ function createFileServer(app) {
  * @extends {EventEmitter}
  */
 class Woodland extends node_events.EventEmitter {
+	#autoIndex;
+	#charset;
+	#corsExpose;
+	#defaultHeaders;
+	#digit;
+	#etags;
+	#indexes;
+	#logging;
+	#origins;
+	#time;
+	#cache;
+	#permissions;
+	#methods;
+	#logger;
+	#fileServer;
+	#middleware;
+
 	/**
 	 * Creates a new Woodland instance
 	 * @param {Object} [config={}] - Configuration object
@@ -1675,53 +1692,52 @@ class Woodland extends node_events.EventEmitter {
 			indexes,
 			logging,
 			origins,
-			silent,
 			time,
 		} = validated;
 
 		const finalHeaders = { ...defaultHeaders };
-		if (!silent) {
+		if (!validated.silent) {
 			if (!(SERVER in finalHeaders)) {
 				finalHeaders[SERVER] = SERVER_VALUE;
 			}
 			finalHeaders[X_POWERED_BY] = X_POWERED_BY_VALUE;
 		}
 
-		this.autoIndex = autoIndex;
-		this.charset = charset;
-		this.corsExpose = corsExpose;
-		this.defaultHeaders = Reflect.ownKeys(finalHeaders).map((key) => [
+		this.#autoIndex = autoIndex;
+		this.#charset = charset;
+		this.#corsExpose = corsExpose;
+		this.#defaultHeaders = Reflect.ownKeys(finalHeaders).map((key) => [
 			key.toLowerCase(),
 			finalHeaders[key],
 		]);
-		this.digit = digit;
-		this.etags = etags ? tinyEtag.etag({ cacheSize, cacheTTL }) : null;
-		this.indexes = [...indexes];
-		this.logging = validateLogging(logging);
-		this.origins = new Set(origins);
-		this.time = time;
-		this.cache = tinyLru.lru(cacheSize, cacheTTL);
-		this.permissions = new Map();
-		this.methods = [];
-		this.logger = createLogger({
-			enabled: this.logging.enabled,
-			format: this.logging.format,
-			level: this.logging.level,
+		this.#digit = digit;
+		this.#etags = etags ? tinyEtag.etag({ cacheSize, cacheTTL }) : null;
+		this.#indexes = [...indexes];
+		this.#logging = validateLogging(logging);
+		this.#origins = new Set(origins);
+		this.#time = time;
+		this.#cache = tinyLru.lru(cacheSize, cacheTTL);
+		this.#permissions = new Map();
+		this.#methods = [];
+		this.#logger = createLogger({
+			enabled: this.#logging.enabled,
+			format: this.#logging.format,
+			level: this.#logging.level,
 		});
-		this.fileServer = createFileServer(this);
-		this.middleware = createMiddlewareRegistry(this.methods, this.cache);
+		this.#fileServer = createFileServer(this);
+		this.#middleware = createMiddlewareRegistry(this.#methods, this.#cache);
 
-		if (this.etags !== null) {
-			this.get(this.etags.middleware).ignore(this.etags.middleware);
+		if (this.#etags !== null) {
+			this.get(this.#etags.middleware).ignore(this.#etags.middleware);
 		}
 
-		if (this.origins.size > INT_0) {
+		if (this.#origins.size > INT_0) {
 			const fnCorsRequest = corsRequest();
 			this.options(fnCorsRequest).ignore(fnCorsRequest);
 		}
 
 		this.on(ERROR, (req, _res, _error) =>
-			this.logger.logError(req.parsed.pathname, req.method, req.ip),
+			this.#logger.logError(req.parsed.pathname, req.method, req.ip),
 		);
 	}
 
@@ -1732,8 +1748,8 @@ class Woodland extends node_events.EventEmitter {
 	 * @param {boolean} [override=false] - Override cache
 	 * @returns {boolean} True if method is allowed
 	 */
-	allowed(method, uri, override = false) {
-		return this.middleware.allowed(method, uri, override);
+	#allowed(method, uri, override = false) {
+		return this.#middleware.allowed(method, uri, override);
 	}
 
 	/**
@@ -1742,22 +1758,22 @@ class Woodland extends node_events.EventEmitter {
 	 * @param {boolean} [override=false] - Override cache
 	 * @returns {string} Comma-separated list of allowed methods
 	 */
-	allows(uri, override = false) {
-		let result = override === false ? this.permissions.get(uri) : void 0;
+	#allows(uri, override = false) {
+		let result = override === false ? this.#permissions.get(uri) : void 0;
 
 		if (override || result === void 0) {
 			const methodSet = new Set();
 
-			for (let i = 0; i < this.methods.length; i++) {
-				if (this.allowed(this.methods[i], uri, override)) {
-					methodSet.add(this.methods[i]);
+			for (let i = 0; i < this.#methods.length; i++) {
+				if (this.#allowed(this.#methods[i], uri, override)) {
+					methodSet.add(this.#methods[i]);
 				}
 			}
 
-			const list = this.buildAllowedList(methodSet);
+			const list = this.#buildAllowedList(methodSet);
 			result = list.sort().join(COMMA_SPACE);
-			this.permissions.set(uri, result);
-			this.logger.log(
+			this.#permissions.set(uri, result);
+			this.#logger.log(
 				`type=allows, uri=${uri}, override=${override}, message="Determined 'allow' header value"`,
 			);
 		}
@@ -1770,7 +1786,7 @@ class Woodland extends node_events.EventEmitter {
 	 * @param {Set} methodSet - Set of explicitly registered methods
 	 * @returns {Array} Array of allowed methods
 	 */
-	buildAllowedList(methodSet) {
+	#buildAllowedList(methodSet) {
 		const list = [...methodSet];
 
 		if (list.length > 0) {
@@ -1793,7 +1809,7 @@ class Woodland extends node_events.EventEmitter {
 	 */
 	always(...args) {
 		for (let i = 0; i < args.length; i++) {
-			this.middleware.ignore(args[i]);
+			this.#middleware.ignore(args[i]);
 		}
 
 		return this.use(...args, WILDCARD);
@@ -1813,16 +1829,16 @@ class Woodland extends node_events.EventEmitter {
 	 * @param {Object} req - HTTP request object
 	 * @param {Object} res - HTTP response object
 	 */
-	decorate(req, res) {
-		const timing = this.time ? precise.precise().start() : null;
+	#decorate(req, res) {
+		const timing = this.#time ? precise.precise().start() : null;
 		const parsed = parse(req);
-		const allowString = this.allows(parsed.pathname);
+		const allowString = this.#allows(parsed.pathname);
 		const clientIP = extractIP(req);
 		const headersBatch = Object.create(null);
 		headersBatch[ALLOW] = allowString;
 		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
 
-		const defaultHeaders = this.defaultHeaders;
+		const defaultHeaders = this.#defaultHeaders;
 		const headerCount = defaultHeaders.length;
 		for (let i = 0; i < headerCount; i++) {
 			const [key, value] = defaultHeaders[i];
@@ -1830,7 +1846,7 @@ class Woodland extends node_events.EventEmitter {
 		}
 
 		req.corsHost = corsHost(req);
-		req.cors = cors(req, this.origins);
+		req.cors = cors(req, this.#origins);
 		req.parsed = parsed;
 		req.allow = allowString;
 		req.ip = clientIP;
@@ -1844,7 +1860,7 @@ class Woodland extends node_events.EventEmitter {
 		}
 
 		if (req.cors) {
-			this.addCorsHeaders(req, headersBatch);
+			this.#addCorsHeaders(req, headersBatch);
 		}
 
 		res.locals = {};
@@ -1852,13 +1868,13 @@ class Woodland extends node_events.EventEmitter {
 		res.header = res.setHeader;
 		res.json = createJsonHandler(res);
 		res.redirect = createRedirectHandler(res);
-		res.send = createSendHandler(req, res, this.onReady.bind(this), this.onDone.bind(this));
+		res.send = createSendHandler(req, res, this.#onReady.bind(this), this.#onDone.bind(this));
 		res.set = createSetHandler(res);
 		res.status = createStatusHandler(res);
 
 		res.set(headersBatch);
-		res.on(EVT_CLOSE, () => this.logger.log(this.logger.clf(req, res), INFO));
-		this.logger.log(
+		res.on(EVT_CLOSE, () => this.#logger.log(this.#logger.clf(req, res), INFO));
+		this.#logger.log(
 			`type=decorate, uri=${parsed.pathname}, method=${req.method}, ip=${clientIP}, message="Decorated request from ${clientIP}"`,
 		);
 	}
@@ -1868,9 +1884,9 @@ class Woodland extends node_events.EventEmitter {
 	 * @param {Object} req - HTTP request object
 	 * @param {Object} headersBatch - Headers batch object
 	 */
-	addCorsHeaders(req, headersBatch) {
+	#addCorsHeaders(req, headersBatch) {
 		const origin = req.headers.origin;
-		const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
+		const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.#corsExpose;
 
 		headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
 		headersBatch[TIMING_ALLOW_ORIGIN] = origin;
@@ -1900,12 +1916,12 @@ class Woodland extends node_events.EventEmitter {
 	 * @returns {string} ETag string or empty string
 	 */
 	etag(method, ...args) {
-		if (!this.isHashableMethod(method) || !this.etagsEnabled()) {
+		if (!this.#isHashableMethod(method) || !this.#etagsEnabled()) {
 			return EMPTY;
 		}
 
-		const hashed = this.hashArgs(args);
-		return this.etags.create(hashed);
+		const hashed = this.#hashArgs(args);
+		return this.#etags.create(hashed);
 	}
 
 	/**
@@ -1913,7 +1929,7 @@ class Woodland extends node_events.EventEmitter {
 	 * @param {string} method - HTTP method
 	 * @returns {boolean} True if method is GET, HEAD, or OPTIONS
 	 */
-	isHashableMethod(method) {
+	#isHashableMethod(method) {
 		return method === GET || method === HEAD || method === OPTIONS;
 	}
 
@@ -1921,8 +1937,8 @@ class Woodland extends node_events.EventEmitter {
 	 * Checks if ETags are enabled
 	 * @returns {boolean} True if ETags are enabled
 	 */
-	etagsEnabled() {
-		return this.etags !== null;
+	#etagsEnabled() {
+		return this.#etags !== null;
 	}
 
 	/**
@@ -1930,7 +1946,7 @@ class Woodland extends node_events.EventEmitter {
 	 * @param {Array} args - Arguments to hash
 	 * @returns {string} Hashed string
 	 */
-	hashArgs(args) {
+	#hashArgs(args) {
 		return args
 			.map((i) => (typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i))
 			.join(HYPHEN);
@@ -1943,7 +1959,7 @@ class Woodland extends node_events.EventEmitter {
 	 * @returns {Woodland} Returns self for chaining
 	 */
 	files(root = SLASH, folder = process.cwd()) {
-		this.fileServer.register(root, folder, this.use.bind(this));
+		this.#fileServer.register(root, folder, this.use.bind(this));
 	}
 
 	/**
@@ -1961,8 +1977,8 @@ class Woodland extends node_events.EventEmitter {
 	 * @returns {Woodland} Returns self for chaining
 	 */
 	ignore(fn) {
-		this.middleware.ignore(fn);
-		this.logger.log(`type=ignore, message="Added function to ignored Set", name="${fn.name}"`);
+		this.#middleware.ignore(fn);
+		this.#logger.log(`type=ignore, message="Added function to ignored Set", name="${fn.name}"`);
 
 		return this;
 	}
@@ -1974,8 +1990,8 @@ class Woodland extends node_events.EventEmitter {
 	 * @returns {Array|Object} List of routes
 	 */
 	list(method = GET.toLowerCase(), type = "array") {
-		const result = this.middleware.list(method, type);
-		this.logger.log(`type=list, method=${method}, type=${type}`);
+		const result = this.#middleware.list(method, type);
+		this.#logger.log(`type=list, method=${method}, type=${type}`);
 
 		return result;
 	}
@@ -1987,7 +2003,7 @@ class Woodland extends node_events.EventEmitter {
 	 * @param {string} body - Response body
 	 * @param {Object} headers - Response headers
 	 */
-	onDone(req, res, body, headers) {
+	#onDone(req, res, body, headers) {
 		const isNoContent = res.statusCode === INT_204 || res.statusCode === INT_304;
 		const hasContentLength = res.getHeader(CONTENT_LENGTH) !== void 0;
 
@@ -1996,7 +2012,7 @@ class Woodland extends node_events.EventEmitter {
 		}
 
 		writeHead(res, headers);
-		res.end(body, this.charset);
+		res.end(body, this.#charset);
 	}
 
 	/**
@@ -2008,14 +2024,14 @@ class Woodland extends node_events.EventEmitter {
 	 * @param {Object} headers - Response headers
 	 * @returns {Array} Response array
 	 */
-	onReady(req, res, body, status, headers) {
-		if (this.time && res.getHeader(X_RESPONSE_TIME) === void 0) {
+	#onReady(req, res, body, status, headers) {
+		if (this.#time && res.getHeader(X_RESPONSE_TIME) === void 0) {
 			const diff = req.precise.stop().diff();
-			const msValue = Number(diff / 1e6).toFixed(this.digit);
+			const msValue = Number(diff / 1e6).toFixed(this.#digit);
 			res.header(X_RESPONSE_TIME, `${msValue} ms`);
 		}
 
-		return this.onSend(req, res, body, status, headers);
+		return this.#onSend(req, res, body, status, headers);
 	}
 
 	/**
@@ -2027,7 +2043,7 @@ class Woodland extends node_events.EventEmitter {
 	 * @param {Object} headers - Response headers
 	 * @returns {Array} Response array
 	 */
-	onSend(req, res, body, status, headers) {
+	#onSend(req, res, body, status, headers) {
 		if (status === 404) {
 			delete headers[ALLOW];
 			delete headers[ACCESS_CONTROL_ALLOW_METHODS];
@@ -2082,7 +2098,7 @@ class Woodland extends node_events.EventEmitter {
 	route(req, res) {
 		const method = req.method === HEAD ? GET : req.method;
 
-		this.decorate(req, res);
+		this.#decorate(req, res);
 
 		if (this.listenerCount(EVT_CONNECT) > INT_0) {
 			this.emit(EVT_CONNECT, req, res);
@@ -2092,11 +2108,11 @@ class Woodland extends node_events.EventEmitter {
 			res.on(EVT_FINISH, () => this.emit(EVT_FINISH, req, res));
 		}
 
-		this.logger.logRoute(req.parsed.pathname, req.method, req.ip);
+		this.#logger.logRoute(req.parsed.pathname, req.method, req.ip);
 
 		const hasOriginHeader = ORIGIN in req.headers;
 		const origin = hasOriginHeader ? req.headers.origin : EMPTY;
-		const isOriginAllowed = hasOriginHeader && this.origins.has(origin);
+		const isOriginAllowed = hasOriginHeader && this.#origins.has(origin);
 
 		// Check if CORS request is disallowed
 		const isCorsRequest = req.corsHost;
@@ -2107,7 +2123,7 @@ class Woodland extends node_events.EventEmitter {
 			req.valid = false;
 			res.error(INT_403, new Error(node_http.STATUS_CODES[INT_403]));
 		} else if (req.allow.includes(method)) {
-			this.handleAllowedRoute(req, res, method);
+			this.#handleAllowedRoute(req, res, method);
 		} else {
 			req.valid = false;
 			const newStatus = getStatus(req, res);
@@ -2121,8 +2137,8 @@ class Woodland extends node_events.EventEmitter {
 	 * @param {Object} res - HTTP response object
 	 * @param {string} method - Normalized HTTP method
 	 */
-	handleAllowedRoute(req, res, method) {
-		const result = this.middleware.routes(req.parsed.pathname, method);
+	#handleAllowedRoute(req, res, method) {
+		const result = this.#middleware.routes(req.parsed.pathname, method);
 
 		if (result.params) {
 			params(req, result.getParams);
@@ -2142,7 +2158,7 @@ class Woodland extends node_events.EventEmitter {
 	 * @returns {Object} Route information
 	 */
 	routes(uri, method, override = false) {
-		return this.middleware.routes(uri, method, override);
+		return this.#middleware.routes(uri, method, override);
 	}
 
 	/**
@@ -2154,7 +2170,7 @@ class Woodland extends node_events.EventEmitter {
 	 * @returns {Promise} Promise that resolves when done
 	 */
 	async serve(req, res, arg, folder = process.cwd()) {
-		return this.fileServer.serve(req, res, arg, folder);
+		return this.#fileServer.serve(req, res, arg, folder);
 	}
 
 	/**
@@ -2185,7 +2201,7 @@ class Woodland extends node_events.EventEmitter {
 			file,
 			(req, res) => this.emit(EVT_STREAM, req, res),
 			node_fs.createReadStream,
-			this.etags,
+			this.#etags,
 		);
 	}
 
@@ -2206,10 +2222,55 @@ class Woodland extends node_events.EventEmitter {
 	 * @returns {Woodland} Returns self for chaining
 	 */
 	use(rpath, ...fn) {
-		this.middleware.register(rpath, ...fn);
-		this.logger.logMiddleware(rpath, fn[fn.length - 1]);
+		this.#middleware.register(rpath, ...fn);
+		this.#logger.logMiddleware(rpath, fn[fn.length - 1]);
 
 		return this;
+	}
+
+	// Public getters for configuration (read-only)
+	get autoIndex() {
+		return this.#autoIndex;
+	}
+
+	get charset() {
+		return this.#charset;
+	}
+
+	get corsExpose() {
+		return this.#corsExpose;
+	}
+
+	get digit() {
+		return this.#digit;
+	}
+
+	get etags() {
+		return this.#etags;
+	}
+
+	get indexes() {
+		return [...this.#indexes];
+	}
+
+	get logging() {
+		return this.#logging;
+	}
+
+	get origins() {
+		return new Set(this.#origins);
+	}
+
+	get time() {
+		return this.#time;
+	}
+
+	get logger() {
+		return this.#logger;
+	}
+
+	get fileServer() {
+		return this.#fileServer;
 	}
 }
 
