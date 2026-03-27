@@ -1706,10 +1706,9 @@ class Woodland extends node_events.EventEmitter {
 		this.#autoIndex = autoIndex;
 		this.#charset = charset;
 		this.#corsExpose = corsExpose;
-		this.#defaultHeaders = Reflect.ownKeys(finalHeaders).map((key) => [
-			key.toLowerCase(),
-			finalHeaders[key],
-		]);
+		this.#defaultHeaders = Reflect.ownKeys(finalHeaders)
+			.filter((key) => typeof key === STRING)
+			.map((key) => [key.toLowerCase(), finalHeaders[key]]);
 		this.#digit = digit;
 		this.#etags = etags ? Object.freeze(tinyEtag.etag({ cacheSize, cacheTTL })) : null;
 		this.#indexes = [...indexes];
