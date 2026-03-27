@@ -1685,7 +1685,8 @@ app.onSend(req, res, body, status, headers);
 // ETag generation
 app.etag(method, ...values);
 
-// Note: always() middleware is automatically ignored
+// Note: always() middleware executes before HTTP method route handlers
+// and is automatically ignored for route visibility counts
 ```
 
 ---

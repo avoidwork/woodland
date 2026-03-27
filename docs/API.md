@@ -172,7 +172,7 @@ app.post("/users", validate, createUser);
 
 ### `always(...handlers)`
 
-Registers wildcard middleware for all HTTP methods.
+Registers wildcard middleware for all HTTP methods. This middleware executes **before** HTTP method route handlers (like `get()`, `post()`, etc.).
 
 **Parameters:**
 - `...handlers` (Function) - Middleware function(s)

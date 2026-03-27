@@ -112,7 +112,7 @@ app.files("/static", "./public");
 ### Middleware
 
 ```javascript
-// Global middleware
+// Global middleware - executes before route handlers
 app.always((req, res, next) => {
   req.startTime = Date.now();
   next();
@@ -127,6 +127,8 @@ app.use("/(.*)", (error, req, res, next) => {
   res.error(500);
 });
 ```
+
+**Note:** Middleware registered with `app.always()` executes before HTTP method route handlers (like `app.get()`, `app.post()`, etc.).
 
 ### Routing
 
