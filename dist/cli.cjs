@@ -9,11 +9,11 @@
 'use strict';
 
 var node_http = require('node:http');
+var node_url = require('node:url');
 var tinyCoerce = require('tiny-coerce');
 var woodland = require('woodland');
 var node_module = require('node:module');
 var node_path = require('node:path');
-var node_url = require('node:url');
 var mimeDb = require('mime-db');
 
 var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
@@ -208,6 +208,10 @@ function parseArgs(args) {
  * @returns {Object} Validation result with valid flag and error message
  */
 function validatePort(port) {
+	// Reject empty strings and whitespace-only values
+	if (port === EMPTY || (typeof port === STRING && port.trim() === EMPTY)) {
+		return { valid: false, error: "Invalid port: must be an integer between 0 and 65535." };
+	}
 	const validPort = Number(port);
 	if (!Number.isInteger(validPort) || validPort < INT_0 || validPort > INT_65535) {
 		return { valid: false, error: "Invalid port: must be an integer between 0 and 65535." };
@@ -276,8 +280,8 @@ function main(args = process.argv) {
 }
 
 // CLI entry point - only run when executed directly
-const path = process.argv[1];
-if (path && (path.endsWith("cli.js") || path.endsWith("cli.cjs"))) {
+const __filename$1 = node_url.fileURLToPath((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('cli.cjs', document.baseURI).href)));
+if (process.argv[1] && process.argv[1] === __filename$1) {
 	main();
 }
 
