@@ -52,6 +52,7 @@ npm run build        # Build with rollup
 | **jsonschema** | Config validation (Draft-07) |
 | **tiny-lru** | LRU caching |
 | **tiny-etag** | ETag generation |
+| **precise** | High-precision timing |
 
 ---
 
@@ -119,19 +120,26 @@ res.send = this.send(req, res);  // res.send(body, status, headers)
 ### Woodland Class (`src/woodland.js`)
 
 ```javascript
+import { woodland } from "woodland";
+
 const app = woodland({
   origins: [],          // CORS allowlist (empty = deny all)
-  autoindex: false,     // Directory listing
+  autoIndex: false,     // Directory listing
   cacheSize: 1000,      // LRU cache size
   cacheTTL: 10000,      // Cache TTL (ms)
+  charset: "utf-8",     // Default charset
+  corsExpose: "",       // CORS expose headers
+  defaultHeaders: {},   // Additional default headers
+  digit: 3,             // Digit precision for timing
   etags: true,          // ETag generation
-  time: false,          // X-Response-Time header
-  silent: false,        // Disable server headers
-  logging: {
+  indexes: ["index.htm", "index.html"],  // Index files
+  logging: {            // Logging configuration
     enabled: true,
     level: "info",
     format: "%h %l %u %t \"%r\" %>s %b"
-  }
+  },
+  silent: false,        // Disable server headers
+  time: false           // Enable X-Response-Time header
 });
 ```
 
@@ -139,8 +147,103 @@ const app = woodland({
 - Logging delegated to `this.logger.log()` (no `app.log()` method)
 - CLI uses `app.logger.log()` for startup messages
 - HEAD routes cannot be registered directly (GET implies HEAD)
+- `files()` returns `this` for chaining
+- `logger` is frozen (immutable)
 
-### Request Decorations (`src/request.js`)
+### Private Fields
+
+All internal state is encapsulated in private fields:
+
+```javascript
+#autoIndex;       // boolean
+#charset;         // string
+#corsExpose;      // string
+#defaultHeaders;  // Array<[string, string]>
+#digit;           // number
+#etags;           // Object|null (etag helper)
+#indexes;         // Array<string>
+#logging;         // Object (frozen)
+#origins;         // Set<string>
+#time;            // boolean
+#cache;           // LRU cache
+#permissions;     // Map<string, string>
+#methods;         // Array<string>
+#logger;          // Logger object (frozen)
+#fileServer;      // File server object
+#middleware;      // Middleware registry
+```
+
+### Public Getters (Read-Only)
+
+| Property | Type | Returns |
+|----------|------|---------|
+| `autoIndex` | `boolean` | Directory indexing enabled |
+| `charset` | `string` | Default character set |
+| `corsExpose` | `string` | CORS expose headers |
+| `digit` | `number` | Digit precision for timing |
+| `etags` | `Object\|null` | ETag helper or null if disabled |
+| `indexes` | `Array<string>` | Copy of index files array |
+| `logging` | `Object` | Shallow copy of logging config |
+| `origins` | `Set<string>` | Copy of CORS origins set |
+| `time` | `boolean` | X-Response-Time header enabled |
+| `logger` | `Object` | Frozen logger object |
+| `fileServer` | `Object` | File server with `register`, `serve` |
+
+### Public Methods
+
+#### Routing Methods (all return `Woodland` for chaining)
+
+| Method | Description |
+|--------|-------------|
+| `always(...fn)` | Register wildcard middleware for all methods |
+| `connect(...fn)` | Register CONNECT middleware |
+| `delete(...fn)` | Register DELETE middleware |
+| `get(...fn)` | Register GET middleware |
+| `options(...fn)` | Register OPTIONS middleware |
+| `patch(...fn)` | Register PATCH middleware |
+| `post(...fn)` | Register POST middleware |
+| `put(...fn)` | Register PUT middleware |
+| `trace(...fn)` | Register TRACE middleware |
+| `use(path, ...fn)` | Register middleware for route |
+
+#### Middleware Methods
+
+| Method | Description |
+|--------|-------------|
+| `ignore(fn)` | Add function to ignored set (excluded from visibility) |
+| `list(method?, type?)` | List routes (array or object) |
+| `routes(uri, method, override?)` | Get route information |
+
+#### Utility Methods
+
+| Method | Description |
+|--------|-------------|
+| `files(root?, folder?)` | Register file server middleware |
+| `serve(req, res, path, folder?)` | Serve file from disk (async) |
+| `stream(req, res, file)` | Stream file to response |
+| `etag(method, ...values)` | Generate ETag for response caching |
+| `route(req, res)` | Main request handler |
+
+### Private Methods
+
+Internal helpers (not accessible from outside):
+
+- `#allowed(method, uri, override)` - Check if method allowed for URI
+- `#allows(uri, override)` - Determine allowed methods for URI
+- `#buildAllowedList(methodSet)` - Build allowed methods list with HEAD/OPTIONS
+- `#decorate(req, res)` - Decorate request/response with framework utilities
+- `#addCorsHeaders(req, headersBatch)` - Add CORS headers
+- `#handleAllowedRoute(req, res, method)` - Handle routing for allowed methods
+- `#onDone(req, res, body, headers)` - Handle response done event
+- `#onReady(req, res, body, status, headers)` - Handle response ready event
+- `#onSend(req, res, body, status, headers)` - Handle response send event
+- `#isHashableMethod(method)` - Check if method can be hashed for ETags
+- `#etagsEnabled()` - Check if ETags are enabled
+- `#hashArgs(args)` - Hash arguments for ETag generation
+
+---
+
+## Request Decorations (`src/request.js`)
 
 After `decorate(req, res)`:
 
@@ -152,8 +255,11 @@ After `decorate(req, res)`:
 | `req.corsHost` | `true` if origin header exists and host differs |
 | `req.ip` | Client IP (from X-Forwarded-For or connection) |
 | `req.params` | URL parameters array |
-| `req.body` | Request body (initialized as `{}`) |
+| `req.body` | Request body (initialized as `""`) |
 | `req.valid` | Request validation flag |
+| `req.host` | Hostname from request |
+| `req.precise` | Precise timer instance (when `time: true`) |
+| `req.exit` | Iterator for exiting middleware chain early |
 
 **Exported utilities:**
 - `isValidIP(ip)` - Validate IPv4/IPv6
@@ -161,14 +267,16 @@ After `decorate(req, res)`:
 - `params(req, regex)` - Extract URL params with XSS prevention
 - `parse(url)` - Parse URL with security fallback
 
-### Response Handlers (`src/response.js`)
+---
+
+## Response Handlers (`src/response.js`)
 
 | Method | Usage | Notes |
 |--------|-------|-------|
-| `res.json(data, status, headers)` | JSON response | Always sets `Content-Type: application/json` |
-| `res.send(body, status, headers)` | Text/stream | Handles streams and ranged requests |
-| `res.redirect(url, permanent)` | Redirect | 308 permanent, 307 temporary |
-| `res.error(status, message)` | Error | Removes CORS headers if `req.cors` |
+| `res.json(data, status?, headers?)` | JSON response | Always sets `Content-Type: application/json` |
+| `res.send(body?, status?, headers?)` | Text/stream | Handles streams and ranged requests |
+| `res.redirect(url, permanent?)` | Redirect | 308 permanent, 307 temporary |
+| `res.error(status, message?)` | Error | Removes CORS headers if `req.cors` |
 | `res.set(headers)` | Set headers | Accepts Object, Map, or Headers |
 | `res.status(code)` | Set status | Simple setter |
 | `res.header(name, value)` | Native header | Direct Node.js access |
@@ -180,7 +288,9 @@ After `decorate(req, res)`:
 - `getStatusText(code)` - Get status text from `STATUS_CODES`
 - `pipeable(method, arg)` - Check if body is pipeable (excludes HEAD)
 
-### Middleware Registry (`src/middleware.js`)
+---
+
+## Middleware Registry (`src/middleware.js`)
 
 ```javascript
 // Middleware registry methods (internal, not exposed on app)
@@ -198,10 +308,10 @@ registry.list(method, type)  // "array" or "object"
 - Middleware registry is entirely internal (private field `#middleware`)
 - Public API for route inspection: `app.routes()`, `app.list()`
 - `#allowed()` and `#allows()` are private methods for internal use
-- Private fields: `#autoIndex`, `#charset`, `#corsExpose`, `#defaultHeaders`, `#digit`, `#etags`, `#indexes`, `#logging`, `#origins`, `#time`, `#cache`, `#permissions`, `#methods`, `#logger`, `#fileServer`, `#middleware`
-- Public getters (read-only): `autoIndex`, `charset`, `corsExpose`, `digit`, `etags`, `indexes`, `logging`, `origins`, `time`, `logger`, `fileServer`
 
-### File Server (`src/fileserver.js`)
+---
+
+## File Server (`src/fileserver.js`)
 
 ```javascript
 // Serve static files
@@ -216,7 +326,9 @@ await app.serve(req, res, "/path/to/file", "./public");
 - Directories redirect to add trailing slash, or serve autoindex
 - Index files: `index.htm`, `index.html`
 
-### Config Validation (`src/config.js`)
+---
+
+## Config Validation (`src/config.js`)
 
 ```javascript
 // Validation functions
@@ -232,7 +344,7 @@ const origins = validateOrigins(["https://app.com", "*"]);
 
 ---
 
-### Logger (`src/logger.js`)
+## Logger (`src/logger.js`)
 
 ```javascript
 // Create logger
@@ -241,9 +353,20 @@ const logger = createLogger({ enabled: true, level: "debug" });
 // Usage
 logger.log("type=woodland, message=started", LOG_INFO);
 logger.clf(req, res);  // Common Log Format
-logger.ms(1234567);    // "1.234 ms"
-logger.timeOffset(300); // "-0500" (timezone)
 ```
+
+**Logger methods (frozen object):**
+- `log(msg, level?)` - Log a message
+- `logError(path, method, ip)` - Log an error
+- `logRoute(path, method, ip)` - Log a route access
+- `logMiddleware(path, handler)` - Log middleware registration
+- `logDecoration(path, method, ip)` - Log request decoration
+- `logServe(req, message)` - Log file serving
+- `clf(req, res)` - Generate Common Log Format string
+
+**Standalone exports (not on logger object):**
+- `ms(nanoseconds)` - Format nanoseconds to milliseconds
+- `timeOffset(minutes)` - Format timezone offset
 
 **Log levels:** emerg (0), alert (1), crit (2), error (3), warn (4), notice (5), info (6), debug (7)
 
@@ -302,21 +425,6 @@ WOODLAND_LOG_LEVEL=debug|info|warn|error|...
 | Node.js HTTP | 0.1092ms | 9,180 |
 | Express | 0.1043ms | 9,591 |
 
-**Additional Performance Metrics:**
-
-| Category | Metric | Result |
-|----------|--------|--------|
-| **Routing** | Method validation (`allows()`) | 3.7M ops/sec |
-| | Route resolution (`routes()`) | 922K ops/sec |
-| **Middleware** | Registration | 20K+ ops/sec |
-| | Simple execution | 29K ops/sec |
-| **HTTP Server** | JSON responses | 7,266 ops/sec |
-| | CRUD operations | 6-7K ops/sec |
-| **File Serving** | Small files (< 1KB) | 44K ops/sec |
-| | Streaming with ETags | 370K ops/sec |
-| **Capacity** | Single instance (JSON API) | 4,000-7,000 RPS |
-| | Cluster (10 instances) | 50,000-70,000 RPS |
-
 ---
 
 ## Testing Guidelines
@@ -360,7 +468,6 @@ For benchmark tests, mock responses must include:
 ### Adding a New Route
 
 ```javascript
-// src/woodland.js or app setup
 app.get("/api/users/:id", (req, res) => {
   const userId = req.params.id;
   res.json({ id: userId });
@@ -396,7 +503,7 @@ const app = woodland({
 ### Serving Static Files
 
 ```javascript
-const app = woodland({ autoindex: true });
+const app = woodland({ autoIndex: true });
 app.files("/static", "./public");
 ```
 
