@@ -825,9 +825,7 @@ Memory components:
   - $p$ is number of decorated properties (parsed, allow, cors, ip, etc.)
 - **Stream Buffers**: $O(b)$ for file serving buffer size $b$
 - **Header Batching**: $O(h)$ for batch header operations with $h$ headers
-- **Structured Clone**: $O(s \cdot n)$ for cloned objects where:
-  - $s$ is object size
-  - $n$ is number of cloned objects (origins, indexes arrays)
+- **Object Freezing**: $O(1)$ for frozen objects (logger, fileServer, etags, logging config)
 
 #### Error Handling Model
 
@@ -1262,7 +1260,7 @@ While lightweight by design, Woodland provides the security foundation needed fo
 
 ## Test Coverage
 
-Woodland maintains comprehensive test coverage with **296 tests passing**. The framework achieves high coverage across all modules.
+Woodland maintains comprehensive test coverage with **298 tests passing**. The framework achieves high coverage across all modules.
 
 ### Coverage Metrics
 

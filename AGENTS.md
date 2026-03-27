@@ -148,7 +148,10 @@ const app = woodland({
 - CLI uses `app.logger.log()` for startup messages
 - HEAD routes cannot be registered directly (GET implies HEAD)
 - `files()` returns `this` for chaining
-- `logger` is frozen (immutable)
+- All public objects are frozen to prevent mutation:
+  - `logger`, `fileServer`, `etags` return frozen objects
+  - `logging` config is frozen
+  - `indexes`, `origins` return copies
 
 ### Private Fields
 
@@ -181,13 +184,13 @@ All internal state is encapsulated in private fields:
 | `charset` | `string` | Default character set |
 | `corsExpose` | `string` | CORS expose headers |
 | `digit` | `number` | Digit precision for timing |
-| `etags` | `Object\|null` | ETag helper or null if disabled |
+| `etags` | `Object\|null` | Frozen ETag helper or null if disabled |
 | `indexes` | `Array<string>` | Copy of index files array |
-| `logging` | `Object` | Shallow copy of logging config |
+| `logging` | `Object` | Frozen logging config |
 | `origins` | `Set<string>` | Copy of CORS origins set |
 | `time` | `boolean` | X-Response-Time header enabled |
 | `logger` | `Object` | Frozen logger object |
-| `fileServer` | `Object` | File server with `register`, `serve` |
+| `fileServer` | `Object` | Frozen file server with `register`, `serve` |
 
 ### Public Methods
 

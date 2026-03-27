@@ -48,8 +48,9 @@ Extends `EventEmitter`. Provides HTTP server functionality with middleware routi
 **Implementation Notes:**
 - Uses ES2022 private fields (`#`) for internal state
 - All private fields are inaccessible from outside the class
-- Public getters return copies/frozen objects where applicable (`indexes`, `origins`, `logging`, `logger`, `fileServer`)
-- Some getters return internal objects directly (`etags`)
+- Public getters return copies or frozen objects to prevent mutation:
+  - `indexes`, `origins`, `logging` return copies
+  - `logger`, `fileServer`, `etags` return frozen objects
 
 ### Constructor
 
@@ -761,7 +762,7 @@ app.on("stream", (req, res) => {
 
 ## Logger API
 
-Access via `app.logger`.
+Access via `app.logger` (frozen object).
 
 ### `logger.log(message, level?)`
 
@@ -860,33 +861,7 @@ const clf = app.logger.clf(req, res);
 // "192.168.1.1 - - [20/Mar/2026:10:30:00 +0000] \"GET / HTTP/1.1\" 200 1234"
 ```
 
-### `logger.ms(nanoseconds)`
-
-Formats nanoseconds to milliseconds.
-
-**Parameters:**
-- `nanoseconds` (number) - Time in nanoseconds
-
-**Returns:** `string` - Formatted milliseconds
-
-**Example:**
-```javascript
-app.logger.ms(1234567); // "1.234 ms"
-```
-
-### `logger.timeOffset(minutes)`
-
-Gets timezone offset string.
-
-**Parameters:**
-- `minutes` (number) - Timezone offset in minutes
-
-**Returns:** `string` - Formatted offset
-
-**Example:**
-```javascript
-app.logger.timeOffset(-300); // "-0500"
-```
+**Note:** `ms()` and `timeOffset()` are standalone exports, not logger methods.
 
 ---
 
