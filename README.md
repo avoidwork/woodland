@@ -142,6 +142,44 @@ app.get("/files/:path(.*)", handler);
 app.get("/api/*", apiMiddleware);
 ```
 
+## Migrating from Express
+
+Woodland provides Express-compatible middleware and routing:
+
+```javascript
+// Express
+app.use(express.json());
+app.use(cors());
+
+// Woodland - same patterns!
+app.always((req, res, next) => {
+  // Body parsing is built-in when using middleware
+  next();
+});
+```
+
+**Key differences:**
+
+| Feature | Express | Woodland |
+|---------|---------|----------|
+| Body parsing | Requires `express.json()` | Built-in with middleware |
+| CORS | Requires `cors` package | Built-in via `origins` config |
+| File serving | Requires `express.static()` | Built-in via `app.files()` |
+| Error handling | `app.use((err, req, res, next) => {})` | Same pattern (4 params) |
+| Method routing | `app.get()`, `app.post()`, etc. | Same methods |
+
+**Quick migration:**
+
+```javascript
+// Before (Express)
+const express = require("express");
+const app = express();
+
+// After (Woodland)
+const { woodland } = require("woodland");
+const app = woodland();
+```
+
 ## Configuration
 
 ```javascript
@@ -343,25 +381,6 @@ app.use((req, res, next) => {
 });
 ```
 
-## Performance Patterns
-
-```javascript
-// Use for loops instead of for..of in hot paths
-for (let i = 0; i < files.length; i++) {
-  const file = files[i];
-  // Process file
-}
-
-// Use Set for O(1) lookups
-const ignored = new Set();
-if (!ignored.has(fn)) {
-  // Process
-}
-
-// Use Object.create(null) for null-prototype objects
-const headers = Object.create(null);
-```
-
 ## File Server
 
 ```javascript
@@ -382,8 +401,10 @@ app.stream(req, res, {
 
 ## Logger
 
+Woodland includes a built-in logger with Common Log Format support:
+
 ```javascript
-// Access logger
+// Logger is available on the app instance
 app.logger.log("Custom log message");
 app.logger.logError("/path", "GET", "127.0.0.1");
 app.logger.logRoute("/path", "GET", "127.0.0.1");
@@ -430,33 +451,7 @@ npm run fix           # Fix linting issues
 
 ## Benchmarks
 
-**Performance comparison (mean of 5 runs):**
-
-| Framework | Mean (ms) | Ops/sec |
-|-----------|-----------|---------|
-| Fastify | 0.0863ms | 11,698 |
-| **Woodland** | **0.0929ms** | **10,860** |
-| Node.js HTTP | 0.1092ms | 9,180 |
-| Express | 0.1043ms | 9,591 |
-
-Woodland is **11.5% faster than Express** and **14.8% faster than raw Node.js HTTP**.
-
-**Additional Performance Metrics:**
-
-| Category | Metric | Result |
-|----------|--------|--------|
-| **Routing** | Method validation (`allows()`) | 4.9M ops/sec |
-| | Route resolution (`routes()`) | 1.8M ops/sec |
-| **Middleware** | Registration | 43K+ ops/sec |
-| | Simple execution | 31K ops/sec |
-| **HTTP Server** | JSON responses | 13,225 ops/sec |
-| | CRUD operations | 10-14K ops/sec |
-| **File Serving** | Small files (< 1KB) | 44K ops/sec |
-| | Streaming with ETags | 370K ops/sec |
-| **Capacity** | Single instance (JSON API) | 5,000-7,000 RPS |
-| | Cluster (10 instances) | 50,000-70,000 RPS |
-
-[Full benchmark details](https://github.com/avoidwork/woodland/blob/main/docs/BENCHMARKS.md)
+Woodland is optimized for performance. See [docs/BENCHMARKS.md](https://github.com/avoidwork/woodland/blob/main/docs/BENCHMARKS.md) for detailed benchmarks comparing Woodland to Express, Fastify, and raw Node.js HTTP.
 
 ## Documentation
 
