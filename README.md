@@ -52,7 +52,7 @@ createServer(app.route).listen(3000, () => console.log("Server running at http:/
 **Benefits:**
 
 - **Zero learning curve** - Express-compatible middleware and routing patterns
-- **Production-ready** - 100% test coverage, battle-tested security
+- **Production-ready** - 298 tests, 100% coverage, battle-tested security
 - **TypeScript first** - Full type definitions included
 - **Zero config** - Works out of the box, tune when you need to
 - **Lightweight** - Minimal dependencies, no bloat

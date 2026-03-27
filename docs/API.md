@@ -2,6 +2,8 @@
 
 Complete API documentation for the Woodland HTTP framework.
 
+**Test Coverage:** 298 tests passing with 100% line coverage.
+
 ## Table of Contents
 
 - [Factory Functions](#factory-functions)
