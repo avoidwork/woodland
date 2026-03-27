@@ -2,7 +2,7 @@ import assert from "node:assert";
 import { createServer } from "node:http";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, it, beforeEach, afterEach } from "node:test";
+import { describe, it, afterEach } from "node:test";
 import { woodland } from "../../src/woodland.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
