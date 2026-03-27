@@ -62,8 +62,8 @@ export class Woodland extends EventEmitter {
 		timeOffset: (...args: any[]) => string;
 	};
 	readonly fileServer: {
-		register: (root: string, folder: string, use: Function) => void;
-		serve: (req: any, res: any, arg: string, folder: string) => Promise<void>;
+		register: (root: string, folder: string, use?: Function) => void;
+		serve: (req: any, res: any, arg: string, folder?: string) => Promise<void>;
 	};
 
 	constructor(config?: WoodlandConfig);
