@@ -63,6 +63,7 @@ export class Woodland extends EventEmitter {
 	ignore(fn: Function): Woodland;
 	list(method?: string, type?: string): any | any[];
 	use(rpath: string | Function, ...fn: Function[]): Woodland;
+	use(rpath: string, ...fn: (Function | string)[]): Woodland;
 
 	// Utility methods
 	etag(method: string, ...args: any[]): string;
