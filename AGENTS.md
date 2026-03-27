@@ -5,9 +5,10 @@
 Woodland is a lightweight, security-focused HTTP server framework for Node.js that extends EventEmitter. It provides middleware-based routing with built-in CORS, file serving, caching, and comprehensive logging.
 
 **Key Statistics:**
-- 324 tests passing
-- 100% line coverage
-- 97%+ branch and function coverage
+- 296 tests passing
+- 98.69% line coverage
+- 95.56% branch coverage
+- 96.10% function coverage
 - Minimal dependencies
 - Express-compatible API
 
@@ -65,7 +66,7 @@ npm run build        # Build with rollup
 | `response.js` | Response handlers | `json`, `send`, `redirect`, `error`, `stream`, `set`, `status`, `partialHeaders`, `escapeHtml`, `mime`, `getStatus`, `getStatusText`, `writeHead`, `pipeable`, `createErrorHandler`, `createJsonHandler`, `createRedirectHandler`, `createSendHandler`, `createSetHandler`, `createStatusHandler` |
 | `request.js` | Request handlers | `cors`, `extractIP`, `params`, `parse`, `isValidIP` |
 | `logger.js` | Logging utilities | `createLogger`, `log`, `clf`, `ms`, `timeOffset` |
-| `middleware.js` | Middleware registry | `reduce`, `next`, `createMiddlewareRegistry` |
+| `middleware.js` | Middleware registry | `reduce`, `next`, `createMiddlewareRegistry`, `computeRoutes`, `listRoutes`, `checkAllowed` |
 | `fileserver.js` | Static file serving | `serve`, `createFileServer`, `autoindex` |
 | `constants.js` | HTTP constants | Methods, status codes, headers, patterns |
 | `cli.js` | CLI entry point | `main`, `parseArgs`, `validatePort`, `validateIP` |
@@ -82,11 +83,12 @@ npm run build        # Build with rollup
 
 ## Architecture Patterns
 
-### Single Class, Factories Everywhere
+### Single Class, ES2022 Private Fields
 
 - **Only one class**: `Woodland` (extends `EventEmitter`)
 - **Factory pattern**: `createLogger`, `createMiddlewareRegistry`, `createFileServer`
-- Factories use closures for private state (not class fields)
+- **Private state**: ES2022 `#` private fields for internal state
+- **Private methods**: Internal helpers use `#` prefix (e.g., `#decorate`, `#onReady`)
 - Factories return objects with bound methods for testability
 
 ### HTTP Method Shortcuts
@@ -181,15 +183,20 @@ After `decorate(req, res)`:
 ### Middleware Registry (`src/middleware.js`)
 
 ```javascript
-// Middleware registry methods
-app.middleware.register(path, ...fn, method)
-app.middleware.allowed(method, uri, override)
-app.middleware.routes(uri, method, override)
-app.middleware.ignore(fn)
-app.middleware.list(method, type)  // "array" or "object"
+// Middleware registry methods (internal, not exposed on app)
+const registry = createMiddlewareRegistry(methods, cache);
+registry.register(path, ...fn, method)
+registry.allowed(method, uri, override)
+registry.routes(uri, method, override)
+registry.ignore(fn)
+registry.list(method, type)  // "array" or "object"
 ```
 
 **Cache key format:** `${method}${DELIMITER}${uri}` (e.g., `"GET|/test"`)
+
+**Important:**
+- Middleware registry is internal, accessed via `app.middleware` getter
+- `allowed()` and `allows()` are now private methods (`#allowed`, `#allows`)
 
 ### File Server (`src/fileserver.js`)
 

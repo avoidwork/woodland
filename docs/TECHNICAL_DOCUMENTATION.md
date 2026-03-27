@@ -22,7 +22,7 @@
 
 Woodland is a lightweight, security-focused HTTP server framework for Node.js that extends EventEmitter. It provides a middleware-based architecture with built-in features for modern web applications including CORS handling, file serving, caching, and comprehensive logging.
 
-**Version:** 21.0.8
+**Version:** 21.0.10
 
 ### Key Features
 
@@ -258,6 +258,23 @@ The main class extending EventEmitter that orchestrates all operations:
 
 ```javascript
 class Woodland extends EventEmitter {
+  #autoIndex;      // Private: autoIndex config
+  #charset;        // Private: charset config
+  #corsExpose;     // Private: CORS expose config
+  #defaultHeaders; // Private: processed default headers
+  #digit;          // Private: timing precision
+  #etags;          // Private: etag function or null
+  #indexes;        // Private: index files array
+  #logging;        // Private: logging config
+  #origins;        // Private: CORS origins Set
+  #time;           // Private: timing enabled
+  #cache;          // Private: LRU cache
+  #permissions;    // Private: permissions Map
+  #methods;        // Private: registered methods array
+  #logger;         // Private: logger instance
+  #fileServer;     // Private: file server instance
+  #middleware;     // Private: middleware registry
+
   constructor(config = {}) {
     // Configuration options:
     // - autoIndex: Enable directory listing (default: false)
@@ -276,6 +293,20 @@ class Woodland extends EventEmitter {
   }
 }
 ```
+
+**Private Methods:**
+- `#allowed(method, uri, override)` - Check if method is allowed for URI
+- `#allows(uri, override)` - Determine allowed methods for URI
+- `#buildAllowedList(methodSet)` - Build allowed methods list with HEAD/OPTIONS
+- `#decorate(req, res)` - Decorate request/response objects
+- `#addCorsHeaders(req, headersBatch)` - Add CORS headers to batch
+- `#handleAllowedRoute(req, res, method)` - Handle routing for allowed methods
+- `#onReady(req, res, body, status, headers)` - Handle response ready event
+- `#onSend(req, res, body, status, headers)` - Handle response send event
+- `#onDone(req, res, body, headers)` - Handle response done event
+- `#isHashableMethod(method)` - Check if method can be hashed for ETags
+- `#etagsEnabled()` - Check if ETags are enabled
+- `#hashArgs(args)` - Hash arguments for ETag generation
 
 ### Security Architecture
 
@@ -1231,35 +1262,34 @@ While lightweight by design, Woodland provides the security foundation needed fo
 
 ## Test Coverage
 
-Woodland maintains comprehensive test coverage with **324 tests passing**. The framework achieves 100% line coverage across all modules, with ongoing work to achieve 100% branch and function coverage.
+Woodland maintains comprehensive test coverage with **296 tests passing**. The framework achieves high coverage across all modules.
 
 ### Coverage Metrics
 
 ```
-File            | % Stmts | % Branch | % Funcs | % Lines | Status
-----------------|---------|----------|---------|---------|--------
-All files       |     100 |      100 |     100 |     100 | 🎯 Perfect
-cli.js          |     100 |      100 |     100 |     100 | 🎯 Perfect
-config.js       |     100 |    89.74 |     100 |     100 | ⚠️ Branch gap
-constants.js    |     100 |      100 |     100 |     100 | 🎯 Perfect
-fileserver.js   |     100 |      100 |     100 |     100 | 🎯 Perfect
-logger.js       |     100 |    96.55 |   95.65 |     100 | ⚠️ Branch/func gap
-middleware.js   |     100 |      100 |     100 |     100 | 🎯 Perfect
-request.js      |     100 |      100 |     100 |     100 | 🎯 Perfect
-response.js     |     100 |    98.91 |   94.74 |     100 | ⚠️ Branch/func gap
-woodland.js     |     100 |    96.34 |   89.47 |     100 | ⚠️ Branch/func gap
+File            | Line %  | Branch % | Funcs % | Status
+----------------|---------|----------|---------|--------
+cli.js          |  92.56  |   87.50  |  85.71  | ⚠️ Minor gaps
+config.js       | 100.00  |   89.19  | 100.00  | ⚠️ Branch gap
+constants.js    | 100.00  |  100.00  | 100.00  | 🎯 Perfect
+fileserver.js   | 100.00  |  100.00  | 100.00  | 🎯 Perfect
+logger.js       | 100.00  |   89.83  | 100.00  | ⚠️ Branch gap
+middleware.js   | 100.00  |  100.00  | 100.00  | 🎯 Perfect
+request.js      | 100.00  |  100.00  | 100.00  | 🎯 Perfect
+response.js     | 100.00  |   98.10  | 100.00  | ⚠️ Branch gap
+woodland.js     |  96.37  |   91.46  |  90.00  | ⚠️ Private methods
+
+All files         98.69     95.56      96.10
 ```
 
 ### Coverage Status
 
 **Achieved:**
-- ✅ 100% line coverage across all source files
-- ✅ 324 passing tests
-- ✅ CLI module: 100% coverage across all dimensions
+- ✅ 296 passing tests
+- ✅ CLI module: comprehensive coverage
+- ✅ Security features: path traversal, CORS, input validation
 
-**Working towards:**
-- ⏸️ 100% branch coverage (missing in config.js, logger.js, response.js, woodland.js)
-- ⏸️ 100% function coverage (missing in logger.js, response.js, woodland.js)
+**Note:** woodland.js shows lower coverage for private methods (#prefixed) as they are tested through public API.
 
 ### Test Architecture
 
@@ -1331,7 +1361,7 @@ describe("CLI server startup", () => {
 
 ### Test Categories
 
-#### 1. CLI Tests (100% Coverage) - 26 tests
+#### 1. CLI Tests (comprehensive coverage) - 26 tests
 
 - **Successful startup scenarios**: Default args, custom port/IP, logging configuration
 - **Validation logic**: Port ranges (0-65535), IPv4 address format, argument parsing
@@ -1341,7 +1371,7 @@ describe("CLI server startup", () => {
 
 #### 2. Security Integration Tests - 18 tests
 
-#### 3. Core Functionality Tests - 200+ tests
+#### 3. Core Functionality Tests - 170+ tests
 
 - **HTTP methods**: All standard methods with middleware support
 - **Routing engine**: Parameter extraction, pattern matching, wildcard routes

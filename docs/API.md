@@ -214,6 +214,8 @@ const routesObj = app.list("POST", "object");
 
 ### `allowed(method, uri, override?)`
 
+**Deprecated**: Internal method. Use `routes()` to check route information.
+
 Checks if a method is allowed for a URI.
 
 **Parameters:**
@@ -223,12 +225,11 @@ Checks if a method is allowed for a URI.
 
 **Returns:** `boolean`
 
-**Example:**
-```javascript
-const isAllowed = app.allowed("GET", "/users"); // true
-```
+---
 
 ### `allows(uri, override?)`
+
+**Deprecated**: Internal method. Use `routes()` to check route information.
 
 Determines allowed methods for a URI.
 
@@ -237,11 +238,6 @@ Determines allowed methods for a URI.
 - `override` (boolean, optional) - Override cache (default: `false`)
 
 **Returns:** `string` - Comma-separated list of allowed methods
-
-**Example:**
-```javascript
-const methods = app.allows("/users"); // "GET, HEAD, OPTIONS"
-```
 
 ### `routes(uri, method, override?)`
 
@@ -592,6 +588,8 @@ app.stream(req, res, {
 
 ### `decorate(req, res)`
 
+**Internal**: Called automatically by `route()`. Not intended for direct use.
+
 Decorates request and response objects with framework utilities.
 
 **Parameters:**
@@ -599,8 +597,6 @@ Decorates request and response objects with framework utilities.
 - `res` (Object) - HTTP response object
 
 **Returns:** `void`
-
-**Note:** Called automatically by `route()`.
 
 ### `route(req, res)`
 
@@ -622,6 +618,8 @@ createServer(app.route).listen(3000);
 
 ### `onDone(req, res, body, headers)`
 
+**Internal**: Called automatically during response processing. Not intended for direct use.
+
 Handles response done event.
 
 **Parameters:**
@@ -632,7 +630,11 @@ Handles response done event.
 
 **Returns:** `void`
 
+---
+
 ### `onReady(req, res, body, status, headers)`
+
+**Internal**: Called automatically during response processing. Not intended for direct use.
 
 Handles response ready event.
 
@@ -645,7 +647,11 @@ Handles response ready event.
 
 **Returns:** `Array` - Response array `[body, status, headers]`
 
+---
+
 ### `onSend(req, res, body, status, headers)`
+
+**Internal**: Called automatically during response processing. Not intended for direct use.
 
 Handles response send event.
 
@@ -865,4 +871,4 @@ import { createLogger, isValidIP, escapeHtml } from "woodland";
 ---
 
 *Last updated: March 2026*
-*Version: 21.0.8*
+*Version: 21.0.10*
