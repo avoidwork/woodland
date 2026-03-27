@@ -40,19 +40,19 @@ export class Woodland extends EventEmitter {
 	readonly charset: string;
 	readonly corsExpose: string;
 	readonly digit: number;
-	readonly etags: {
+	readonly etags: Readonly<{
 		create: (input: string) => string;
 		middleware: Function;
-	} | null;
+	}> | null;
 	readonly indexes: string[];
-	readonly logging: {
+	readonly logging: Readonly<{
 		enabled: boolean;
 		format: string;
 		level: string;
-	};
+	}>;
 	readonly origins: Set<string>;
 	readonly time: boolean;
-	readonly logger: {
+	readonly logger: Readonly<{
 		log: (...args: any[]) => void;
 		logError: (...args: any[]) => void;
 		logRoute: (...args: any[]) => void;
@@ -60,11 +60,11 @@ export class Woodland extends EventEmitter {
 		logDecoration: (...args: any[]) => void;
 		logServe: (...args: any[]) => void;
 		clf: (...args: any[]) => string;
-	};
-	readonly fileServer: {
+	}>;
+	readonly fileServer: Readonly<{
 		register: (root: string, folder: string, use?: Function) => void;
 		serve: (req: any, res: any, arg: string, folder?: string) => Promise<void>;
-	};
+	}>;
 
 	constructor(config?: WoodlandConfig);
 
