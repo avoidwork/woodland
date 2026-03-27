@@ -50,6 +50,7 @@ export class Woodland extends EventEmitter {
 
 	// Public routing methods
 	always(...args: Function[]): Woodland;
+	always(rpath: string, ...fn: Function[]): Woodland;
 	connect(rpath: string, ...fn: Function[]): Woodland;
 	delete(rpath: string, ...fn: Function[]): Woodland;
 	get(rpath: string, ...fn: Function[]): Woodland;
