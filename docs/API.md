@@ -45,6 +45,11 @@ const app = woodland({
 
 Extends `EventEmitter`. Provides HTTP server functionality with middleware routing.
 
+**Implementation Notes:**
+- Uses ES2022 private fields (`#`) for internal state
+- All private fields are inaccessible from outside the class
+- Public getters return copies to prevent external mutation
+
 ### Constructor
 
 ```javascript
@@ -58,7 +63,34 @@ new Woodland(config)
 
 ## Configuration
 
-### Core Options
+### Public Getters
+
+The following read-only properties are available via public getters:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `autoIndex` | `boolean` | Directory indexing enabled |
+| `charset` | `string` | Default character set |
+| `corsExpose` | `string` | CORS expose headers |
+| `digit` | `number` | Digit precision for timing |
+| `etags` | `boolean` | ETag generation enabled |
+| `indexes` | `Array<string>` | Index files for directories |
+| `logging` | `Object` | Logging configuration (frozen copy) |
+| `origins` | `Set<string>` | Allowed CORS origins |
+| `time` | `boolean` | X-Response-Time header enabled |
+
+**Note:** Getters return copies/frozen objects to prevent external mutation.
+
+### Internal Implementation
+
+The following are **private** (ES2022 `#` fields) and not accessible from outside the class:
+
+- `#autoIndex`, `#charset`, `#corsExpose`, `#defaultHeaders`, `#digit`
+- `#etags`, `#indexes`, `#logging`, `#origins`, `#time`
+- `#cache`, `#permissions`, `#methods`, `#logger`
+- `#fileServer`, `#middleware`
+
+All internal state is encapsulated and only accessible through public methods.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
