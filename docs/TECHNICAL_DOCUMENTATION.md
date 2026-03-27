@@ -1273,19 +1273,19 @@ cli.js          |  92.56  |   87.50  |  85.71  | ⚠️ Minor gaps
 config.js       | 100.00  |   89.19  | 100.00  | ⚠️ Branch gap
 constants.js    | 100.00  |  100.00  | 100.00  | 🎯 Perfect
 fileserver.js   | 100.00  |  100.00  | 100.00  | 🎯 Perfect
-logger.js       | 100.00  |   89.83  | 100.00  | ⚠️ Branch gap
+logger.js       | 100.00  |   88.24  |  85.71  | ⚠️ Branch/function gap
 middleware.js   | 100.00  |  100.00  | 100.00  | 🎯 Perfect
 request.js      | 100.00  |  100.00  | 100.00  | 🎯 Perfect
 response.js     | 100.00  |   98.10  | 100.00  | ⚠️ Branch gap
-woodland.js     |  96.37  |   91.46  |  90.00  | ⚠️ Private methods
+woodland.js     |  96.94  |   91.67  |  94.00  | ⚠️ Private methods
 
-All files         98.69     95.56      96.10
+All files         98.84     95.51      95.39
 ```
 
 ### Coverage Status
 
 **Achieved:**
-- ✅ 296 passing tests
+- ✅ 298 passing tests
 - ✅ CLI module: comprehensive coverage
 - ✅ Security features: path traversal, CORS, input validation
 
