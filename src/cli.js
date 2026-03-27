@@ -8,6 +8,7 @@ import {
 	CACHE_CONTROL,
 	CHAR_SET,
 	CONTENT_TYPE,
+	EMPTY,
 	EQUAL,
 	HYPHEN,
 	INFO,
@@ -16,6 +17,7 @@ import {
 	INT_65535,
 	LOCALHOST,
 	NO_CACHE,
+	STRING,
 	TEXT_PLAIN,
 } from "./constants.js";
 
@@ -41,7 +43,7 @@ export function parseArgs(args) {
  */
 export function validatePort(port) {
 	// Reject empty strings and whitespace-only values
-	if (port === "" || (typeof port === "string" && port.trim() === "")) {
+	if (port === EMPTY || (typeof port === STRING && port.trim() === EMPTY)) {
 		return { valid: false, error: "Invalid port: must be an integer between 0 and 65535." };
 	}
 	const validPort = Number(port);
