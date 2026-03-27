@@ -11,11 +11,11 @@ Woodland delivers **production-grade performance** with a security-first archite
 | Metric | Result |
 |--------|--------|
 | **Framework Throughput** | ~5,400 req/sec (JSON responses) |
-| **Routing Performance** | 2.5M-3.5M ops/sec (cached) |
-| **Middleware Registration** | 20K+ ops/sec |
-| **vs Express.js** | Comparable performance |
-| **vs Raw Node.js** | Comparable performance |
-| **vs Fastify** | ~75% of throughput (with more built-in features) |
+| **Routing Performance** | 3.3M ops/sec (cached) |
+| **Middleware Registration** | 28K+ ops/sec |
+| **vs Fastify** | 80% throughput (with more built-in features) |
+| **vs Node.js HTTP** | 2% faster |
+| **vs Express.js** | 9.5% faster |
 
 ---
 
@@ -42,17 +42,17 @@ Woodland delivers **production-grade performance** with a security-first archite
 ### Performance Analysis
 
 **Woodland vs Express.js:**
-- Comparable performance for JSON response scenarios
+- ~9.5% faster throughput (5,432 vs 4,949 ops/sec)
 - Lower memory overhead (minimal dependencies)
 - Built-in security features (CORS, path validation, HTML escaping) require no middleware
 
 **Woodland vs Raw Node.js:**
-- Comparable performance despite abstraction layer
+- ~2% faster throughput (5,432 vs 5,326 ops/sec)
 - Optimized request/response pipeline
 - Built-in security without significant overhead
 
 **Woodland vs Fastify:**
-- ~75% of Fastify's raw throughput
+- ~80% of Fastify's raw throughput
 - Trade-off: Woodland includes more built-in features (CORS, file serving, directory indexing, comprehensive logging)
 - Fastify's schema validation and serialization optimizations are specialized; Woodland prioritizes general-purpose HTTP handling with security
 
