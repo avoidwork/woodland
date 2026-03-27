@@ -254,16 +254,18 @@ describe("woodland", () => {
 		});
 
 		describe("files", () => {
-			it("should register file server", () => {
+			it("should register file server middleware", () => {
 				app.files("/static", "/tmp");
 
-				assert.ok(app.fileServer);
+				const routes = app.routes("/static/test.txt", "GET");
+				assert.ok(routes.middleware.length > 0);
 			});
 
 			it("should use process.cwd() as default folder", () => {
 				app.files("/static");
 
-				assert.ok(app.fileServer);
+				const routes = app.routes("/static/test.txt", "GET");
+				assert.ok(routes.middleware.length > 0);
 			});
 		});
 
@@ -397,15 +399,15 @@ describe("woodland", () => {
 		it("should configure silent mode", () => {
 			const app = woodland({ silent: true });
 
-			assert.ok(app.logger);
 			assert.strictEqual(app.logging.enabled, true);
+			assert.strictEqual(app.logging.level, "info");
 		});
 
 		it("should configure custom default headers", () => {
 			const app = woodland({ defaultHeaders: { "x-custom": "value" } });
 
-			assert.ok(app.logger);
 			assert.strictEqual(app.logging.enabled, true);
+			assert.strictEqual(app.logging.level, "info");
 		});
 
 		it("should configure logging", () => {
