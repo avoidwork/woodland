@@ -2,7 +2,7 @@
 
 Complete API documentation for the Woodland HTTP framework.
 
-**Test Coverage:** 298 tests passing with 100% line coverage.
+**Test Coverage:** 298 tests passing with comprehensive coverage across all modules.
 
 ## Table of Contents
 
