@@ -40,6 +40,10 @@ export function parseArgs(args) {
  * @returns {Object} Validation result with valid flag and error message
  */
 export function validatePort(port) {
+	// Reject empty strings and whitespace-only values
+	if (port === "" || (typeof port === "string" && port.trim() === "")) {
+		return { valid: false, error: "Invalid port: must be an integer between 0 and 65535." };
+	}
 	const validPort = Number(port);
 	if (!Number.isInteger(validPort) || validPort < INT_0 || validPort > INT_65535) {
 		return { valid: false, error: "Invalid port: must be an integer between 0 and 65535." };
