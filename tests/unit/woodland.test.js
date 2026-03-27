@@ -398,18 +398,93 @@ describe("woodland", () => {
 
 		it("should configure silent mode", () => {
 			const app = woodland({ silent: true });
+			let headersSet = {};
 
-			assert.ok(app instanceof Woodland);
-			assert.strictEqual(app.logging.enabled, true);
-			assert.strictEqual(app.logging.level, "info");
+			app.get("/test", (req, res) => {
+				res.send("ok");
+			});
+
+			const req = {
+				method: "GET",
+				headers: { host: "example.com" },
+				url: "/test",
+				socket: null,
+			};
+			const res = {
+				statusCode: 200,
+				headersSent: false,
+				setHeader: (name, value) => {
+					headersSet[name] = value;
+				},
+				header: (name, value) => {
+					headersSet[name] = value;
+				},
+				send: (body) => {
+					res.statusCode = 200;
+				},
+				end: () => {},
+				on: () => {},
+				set: () => {},
+				error: () => {},
+				writeHead: () => {},
+				removeHeader: () => {},
+				getHeader: () => void 0,
+			};
+
+			app.route(req, res);
+
+			return new Promise((resolve) => {
+				setTimeout(() => {
+					assert.strictEqual(headersSet["server"], void 0);
+					assert.strictEqual(headersSet["x-powered-by"], void 0);
+					resolve();
+				}, 10);
+			});
 		});
 
 		it("should configure custom default headers", () => {
 			const app = woodland({ defaultHeaders: { "x-custom": "value" } });
+			let headersSet = {};
 
-			assert.ok(app instanceof Woodland);
-			assert.strictEqual(app.logging.enabled, true);
-			assert.strictEqual(app.logging.level, "info");
+			app.get("/test", (req, res) => {
+				res.send("ok");
+			});
+
+			const req = {
+				method: "GET",
+				headers: { host: "example.com" },
+				url: "/test",
+				socket: null,
+			};
+			const res = {
+				statusCode: 200,
+				headersSent: false,
+				setHeader: (name, value) => {
+					headersSet[name] = value;
+				},
+				header: (name, value) => {
+					headersSet[name] = value;
+				},
+				send: (body) => {
+					res.statusCode = 200;
+				},
+				end: () => {},
+				on: () => {},
+				set: () => {},
+				error: () => {},
+				writeHead: () => {},
+				removeHeader: () => {},
+				getHeader: () => void 0,
+			};
+
+			app.route(req, res);
+
+			return new Promise((resolve) => {
+				setTimeout(() => {
+					assert.strictEqual(headersSet["x-custom"], "value");
+					resolve();
+				}, 10);
+			});
 		});
 
 		it("should configure logging", () => {
