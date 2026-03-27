@@ -684,7 +684,7 @@ export class Woodland extends EventEmitter {
 	}
 
 	get logging() {
-		return this.#logging;
+		return { ...this.#logging };
 	}
 
 	get origins() {
