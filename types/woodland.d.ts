@@ -86,7 +86,7 @@ export class Woodland extends EventEmitter {
 
 	// Utility methods
 	etag(method: string, ...args: any[]): string;
-	files(root?: string, folder?: string): void;
+	files(root?: string, folder?: string): Woodland;
 	route(req: any, res: any): void;
 	routes(uri: string, method: string, override?: boolean): RouteInfo;
 	serve(req: any, res: any, arg: string, folder?: string): Promise<void>;

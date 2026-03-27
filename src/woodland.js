@@ -388,6 +388,8 @@ export class Woodland extends EventEmitter {
 	 */
 	files(root = SLASH, folder = process.cwd()) {
 		this.#fileServer.register(root, folder, this.use.bind(this));
+
+		return this;
 	}
 
 	/**
