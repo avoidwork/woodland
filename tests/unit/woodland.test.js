@@ -434,11 +434,11 @@ describe("woodland", () => {
 			app.route(req, res);
 
 			return new Promise((resolve) => {
-				setTimeout(() => {
+				process.nextTick(() => {
 					assert.strictEqual(headersSet["server"], void 0);
 					assert.strictEqual(headersSet["x-powered-by"], void 0);
 					resolve();
-				}, 10);
+				});
 			});
 		});
 
@@ -480,10 +480,10 @@ describe("woodland", () => {
 			app.route(req, res);
 
 			return new Promise((resolve) => {
-				setTimeout(() => {
+				process.nextTick(() => {
 					assert.strictEqual(headersSet["x-custom"], "value");
 					resolve();
-				}, 10);
+				});
 			});
 		});
 
