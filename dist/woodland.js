@@ -1520,7 +1520,8 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
 
 	// Path traversal protection: ensure fp is within resolvedFolder
 	// Must match exactly or be a subdirectory (not a sibling like /public2 vs /public)
-	const isWithin = fp === resolvedFolder || (fp.startsWith(resolvedFolder) && fp[resolvedFolder.length] === SLASH);
+	const isWithin =
+		fp === resolvedFolder || (fp.startsWith(resolvedFolder) && fp[resolvedFolder.length] === SLASH);
 
 	if (!isWithin) {
 		config.logger.logServe(req, MSG_SERVE_PATH_OUTSIDE);
@@ -1597,9 +1598,8 @@ function register(config, root, folder, useMiddleware) {
 
 	useMiddleware(rootPattern, (req, res) => {
 		const pathname = req.parsed.pathname;
-		const relativePath = pathname === normalizedRoot
-			? EMPTY
-			: pathname.slice(normalizedRoot.length + 1);
+		const relativePath =
+			pathname === normalizedRoot ? EMPTY : pathname.slice(normalizedRoot.length + 1);
 		serve(config, req, res, relativePath, folder);
 	});
 }

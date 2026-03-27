@@ -257,6 +257,25 @@ describe("fileserver", () => {
 				assert.ok(typeof registeredHandler === "function");
 			});
 
+			it("should throw TypeError when useMiddleware is missing", () => {
+				const app = {
+					charset: "utf-8",
+					indexes: ["index.html"],
+					autoIndex: true,
+					logger: { logServe: () => {} },
+					etag: () => "test-etag",
+					stream: () => {},
+					// Note: no 'use' property
+				};
+
+				const server = createFileServer(app);
+
+				assert.throws(
+					() => server.register("/static", "/tmp"),
+					/useMiddleware is required or config.use must be a function/,
+				);
+			});
+
 			it("should strip mount prefix correctly (e.g., /static/foo -> foo)", async () => {
 				const app = createMockApp();
 				app.logger.logServe = () => ({ log: () => {} });
