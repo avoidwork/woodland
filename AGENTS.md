@@ -199,6 +199,7 @@ registry.list(method, type)  // "array" or "object"
 - Public API for route inspection: `app.routes()`, `app.list()`
 - `#allowed()` and `#allows()` are private methods for internal use
 - Private fields: `#autoIndex`, `#charset`, `#corsExpose`, `#defaultHeaders`, `#digit`, `#etags`, `#indexes`, `#logging`, `#origins`, `#time`, `#cache`, `#permissions`, `#methods`, `#logger`, `#fileServer`, `#middleware`
+- Public getters (read-only): `autoIndex`, `charset`, `corsExpose`, `digit`, `etags`, `indexes`, `logging`, `origins`, `time`, `logger`, `fileServer`
 
 ### File Server (`src/fileserver.js`)
 
