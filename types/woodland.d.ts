@@ -31,78 +31,80 @@ export interface RouteInfo {
 	getParams?: string;
 	middleware: Function[];
 	exit: number;
+	visible: number;
 }
 
 export class Woodland extends EventEmitter {
-	autoIndex: boolean;
-	charset: string;
-	corsExpose: string;
-	defaultHeaders: [string, string][];
-	digit: number;
-	etags: {
+	// Public read-only properties (getters)
+	readonly autoIndex: boolean;
+	readonly charset: string;
+	readonly corsExpose: string;
+	readonly digit: number;
+	readonly etags: {
 		create: (input: string) => string;
 		middleware: Function;
 	} | null;
-	indexes: string[];
-	logging: {
+	readonly indexes: string[];
+	readonly logging: {
 		enabled: boolean;
 		format: string;
 		level: string;
 	};
-	origins: Set<string>;
-	time: boolean;
-	cache: Map<any, any>;
-	permissions: Map<string, string>;
-	methods: string[];
-	logger: {
+	readonly origins: Set<string>;
+	readonly time: boolean;
+	readonly logger: {
 		log: (...args: any[]) => void;
 		logError: (...args: any[]) => void;
 		logRoute: (...args: any[]) => void;
 		logMiddleware: (...args: any[]) => void;
-		logDecoration: (...args: any[]) => void;
-		logServe: (...args: any[]) => void;
 		clf: (...args: any[]) => string;
 		ms: (...args: any[]) => string;
 		timeOffset: (...args: any[]) => string;
 	};
-	fileServer: {
+	readonly fileServer: {
 		register: (root: string, folder: string, use: Function) => void;
 		serve: (req: any, res: any, arg: string, folder: string) => Promise<void>;
-	};
-	middleware: {
-		ignore: (fn: Function) => void;
-		allowed: (method: string, uri: string, override?: boolean) => boolean;
-		routes: (uri: string, method: string, override?: boolean) => RouteInfo;
-		register: (path: string, ...fns: Function[]) => void;
-		list: (method: string, type: string) => any;
 	};
 
 	constructor(config?: WoodlandConfig);
 
-	allowed(method: string, uri: string, override?: boolean): boolean;
-	allows(uri: string, override?: boolean): string;
+	// Public routing methods
 	always(...args: Function[]): Woodland;
 	connect(...args: Function[]): Woodland;
-	decorate(req: any, res: any): void;
 	delete(...args: Function[]): Woodland;
-	etag(method: string, ...args: any[]): string;
-	files(root?: string, folder?: string): void;
 	get(...args: Function[]): Woodland;
-	ignore(fn: Function): Woodland;
-	list(method?: string, type?: string): any | any[];
-	onDone(req: any, res: any, body: any, headers: any): void;
-	onReady(req: any, res: any, body: any, status: number, headers: any): any[];
-	onSend(req: any, res: any, body: any, status: number, headers: any): any[];
 	options(...args: Function[]): Woodland;
 	patch(...args: Function[]): Woodland;
 	post(...args: Function[]): Woodland;
 	put(...args: Function[]): Woodland;
+	trace(...args: Function[]): Woodland;
+
+	// Middleware methods
+	ignore(fn: Function): Woodland;
+	list(method?: string, type?: string): any | any[];
+	use(rpath: string | Function, ...fn: Function[]): Woodland;
+
+	// Utility methods
+	etag(method: string, ...args: any[]): string;
+	files(root?: string, folder?: string): void;
 	route(req: any, res: any): void;
 	routes(uri: string, method: string, override?: boolean): RouteInfo;
 	serve(req: any, res: any, arg: string, folder?: string): Promise<void>;
 	stream(req: any, res: any, file?: FileDescriptor): void;
-	trace(...args: Function[]): Woodland;
-	use(rpath: string | Function, ...fn: Function[]): Woodland;
+
+	// Deprecated/Internal methods (marked for internal use only)
+	/** @deprecated Internal method - use routes() instead */
+	allowed(method: string, uri: string, override?: boolean): boolean;
+	/** @deprecated Internal method - use routes() instead */
+	allows(uri: string, override?: boolean): string;
+	/** @internal */
+	decorate(req: any, res: any): void;
+	/** @internal */
+	onDone(req: any, res: any, body: any, headers: any): void;
+	/** @internal */
+	onReady(req: any, res: any, body: any, status: number, headers: any): any[];
+	/** @internal */
+	onSend(req: any, res: any, body: any, status: number, headers: any): any[];
 }
 
 export function woodland(arg?: WoodlandConfig): Woodland;
