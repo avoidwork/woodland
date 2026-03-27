@@ -5,10 +5,10 @@
 Woodland is a lightweight, security-focused HTTP server framework for Node.js that extends EventEmitter. It provides middleware-based routing with built-in CORS, file serving, caching, and comprehensive logging.
 
 **Key Statistics:**
-- 298 tests passing
-- 98.84% line coverage
-- 95.51% branch coverage
-- 95.39% function coverage
+- 302 tests passing
+- 98.76% line coverage
+- 95.25% branch coverage
+- 94.41% function coverage
 - Minimal dependencies
 - Express-compatible API
 
@@ -19,11 +19,11 @@ Woodland is a lightweight, security-focused HTTP server framework for Node.js th
 ```bash
 npm install          # Install dependencies
 npm test             # Run tests
-npm run coverage     # Run tests with coverage (target: 100%)
+npm run coverage     # Run tests with coverage (target: 100% line)
 npm run benchmarks   # Run performance benchmarks
 npm run benchmark comparison  # Compare against Express/Fastify
 npm run lint         # Check linting (oxlint)
-npm run fix          # Auto-fix linting issues
+npm run fix          # Auto-fix linting and formatting
 npm run build        # Build with rollup
 ```
 
@@ -36,7 +36,9 @@ npm run build        # Build with rollup
 3. Fix lint errors: `npm run fix`
 4. Build: `npm run build`
 5. Run coverage: `npm run coverage` (maintain 100% line coverage)
-6. Commit changes (husky pre-commit hook runs fix + coverage + git add)
+6. Commit only when explicitly requested (husky pre-commit hook runs fix + coverage + git add)
+
+**Important:** Never commit without running `npm run fix` first - the pre-commit hook expects clean code.
 
 ---
 
@@ -68,7 +70,7 @@ npm run build        # Build with rollup
 | `request.js` | Request handlers | `cors`, `extractIP`, `params`, `parse`, `isValidIP` |
 | `logger.js` | Logging utilities | `createLogger`, `log`, `clf`, `ms`, `timeOffset` |
 | `middleware.js` | Middleware registry | `reduce`, `next`, `createMiddlewareRegistry`, `computeRoutes`, `listRoutes`, `checkAllowed` |
-| `fileserver.js` | Static file serving | `serve`, `createFileServer`, `autoindex` |
+| `fileserver.js` | Static file serving | `serve`, `createFileServer`, `autoIndex` |
 | `constants.js` | HTTP constants | Methods, status codes, headers, patterns |
 | `cli.js` | CLI entry point | `main`, `parseArgs`, `validatePort`, `validateIP` |
 
@@ -91,6 +93,35 @@ npm run build        # Build with rollup
 - **Private state**: ES2022 `#` private fields for internal state
 - **Private methods**: Internal helpers use `#` prefix (e.g., `#decorate`, `#onReady`)
 - Factories return objects with bound methods for testability
+
+### Minimal Public API
+
+**Only one public getter remains: `logger`**
+
+All configuration and internal state are private:
+- Configuration: `autoIndex`, `charset`, `corsExpose`, `digit`, `time`, `etags`, `indexes`, `logging`, `origins`
+- Internal state: `cache`, `permissions`, `methods`, `fileServer`, `middleware`, `defaultHeaders`
+
+This minimizes the public surface area and enforces encapsulation.
+
+### Closure-Based Config Injection
+
+File server receives config via closure instead of app instance:
+
+```javascript
+// In woodland.js
+this.#fileServer = createFileServer({
+  autoIndex: this.#autoIndex,
+  charset: this.#charset,
+  indexes: this.#indexes,
+  logger: this.#logger,
+  stream: this.stream.bind(this),
+  etag: this.etag.bind(this),
+  use: this.use.bind(this)
+});
+```
+
+This eliminates the need for public getters and provides better encapsulation.
 
 ### HTTP Method Shortcuts
 
@@ -148,10 +179,7 @@ const app = woodland({
 - CLI uses `app.logger.log()` for startup messages
 - HEAD routes cannot be registered directly (GET implies HEAD)
 - `files()` returns `this` for chaining
-- All public objects are frozen to prevent mutation:
-  - `logger`, `fileServer`, `etags` return frozen objects
-  - `logging` config is frozen
-  - `indexes`, `origins` return copies
+- All public objects are frozen to prevent mutation
 
 ### Private Fields
 
@@ -176,56 +204,15 @@ All internal state is encapsulated in private fields:
 #middleware;      // Middleware registry
 ```
 
-### Public Getters (Read-Only)
+### Public API
 
-| Property | Type | Returns |
-|----------|------|---------|
-| `autoIndex` | `boolean` | Directory indexing enabled |
-| `charset` | `string` | Default character set |
-| `corsExpose` | `string` | CORS expose headers |
-| `digit` | `number` | Digit precision for timing |
-| `etags` | `Object\|null` | Frozen ETag helper or null if disabled |
-| `indexes` | `Array<string>` | Copy of index files array |
-| `logging` | `Object` | Frozen logging config |
-| `origins` | `Set<string>` | Copy of CORS origins set |
-| `time` | `boolean` | X-Response-Time header enabled |
-| `logger` | `Object` | Frozen logger object |
-| `fileServer` | `Object` | Frozen file server with `register`, `serve` |
+**Only one getter:**
+- `logger` - Frozen logger object with `log()`, `clf()`, and other logging methods
 
-### Public Methods
-
-#### Routing Methods (all return `Woodland` for chaining)
-
-| Method | Description |
-|--------|-------------|
-| `always(...fn)` | Register wildcard middleware for all methods |
-| `connect(...fn)` | Register CONNECT middleware |
-| `delete(...fn)` | Register DELETE middleware |
-| `get(...fn)` | Register GET middleware |
-| `options(...fn)` | Register OPTIONS middleware |
-| `patch(...fn)` | Register PATCH middleware |
-| `post(...fn)` | Register POST middleware |
-| `put(...fn)` | Register PUT middleware |
-| `trace(...fn)` | Register TRACE middleware |
-| `use(path, ...fn)` | Register middleware for route |
-
-#### Middleware Methods
-
-| Method | Description |
-|--------|-------------|
-| `ignore(fn)` | Add function to ignored set (excluded from visibility) |
-| `list(method?, type?)` | List routes (array or object) |
-| `routes(uri, method, override?)` | Get route information |
-
-#### Utility Methods
-
-| Method | Description |
-|--------|-------------|
-| `files(root?, folder?)` | Register file server middleware |
-| `serve(req, res, path, folder?)` | Serve file from disk (async) |
-| `stream(req, res, file)` | Stream file to response |
-| `etag(method, ...values)` | Generate ETag for response caching |
-| `route(req, res)` | Main request handler |
+**Public methods (all return `Woodland` for chaining):**
+- Routing: `always()`, `connect()`, `delete()`, `get()`, `options()`, `patch()`, `post()`, `put()`, `trace()`, `use()`
+- Middleware: `ignore()`, `list()`, `routes()`
+- Utilities: `files()`, `serve()`, `stream()`, `etag()`, `route()`
 
 ### Private Methods
 
@@ -316,6 +303,25 @@ registry.list(method, type)  // "array" or "object"
 
 ## File Server (`src/fileserver.js`)
 
+### Closure-Based Config
+
+File server receives config via closure, not the full app instance:
+
+```javascript
+// woodland.js creates file server with config object
+this.#fileServer = createFileServer({
+  autoIndex: this.#autoIndex,
+  charset: this.#charset,
+  indexes: this.#indexes,
+  logger: this.#logger,
+  stream: this.stream.bind(this),
+  etag: this.etag.bind(this),
+  use: this.use.bind(this)
+});
+```
+
+### Usage
+
 ```javascript
 // Serve static files
 app.files("/static", "./public");
@@ -324,10 +330,25 @@ app.files("/static", "./public");
 await app.serve(req, res, "/path/to/file", "./public");
 ```
 
-**Security:**
-- Path traversal blocked (resolved path must stay within folder)
-- Directories redirect to add trailing slash, or serve autoindex
-- Index files: `index.htm`, `index.html`
+### Security Fixes
+
+**Path Traversal Bypass (Fixed):**
+- Vulnerable: `fp.startsWith(resolvedFolder)` allows `/public2` when folder is `/public`
+- Fixed: `fp === resolvedFolder || (fp.startsWith(resolvedFolder) && fp[resolvedFolder.length] === SLASH)`
+- The boundary check ensures the character after the folder path is `/`, not a sibling directory name
+
+**Mount Prefix Bug (Fixed):**
+- Vulnerable: `substring(1)` produces incorrect relative paths
+- Fixed: `pathname.slice(normalizedRoot.length + 1)` correctly strips mount prefix
+- Example: `/static/foo` with root `/static` → `foo` (not `static/foo`)
+
+### Test Coverage
+
+File server tests cover:
+- Path traversal blocking (`../../../etc/passwd`)
+- Sibling directory bypass (`../public2/file.txt` with folder `/public`)
+- Valid subdirectory access (`subdir/file.txt` with folder `/public`)
+- Mount prefix stripping (`/static/foo` → `foo`, `/static` → ``)
 
 ---
 
@@ -379,7 +400,7 @@ logger.clf(req, res);  // Common Log Format
 
 ### Built-in Protections
 
-1. **Path Traversal**: Resolved paths validated against allowed directories
+1. **Path Traversal**: Resolved paths validated with boundary check (not just `startsWith`)
 2. **CORS**: Default deny (empty origins array), explicit allowlist required
 3. **XSS Prevention**: `escapeHtml()` for all user output
 4. **IP Validation**: `isValidIP()` before use
@@ -464,6 +485,22 @@ For benchmark tests, mock responses must include:
 - 100% line coverage (required)
 - Ongoing work: 100% branch and function coverage
 
+### Test Writing Best Practices
+
+**Don't write tests that always pass:**
+```javascript
+// BAD - won't catch regressions
+assert.ok(true);
+
+// GOOD - actually asserts behavior
+assert.strictEqual(actualArg, "foo");
+```
+
+**Test edge cases for security:**
+- Path traversal: `../../../etc/passwd`
+- Sibling bypass: `../public2/file.txt` with folder `/public`
+- Boundary conditions: exact matches vs. prefix matches
+
 ---
 
 ## Common Tasks
@@ -488,7 +525,6 @@ app.always((req, res, next) => {
 
 // Error handler (4 params - detected automatically)
 app.use("/(.*)", (err, req, res, next) => {
-  console.error(err);
   res.error(500, err.message);
 });
 ```
@@ -522,6 +558,7 @@ app.files("/static", "./public");
 | Import errors | Check actual exports in `src/*.js` files |
 | Lint errors | Run `npm run fix` |
 | Test failures | Check mock response includes all required methods |
+| Unused variable warnings | Prefix unused params with `_` (e.g., `_pattern`, `_handler`) |
 
 ---
 
@@ -541,3 +578,40 @@ app.files("/static", "./public");
 - [Technical Documentation](docs/TECHNICAL_DOCUMENTATION.md) - Architecture, OWASP security, internals
 - [Code Style Guide](docs/CODE_STYLE_GUIDE.md) - Conventions and best practices
 - [Benchmarks](docs/BENCHMARKS.md) - Performance testing results
+
+---
+
+## Quick Reference
+
+### File Locations
+
+- Main class: `src/woodland.js`
+- Config validation: `src/config.js`
+- Response handlers: `src/response.js`
+- Request utilities: `src/request.js`
+- Logging: `src/logger.js`
+- Middleware: `src/middleware.js`
+- File server: `src/fileserver.js`
+- Constants: `src/constants.js`
+- CLI: `src/cli.js`
+
+### Common Commands
+
+```bash
+npm test              # Run all tests
+npm run coverage      # Run with coverage report
+npm run lint          # Check linting
+npm run fix           # Auto-fix linting and formatting
+npm run build         # Build distribution
+npm run benchmarks    # Run performance benchmarks
+```
+
+### Code Style
+
+- Tabs for indentation
+- Semicolons required
+- Double quotes for imports, single quotes for strings
+- No console statements (error in lint)
+- Prefix unused parameters with `_`
+- ES2022 private fields for internal state
+- Frozen objects for public API
