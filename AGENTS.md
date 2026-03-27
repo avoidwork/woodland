@@ -196,8 +196,8 @@ registry.list(method, type)  // "array" or "object"
 
 **Important:**
 - Middleware registry is entirely internal (private field `#middleware`)
-- Public API for route inspection: `app.allowed()`, `app.routes()`, `app.list()`
-- `allowed()` and `allows()` are now private methods (`#allowed`, `#allows`)
+- Public API for route inspection: `app.routes()`, `app.list()`
+- `#allowed()` and `#allows()` are private methods for internal use
 
 ### File Server (`src/fileserver.js`)
 
