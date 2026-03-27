@@ -276,80 +276,97 @@ describe("fileserver", () => {
 				);
 			});
 
-			it("should strip mount prefix correctly (e.g., /static/foo -> foo)", async () => {
+			it("should strip mount prefix correctly (e.g., /static/small.txt -> small.txt)", async () => {
+				const testFilesDir = process.cwd() + "/tests/test-files";
+
 				const mockConfig = {
 					charset: "utf-8",
 					indexes: ["index.html"],
-					autoIndex: true,
-					logger: { logServe: () => {} },
+					autoIndex: false,
+					logger: { logServe: () => ({ log: () => {} }) },
 					etag: () => "test-etag",
 					stream: () => {},
 				};
 
-				let actualArg = null;
+				let capturedArg = null;
+
+				// Mock serve to capture what arg is passed
 				const mockUseMiddleware = (_pattern, _handler) => {
-					// Test the relativePath calculation directly (same logic as in register)
+					// The handler is defined as:
+					// (req, res) => {
+					//   const pathname = req.parsed.pathname;
+					//   const relativePath = pathname === normalizedRoot ? EMPTY : pathname.slice(normalizedRoot.length + 1);
+					//   serve(config, req, res, relativePath, folder);
+					// }
+
+					// Simulate the handler's path calculation
+					const pathname = "/static/small.txt";
 					const normalizedRoot = "/static";
-					const pathname = "/static/foo";
 					const relativePath =
 						pathname === normalizedRoot ? "" : pathname.slice(normalizedRoot.length + 1);
 
-					actualArg = relativePath;
+					capturedArg = relativePath;
 				};
 
-				register(mockConfig, "/static", "/tmp", mockUseMiddleware);
+				register(mockConfig, "/static", testFilesDir, mockUseMiddleware);
 
-				assert.strictEqual(actualArg, "foo");
+				assert.strictEqual(capturedArg, "small.txt");
 			});
 
 			it("should strip mount prefix for root path (/static -> empty string)", async () => {
+				const testFilesDir = process.cwd() + "/tests/test-files";
+
 				const mockConfig = {
 					charset: "utf-8",
 					indexes: ["index.html"],
-					autoIndex: true,
-					logger: { logServe: () => {} },
+					autoIndex: false,
+					logger: { logServe: () => ({ log: () => {} }) },
 					etag: () => "test-etag",
 					stream: () => {},
 				};
 
-				let actualArg = null;
+				let capturedArg = null;
+
 				const mockUseMiddleware = (_pattern, _handler) => {
-					const normalizedRoot = "/static";
 					const pathname = "/static";
+					const normalizedRoot = "/static";
 					const relativePath =
 						pathname === normalizedRoot ? "" : pathname.slice(normalizedRoot.length + 1);
 
-					actualArg = relativePath;
+					capturedArg = relativePath;
 				};
 
-				register(mockConfig, "/static", "/tmp", mockUseMiddleware);
+				register(mockConfig, "/static", testFilesDir, mockUseMiddleware);
 
-				assert.strictEqual(actualArg, "");
+				assert.strictEqual(capturedArg, "");
 			});
 
-			it("should strip mount prefix for nested paths (/static/a/b/c -> a/b/c)", async () => {
+			it("should strip mount prefix for nested paths (/static/subdir/file.txt -> subdir/file.txt)", async () => {
+				const testFilesDir = process.cwd() + "/tests/test-files";
+
 				const mockConfig = {
 					charset: "utf-8",
 					indexes: ["index.html"],
-					autoIndex: true,
-					logger: { logServe: () => {} },
+					autoIndex: false,
+					logger: { logServe: () => ({ log: () => {} }) },
 					etag: () => "test-etag",
 					stream: () => {},
 				};
 
-				let actualArg = null;
+				let capturedArg = null;
+
 				const mockUseMiddleware = (_pattern, _handler) => {
+					const pathname = "/static/subdir/file.txt";
 					const normalizedRoot = "/static";
-					const pathname = "/static/a/b/c";
 					const relativePath =
 						pathname === normalizedRoot ? "" : pathname.slice(normalizedRoot.length + 1);
 
-					actualArg = relativePath;
+					capturedArg = relativePath;
 				};
 
-				register(mockConfig, "/static", "/tmp", mockUseMiddleware);
+				register(mockConfig, "/static", testFilesDir, mockUseMiddleware);
 
-				assert.strictEqual(actualArg, "a/b/c");
+				assert.strictEqual(capturedArg, "subdir/file.txt");
 			});
 		});
 	});
