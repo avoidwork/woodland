@@ -394,14 +394,18 @@ describe("woodland", () => {
 			assert.strictEqual(app3.digit, 2);
 		});
 
-		it("should configure silent mode and custom headers", () => {
-			const app1 = woodland({ silent: true });
-			const app2 = woodland({ defaultHeaders: { "x-custom": "value" } });
+		it("should configure silent mode", () => {
+			const app = woodland({ silent: true });
 
-			assert.ok(app1.logger);
-			assert.ok(app2.logger);
-			assert.strictEqual(app1.logging.enabled, true);
-			assert.strictEqual(app2.logging.enabled, true);
+			assert.ok(app.logger);
+			assert.strictEqual(app.logging.enabled, true);
+		});
+
+		it("should configure custom default headers", () => {
+			const app = woodland({ defaultHeaders: { "x-custom": "value" } });
+
+			assert.ok(app.logger);
+			assert.strictEqual(app.logging.enabled, true);
 		});
 
 		it("should configure logging", () => {
