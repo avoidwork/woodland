@@ -116,8 +116,13 @@ export const WILDCARD = "*";
 // =============================================================================
 // DATA TYPES
 // =============================================================================
+export const ARRAY = "array";
+export const BOOLEAN = "boolean";
 export const FUNCTION = "function";
+export const NUMBER = "number";
+export const OBJECT = "object";
 export const STRING = "string";
+export const TYPE = "type";
 
 // =============================================================================
 // SERVER & SYSTEM INFO
@@ -210,7 +215,9 @@ export const SHORT = "short";
 export const TIME_MS = "%N ms";
 export const TITLE = "title";
 export const TO_STRING = "toString";
+export const TOKEN_FILES = "FILES";
 export const TOKEN_N = "%N";
+export const TOKEN_TITLE = "TITLE";
 export const TRUE = "true";
 export const WARN = "warn";
 export const ALERT = "alert";
@@ -225,3 +232,14 @@ export const MONTHS = Object.freeze(
 );
 
 export const VALID_LOG_LEVELS = new Set([DEBUG, INFO, WARN, ERROR, CRITICAL, ALERT, EMERG, NOTICE]);
+
+// =============================================================================
+// HTML ESCAPE MAPPING
+// =============================================================================
+export const HTML_ESCAPES = Object.freeze({
+	"&": "&amp;",
+	"<": "&lt;",
+	">": "&gt;",
+	'"': "&quot;",
+	"'": "&#39;",
+});

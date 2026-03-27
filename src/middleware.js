@@ -1,5 +1,5 @@
-import { STATUS_CODES } from "node:http";
 import {
+	ARRAY,
 	DELIMITER,
 	FUNCTION,
 	GET,
@@ -7,11 +7,12 @@ import {
 	INT_0,
 	LEFT_PAREN,
 	NODE_METHODS,
+	OBJECT,
 	SLASH,
 	STRING,
 	WILDCARD,
 } from "./constants.js";
-import { getStatus } from "./response.js";
+import { getStatus, getStatusText } from "./response.js";
 import { extractPath } from "./request.js";
 
 /**
@@ -82,7 +83,7 @@ export function next(req, res, middleware, immediate = false) {
 			obj.value(err, req, res, nextFn);
 		} else {
 			const newStatus = getStatus(req, res);
-			res.error(newStatus, new Error(STATUS_CODES[newStatus]));
+			res.error(newStatus, new Error(getStatusText(newStatus)));
 		}
 	};
 
@@ -102,7 +103,7 @@ export function next(req, res, middleware, immediate = false) {
 			}
 		} else {
 			const newStatus = getStatus(req, res);
-			res.error(newStatus, new Error(STATUS_CODES[newStatus]));
+			res.error(newStatus, new Error(getStatusText(newStatus)));
 		}
 	};
 
@@ -167,13 +168,13 @@ export function computeRoutes(middleware, ignored, uri, method, cache, override 
  * @param {string} [type=array] - Return type (array or object)
  * @returns {Array|Object} List of routes
  */
-export function listRoutes(middleware, method = GET.toLowerCase(), type = "array") {
+export function listRoutes(middleware, method = GET.toLowerCase(), type = ARRAY) {
 	let result;
 	const methodMap = middleware.get(method.toUpperCase());
 
-	if (type === "array") {
+	if (type === ARRAY) {
 		result = [...methodMap.keys()];
-	} else if (type === "object") {
+	} else if (type === OBJECT) {
 		result = {};
 		const entries = Array.from(methodMap.entries());
 		const entryCount = entries.length;

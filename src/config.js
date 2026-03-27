@@ -1,24 +1,31 @@
 import { Validator } from "jsonschema";
 import {
+	ARRAY,
+	BOOLEAN,
+	COMMA,
+	EMPTY,
+	FALSE,
+	INFO,
+	INDEX_HTM,
+	INDEX_HTML,
 	INT_1,
+	INT_10,
 	INT_1e3,
 	INT_1e4,
 	INT_3,
-	INT_10,
-	UTF_8,
-	INDEX_HTM,
-	INDEX_HTML,
-	EMPTY,
-	INFO,
 	LOG_FORMAT,
-	TRUE,
-	FALSE,
 	MSG_CONFIG_FIELD,
 	MSG_VALIDATION_FAILED,
+	NUMBER,
+	OBJECT,
 	PERIOD,
 	SEMICOLON_SPACE,
-	WILDCARD,
+	STRING,
+	TYPE,
+	TRUE,
+	UTF_8,
 	VALID_LOG_LEVELS,
+	WILDCARD,
 } from "./constants.js";
 
 const DEFAULTS = {
@@ -39,21 +46,21 @@ const DEFAULTS = {
 
 const CONFIG_SCHEMA = {
 	$schema: "http://json-schema.org/draft-07/schema#",
-	type: "object",
+	type: OBJECT,
 	properties: {
-		autoIndex: { type: "boolean" },
-		cacheSize: { type: "number", minimum: INT_1 },
-		cacheTTL: { type: "number", minimum: INT_1 },
-		charset: { type: "string" },
-		corsExpose: { type: "string" },
-		defaultHeaders: { type: "object" },
-		digit: { type: "number", minimum: INT_1, maximum: INT_10 },
-		etags: { type: "boolean" },
-		indexes: { type: "array", items: { type: "string" } },
-		logging: { type: "object" },
-		origins: { type: "array", items: { type: "string" } },
-		silent: { type: "boolean" },
-		time: { type: "boolean" },
+		autoIndex: { type: BOOLEAN },
+		cacheSize: { type: NUMBER, minimum: INT_1 },
+		cacheTTL: { type: NUMBER, minimum: INT_1 },
+		charset: { type: STRING },
+		corsExpose: { type: STRING },
+		defaultHeaders: { type: OBJECT },
+		digit: { type: NUMBER, minimum: INT_1, maximum: INT_10 },
+		etags: { type: BOOLEAN },
+		indexes: { type: ARRAY, items: { type: STRING } },
+		logging: { type: OBJECT },
+		origins: { type: ARRAY, items: { type: STRING } },
+		silent: { type: BOOLEAN },
+		time: { type: BOOLEAN },
 	},
 	additionalProperties: false,
 };
@@ -78,7 +85,7 @@ export function validateConfig(config = {}) {
 
 			if (msg.includes("is not of a type(s)")) {
 				const types = msg.match(/type\(s\) ([a-z, ]+)/i);
-				const type = types ? types[1].split(",")[0].trim() : "type";
+				const type = types ? types[1].split(COMMA)[0].trim() : TYPE;
 				msg = `must be ${type}`;
 			} else if (msg.includes("must be greater than or equal to")) {
 				const val = msg.match(/greater than or equal to (\d+)/);
@@ -155,7 +162,7 @@ export function validateOrigins(origins = []) {
 	}
 
 	return origins.filter((origin) => {
-		if (typeof origin !== "string") {
+		if (typeof origin !== STRING) {
 			return false;
 		}
 		if (origin === WILDCARD) {
@@ -169,22 +176,4 @@ export function validateOrigins(origins = []) {
 			return false;
 		}
 	});
-}
-
-/**
- * Merges logging configuration with environment variables
- * @param {Object} [logging={}] - Logging configuration object
- * @returns {Object} Merged logging configuration with enabled, format, and level
- */
-export function mergeEnvLogging(logging = {}) {
-	const envLogEnabled = process.env.WOODLAND_LOG_ENABLED;
-	const envLogFormat = process.env.WOODLAND_LOG_FORMAT;
-	const envLogLevel = process.env.WOODLAND_LOG_LEVEL;
-
-	const enabled = logging.enabled ?? (envLogEnabled ?? TRUE) !== FALSE;
-
-	const format = resolveLoggingValue(logging.format, envLogFormat, LOG_FORMAT);
-	const level = resolveLoggingValue(logging.level, envLogLevel, INFO);
-
-	return { enabled, format, level };
 }

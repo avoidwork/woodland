@@ -5,8 +5,9 @@
 Woodland is a lightweight, security-focused HTTP server framework for Node.js that extends EventEmitter. It provides middleware-based routing with built-in CORS, file serving, caching, and comprehensive logging.
 
 **Key Statistics:**
-- 495 tests passing
-- 100% line coverage target
+- 324 tests passing
+- 100% line coverage
+- 97%+ branch and function coverage
 - Minimal dependencies
 - Express-compatible API
 
@@ -60,14 +61,14 @@ npm run build        # Build with rollup
 | File | Purpose | Key Exports |
 |------|---------|-------------|
 | `woodland.js` | Main framework class | `Woodland` class, `woodland` factory |
-| `config.js` | Configuration validation | `validateConfig`, `validateLogging`, `validateOrigins` |
-| `response.js` | Response handlers | `json`, `send`, `redirect`, `error`, `stream`, `set`, `status` |
+| `config.js` | Configuration validation | `validateConfig`, `validateLogging`, `validateOrigins`, `resolveLoggingValue` |
+| `response.js` | Response handlers | `json`, `send`, `redirect`, `error`, `stream`, `set`, `status`, `partialHeaders`, `escapeHtml`, `mime`, `getStatus`, `getStatusText`, `writeHead`, `pipeable`, `createErrorHandler`, `createJsonHandler`, `createRedirectHandler`, `createSendHandler`, `createSetHandler`, `createStatusHandler` |
 | `request.js` | Request handlers | `cors`, `extractIP`, `params`, `parse`, `isValidIP` |
 | `logger.js` | Logging utilities | `createLogger`, `log`, `clf`, `ms`, `timeOffset` |
 | `middleware.js` | Middleware registry | `reduce`, `next`, `createMiddlewareRegistry` |
 | `fileserver.js` | Static file serving | `serve`, `createFileServer`, `autoindex` |
 | `constants.js` | HTTP constants | Methods, status codes, headers, patterns |
-| `cli.js` | CLI entry point | Server runner |
+| `cli.js` | CLI entry point | `main`, `parseArgs`, `validatePort`, `validateIP` |
 
 ### Other Directories
 
@@ -174,6 +175,8 @@ After `decorate(req, res)`:
 - `escapeHtml(str)` - XSS prevention (escapes `&<>"'`)
 - `mime(path)` - Get MIME type from path
 - `getStatus(method, req)` - Determine 404/405/500
+- `getStatusText(code)` - Get status text from `STATUS_CODES`
+- `pipeable(method, arg)` - Check if body is pipeable (excludes HEAD)
 
 ### Middleware Registry (`src/middleware.js`)
 
@@ -202,6 +205,22 @@ await app.serve(req, res, "/path/to/file", "./public");
 - Path traversal blocked (resolved path must stay within folder)
 - Directories redirect to add trailing slash, or serve autoindex
 - Index files: `index.htm`, `index.html`
+
+### Config Validation (`src/config.js`)
+
+```javascript
+// Validation functions
+const config = validateConfig({ origins: ["https://app.com"] });
+const logging = validateLogging({ level: "debug" });
+const origins = validateOrigins(["https://app.com", "*"]);
+```
+
+**Important:**
+- `validateLogging()` handles environment variable merging (WOODLAND_LOG_*)
+- `resolveLoggingValue()` implements priority: config > env > default
+- `validateConfig()` uses jsonschema for Draft-07 validation
+
+---
 
 ### Logger (`src/logger.js`)
 

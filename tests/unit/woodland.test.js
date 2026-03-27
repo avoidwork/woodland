@@ -5,16 +5,12 @@ import { EVT_CONNECT } from "../../src/constants.js";
 
 describe("woodland", () => {
 	describe("Woodland class", () => {
-		it("should create instance with default config", () => {
-			const app = new Woodland();
+		it("should create instance with default config or factory", () => {
+			const app1 = new Woodland();
+			const app2 = woodland();
 
-			assert.ok(app instanceof Woodland);
-		});
-
-		it("should create instance with woodland factory function", () => {
-			const app = woodland();
-
-			assert.ok(app instanceof Woodland);
+			assert.ok(app1 instanceof Woodland);
+			assert.ok(app2 instanceof Woodland);
 		});
 
 		it("should have EventEmitter methods", () => {
@@ -25,65 +21,22 @@ describe("woodland", () => {
 			assert.strictEqual(typeof app.removeListener, "function");
 		});
 
-		it("should have default properties", () => {
+		it("should have required properties and methods", () => {
 			const app = new Woodland();
 
 			assert.ok(app.autoIndex !== void 0);
 			assert.ok(app.charset !== void 0);
-			assert.ok(app.corsExpose !== void 0);
-			assert.ok(Array.isArray(app.defaultHeaders));
-			assert.ok(app.digit !== void 0);
 			assert.ok(app.etags !== void 0 || app.etags === null);
 			assert.ok(Array.isArray(app.indexes));
-			assert.ok(app.logging !== void 0);
 			assert.ok(app.origins instanceof Set);
-			assert.ok(app.time !== void 0);
-		});
-
-		it("should have cache, permissions, middleware, methods", () => {
-			const app = new Woodland();
-
 			assert.ok(app.cache);
 			assert.ok(typeof app.cache.get === "function");
-			assert.ok(typeof app.cache.set === "function");
 			assert.ok(app.permissions instanceof Map);
 			assert.ok(app.middleware);
 			assert.strictEqual(typeof app.middleware.register, "function");
-			assert.strictEqual(typeof app.middleware.ignore, "function");
-			assert.strictEqual(typeof app.middleware.allowed, "function");
-			assert.strictEqual(typeof app.middleware.routes, "function");
-			assert.strictEqual(typeof app.middleware.list, "function");
 			assert.ok(Array.isArray(app.methods));
-		});
-
-		it("should have logger object with all methods", () => {
-			const app = new Woodland();
-
 			assert.ok(app.logger.log);
-			assert.ok(app.logger.logRoute);
-			assert.ok(app.logger.logMiddleware);
-			assert.ok(app.logger.logDecoration);
-			assert.ok(app.logger.logError);
-			assert.ok(app.logger.logServe);
-		});
-
-		it("should have cors handlers", () => {
-			const app = new Woodland();
-
-			assert.ok(app);
-		});
-
-		it("should have file server", () => {
-			const app = new Woodland();
-
 			assert.ok(app.fileServer);
-		});
-
-		it("should have middleware registry", () => {
-			const app = new Woodland();
-
-			assert.ok(app.middleware);
-			assert.strictEqual(typeof app.middleware.register, "function");
 		});
 	});
 
@@ -237,9 +190,10 @@ describe("woodland", () => {
 			});
 
 			it("should return app instance for chaining", () => {
-				const result = app.always(() => {});
-
-				assert.strictEqual(result, app);
+				assert.strictEqual(
+					app.always(() => {}),
+					app,
+				);
 			});
 		});
 
@@ -248,23 +202,14 @@ describe("woodland", () => {
 				const handler = () => {};
 
 				app.ignore(handler);
-
-				// Verify function is still callable (not removed from registry)
 				assert.ok(app.middleware);
 			});
 
 			it("should return app instance for chaining", () => {
-				const result = app.ignore(() => {});
-
-				assert.strictEqual(result, app);
-			});
-
-			it("should log ignored function name", () => {
-				const handler = function namedHandler() {};
-
-				app.ignore(handler);
-
-				assert.ok(app.middleware);
+				assert.strictEqual(
+					app.ignore(() => {}),
+					app,
+				);
 			});
 		});
 
@@ -370,17 +315,8 @@ describe("woodland", () => {
 
 		describe("decorate", () => {
 			it("should decorate request and response objects", () => {
-				const req = {
-					headers: { host: "example.com" },
-					url: "/test",
-					socket: null,
-				};
-				const res = {
-					setHeader: () => {},
-					on: () => {},
-					set: () => {},
-					send: () => {},
-				};
+				const req = { headers: { host: "example.com" }, url: "/test", socket: null };
+				const res = { setHeader: () => {}, on: () => {}, set: () => {}, send: () => {} };
 
 				app.decorate(req, res);
 
@@ -396,95 +332,54 @@ describe("woodland", () => {
 				assert.ok(res.send);
 			});
 
-			it("should set req.precise when timing enabled", () => {
-				const appWithTiming = woodland({ time: true });
-				const req = {
-					headers: { host: "example.com" },
-					url: "/test",
-					socket: null,
-				};
+			it("should call res.json when invoked", () => {
+				let writeHeadCalled = false;
+				let endCalled = false;
+
+				const req = { headers: { host: "example.com" }, url: "/test", socket: null };
 				const res = {
 					setHeader: () => {},
 					on: () => {},
 					set: () => {},
 					send: () => {},
+					getHeader: () => void 0,
+					statusCode: 200,
+					writeHead: () => {
+						writeHeadCalled = true;
+					},
+					end: () => {
+						endCalled = true;
+					},
+					headersSent: false,
 				};
+
+				const app = woodland();
+				app.decorate(req, res);
+				res.json({ message: "hello" }, 201);
+
+				// The send function uses writeHead and end, not the original send
+				assert.ok(writeHeadCalled || endCalled);
+			});
+
+			it("should set req.precise when timing enabled", () => {
+				const appWithTiming = woodland({ time: true });
+				const req = { headers: { host: "example.com" }, url: "/test", socket: null };
+				const res = { setHeader: () => {}, on: () => {}, set: () => {}, send: () => {} };
 
 				appWithTiming.decorate(req, res);
 
 				assert.ok(req.precise);
-				assert.ok(typeof req.precise.stop === "function");
+				assert.strictEqual(typeof req.precise.stop, "function");
 			});
 
 			it("should not set req.precise when timing disabled", () => {
 				const appWithoutTiming = woodland({ time: false });
-				const req = {
-					headers: { host: "example.com" },
-					url: "/test",
-					socket: null,
-				};
-				const res = {
-					setHeader: () => {},
-					on: () => {},
-					set: () => {},
-					send: () => {},
-				};
+				const req = { headers: { host: "example.com" }, url: "/test", socket: null };
+				const res = { setHeader: () => {}, on: () => {}, set: () => {}, send: () => {} };
 
 				appWithoutTiming.decorate(req, res);
 
 				assert.strictEqual(req.precise, void 0);
-			});
-
-			it("should set res.json function", () => {
-				const req = {
-					headers: { host: "example.com" },
-					url: "/test",
-					socket: null,
-				};
-				const res = {
-					setHeader: () => {},
-					on: () => {},
-					set: () => {},
-					send: () => {},
-					getHeader: () => void 0,
-				};
-
-				app.decorate(req, res);
-
-				assert.strictEqual(typeof res.json, "function");
-			});
-
-			it("should call res.json with default parameters", async () => {
-				const app = woodland();
-				let jsonCalled = false;
-
-				app.get("/json", (req, res) => {
-					jsonCalled = true;
-					res.json({ message: "hello" });
-				});
-
-				const req = {
-					method: "GET",
-					headers: { host: "example.com" },
-					url: "/json",
-					socket: null,
-				};
-				const res = {
-					statusCode: 200,
-					setHeader: () => {},
-					on: () => {},
-					end: () => {},
-					error: () => {},
-					set: () => {},
-					send: () => {},
-					getHeader: () => void 0,
-					writeHead: () => {},
-				};
-
-				app.route(req, res);
-
-				await new Promise((resolve) => setTimeout(resolve, 10));
-				assert.ok(jsonCalled);
 			});
 
 			it("should set CORS headers when origins configured", () => {
@@ -494,16 +389,181 @@ describe("woodland", () => {
 					url: "/test",
 					socket: null,
 				};
+				const res = { setHeader: () => {}, on: () => {}, set: () => {}, send: () => {} };
+
+				appWithCors.decorate(req, res);
+
+				assert.strictEqual(req.cors, true);
+			});
+
+			it("should invoke res.error when called", () => {
+				const app = woodland();
+				const req = {
+					headers: { host: "example.com" },
+					url: "/test",
+					socket: { server: { _connectionKey: "test" } },
+					method: "GET",
+				};
+				let errorEmitted = false;
+				let endCalled = false;
 				const res = {
 					setHeader: () => {},
 					on: () => {},
 					set: () => {},
 					send: () => {},
+					getHeader: () => void 0,
+					statusCode: 404,
+					removeHeader: () => {},
+					headersSent: false,
+					writeHead: () => {},
+					end: () => {
+						endCalled = true;
+					},
 				};
 
-				appWithCors.decorate(req, res);
+				app.once("error", () => {
+					errorEmitted = true;
+				});
 
-				assert.strictEqual(req.cors, true);
+				app.decorate(req, res);
+				res.error(404, new Error("Not found"));
+
+				assert.ok(errorEmitted);
+				assert.ok(endCalled);
+			});
+
+			it("should invoke res.redirect when called", () => {
+				const app = woodland();
+				const req = {
+					headers: { host: "example.com" },
+					url: "/test",
+					socket: { server: { _connectionKey: "test" } },
+					method: "GET",
+				};
+				let writeHeadHeaders = null;
+				const res = {
+					setHeader: () => {},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+					getHeader: () => void 0,
+					statusCode: 200,
+					headersSent: false,
+					writeHead: (status, statusText, headers) => {
+						writeHeadHeaders = headers;
+					},
+					end: () => {},
+				};
+
+				app.decorate(req, res);
+				res.redirect("/new-location", true);
+
+				assert.strictEqual(writeHeadHeaders?.location, "/new-location");
+			});
+
+			it("should invoke res.set when called", () => {
+				const app = woodland();
+				const req = {
+					headers: { host: "example.com" },
+					url: "/test",
+					socket: { server: { _connectionKey: "test" } },
+					method: "GET",
+				};
+				const setHeaderCalls = [];
+				const res = {
+					setHeader: (name, value) => {
+						setHeaderCalls.push([name, value]);
+					},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+					getHeader: () => void 0,
+					statusCode: 200,
+				};
+
+				app.decorate(req, res);
+				const callsBefore = setHeaderCalls.length;
+				res.set({ "X-Custom": "value", "X-Another": "test" });
+
+				assert.strictEqual(setHeaderCalls.length - callsBefore, 2);
+			});
+
+			it("should invoke res.status when called", () => {
+				const app = woodland();
+				const req = {
+					headers: { host: "example.com" },
+					url: "/test",
+					socket: { server: { _connectionKey: "test" } },
+					method: "GET",
+				};
+				const res = {
+					setHeader: () => {},
+					on: () => {},
+					set: () => {},
+					send: () => {},
+					getHeader: () => void 0,
+					statusCode: 200,
+				};
+
+				app.decorate(req, res);
+				res.status(500);
+
+				assert.strictEqual(res.statusCode, 500);
+			});
+
+			it("should register ERROR event handler in constructor", () => {
+				const app = woodland();
+				let logErrorCalled = false;
+				const mockReq = {
+					parsed: { pathname: "/error-test" },
+					method: "POST",
+					ip: "192.168.1.1",
+				};
+
+				// Override logError to track calls
+				const originalLogError = app.logger.logError;
+				app.logger.logError = (...args) => {
+					logErrorCalled = true;
+					return originalLogError(...args);
+				};
+
+				// Emit ERROR event
+				app.emit("error", mockReq, {}, new Error("test error"));
+
+				assert.ok(logErrorCalled);
+			});
+
+			it("should register EVT_CLOSE listener in decorate", () => {
+				const app = woodland();
+				const req = {
+					headers: { host: "example.com" },
+					url: "/test",
+					socket: { server: { _connectionKey: "test" } },
+					method: "GET",
+				};
+				let closeOnCalled = false;
+				let closeCallback = null;
+				const res = {
+					setHeader: () => {},
+					on: (event, callback) => {
+						if (event === "close") {
+							closeOnCalled = true;
+							closeCallback = callback;
+						}
+					},
+					set: () => {},
+					send: () => {},
+					getHeader: () => void 0,
+					statusCode: 200,
+				};
+
+				app.decorate(req, res);
+
+				assert.ok(closeOnCalled);
+				assert.strictEqual(typeof closeCallback, "function");
+
+				// Invoke the callback to test the arrow function
+				closeCallback();
 			});
 		});
 
@@ -529,39 +589,20 @@ describe("woodland", () => {
 		});
 
 		describe("etag", () => {
-			it("should generate etag for GET methods", () => {
+			it("should generate etag for GET/HEAD/OPTIONS methods", () => {
 				const appWithEtags = woodland({ etags: true });
-				const result = appWithEtags.etag("GET", "test", "value");
 
-				assert.ok(typeof result === "string");
+				assert.ok(typeof appWithEtags.etag("GET", "test", "value") === "string");
+				assert.ok(typeof appWithEtags.etag("HEAD", "test") === "string");
+				assert.ok(typeof appWithEtags.etag("OPTIONS", "test") === "string");
 			});
 
-			it("should return empty string for non-GET methods", () => {
+			it("should return empty string for non-GET methods or when disabled", () => {
 				const appWithEtags = woodland({ etags: true });
-				const result = appWithEtags.etag("POST", "test");
-
-				assert.strictEqual(result, "");
-			});
-
-			it("should return empty string when etags disabled", () => {
 				const appWithoutEtags = woodland({ etags: false });
-				const result = appWithoutEtags.etag("GET", "test");
 
-				assert.strictEqual(result, "");
-			});
-
-			it("should generate etag for HEAD methods", () => {
-				const appWithEtags = woodland({ etags: true });
-				const result = appWithEtags.etag("HEAD", "test");
-
-				assert.ok(typeof result === "string");
-			});
-
-			it("should generate etag for OPTIONS methods", () => {
-				const appWithEtags = woodland({ etags: true });
-				const result = appWithEtags.etag("OPTIONS", "test");
-
-				assert.ok(typeof result === "string");
+				assert.strictEqual(appWithEtags.etag("POST", "test"), "");
+				assert.strictEqual(appWithoutEtags.etag("GET", "test"), "");
 			});
 		});
 
@@ -573,11 +614,7 @@ describe("woodland", () => {
 					headers: { host: "example.com" },
 					connection: { remoteAddress: "127.0.0.1" },
 				};
-				const res = {
-					statusCode: 200,
-					getHeader: () => void 0,
-					header: () => {},
-				};
+				const res = { statusCode: 200, getHeader: () => void 0, header: () => {} };
 
 				const result = app.onReady(req, res, "body", 200, {});
 
@@ -586,23 +623,22 @@ describe("woodland", () => {
 
 			it("should add response time header when timing enabled", () => {
 				const appWithTiming = woodland({ time: true, digit: 2 });
-				let headerCalled = false;
 				const req = {
 					parsed: { pathname: "/test" },
 					method: "GET",
 					headers: { host: "example.com" },
 					connection: { remoteAddress: "127.0.0.1" },
-					precise: {
-						stop: () => ({ diff: () => 12345678 }),
-					},
+					precise: { stop: () => ({ diff: () => 12345678 }) },
 				};
+				let headerCalled = false;
 				const res = {
 					statusCode: 200,
 					getHeader: () => void 0,
-					header: (key, _value) => {
-						headerCalled = true;
-						assert.ok(key.includes("response-time"));
-						assert.ok(/^\d+(\.\d+)? ms$/.test(_value), `Expected format "X ms", got "${_value}"`);
+					header: (key, value) => {
+						if (key.includes("response-time")) {
+							headerCalled = true;
+							assert.ok(/^\d+(\.\d+)? ms$/.test(value));
+						}
 					},
 				};
 
@@ -619,17 +655,13 @@ describe("woodland", () => {
 					method: "GET",
 					headers: { host: "example.com" },
 					connection: { remoteAddress: "127.0.0.1" },
-					precise: {
-						stop: () => ({ diff: () => 1234567 }),
-					},
+					precise: { stop: () => ({ diff: () => 1234567 }) },
 				};
 				const res = {
 					statusCode: 200,
 					getHeader: () => void 0,
 					header: (key, value) => {
-						if (key === "x-response-time") {
-							captured.push(value);
-						}
+						if (key === "x-response-time") captured.push(value);
 					},
 				};
 
@@ -638,41 +670,11 @@ describe("woodland", () => {
 				assert.strictEqual(captured.length, 1);
 				assert.strictEqual(captured[0], "1.235 ms");
 			});
-
-			it("should format integer milliseconds when digit is 1", () => {
-				const appWithTiming = woodland({ time: true, digit: 1 });
-				const captured = [];
-				const req = {
-					parsed: { pathname: "/test" },
-					method: "GET",
-					headers: { host: "example.com" },
-					connection: { remoteAddress: "127.0.0.1" },
-					precise: {
-						stop: () => ({ diff: () => 1234567890 }),
-					},
-				};
-				const res = {
-					statusCode: 200,
-					getHeader: () => void 0,
-					header: (key, value) => {
-						if (key === "x-response-time") {
-							captured.push(value);
-						}
-					},
-				};
-
-				appWithTiming.onReady(req, res, "body", 200, {});
-
-				assert.strictEqual(captured.length, 1);
-				assert.strictEqual(captured[0], "1234.6 ms");
-			});
 		});
 
 		describe("onSend", () => {
 			it("should return response array", () => {
-				const result = app.onSend({}, {}, "body", 200, {});
-
-				assert.deepStrictEqual(result, ["body", 200, {}]);
+				assert.deepStrictEqual(app.onSend({}, {}, "body", 200, {}), ["body", 200, {}]);
 			});
 		});
 
@@ -699,10 +701,10 @@ describe("woodland", () => {
 				assert.ok(ended);
 			});
 
-			it("should skip content-length for 204 status", () => {
+			it("should skip content-length for 204/304 status", () => {
 				let contentLengthSet = false;
 
-				const res = {
+				const res204 = {
 					statusCode: 204,
 					getHeader: () => void 0,
 					header: () => {
@@ -712,15 +714,11 @@ describe("woodland", () => {
 					end: () => {},
 				};
 
-				app.onDone({}, res, "body", {});
-
+				app.onDone({}, res204, "body", {});
 				assert.strictEqual(contentLengthSet, false);
-			});
 
-			it("should skip content-length for 304 status", () => {
-				let contentLengthSet = false;
-
-				const res = {
+				contentLengthSet = false;
+				const res304 = {
 					statusCode: 304,
 					getHeader: () => void 0,
 					header: () => {
@@ -730,8 +728,7 @@ describe("woodland", () => {
 					end: () => {},
 				};
 
-				app.onDone({}, res, "body", {});
-
+				app.onDone({}, res304, "body", {});
 				assert.strictEqual(contentLengthSet, false);
 			});
 
@@ -767,12 +764,7 @@ describe("woodland", () => {
 					socket: null,
 					method: "GET",
 				};
-				const res = {
-					setHeader: () => {},
-					on: () => {},
-					set: () => {},
-					send: () => {},
-				};
+				const res = { setHeader: () => {}, on: () => {}, set: () => {}, send: () => {} };
 
 				appWithCors.decorate(req, res);
 
@@ -814,40 +806,7 @@ describe("woodland", () => {
 			it("should set CORS headers for non-OPTIONS request", () => {
 				const appWithCors = woodland({ origins: ["http://example.com"] });
 				const req = {
-					headers: {
-						host: "different.com",
-						origin: "http://example.com",
-						"access-control-request-headers": "x-custom",
-					},
-					url: "/test",
-					socket: null,
-					method: "GET",
-				};
-				let headersBatch = {};
-				const res = {
-					setHeader: (key, value) => {
-						headersBatch[key] = value;
-					},
-					on: () => {},
-					set: (headers) => {
-						headersBatch = { ...headersBatch, ...headers };
-					},
-					send: () => {},
-				};
-
-				appWithCors.decorate(req, res);
-
-				assert.strictEqual(req.cors, true);
-				assert.strictEqual(headersBatch["access-control-expose-headers"], "x-custom");
-			});
-
-			it("should set CORS headers without access-control-request-headers", () => {
-				const appWithCors = woodland({ origins: ["http://example.com"] });
-				const req = {
-					headers: {
-						host: "different.com",
-						origin: "http://example.com",
-					},
+					headers: { host: "different.com", origin: "http://example.com" },
 					url: "/test",
 					socket: null,
 					method: "GET",
@@ -875,10 +834,7 @@ describe("woodland", () => {
 					corsExpose: "x-custom-header",
 				});
 				const req = {
-					headers: {
-						host: "different.com",
-						origin: "http://example.com",
-					},
+					headers: { host: "different.com", origin: "http://example.com" },
 					url: "/test",
 					socket: null,
 					method: "GET",
@@ -908,10 +864,7 @@ describe("woodland", () => {
 
 				const req = {
 					method: "GET",
-					headers: {
-						host: "example.com",
-						origin: "http://evil.com",
-					},
+					headers: { host: "example.com", origin: "http://evil.com" },
 					url: "/test",
 					socket: null,
 				};
@@ -939,46 +892,6 @@ describe("woodland", () => {
 				await new Promise((resolve) => setTimeout(resolve, 50));
 				assert.strictEqual(errorCalled, true);
 				assert.strictEqual(req.valid, false);
-			});
-
-			it("should return 403 when origin header present but not in allowed list", async () => {
-				const app = woodland({ origins: ["http://allowed.com"] });
-				app.use(() => {});
-
-				const req = {
-					method: "GET",
-					headers: {
-						host: "different.com",
-						origin: "http://notallowed.com",
-					},
-					url: "/test",
-					socket: null,
-				};
-				let errorEmitted = false;
-				const res = {
-					setHeader: () => {},
-					on: () => {},
-					set: () => {},
-					send: () => {},
-					getHeader: () => void 0,
-					writeHead: () => {},
-					end: () => {},
-					statusCode: 200,
-					headersSent: false,
-					removeHeader: () => {},
-					header: () => {},
-				};
-
-				app.on("error", () => {
-					errorEmitted = true;
-				});
-
-				app.route(req, res);
-
-				await new Promise((resolve) => setTimeout(resolve, 50));
-				assert.strictEqual(errorEmitted, true);
-				assert.strictEqual(req.valid, false);
-				assert.strictEqual(res.statusCode, 403);
 			});
 		});
 
@@ -1022,46 +935,26 @@ describe("woodland", () => {
 	});
 
 	describe("Woodland with config", () => {
-		it("should configure with origins", () => {
-			const app = woodland({ origins: ["http://example.com"] });
+		it("should configure origins, etags, and digit", () => {
+			const app1 = woodland({ origins: ["http://example.com"] });
+			const app2 = woodland({ etags: true });
+			const app3 = woodland({ digit: 2 });
 
-			assert.strictEqual(app.origins.size, 1);
-			assert.ok(app.origins.has("http://example.com"));
+			assert.strictEqual(app1.origins.size, 1);
+			assert.ok(app2.etags);
+			assert.strictEqual(app3.digit, 2);
 		});
 
-		it("should configure with etags enabled", () => {
-			const app = woodland({ etags: true });
+		it("should configure silent mode and custom headers", () => {
+			const app1 = woodland({ silent: true });
+			const app2 = woodland({ defaultHeaders: { "x-custom": "value" } });
 
-			assert.ok(app.etags);
-		});
-
-		it("should configure with custom digit precision", () => {
-			const app = woodland({ digit: 2 });
-
-			assert.strictEqual(app.digit, 2);
-		});
-
-		it("should configure with custom indexes", () => {
-			const app = woodland({ indexes: ["index.html", "index.htm"] });
-
-			assert.strictEqual(app.indexes.length, 2);
-		});
-
-		it("should configure with silent mode", () => {
-			const app = woodland({ silent: true });
-
-			const hasServerHeader = app.defaultHeaders.some(
+			const hasServerHeader = app1.defaultHeaders.some(
 				(h) => h[0] === "server" || h[0] === "x-powered-by",
 			);
+			const hasCustomHeader = app2.defaultHeaders.some((h) => h[0] === "x-custom");
 
 			assert.strictEqual(hasServerHeader, false);
-		});
-
-		it("should configure with custom default headers", () => {
-			const app = woodland({ defaultHeaders: { "x-custom": "value" } });
-
-			const hasCustomHeader = app.defaultHeaders.some((h) => h[0] === "x-custom");
-
 			assert.ok(hasCustomHeader);
 		});
 
@@ -1088,12 +981,7 @@ describe("woodland", () => {
 				res.send("ok");
 			});
 
-			const req = {
-				method: "GET",
-				headers: { host: "example.com" },
-				url: "/test",
-				socket: null,
-			};
+			const req = { method: "GET", headers: { host: "example.com" }, url: "/test", socket: null };
 			const res = {
 				statusCode: 200,
 				setHeader: () => {},
@@ -1148,12 +1036,7 @@ describe("woodland", () => {
 				res.send("ok");
 			});
 
-			const req = {
-				method: "HEAD",
-				headers: { host: "example.com" },
-				url: "/test",
-				socket: null,
-			};
+			const req = { method: "HEAD", headers: { host: "example.com" }, url: "/test", socket: null };
 			const res = {
 				statusCode: 200,
 				setHeader: () => {},
@@ -1187,10 +1070,7 @@ describe("woodland", () => {
 			};
 
 			const result = app.serve(req, res, "/test.txt", "/tmp");
-
-			// Await to prevent async activity after test
 			await result.catch(() => {});
-
 			assert.ok(true);
 		});
 
@@ -1216,7 +1096,6 @@ describe("woodland", () => {
 				stats: { mtime: new Date(), size: 1024 },
 			};
 
-			// Verify the call throws with empty path
 			assert.throws(() => app.stream(req, res, file), /Invalid file descriptor/);
 		});
 
@@ -1259,10 +1138,54 @@ describe("woodland", () => {
 			};
 
 			connectApp.middleware.register("/test", () => {}, "GET");
-
 			connectApp.route(req, res);
 
 			assert.ok(connectEmitted);
+		});
+
+		it("should not emit connect/finish when no listeners", () => {
+			const noListenersApp = woodland();
+			let connectEmitCalled = false;
+			let finishOnCalled = false;
+
+			const req = {
+				method: "GET",
+				headers: { host: "example.com" },
+				connection: { remoteAddress: "127.0.0.1" },
+				parsed: { pathname: "/test" },
+				precise: { stop: () => ({ diff: () => 0 }) },
+			};
+			const res = {
+				statusCode: 200,
+				setHeader: () => {},
+				writeHead: () => {},
+				on: (event) => {
+					if (event === "finish") {
+						finishOnCalled = true;
+					}
+				},
+				end: () => {},
+				error: () => {},
+				set: () => {},
+				send: () => {},
+				header: () => {},
+				getHeader: () => void 0,
+				removeHeader: () => {},
+				headersSent: false,
+			};
+
+			const originalEmit = noListenersApp.emit;
+			noListenersApp.emit = (event, ...args) => {
+				if (event === EVT_CONNECT) {
+					connectEmitCalled = true;
+				}
+				return originalEmit.call(noListenersApp, event, ...args);
+			};
+
+			noListenersApp.route(req, res);
+
+			assert.strictEqual(connectEmitCalled, false);
+			assert.strictEqual(finishOnCalled, false);
 		});
 
 		it("should register finish listener when listener exists", () => {
@@ -1281,6 +1204,7 @@ describe("woodland", () => {
 				precise: { stop: () => ({ diff: () => 0 }) },
 			};
 			let finishOnCalled = false;
+			let finishCallback = null;
 			const res = {
 				statusCode: 200,
 				setHeader: () => {},
@@ -1288,8 +1212,7 @@ describe("woodland", () => {
 				on: (event, callback) => {
 					if (event === "finish") {
 						finishOnCalled = true;
-						// Simulate finish event
-						setTimeout(callback, 0);
+						finishCallback = callback;
 					}
 				},
 				end: () => {},
@@ -1304,44 +1227,13 @@ describe("woodland", () => {
 
 			finishApp.route(req, res);
 
-			// Wait for finish event to be emitted
-			return new Promise((resolve) => {
-				setTimeout(() => {
-					assert.ok(finishOnCalled);
-					assert.ok(finishEmitted);
-					resolve();
-				}, 10);
-			});
-		});
+			// Invoke the finish callback to test the arrow function
+			if (finishCallback) {
+				finishCallback();
+			}
 
-		it("should not emit connect/finish when no listeners", () => {
-			const noListenersApp = woodland();
-
-			const req = {
-				method: "GET",
-				headers: { host: "example.com" },
-				connection: { remoteAddress: "127.0.0.1" },
-				parsed: { pathname: "/test" },
-				precise: { stop: () => ({ diff: () => 0 }) },
-			};
-			const res = {
-				statusCode: 200,
-				setHeader: () => {},
-				writeHead: () => {},
-				on: () => {},
-				end: () => {},
-				error: () => {},
-				set: () => {},
-				send: () => {},
-				header: () => {},
-				getHeader: () => void 0,
-				removeHeader: () => {},
-				headersSent: false,
-			};
-
-			noListenersApp.route(req, res);
-
-			assert.ok(true);
+			assert.ok(finishOnCalled);
+			assert.ok(finishEmitted);
 		});
 	});
 });

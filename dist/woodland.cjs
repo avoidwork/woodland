@@ -131,8 +131,13 @@ const WILDCARD = "*";
 // =============================================================================
 // DATA TYPES
 // =============================================================================
+const ARRAY = "array";
+const BOOLEAN = "boolean";
 const FUNCTION = "function";
+const NUMBER = "number";
+const OBJECT = "object";
 const STRING = "string";
+const TYPE = "type";
 
 // =============================================================================
 // SERVER & SYSTEM INFO
@@ -219,6 +224,7 @@ const ITEM = "item";
 const NOTICE = "notice";
 const SHORT = "short";
 const TO_STRING = "toString";
+const TOKEN_TITLE = "TITLE";
 const TRUE = "true";
 const WARN = "warn";
 const ALERT = "alert";
@@ -234,13 +240,16 @@ const MONTHS = Object.freeze(
 
 const VALID_LOG_LEVELS = new Set([DEBUG, INFO, WARN, ERROR, CRITICAL, ALERT, EMERG, NOTICE]);
 
-const htmlEscapes = {
+// =============================================================================
+// HTML ESCAPE MAPPING
+// =============================================================================
+const HTML_ESCAPES = Object.freeze({
 	"&": "&amp;",
 	"<": "&lt;",
 	">": "&gt;",
 	'"': "&quot;",
 	"'": "&#39;",
-};
+});
 
 const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
 	mimeExtensions = valid.reduce((a, v) => {
@@ -306,12 +315,18 @@ function partialHeaders(req, res, size, status, headers = {}, options = {}) {
 		}
 	}
 
+	// Check if range is valid
+	const startValid = !isNaN(start) && start >= 0;
+	const endValid = !isNaN(end) && end < size;
+	const rangeOrderValid = start <= end;
+	const rangeValid = startValid && endValid && rangeOrderValid;
+
 	res.removeHeader(CONTENT_RANGE);
 	res.removeHeader(CONTENT_LENGTH);
 	res.removeHeader(ETAG);
 	delete headers.etag;
 
-	if (!isNaN(start) && !isNaN(end) && start <= end && start >= 0 && end < size) {
+	if (rangeValid) {
 		const rangeOptions = { start, end };
 		req.range = rangeOptions;
 		const contentLength = end - start + 1;
@@ -542,7 +557,7 @@ function stream(req, res, file, emitStream, createReadStream, etags) {
 		res.removeHeader(CACHE_CONTROL);
 	}
 
-	if (req.method === "GET") {
+	if (req.method === GET) {
 		let status = INT_200;
 		let options = {};
 		let headers = {};
@@ -566,7 +581,7 @@ function stream(req, res, file, emitStream, createReadStream, etags) {
 			createReadStream(file.path, Object.keys(options).length > 0 ? options : undefined),
 			status,
 		);
-	} else if (req.method === "HEAD") {
+	} else if (req.method === HEAD) {
 		res.send(EMPTY);
 	} else if (req.method === OPTIONS) {
 		res.removeHeader(CONTENT_LENGTH);
@@ -582,7 +597,79 @@ function stream(req, res, file, emitStream, createReadStream, etags) {
  * @returns {string} The escaped string with HTML entities
  */
 function escapeHtml(str = EMPTY) {
-	return str.replace(/[&<>"']/g, (match) => htmlEscapes[match]);
+	return str.replace(/[&<>"']/g, (match) => HTML_ESCAPES[match]);
+}
+
+/**
+ * Creates error response handler
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @param {EventEmitter} emitter - EventEmitter for error events
+ * @returns {Function} Error handler function
+ */
+function createErrorHandler(req, res, emitter) {
+	return (status = res.statusCode, body) => {
+		error(req, res, status);
+		const err = body instanceof Error ? body : new Error(body ?? getStatusText(res.statusCode));
+		emitter.emit(EVT_ERROR, req, res, err);
+		if (req.headers) {
+			delete req.headers.range;
+		}
+		res.send(err.message);
+	};
+}
+
+/**
+ * Creates JSON response handler
+ * @param {Object} res - Response object
+ * @returns {Function} JSON handler function
+ */
+function createJsonHandler(res) {
+	return (
+		arg,
+		status = res.statusCode,
+		headers = { [CONTENT_TYPE]: `${APPLICATION_JSON}; charset=utf-8` },
+	) => json(res, arg, status, headers);
+}
+
+/**
+ * Creates redirect response handler
+ * @param {Object} res - Response object
+ * @returns {Function} Redirect handler function
+ */
+function createRedirectHandler(res) {
+	return (uri, perm = true) => redirect(res, uri, perm);
+}
+
+/**
+ * Creates send response handler
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @param {Function} onReady - Ready callback
+ * @param {Function} onDone - Done callback
+ * @returns {Function} Send handler function
+ */
+function createSendHandler(req, res, onReady, onDone) {
+	return (body = EMPTY, status = res.statusCode, headers = {}) =>
+		send(req, res, body, status, headers, onReady, onDone);
+}
+
+/**
+ * Creates set headers handler
+ * @param {Object} res - Response object
+ * @returns {Function} Set handler function
+ */
+function createSetHandler(res) {
+	return (arg = {}) => set(res, arg);
+}
+
+/**
+ * Creates status handler
+ * @param {Object} res - Response object
+ * @returns {Function} Status handler function
+ */
+function createStatusHandler(res) {
+	return (arg = INT_200) => status(res, arg);
 }
 
 /**
@@ -637,9 +724,9 @@ function extractIP(req) {
 		return fallbackIP;
 	}
 
-	const forwardedIPs = forwardedHeader.split(",");
+	const forwardedIPs = forwardedHeader.split(COMMA);
 
-	for (let i = 0; i < forwardedIPs.length; i++) {
+	for (let i = INT_0; i < forwardedIPs.length; i++) {
 		const ip = forwardedIPs[i].trim();
 		if (isValidIP(ip)) {
 			return ip;
@@ -726,7 +813,7 @@ const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/,
  * @returns {boolean} True if IP is valid format
  */
 function isValidIP(ip) {
-	if (!ip || typeof ip !== "string") {
+	if (!ip || typeof ip !== STRING) {
 		return false;
 	}
 
@@ -900,7 +987,7 @@ function next(req, res, middleware, immediate = false) {
 			obj.value(err, req, res, nextFn);
 		} else {
 			const newStatus = getStatus(req, res);
-			res.error(newStatus, new Error(node_http.STATUS_CODES[newStatus]));
+			res.error(newStatus, new Error(getStatusText(newStatus)));
 		}
 	};
 
@@ -920,7 +1007,7 @@ function next(req, res, middleware, immediate = false) {
 			}
 		} else {
 			const newStatus = getStatus(req, res);
-			res.error(newStatus, new Error(node_http.STATUS_CODES[newStatus]));
+			res.error(newStatus, new Error(getStatusText(newStatus)));
 		}
 	};
 
@@ -985,13 +1072,13 @@ function computeRoutes(middleware, ignored, uri, method, cache, override = false
  * @param {string} [type=array] - Return type (array or object)
  * @returns {Array|Object} List of routes
  */
-function listRoutes(middleware, method = GET.toLowerCase(), type = "array") {
+function listRoutes(middleware, method = GET.toLowerCase(), type = ARRAY) {
 	let result;
 	const methodMap = middleware.get(method.toUpperCase());
 
-	if (type === "array") {
+	if (type === ARRAY) {
 		result = [...methodMap.keys()];
-	} else if (type === "object") {
+	} else if (type === OBJECT) {
 		result = {};
 		const entries = Array.from(methodMap.entries());
 		const entryCount = entries.length;
@@ -1114,21 +1201,21 @@ const DEFAULTS = {
 
 const CONFIG_SCHEMA = {
 	$schema: "http://json-schema.org/draft-07/schema#",
-	type: "object",
+	type: OBJECT,
 	properties: {
-		autoIndex: { type: "boolean" },
-		cacheSize: { type: "number", minimum: INT_1 },
-		cacheTTL: { type: "number", minimum: INT_1 },
-		charset: { type: "string" },
-		corsExpose: { type: "string" },
-		defaultHeaders: { type: "object" },
-		digit: { type: "number", minimum: INT_1, maximum: INT_10 },
-		etags: { type: "boolean" },
-		indexes: { type: "array", items: { type: "string" } },
-		logging: { type: "object" },
-		origins: { type: "array", items: { type: "string" } },
-		silent: { type: "boolean" },
-		time: { type: "boolean" },
+		autoIndex: { type: BOOLEAN },
+		cacheSize: { type: NUMBER, minimum: INT_1 },
+		cacheTTL: { type: NUMBER, minimum: INT_1 },
+		charset: { type: STRING },
+		corsExpose: { type: STRING },
+		defaultHeaders: { type: OBJECT },
+		digit: { type: NUMBER, minimum: INT_1, maximum: INT_10 },
+		etags: { type: BOOLEAN },
+		indexes: { type: ARRAY, items: { type: STRING } },
+		logging: { type: OBJECT },
+		origins: { type: ARRAY, items: { type: STRING } },
+		silent: { type: BOOLEAN },
+		time: { type: BOOLEAN },
 	},
 	additionalProperties: false,
 };
@@ -1153,7 +1240,7 @@ function validateConfig(config = {}) {
 
 			if (msg.includes("is not of a type(s)")) {
 				const types = msg.match(/type\(s\) ([a-z, ]+)/i);
-				const type = types ? types[1].split(",")[0].trim() : "type";
+				const type = types ? types[1].split(COMMA)[0].trim() : TYPE;
 				msg = `must be ${type}`;
 			} else if (msg.includes("must be greater than or equal to")) {
 				const val = msg.match(/greater than or equal to (\d+)/);
@@ -1419,7 +1506,9 @@ function autoIndex(title = EMPTY, files = []) {
 
 	if (files.length === 0) {
 		return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) => {
-			return key === "TITLE" ? safeTitle : `    <li><a href=".." rel="${COLLECTION}">../</a></li>`;
+			return key === TOKEN_TITLE
+				? safeTitle
+				: `    <li><a href=".." rel="${COLLECTION}">../</a></li>`;
 		});
 	}
 
@@ -1442,7 +1531,7 @@ function autoIndex(title = EMPTY, files = []) {
 	const safeFiles = listItems.join("\n");
 
 	return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) =>
-		key === "TITLE" ? safeTitle : safeFiles,
+		key === TOKEN_TITLE ? safeTitle : safeFiles,
 	);
 }
 
@@ -1665,18 +1754,7 @@ class Woodland extends node_events.EventEmitter {
 				}
 			}
 
-			const list = [...methodSet];
-
-			if (list.length > 0) {
-				if (methodSet.has(GET) && !methodSet.has(HEAD)) {
-					list.push(HEAD);
-				}
-
-				if (!methodSet.has(OPTIONS)) {
-					list.push(OPTIONS);
-				}
-			}
-
+			const list = this.buildAllowedList(methodSet);
 			result = list.sort().join(COMMA_SPACE);
 			this.permissions.set(uri, result);
 			this.logger.log(
@@ -1685,6 +1763,27 @@ class Woodland extends node_events.EventEmitter {
 		}
 
 		return result;
+	}
+
+	/**
+	 * Builds the list of allowed methods including implicit HEAD and OPTIONS
+	 * @param {Set} methodSet - Set of explicitly registered methods
+	 * @returns {Array} Array of allowed methods
+	 */
+	buildAllowedList(methodSet) {
+		const list = [...methodSet];
+
+		if (list.length > 0) {
+			if (methodSet.has(GET) && !methodSet.has(HEAD)) {
+				list.push(HEAD);
+			}
+
+			if (!methodSet.has(OPTIONS)) {
+				list.push(OPTIONS);
+			}
+		}
+
+		return list;
 	}
 
 	/**
@@ -1745,45 +1844,44 @@ class Woodland extends node_events.EventEmitter {
 		}
 
 		if (req.cors) {
-			const origin = req.headers.origin;
-			const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
-
-			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
-			headersBatch[TIMING_ALLOW_ORIGIN] = origin;
-			headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
-			headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = allowString;
-
-			if (corsHeaders !== void 0) {
-				headersBatch[
-					req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS
-				] = corsHeaders;
-			}
+			this.addCorsHeaders(req, headersBatch);
 		}
 
 		res.locals = {};
-		res.error = (status = res.statusCode, body) => {
-			error(req, res, status);
-			const err = body instanceof Error ? body : new Error(body ?? getStatusText(status));
-			this.emit(EVT_ERROR, req, res, err);
-			res.send(err.message);
-		};
+		res.error = createErrorHandler(req, res, this);
 		res.header = res.setHeader;
-		res.json = (
-			arg,
-			status = res.statusCode,
-			headers = { [CONTENT_TYPE]: `${APPLICATION_JSON}; charset=utf-8` },
-		) => json(res, arg, status, headers);
-		res.redirect = (uri, perm = true) => redirect(res, uri, perm);
-		res.send = (body = EMPTY, status = res.statusCode, headers = {}) =>
-			send(req, res, body, status, headers, this.onReady.bind(this), this.onDone.bind(this));
-		res.set = (arg = {}) => set(res, arg);
-		res.status = (arg = INT_200) => status(res, arg);
+		res.json = createJsonHandler(res);
+		res.redirect = createRedirectHandler(res);
+		res.send = createSendHandler(req, res, this.onReady.bind(this), this.onDone.bind(this));
+		res.set = createSetHandler(res);
+		res.status = createStatusHandler(res);
 
 		res.set(headersBatch);
 		res.on(EVT_CLOSE, () => this.logger.log(this.logger.clf(req, res), INFO));
 		this.logger.log(
 			`type=decorate, uri=${parsed.pathname}, method=${req.method}, ip=${clientIP}, message="Decorated request from ${clientIP}"`,
 		);
+	}
+
+	/**
+	 * Adds CORS headers to the headers batch
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} headersBatch - Headers batch object
+	 */
+	addCorsHeaders(req, headersBatch) {
+		const origin = req.headers.origin;
+		const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
+
+		headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
+		headersBatch[TIMING_ALLOW_ORIGIN] = origin;
+		headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
+		headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = req.allow;
+
+		if (corsHeaders !== void 0) {
+			headersBatch[
+				req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS
+			] = corsHeaders;
+		}
 	}
 
 	/**
@@ -1802,13 +1900,40 @@ class Woodland extends node_events.EventEmitter {
 	 * @returns {string} ETag string or empty string
 	 */
 	etag(method, ...args) {
-		return (method === GET || method === HEAD || method === OPTIONS) && this.etags !== null
-			? this.etags.create(
-					args
-						.map((i) => (typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i))
-						.join(HYPHEN),
-				)
-			: EMPTY;
+		if (!this.isHashableMethod(method) || !this.etagsEnabled()) {
+			return EMPTY;
+		}
+
+		const hashed = this.hashArgs(args);
+		return this.etags.create(hashed);
+	}
+
+	/**
+	 * Checks if a method can be hashed for ETag generation
+	 * @param {string} method - HTTP method
+	 * @returns {boolean} True if method is GET, HEAD, or OPTIONS
+	 */
+	isHashableMethod(method) {
+		return method === GET || method === HEAD || method === OPTIONS;
+	}
+
+	/**
+	 * Checks if ETags are enabled
+	 * @returns {boolean} True if ETags are enabled
+	 */
+	etagsEnabled() {
+		return this.etags !== null;
+	}
+
+	/**
+	 * Hashes arguments for ETag generation
+	 * @param {Array} args - Arguments to hash
+	 * @returns {string} Hashed string
+	 */
+	hashArgs(args) {
+		return args
+			.map((i) => (typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i))
+			.join(HYPHEN);
 	}
 
 	/**
@@ -1863,11 +1988,10 @@ class Woodland extends node_events.EventEmitter {
 	 * @param {Object} headers - Response headers
 	 */
 	onDone(req, res, body, headers) {
-		if (
-			res.statusCode !== INT_204 &&
-			res.statusCode !== INT_304 &&
-			res.getHeader(CONTENT_LENGTH) === void 0
-		) {
+		const isNoContent = res.statusCode === INT_204 || res.statusCode === INT_304;
+		const hasContentLength = res.getHeader(CONTENT_LENGTH) !== void 0;
+
+		if (!isNoContent && !hasContentLength) {
 			res.header(CONTENT_LENGTH, Buffer.byteLength(body));
 		}
 
@@ -1974,25 +2098,40 @@ class Woodland extends node_events.EventEmitter {
 		const origin = hasOriginHeader ? req.headers.origin : EMPTY;
 		const isOriginAllowed = hasOriginHeader && this.origins.has(origin);
 
-		if (req.cors === false && hasOriginHeader && req.corsHost && !isOriginAllowed) {
+		// Check if CORS request is disallowed
+		const isCorsRequest = req.corsHost;
+		const isCorsDisallowed =
+			req.cors === false && hasOriginHeader && isCorsRequest && !isOriginAllowed;
+
+		if (isCorsDisallowed) {
 			req.valid = false;
 			res.error(INT_403, new Error(node_http.STATUS_CODES[INT_403]));
 		} else if (req.allow.includes(method)) {
-			const result = this.middleware.routes(req.parsed.pathname, method);
-
-			if (result.params) {
-				params(req, result.getParams);
-			}
-
-			const middleware = result.middleware;
-			const exitIndex = result.exit;
-			req.exit = next(req, res, middleware.slice(exitIndex)[Symbol.iterator](), true);
-			next(req, res, middleware[Symbol.iterator]())();
+			this.handleAllowedRoute(req, res, method);
 		} else {
 			req.valid = false;
 			const newStatus = getStatus(req, res);
 			res.error(newStatus, new Error(node_http.STATUS_CODES[newStatus]));
 		}
+	}
+
+	/**
+	 * Handles routing for allowed methods
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} res - HTTP response object
+	 * @param {string} method - Normalized HTTP method
+	 */
+	handleAllowedRoute(req, res, method) {
+		const result = this.middleware.routes(req.parsed.pathname, method);
+
+		if (result.params) {
+			params(req, result.getParams);
+		}
+
+		const middleware = result.middleware;
+		const exitIndex = result.exit;
+		req.exit = next(req, res, middleware.slice(exitIndex)[Symbol.iterator](), true);
+		next(req, res, middleware[Symbol.iterator]())();
 	}
 
 	/**

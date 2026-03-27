@@ -22,7 +22,7 @@
 
 Woodland is a lightweight, security-focused HTTP server framework for Node.js that extends EventEmitter. It provides a middleware-based architecture with built-in features for modern web applications including CORS handling, file serving, caching, and comprehensive logging.
 
-**Version:** 21.0.0
+**Version:** 21.0.8
 
 ### Key Features
 
@@ -1231,7 +1231,7 @@ While lightweight by design, Woodland provides the security foundation needed fo
 
 ## Test Coverage
 
-Woodland maintains comprehensive test coverage with **478 tests passing**. The framework achieves 100% line coverage across all modules, with ongoing work to achieve 100% branch and function coverage.
+Woodland maintains comprehensive test coverage with **324 tests passing**. The framework achieves 100% line coverage across all modules, with ongoing work to achieve 100% branch and function coverage.
 
 ### Coverage Metrics
 
@@ -1254,7 +1254,7 @@ woodland.js     |     100 |    96.34 |   89.47 |     100 | ⚠️ Branch/func ga
 
 **Achieved:**
 - ✅ 100% line coverage across all source files
-- ✅ 478 passing tests
+- ✅ 324 passing tests
 - ✅ CLI module: 100% coverage across all dimensions
 
 **Working towards:**
@@ -1331,7 +1331,7 @@ describe("CLI server startup", () => {
 
 ### Test Categories
 
-#### 1. CLI Tests (100% Coverage) - 28 tests
+#### 1. CLI Tests (100% Coverage) - 26 tests
 
 - **Successful startup scenarios**: Default args, custom port/IP, logging configuration
 - **Validation logic**: Port ranges (0-65535), IPv4 address format, argument parsing
@@ -1341,12 +1341,6 @@ describe("CLI server startup", () => {
 
 #### 2. Security Integration Tests - 18 tests
 
-- **Path traversal protection**: Directory traversal attacks, encoded attempts
-- **IP address security**: X-Forwarded-For validation, IPv4/IPv6 handling
-- **CORS enforcement**: Origin validation, preflight requests, header security
-- **Autoindex security**: HTML escaping, href encoding, directory listing protection
-- **Security headers**: Content-Type-Options, default headers, custom configurations
-
 #### 3. Core Functionality Tests - 200+ tests
 
 - **HTTP methods**: All standard methods with middleware support
@@ -1355,15 +1349,9 @@ describe("CLI server startup", () => {
 - **Response helpers**: JSON responses, redirects, status codes, header manipulation
 - **Caching system**: Route caching, permissions cache, LRU eviction
 
-#### 4. File Serving Tests - 35+ tests
+#### 4. File Serving Tests - 25+ tests
 
-- **Static file serving**: Text, HTML, binary files with proper MIME types
-- **Directory handling**: Index files, autoIndex generation, nested paths
-- **Stream operations**: Large file streaming, range requests, ETags
-- **Error scenarios**: 404 handling, permission errors, malformed requests
-- **Security validation**: Path sanitization, access control
-
-#### 5. Utility Function Tests - 80+ tests
+#### 5. Utility Function Tests - 70+ tests
 
 - **URL processing**: Parameter extraction, query parsing, path normalization
 - **Time utilities**: Timestamp formatting, timezone handling, precision control
@@ -1373,7 +1361,7 @@ describe("CLI server startup", () => {
 ### Test Quality Metrics
 
 - **Code Coverage**: 100% lines, ongoing for branches and functions
-- **Test Execution Time**: ~6 seconds for full suite
+- **Test Execution Time**: ~0.85 seconds for full suite
 - **Test Reliability**: 100% pass rate with deterministic behavior
 - **Edge Case Coverage**: Comprehensive boundary testing
 - **Error Path Coverage**: All error conditions tested

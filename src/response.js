@@ -12,11 +12,13 @@ import {
 	EMPTY,
 	ETAG,
 	ERROR,
+	EVT_ERROR,
 	EXTENSIONS,
 	FUNCTION,
 	GET,
 	HEAD,
 	HYPHEN,
+	HTML_ESCAPES,
 	INT_10,
 	INT_200,
 	INT_206,
@@ -36,14 +38,6 @@ import {
 	STRING,
 	TO_STRING,
 } from "./constants.js";
-
-const htmlEscapes = {
-	"&": "&amp;",
-	"<": "&lt;",
-	">": "&gt;",
-	'"': "&quot;",
-	"'": "&#39;",
-};
 
 const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
 	mimeExtensions = valid.reduce((a, v) => {
@@ -109,12 +103,18 @@ export function partialHeaders(req, res, size, status, headers = {}, options = {
 		}
 	}
 
+	// Check if range is valid
+	const startValid = !isNaN(start) && start >= 0;
+	const endValid = !isNaN(end) && end < size;
+	const rangeOrderValid = start <= end;
+	const rangeValid = startValid && endValid && rangeOrderValid;
+
 	res.removeHeader(CONTENT_RANGE);
 	res.removeHeader(CONTENT_LENGTH);
 	res.removeHeader(ETAG);
 	delete headers.etag;
 
-	if (!isNaN(start) && !isNaN(end) && start <= end && start >= 0 && end < size) {
+	if (rangeValid) {
 		const rangeOptions = { start, end };
 		req.range = rangeOptions;
 		const contentLength = end - start + 1;
@@ -187,12 +187,6 @@ export function getStatus(req, res) {
 export function getStatusText(status) {
 	return STATUS_CODES[status] || STATUS_CODES[INT_500];
 }
-
-/**
- * No-op function for default parameters
- * @returns {void}
- */
-export function noop() {}
 
 /**
  * Error response handler
@@ -351,7 +345,7 @@ export function stream(req, res, file, emitStream, createReadStream, etags) {
 		res.removeHeader(CACHE_CONTROL);
 	}
 
-	if (req.method === "GET") {
+	if (req.method === GET) {
 		let status = INT_200;
 		let options = {};
 		let headers = {};
@@ -375,7 +369,7 @@ export function stream(req, res, file, emitStream, createReadStream, etags) {
 			createReadStream(file.path, Object.keys(options).length > 0 ? options : undefined),
 			status,
 		);
-	} else if (req.method === "HEAD") {
+	} else if (req.method === HEAD) {
 		res.send(EMPTY);
 	} else if (req.method === OPTIONS) {
 		res.removeHeader(CONTENT_LENGTH);
@@ -391,5 +385,77 @@ export function stream(req, res, file, emitStream, createReadStream, etags) {
  * @returns {string} The escaped string with HTML entities
  */
 export function escapeHtml(str = EMPTY) {
-	return str.replace(/[&<>"']/g, (match) => htmlEscapes[match]);
+	return str.replace(/[&<>"']/g, (match) => HTML_ESCAPES[match]);
+}
+
+/**
+ * Creates error response handler
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @param {EventEmitter} emitter - EventEmitter for error events
+ * @returns {Function} Error handler function
+ */
+export function createErrorHandler(req, res, emitter) {
+	return (status = res.statusCode, body) => {
+		error(req, res, status);
+		const err = body instanceof Error ? body : new Error(body ?? getStatusText(res.statusCode));
+		emitter.emit(EVT_ERROR, req, res, err);
+		if (req.headers) {
+			delete req.headers.range;
+		}
+		res.send(err.message);
+	};
+}
+
+/**
+ * Creates JSON response handler
+ * @param {Object} res - Response object
+ * @returns {Function} JSON handler function
+ */
+export function createJsonHandler(res) {
+	return (
+		arg,
+		status = res.statusCode,
+		headers = { [CONTENT_TYPE]: `${APPLICATION_JSON}; charset=utf-8` },
+	) => json(res, arg, status, headers);
+}
+
+/**
+ * Creates redirect response handler
+ * @param {Object} res - Response object
+ * @returns {Function} Redirect handler function
+ */
+export function createRedirectHandler(res) {
+	return (uri, perm = true) => redirect(res, uri, perm);
+}
+
+/**
+ * Creates send response handler
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @param {Function} onReady - Ready callback
+ * @param {Function} onDone - Done callback
+ * @returns {Function} Send handler function
+ */
+export function createSendHandler(req, res, onReady, onDone) {
+	return (body = EMPTY, status = res.statusCode, headers = {}) =>
+		send(req, res, body, status, headers, onReady, onDone);
+}
+
+/**
+ * Creates set headers handler
+ * @param {Object} res - Response object
+ * @returns {Function} Set handler function
+ */
+export function createSetHandler(res) {
+	return (arg = {}) => set(res, arg);
+}
+
+/**
+ * Creates status handler
+ * @param {Object} res - Response object
+ * @returns {Function} Status handler function
+ */
+export function createStatusHandler(res) {
+	return (arg = INT_200) => status(res, arg);
 }

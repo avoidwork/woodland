@@ -15,6 +15,12 @@ import {
 	partialHeaders,
 	pipeable,
 	writeHead,
+	createErrorHandler,
+	createJsonHandler,
+	createRedirectHandler,
+	createSendHandler,
+	createSetHandler,
+	createStatusHandler,
 } from "../../src/response.js";
 
 describe("response", () => {
@@ -1170,6 +1176,89 @@ describe("response", () => {
 
 			assert.strictEqual(capturedRange, "bytes 500-999/1000");
 		});
+
+		it("should return unchanged when range header does not start with bytes=", () => {
+			const req = { headers: { range: "chunks=0-499" } };
+			const res = {
+				removeHeader: () => {},
+				header: () => {},
+				statusCode: 200,
+			};
+			const headers = { "content-type": "text/html" };
+			const options = { custom: "option" };
+
+			const [resultHeaders, resultOptions] = partialHeaders(req, res, 1000, 200, headers, options);
+
+			assert.deepStrictEqual(resultHeaders, headers);
+			assert.deepStrictEqual(resultOptions, options);
+		});
+
+		it("should return unchanged when both start and end are empty", () => {
+			const req = { headers: { range: "bytes=-" } };
+			const res = {
+				removeHeader: () => {},
+				header: () => {},
+				statusCode: 200,
+			};
+			const headers = { "content-type": "text/html" };
+
+			const [resultHeaders] = partialHeaders(req, res, 1000, 200, headers);
+
+			assert.deepStrictEqual(resultHeaders, headers);
+		});
+
+		it("should return unchanged when start is negative and exceeds size", () => {
+			const req = { headers: { range: "bytes=-2000" } };
+			const res = {
+				removeHeader: () => {},
+				header: () => {},
+				statusCode: 200,
+			};
+			const headers = { "content-type": "text/html" };
+
+			const [resultHeaders] = partialHeaders(req, res, 1000, 200, headers);
+
+			// start would be 1000 - 2000 = -1000, which is < 0, so invalid
+			assert.deepStrictEqual(resultHeaders, headers);
+		});
+
+		it("should handle range where start equals end", () => {
+			const req = { headers: { range: "bytes=500-500" } };
+			let capturedRange = null;
+			const res = {
+				removeHeader: () => {},
+				header: (key, val) => {
+					if (key === "content-range") {
+						capturedRange = val;
+					}
+				},
+				statusCode: 200,
+			};
+			const headers = {};
+
+			partialHeaders(req, res, 1000, 200, headers);
+
+			assert.strictEqual(capturedRange, "bytes 500-500/1000");
+		});
+
+		it("should handle range where start is 0", () => {
+			const req = { headers: { range: "bytes=0-999" } };
+			let capturedRange = null;
+			const res = {
+				removeHeader: () => {},
+				header: (key, val) => {
+					if (key === "content-range") {
+						capturedRange = val;
+					}
+				},
+				statusCode: 200,
+			};
+			const headers = {};
+
+			partialHeaders(req, res, 1000, 200, headers);
+
+			assert.strictEqual(capturedRange, "bytes 0-999/1000");
+		});
 	});
 
 	describe("pipeable", () => {
@@ -1224,6 +1313,135 @@ describe("response", () => {
 			writeHead(res, {});
 
 			assert.strictEqual(called, true);
+		});
+	});
+
+	describe("createErrorHandler", () => {
+		it("should create error handler that calls send", () => {
+			let sendCalled = false;
+			let errorEmitted = false;
+			let contentLengthRemoved = false;
+
+			const req = { parsed: { pathname: "/test" }, method: "GET", ip: "127.0.0.1" };
+			const res = {
+				statusCode: 200,
+				headersSent: false,
+				removeHeader: (name) => {
+					if (name === "content-length") {
+						contentLengthRemoved = true;
+					}
+				},
+				send: () => {
+					sendCalled = true;
+				},
+			};
+			const emitter = {
+				emit: () => {
+					errorEmitted = true;
+				},
+			};
+
+			const errorHandler = createErrorHandler(req, res, emitter);
+			errorHandler(404, "Not found");
+
+			assert.ok(sendCalled);
+			assert.ok(errorEmitted);
+			assert.ok(contentLengthRemoved);
+		});
+	});
+
+	describe("createJsonHandler", () => {
+		it("should create json handler that calls send", () => {
+			let sendCalled = false;
+
+			const res = {
+				statusCode: 200,
+				send: () => {
+					sendCalled = true;
+				},
+			};
+
+			const jsonHandler = createJsonHandler(res);
+			jsonHandler({ test: "data" });
+
+			assert.ok(sendCalled);
+		});
+	});
+
+	describe("createRedirectHandler", () => {
+		it("should create redirect handler that calls send", () => {
+			let sendCalled = false;
+
+			const res = {
+				send: () => {
+					sendCalled = true;
+				},
+			};
+
+			const redirectHandler = createRedirectHandler(res);
+			redirectHandler("/new-location", true);
+
+			assert.ok(sendCalled);
+		});
+	});
+
+	describe("createSendHandler", () => {
+		it("should create send handler", () => {
+			let onReadyCalled = false;
+			let onDoneCalled = false;
+
+			const req = { method: "GET", headers: {} };
+			const res = {
+				statusCode: 200,
+				headersSent: false,
+			};
+
+			const sendHandler = createSendHandler(
+				req,
+				res,
+				() => {
+					onReadyCalled = true;
+					return ["body", 200, {}];
+				},
+				() => {
+					onDoneCalled = true;
+				},
+			);
+
+			sendHandler("test body");
+
+			assert.ok(onReadyCalled);
+			assert.ok(onDoneCalled);
+		});
+	});
+
+	describe("createSetHandler", () => {
+		it("should create set handler that calls setHeader", () => {
+			let setHeaderCalled = false;
+
+			const res = {
+				setHeader: () => {
+					setHeaderCalled = true;
+				},
+			};
+
+			const setHandler = createSetHandler(res);
+			setHandler({ "x-custom": "value" });
+
+			assert.ok(setHeaderCalled);
+		});
+	});
+
+	describe("createStatusHandler", () => {
+		it("should create status handler that sets statusCode", () => {
+			const res = {
+				statusCode: 200,
+			};
+
+			const statusHandler = createStatusHandler(res);
+			statusHandler(404);
+
+			assert.strictEqual(res.statusCode, 404);
 		});
 	});
 });
