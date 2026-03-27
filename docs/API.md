@@ -73,7 +73,7 @@ The following read-only properties are available via public getters:
 | `charset` | `string` | Default character set |
 | `corsExpose` | `string` | CORS expose headers |
 | `digit` | `number` | Digit precision for timing |
-| `etags` | `boolean` | ETag generation enabled |
+| `etags` | `Object\|null` | ETag helper (`{create, middleware}`) or `null` if disabled |
 | `indexes` | `Array<string>` | Index files for directories |
 | `logging` | `Object` | Logging configuration (frozen copy) |
 | `origins` | `Set<string>` | Allowed CORS origins |
