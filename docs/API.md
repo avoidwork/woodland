@@ -141,27 +141,31 @@ All routing methods return `Woodland` instance for chaining.
 ### Method-Specific Routes
 
 ```javascript
-app.get(path, ...handlers)      // GET
-app.post(path, ...handlers)     // POST
-app.put(path, ...handlers)      // PUT
-app.delete(path, ...handlers)   // DELETE
-app.patch(path, ...handlers)    // PATCH
-app.options(path, ...handlers)  // OPTIONS
-app.connect(path, ...handlers)  // CONNECT
-app.trace(path, ...handlers)    // TRACE
+app.get([path], ...handlers)      // GET
+app.post([path], ...handlers)     // POST
+app.put([path], ...handlers)      // PUT
+app.delete([path], ...handlers)   // DELETE
+app.patch([path], ...handlers)    // PATCH
+app.options([path], ...handlers)  // OPTIONS
+app.connect([path], ...handlers)  // CONNECT
+app.trace([path], ...handlers)    // TRACE
 ```
 
 **Parameters:**
-- `path` (string) - Route path or RegExp pattern
+- `path` (string, optional) - Route path or RegExp pattern
 - `...handlers` (Function) - One or more middleware handlers
 
 **Example:**
 ```javascript
+// Route-specific middleware
 app.get("/users/:id", (req, res) => {
   res.json({ id: req.params.id });
 });
 
 app.post("/users", validate, createUser);
+
+// Global middleware (when path is omitted)
+app.get(logRequest, respond);
 ```
 
 ### `always(...handlers)`
