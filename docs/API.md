@@ -558,7 +558,7 @@ const etag = app.etag("GET", data, timestamp);
 res.header("ETag", etag);
 ```
 
-### `files(root, folder)`
+### `files(root?, folder?)`
 
 Registers file server middleware.
 
@@ -566,7 +566,7 @@ Registers file server middleware.
 - `root` (string, optional) - Root path (default: `"/"`)
 - `folder` (string, optional) - Folder to serve (default: `process.cwd()`)
 
-**Returns:** `void`
+**Returns:** `Woodland` instance for chaining
 
 **Example:**
 ```javascript
