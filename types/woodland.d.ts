@@ -57,6 +57,8 @@ export class Woodland extends EventEmitter {
 		logError: (...args: any[]) => void;
 		logRoute: (...args: any[]) => void;
 		logMiddleware: (...args: any[]) => void;
+		logDecoration: (...args: any[]) => void;
+		logServe: (...args: any[]) => void;
 		clf: (...args: any[]) => string;
 		ms: (...args: any[]) => string;
 		timeOffset: (...args: any[]) => string;
