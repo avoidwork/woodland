@@ -48,7 +48,8 @@ Extends `EventEmitter`. Provides HTTP server functionality with middleware routi
 **Implementation Notes:**
 - Uses ES2022 private fields (`#`) for internal state
 - All private fields are inaccessible from outside the class
-- Public getters return copies to prevent external mutation
+- Public getters return copies/frozen objects where applicable (`indexes`, `origins`, `logging`, `logger`)
+- Some getters return internal objects directly (`fileServer`, `etags`)
 
 ### Constructor
 
