@@ -381,6 +381,26 @@ describe("middleware", () => {
 
 				assert.strictEqual(typeof result, "object");
 			});
+
+			it("should return empty array for method with no registrations", () => {
+				const registry = createMiddlewareRegistry(methods, cache);
+				registry.register("/test", () => {}, "GET");
+
+				const result = registry.list("DELETE", "array");
+
+				assert.ok(Array.isArray(result));
+				assert.strictEqual(result.length, 0);
+			});
+
+			it("should return empty object for method with no registrations", () => {
+				const registry = createMiddlewareRegistry(methods, cache);
+				registry.register("/test", () => {}, "GET");
+
+				const result = registry.list("DELETE", "object");
+
+				assert.strictEqual(typeof result, "object");
+				assert.strictEqual(Object.keys(result).length, 0);
+			});
 		});
 	});
 
@@ -490,6 +510,22 @@ describe("middleware", () => {
 
 			assert.ok(Array.isArray(result));
 			assert.strictEqual(result.length, 0);
+		});
+
+		it("should return empty array for completely missing method", () => {
+			// middleware only has GET, not DELETE
+			const result = listRoutes(middleware, "DELETE", "array");
+
+			assert.ok(Array.isArray(result));
+			assert.strictEqual(result.length, 0);
+		});
+
+		it("should return empty object for completely missing method", () => {
+			// middleware only has GET, not DELETE
+			const result = listRoutes(middleware, "DELETE", "object");
+
+			assert.strictEqual(typeof result, "object");
+			assert.strictEqual(Object.keys(result).length, 0);
 		});
 	});
 

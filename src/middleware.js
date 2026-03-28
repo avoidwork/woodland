@@ -169,20 +169,23 @@ export function computeRoutes(middleware, ignored, uri, method, cache, override 
  * @returns {Array|Object} List of routes
  */
 export function listRoutes(middleware, method = GET.toLowerCase(), type = ARRAY) {
-	let result;
 	const methodMap = middleware.get(method.toUpperCase());
 
-	if (type === ARRAY) {
-		result = [...methodMap.keys()];
-	} else if (type === OBJECT) {
-		result = {};
-		const entries = Array.from(methodMap.entries());
-		const entryCount = entries.length;
+	if (!methodMap) {
+		return type === ARRAY ? [] : {};
+	}
 
-		for (let i = 0; i < entryCount; i++) {
-			const [key, value] = entries[i];
-			result[key] = value;
-		}
+	if (type === ARRAY) {
+		return [...methodMap.keys()];
+	}
+
+	const result = {};
+	const entries = Array.from(methodMap.entries());
+	const entryCount = entries.length;
+
+	for (let i = 0; i < entryCount; i++) {
+		const [key, value] = entries[i];
+		result[key] = value;
 	}
 
 	return result;
