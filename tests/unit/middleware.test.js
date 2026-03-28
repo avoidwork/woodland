@@ -575,30 +575,29 @@ describe("middleware", () => {
 	});
 
 	describe("registerMiddleware", () => {
-		let middleware, ignored, methods, cache;
+		let middleware, ignored, methods;
 
 		beforeEach(() => {
 			middleware = new Map();
 			ignored = new Set();
 			methods = new Set();
-			cache = new Map();
 		});
 
 		it("should register middleware for path and method", () => {
-			registerMiddleware(middleware, ignored, methods, cache, "/test", () => {});
+			registerMiddleware(middleware, ignored, methods, "/test", () => {});
 
 			assert.ok(middleware.has("GET"));
 		});
 
 		it("should register middleware for specific method", () => {
-			registerMiddleware(middleware, ignored, methods, cache, "/test", () => {}, "POST");
+			registerMiddleware(middleware, ignored, methods, "/test", () => {}, "POST");
 
 			assert.ok(middleware.has("POST"));
 		});
 
 		it("should register wildcard middleware when function passed as first arg", () => {
 			const handler = () => {};
-			const result = registerMiddleware(middleware, ignored, methods, cache, handler);
+			const result = registerMiddleware(middleware, ignored, methods, handler);
 
 			assert.ok(middleware.has("GET"));
 			assert.ok(middleware.get("GET").has("/.*"));
@@ -607,17 +606,17 @@ describe("middleware", () => {
 
 		it("should throw error for invalid or HEAD method", () => {
 			assert.throws(
-				() => registerMiddleware(middleware, ignored, methods, cache, "/test", () => {}, "INVALID"),
+				() => registerMiddleware(middleware, ignored, methods, "/test", () => {}, "INVALID"),
 				/Invalid HTTP method/,
 			);
 			assert.throws(
-				() => registerMiddleware(middleware, ignored, methods, cache, "/test", () => {}, "HEAD"),
+				() => registerMiddleware(middleware, ignored, methods, "/test", () => {}, "HEAD"),
 				/Cannot set HEAD route/,
 			);
 		});
 
 		it("should convert parameterized routes to regex", () => {
-			registerMiddleware(middleware, ignored, methods, cache, "/users/:id", () => {});
+			registerMiddleware(middleware, ignored, methods, "/users/:id", () => {});
 
 			const routes = Array.from(middleware.get("GET").keys());
 			const hasConvertedRoute = routes.some((route) => route.includes(":") === false);
@@ -629,27 +628,27 @@ describe("middleware", () => {
 			const handler1 = () => {};
 			const handler2 = () => {};
 
-			registerMiddleware(middleware, ignored, methods, cache, "/test", handler1);
-			registerMiddleware(middleware, ignored, methods, cache, "/test", handler2);
+			registerMiddleware(middleware, ignored, methods, "/test", handler1);
+			registerMiddleware(middleware, ignored, methods, "/test", handler2);
 
 			const routeData = middleware.get("GET").get("/test");
 			assert.strictEqual(routeData.handlers.length, 2);
 		});
 
 		it("should add method to methods array for non-wildcard", () => {
-			registerMiddleware(middleware, ignored, methods, cache, "/test", () => {}, "POST");
+			registerMiddleware(middleware, ignored, methods, "/test", () => {}, "POST");
 
 			assert.ok(methods.has("POST"));
 		});
 
 		it("should not add method to methods array for wildcard method", () => {
-			registerMiddleware(middleware, ignored, methods, cache, "/test", () => {}, "*");
+			registerMiddleware(middleware, ignored, methods, "/test", () => {}, "*");
 
 			assert.strictEqual(methods.size, 0);
 		});
 
 		it("should return early when rpath is undefined", () => {
-			const result = registerMiddleware(middleware, ignored, methods, cache, void 0, () => {});
+			const result = registerMiddleware(middleware, ignored, methods, void 0, () => {});
 
 			assert.strictEqual(result, void 0);
 			assert.strictEqual(middleware.size, 0);

@@ -1167,7 +1167,7 @@ function createMiddlewareRegistry(methods, cache) {
 		},
 		allowed: (m, u, o) => checkAllowed(middleware, ignored, cache, m, u, o),
 		routes: (u, m, o) => computeRoutes(middleware, ignored, u, m, cache, o),
-		register: (p, ...fns) => registerMiddleware(middleware, ignored, methods, cache, p, ...fns),
+		register: (p, ...fns) => registerMiddleware(middleware, ignored, methods, p, ...fns),
 		list: (m, t) => listRoutes(middleware, m, t),
 	};
 }
@@ -1177,11 +1177,10 @@ function createMiddlewareRegistry(methods, cache) {
  * @param {Map} middleware - Map of middleware by method
  * @param {Set} ignored - Set of ignored middleware functions
  * @param {Set} methods - Set of registered HTTP methods
- * @param {Object|Map} cache - Cache for route results
  * @param {string|Function} rpath - Route path or middleware function
  * @param {...Function} fn - Middleware functions to register
  */
-function registerMiddleware(middleware, ignored, methods, cache, rpath, ...fn) {
+function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 	if (rpath === void 0) {
 		return;
 	}
