@@ -269,8 +269,8 @@ export class Woodland extends EventEmitter {
 		const timing = this.#time ? precise().start() : null;
 		const parsed = parse(req);
 		const clientIP = extractIP(req);
-		const reqCors = cors(req, this.#origins);
-		const allowString = this.#allows(parsed.pathname, false, reqCors);
+		req.cors = cors(req, this.#origins);
+		const allowString = this.#allows(parsed.pathname, false, req.cors);
 		const headersBatch = Object.create(null);
 		headersBatch[ALLOW] = allowString;
 		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
@@ -283,7 +283,6 @@ export class Woodland extends EventEmitter {
 		}
 
 		req.corsHost = corsHost(req);
-		req.cors = reqCors;
 		req.parsed = parsed;
 		req.allow = allowString;
 		req.ip = clientIP;

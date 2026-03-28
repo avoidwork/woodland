@@ -11,7 +11,7 @@
 ℹ  middleware.js | 100.00 |   100.00 |  100.00 | 
 ℹ  request.js    | 100.00 |   100.00 |  100.00 | 
 ℹ  response.js   | 100.00 |    98.11 |  100.00 | 
-ℹ  woodland.js   |  95.92 |    85.90 |   95.12 | 234-235 296-297 300-301 325-338 468-471 562-563 612-613
+ℹ  woodland.js   |  95.91 |    85.90 |   95.12 | 234-235 295-296 299-300 324-337 467-470 561-562 611-612
 ℹ -------------------------------------------------------------------------------------------------------
 ℹ all files      |  98.61 |    94.38 |   97.22 | 
 ℹ -------------------------------------------------------------------------------------------------------
@@ -20,7 +20,7 @@
 ✖ failing tests:
 
 test at tests/unit/woodland.test.js:319:4
-✖ should return 403 for disallowed origin (52.932002ms)
+✖ should return 403 for disallowed origin (52.616247ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   
   false !== true
