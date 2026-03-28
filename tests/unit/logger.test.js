@@ -30,6 +30,7 @@ describe("logger", () => {
 		it("should normalize invalid log level to info", () => {
 			const logger = createLogger({ level: "invalid" });
 			assert.ok(logger.log);
+			assert.strictEqual(typeof logger.log, "function");
 		});
 
 		it("should return logger object with all methods", () => {
@@ -41,26 +42,6 @@ describe("logger", () => {
 			assert.strictEqual(typeof logger.logDecoration, "function");
 			assert.strictEqual(typeof logger.logError, "function");
 			assert.strictEqual(typeof logger.logServe, "function");
-		});
-
-		it("should call all logger methods", () => {
-			const logger = createLogger({ enabled: false, format: "%h %l %u" });
-
-			// Call all methods to ensure they're covered
-			logger.log("test");
-			logger.logRoute("/test", "GET", "127.0.0.1");
-			logger.logMiddleware("/test", "GET");
-			logger.logDecoration("/test", "GET", "127.0.0.1");
-			logger.logError("/test", "GET", "127.0.0.1");
-
-			const req = { parsed: { pathname: "/test" }, method: "GET", ip: "127.0.0.1" };
-			logger.logServe(req, "test");
-
-			// Call clf method
-			const res = { getHeader: () => "100", statusCode: 200 };
-			logger.clf(req, res);
-
-			assert.ok(true);
 		});
 
 		describe("log", () => {

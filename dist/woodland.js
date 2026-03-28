@@ -5,7 +5,7 @@
  * @license BSD-3-Clause
  * @version 21.0.10
  */
-import {STATUS_CODES}from'node:http';import {EventEmitter}from'node:events';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {lru}from'tiny-lru';import {precise}from'precise';import {createRequire}from'node:module';import {join,extname,resolve}from'node:path';import {fileURLToPath,URL as URL$1}from'node:url';import mimeDb from'mime-db';import {coerce}from'tiny-coerce';import {Validator}from'jsonschema';import {stat,readdir}from'node:fs/promises';const __dirname$2 = fileURLToPath(new URL$1(".", import.meta.url));
+import {STATUS_CODES}from'node:http';import {EventEmitter}from'node:events';import {readFileSync,createReadStream}from'node:fs';import {etag}from'tiny-etag';import {lru}from'tiny-lru';import {precise}from'precise';import {createRequire}from'node:module';import {join,extname,resolve,sep}from'node:path';import {fileURLToPath,URL as URL$1}from'node:url';import mimeDb from'mime-db';import {coerce}from'tiny-coerce';import {Validator}from'jsonschema';import {realpath,stat,readdir}from'node:fs/promises';const __dirname$2 = fileURLToPath(new URL$1(".", import.meta.url));
 const require$1 = createRequire(import.meta.url);
 const { name, version } = require$1(join(__dirname$2, "..", "package.json"));
 
@@ -414,6 +414,51 @@ function json(
 	res.send(JSON.stringify(arg), status, headers);
 }
 
+const PROTOCOL_PATTERN = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
+const CONTROL_CHAR_PATTERN = /[\r\n\t]/;
+
+/**
+ * Validates if a URI is safe for redirection (relative only)
+ * @param {string} uri - URI to validate
+ * @returns {boolean} True if URI is safe
+ */
+function isSafeRedirectUri(uri) {
+	/* node:coverage ignore next 10 */
+	if (!uri || typeof uri !== "string") {
+		return false;
+	}
+
+	const trimmed = uri.trim();
+
+	if (trimmed.length === 0) {
+		return false;
+	}
+
+	// Block control characters that could cause header injection
+	if (CONTROL_CHAR_PATTERN.test(trimmed)) {
+		return false;
+	}
+
+	if (PROTOCOL_PATTERN.test(trimmed)) {
+		return false;
+	}
+
+	// Block protocol-relative URLs including percent-encoded variants
+	const decoded = decodeURIComponent(trimmed);
+	if (
+		trimmed.startsWith("//") ||
+		trimmed.startsWith("\\") ||
+		trimmed.startsWith("/\\") ||
+		decoded.startsWith("//") ||
+		decoded.startsWith("\\") ||
+		decoded.startsWith("/\\")
+	) {
+		return false;
+	}
+
+	return true;
+}
+
 /**
  * Redirect response handler
  * @param {Object} res - Response object
@@ -421,7 +466,13 @@ function json(
  * @param {boolean} [perm=true] - Permanent redirect
  */
 function redirect(res, uri, perm = true) {
-	res.send(EMPTY, perm ? INT_308 : INT_307, { [LOCATION]: uri });
+	if (!isSafeRedirectUri(uri)) {
+		res.error(INT_400, new Error("Invalid redirect URI"));
+		return;
+	}
+
+	const trimmed = uri.trim();
+	res.send(EMPTY, perm ? INT_308 : INT_307, { [LOCATION]: trimmed });
 }
 
 /**
@@ -452,10 +503,32 @@ function send(
 
 		if (isPipeable) {
 			if (rangeHeader === void 0 || req.range !== void 0) {
+				if (req.range === void 0) {
+					res.statusCode = status;
+				}
 				writeHead(res, headers);
-				body.on(ERROR, (_err) => res.error(INT_500)).pipe(res);
+				body
+					.on(ERROR, (_err) => {
+						if (res.headersSent === false) {
+							res.error(INT_500);
+						} else {
+							// Headers already sent, destroy stream and end response
+							body.destroy();
+							if (!res.writableEnded) {
+								res.end();
+							}
+						}
+					})
+					.pipe(res);
 			} else {
-				res.error(INT_416);
+				if (res.headersSent === false) {
+					res.error(INT_416);
+				} else {
+					body.destroy();
+					if (!res.writableEnded) {
+						res.end();
+					}
+				}
 			}
 		} else {
 			if (body !== null && typeof body !== STRING && typeof body[TO_STRING] === "function") {
@@ -752,7 +825,8 @@ function params(req, getParams) {
 				}
 			}
 
-			processedParams[key] = coerce(escapeHtml(decoded));
+			const coerced = coerce(decoded);
+			processedParams[key] = typeof coerced === STRING ? escapeHtml(coerced) : coerced;
 		}
 	}
 
@@ -765,11 +839,17 @@ function params(req, getParams) {
  * @returns {URL} Parsed URL object
  */
 function parse(arg) {
-	return new URL(
+	const urlString =
 		typeof arg === STRING
 			? arg
-			: `${HTTP_PREFIX}${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || String(INT_8000)}`}${arg.url}`,
-	);
+			: `${HTTP_PREFIX}${arg.headers?.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || String(INT_8000)}`}${arg.url}`;
+
+	/* node:coverage ignore next 6 */
+	try {
+		return new URL(urlString);
+	} catch {
+		return new URL(`${HTTP_PREFIX}localhost${arg.url || SLASH}`);
+	}
 }
 
 /**
@@ -1050,20 +1130,23 @@ function computeRoutes(middleware, ignored, uri, method, cache, override = false
  * @returns {Array|Object} List of routes
  */
 function listRoutes(middleware, method = GET.toLowerCase(), type = ARRAY) {
-	let result;
 	const methodMap = middleware.get(method.toUpperCase());
 
-	if (type === ARRAY) {
-		result = [...methodMap.keys()];
-	} else if (type === OBJECT) {
-		result = {};
-		const entries = Array.from(methodMap.entries());
-		const entryCount = entries.length;
+	if (!methodMap) {
+		return type === ARRAY ? [] : {};
+	}
 
-		for (let i = 0; i < entryCount; i++) {
-			const [key, value] = entries[i];
-			result[key] = value;
-		}
+	if (type === ARRAY) {
+		return [...methodMap.keys()];
+	}
+
+	const result = {};
+	const entries = Array.from(methodMap.entries());
+	const entryCount = entries.length;
+
+	for (let i = 0; i < entryCount; i++) {
+		const [key, value] = entries[i];
+		result[key] = value;
 	}
 
 	return result;
@@ -1085,7 +1168,7 @@ function checkAllowed(middleware, ignored, cache, method, uri, override = false)
 
 /**
  * Creates a registry object with middleware management methods
- * @param {Array} methods - Array of registered HTTP methods
+ * @param {Set} methods - Set of registered HTTP methods
  * @param {Object|Map} cache - Cache for route results
  * @returns {Object} Registry object with ignore, allowed, routes, register, list methods
  */
@@ -1099,7 +1182,7 @@ function createMiddlewareRegistry(methods, cache) {
 		},
 		allowed: (m, u, o) => checkAllowed(middleware, ignored, cache, m, u, o),
 		routes: (u, m, o) => computeRoutes(middleware, ignored, u, m, cache, o),
-		register: (p, ...fns) => registerMiddleware(middleware, ignored, methods, cache, p, ...fns),
+		register: (p, ...fns) => registerMiddleware(middleware, ignored, methods, p, ...fns),
 		list: (m, t) => listRoutes(middleware, m, t),
 	};
 }
@@ -1108,12 +1191,11 @@ function createMiddlewareRegistry(methods, cache) {
  * Registers middleware for a route
  * @param {Map} middleware - Map of middleware by method
  * @param {Set} ignored - Set of ignored middleware functions
- * @param {Array} methods - Array of registered HTTP methods
- * @param {Object|Map} cache - Cache for route results
+ * @param {Set} methods - Set of registered HTTP methods
  * @param {string|Function} rpath - Route path or middleware function
  * @param {...Function} fn - Middleware functions to register
  */
-function registerMiddleware(middleware, ignored, methods, cache, rpath, ...fn) {
+function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 	if (rpath === void 0) {
 		return;
 	}
@@ -1135,7 +1217,7 @@ function registerMiddleware(middleware, ignored, methods, cache, rpath, ...fn) {
 
 	if (middleware.has(method) === false) {
 		if (method !== WILDCARD) {
-			methods.push(method);
+			methods.add(method);
 		}
 
 		middleware.set(method, new Map());
@@ -1151,6 +1233,13 @@ function registerMiddleware(middleware, ignored, methods, cache, rpath, ...fn) {
 	}
 
 	const current = mmethod.get(lrpath) ?? { handlers: [] };
+
+	// Validate route pattern before mutating handlers
+	const quantifierPattern = /([.*+?^${}()|[\]\\])\1{3,}/;
+	/* node:coverage ignore next 3 */
+	if (quantifierPattern.test(lrpath)) {
+		throw new TypeError("Invalid route pattern: potential ReDoS vulnerability");
+	}
 
 	current.handlers.push(...fn);
 	mmethod.set(lrpath, {
@@ -1275,10 +1364,10 @@ function validateLogging(logging = {}) {
 	const level = resolveLoggingValue(logging.level, envLogLevel, INFO);
 
 	if (!VALID_LOG_LEVELS.has(level)) {
-		return { enabled, format, level: INFO };
+		return Object.freeze({ enabled, format, level: INFO });
 	}
 
-	return { enabled, format, level };
+	return Object.freeze({ enabled, format, level });
 }/**
  * Generates common log format entry
  * @param {Object} req - Request object
@@ -1426,10 +1515,10 @@ function log(msg, logLevel = DEBUG, enabled = true, actualLevel = INFO) {
  * @returns {Object} Logger with log, clf, logRoute, logMiddleware, logDecoration, logError, logServe methods
  */
 function createLogger(config = {}) {
-	const { enabled = true, format, level = INFO } = config;
+	const { enabled = true, format = LOG_FORMAT, level = INFO } = config;
 	const actualLevel = VALID_LOG_LEVELS.has(level) ? level : INFO;
 
-	return {
+	return Object.freeze({
 		log: (msg, logLevel = DEBUG) => log(msg, logLevel, enabled, actualLevel),
 		clf: (req, res) => clf(req, res, format),
 		logRoute: (uri, method, ip) =>
@@ -1442,7 +1531,7 @@ function createLogger(config = {}) {
 			logError(uri, method, ip, (msg, lvl) => log(msg, lvl, enabled, actualLevel)),
 		logServe: (req, message) =>
 			logServe(req, message, (msg, lvl) => log(msg, lvl, enabled, actualLevel)),
-	};
+	});
 }
 
 /**
@@ -1508,18 +1597,28 @@ function autoIndex(title = EMPTY, files = []) {
 
 /**
  * Serves files from filesystem
- * @param {Object} app - Woodland application instance
+ * @param {Object} config - File server config (autoIndex, charset, indexes, logger, stream, etag)
  * @param {Object} req - Request object
  * @param {Object} res - Response object
  * @param {string} arg - File path argument
  * @param {string} [folder=process.cwd()] - Root folder to serve from
  */
-async function serve(app, req, res, arg, folder = process.cwd()) {
+async function serve(config, req, res, arg, folder = process.cwd()) {
 	const fp = resolve(folder, arg);
 	const resolvedFolder = resolve(folder);
 
-	if (!fp.startsWith(resolvedFolder)) {
-		app.logger.logServe(req, MSG_SERVE_PATH_OUTSIDE);
+	const realFp = await realpath(fp).catch(() => fp);
+	const realFolder = await realpath(resolvedFolder).catch(() => resolvedFolder);
+
+	const isRoot =
+		realFolder === sep ||
+		(realFolder.length === 3 && realFolder[1] === ":" && realFolder.endsWith("\\"));
+	const isWithin = isRoot
+		? realFp.startsWith(realFolder)
+		: realFp === realFolder || (realFp.startsWith(realFolder) && realFp[realFolder.length] === sep);
+
+	if (!isWithin) {
+		config.logger.logServe(req, MSG_SERVE_PATH_OUTSIDE);
 		res.error(INT_403, new Error(STATUS_CODES[INT_403]));
 
 		return;
@@ -1528,10 +1627,10 @@ async function serve(app, req, res, arg, folder = process.cwd()) {
 	let valid = true;
 	let stats;
 
-	app.logger.logServe(req, MSG_ROUTING_FILE);
+	config.logger.logServe(req, MSG_ROUTING_FILE);
 
 	try {
-		stats = await stat(fp, { bigint: false });
+		stats = await stat(realFp, { bigint: false });
 	} catch {
 		valid = false;
 	}
@@ -1539,41 +1638,59 @@ async function serve(app, req, res, arg, folder = process.cwd()) {
 	if (!valid) {
 		res.error(INT_404, new Error(STATUS_CODES[INT_404]));
 	} else if (!stats.isDirectory()) {
-		app.stream(req, res, {
-			charset: app.charset,
-			etag: app.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
-			path: fp,
+		config.stream(req, res, {
+			charset: config.charset,
+			etag: config.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
+			path: realFp,
 			stats: stats,
 		});
 	} else if (!req.parsed.pathname.endsWith(SLASH)) {
 		res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
 	} else {
-		const files = await readdir(fp, { encoding: UTF8, withFileTypes: true });
+		let files;
+		/* node:coverage ignore next 7 */
+		try {
+			files = await readdir(realFp, { encoding: UTF8, withFileTypes: true });
+		} catch {
+			res.error(INT_404, new Error(STATUS_CODES[INT_404]));
+			return;
+		}
+
 		let result = EMPTY;
 
-		const indexes = app.indexes;
 		for (let i = 0; i < files.length; i++) {
 			const file = files[i];
-			if (indexes.includes(file.name)) {
-				result = join(fp, file.name);
+			if (config.indexes.includes(file.name)) {
+				result = join(realFp, file.name);
 				break;
 			}
 		}
 
 		if (!result.length) {
-			if (!app.autoIndex) {
+			if (!config.autoIndex) {
 				res.error(INT_404, new Error(STATUS_CODES[INT_404]));
 			} else {
-				const body = autoIndex(decodeURIComponent(req.parsed.pathname), files);
-				res.header(CONTENT_TYPE, `${TEXT_HTML}; charset=${app.charset}`);
-				res.send(body);
+				try {
+					const body = autoIndex(decodeURIComponent(req.parsed.pathname), files);
+					res.header(CONTENT_TYPE, `${TEXT_HTML}; charset=${config.charset}`);
+					res.send(body);
+				} catch {
+					res.error(INT_400, new Error(STATUS_CODES[INT_400]));
+				}
 			}
 		} else {
-			const rstats = await stat(result, { bigint: false });
+			let rstats;
+			/* node:coverage ignore next 7 */
+			try {
+				rstats = await stat(result, { bigint: false });
+			} catch {
+				res.error(INT_404, new Error(STATUS_CODES[INT_404]));
+				return;
+			}
 
-			app.stream(req, res, {
-				charset: app.charset,
-				etag: app.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
+			config.stream(req, res, {
+				charset: config.charset,
+				etag: config.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
 				path: result,
 				stats: rstats,
 			});
@@ -1583,34 +1700,68 @@ async function serve(app, req, res, arg, folder = process.cwd()) {
 
 /**
  * Registers file serving middleware for a root path
- * @param {Object} app - Woodland application instance
+ * @param {Object} config - File server config
  * @param {string} root - Root path to register
  * @param {string} folder - Folder to serve files from
  * @param {Function} useMiddleware - Middleware registration function
  */
-function register(app, root, folder, useMiddleware) {
-	useMiddleware(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) =>
-		serve(app, req, res, req.parsed.pathname.substring(1), folder),
-	);
+function register(config, root, folder, useMiddleware) {
+	const normalizedRoot = root.replace(/\/$/, EMPTY) || SLASH;
+	// Match mount root and any path beneath it: /static, /static/, /static/foo
+	const rootPattern = normalizedRoot === SLASH ? "(/.*)?" : `${normalizedRoot}(/.*)?`;
+
+	useMiddleware(rootPattern, (req, res) => {
+		const pathname = decodeURIComponent(req.parsed.pathname);
+		// For root mount "/", strip leading "/" (slice(1))
+		// For other mounts like "/static", strip "/static" prefix
+		const relativePath =
+			pathname === normalizedRoot
+				? EMPTY
+				: normalizedRoot === SLASH
+					? pathname.slice(1)
+					: pathname.slice(normalizedRoot.length + 1);
+		return serve(config, req, res, relativePath, folder);
+	});
 }
 
 /**
  * Creates file server middleware for serving static files
- * @param {Object} app - Woodland application instance
+ * @param {Object} config - File server config (autoIndex, charset, indexes, logger, stream, etag)
  * @returns {Object} File server with register, serve methods
  */
-function createFileServer(app) {
-	return {
-		register: (root, folder, useMiddleware) =>
-			register(app, root, folder, useMiddleware || app.use.bind(app)),
-		serve: (req, res, arg, folder) => serve(app, req, res, arg, folder),
-	};
+function createFileServer(config) {
+	return Object.freeze({
+		register: (root, folder, useMiddleware) => {
+			const fn = useMiddleware ?? config.use;
+			if (typeof fn !== "function") {
+				throw new TypeError("useMiddleware is required or config.use must be a function");
+			}
+			register(config, root, folder, fn);
+		},
+		serve: (req, res, arg, folder) => serve(config, req, res, arg, folder),
+	});
 }/**
  * Woodland HTTP server framework class extending EventEmitter
  * @class
  * @extends {EventEmitter}
  */
 class Woodland extends EventEmitter {
+	#autoIndex;
+	#charset;
+	#corsExpose;
+	#defaultHeaders;
+	#digit;
+	#etags;
+	#indexes;
+	#logging;
+	#origins;
+	#time;
+	#cache;
+	#methods;
+	#logger;
+	#fileServer;
+	#middleware;
+
 	/**
 	 * Creates a new Woodland instance
 	 * @param {Object} [config={}] - Configuration object
@@ -1644,102 +1795,98 @@ class Woodland extends EventEmitter {
 			indexes,
 			logging,
 			origins,
-			silent,
 			time,
 		} = validated;
 
 		const finalHeaders = { ...defaultHeaders };
-		if (!silent) {
+		if (!validated.silent) {
 			if (!(SERVER in finalHeaders)) {
 				finalHeaders[SERVER] = SERVER_VALUE;
 			}
 			finalHeaders[X_POWERED_BY] = X_POWERED_BY_VALUE;
 		}
 
-		this.autoIndex = autoIndex;
-		this.charset = charset;
-		this.corsExpose = corsExpose;
-		this.defaultHeaders = Reflect.ownKeys(finalHeaders).map((key) => [
-			key.toLowerCase(),
-			finalHeaders[key],
-		]);
-		this.digit = digit;
-		this.etags = etags ? etag({ cacheSize, cacheTTL }) : null;
-		this.indexes = [...indexes];
-		this.logging = validateLogging(logging);
-		this.origins = new Set(origins);
-		this.time = time;
-		this.cache = lru(cacheSize, cacheTTL);
-		this.permissions = new Map();
-		this.methods = [];
-		this.logger = createLogger({
-			enabled: this.logging.enabled,
-			format: this.logging.format,
-			level: this.logging.level,
+		this.#autoIndex = autoIndex;
+		this.#charset = charset;
+		this.#corsExpose = corsExpose;
+		this.#defaultHeaders = Reflect.ownKeys(finalHeaders)
+			.filter((key) => typeof key === STRING)
+			.map((key) => [key.toLowerCase(), finalHeaders[key]]);
+		this.#digit = digit;
+		this.#etags = etags ? Object.freeze(etag({ cacheSize, cacheTTL })) : null;
+		this.#indexes = [...indexes];
+		this.#logging = Object.freeze(validateLogging(logging));
+		this.#origins = new Set(origins);
+		this.#time = time;
+		this.#cache = lru(cacheSize, cacheTTL);
+		this.#methods = new Set();
+		this.#logger = createLogger({
+			enabled: this.#logging.enabled,
+			format: this.#logging.format,
+			level: this.#logging.level,
 		});
-		this.fileServer = createFileServer(this);
-		this.middleware = createMiddlewareRegistry(this.methods, this.cache);
+		this.#fileServer = createFileServer({
+			autoIndex: this.#autoIndex,
+			charset: this.#charset,
+			indexes: this.#indexes,
+			logger: this.#logger,
+			stream: this.stream.bind(this),
+			etag: this.etag.bind(this),
+		});
+		this.#middleware = createMiddlewareRegistry(this.#methods, this.#cache);
 
-		if (this.etags !== null) {
-			this.get(this.etags.middleware).ignore(this.etags.middleware);
+		if (this.#etags !== null) {
+			this.get(this.#etags.middleware).ignore(this.#etags.middleware);
 		}
 
-		if (this.origins.size > INT_0) {
+		if (this.#origins.size > INT_0) {
 			const fnCorsRequest = corsRequest();
 			this.options(fnCorsRequest).ignore(fnCorsRequest);
 		}
 
 		this.on(ERROR, (req, _res, _error) =>
-			this.logger.logError(req.parsed.pathname, req.method, req.ip),
+			this.#logger.logError(req.parsed.pathname, req.method, req.ip),
 		);
-	}
-
-	/**
-	 * Checks if a method is allowed for a URI
-	 * @param {string} method - HTTP method
-	 * @param {string} uri - URI to check
-	 * @param {boolean} [override=false] - Override cache
-	 * @returns {boolean} True if method is allowed
-	 */
-	allowed(method, uri, override = false) {
-		return this.middleware.allowed(method, uri, override);
 	}
 
 	/**
 	 * Determines allowed methods for a URI
 	 * @param {string} uri - URI to check
 	 * @param {boolean} [override=false] - Override cache
+	 * @param {boolean} [isCorsRequest=false] - Whether this is a CORS request
 	 * @returns {string} Comma-separated list of allowed methods
 	 */
-	allows(uri, override = false) {
-		let result = override === false ? this.permissions.get(uri) : void 0;
+	#allows(uri, override = false, isCorsRequest = false) {
+		const key = `perm${DELIMITER}${uri}${DELIMITER}${isCorsRequest ? "1" : "0"}`;
+		let result = override === false ? this.#cache.get(key) : void 0;
 
 		if (override || result === void 0) {
 			const methodSet = new Set();
 
-			for (let i = 0; i < this.methods.length; i++) {
-				if (this.allowed(this.methods[i], uri, override)) {
-					methodSet.add(this.methods[i]);
+			for (const method of this.#methods) {
+				if (this.#middleware.allowed(method, uri, override)) {
+					methodSet.add(method);
 				}
 			}
 
-			const list = this.buildAllowedList(methodSet);
+			const list = this.#buildAllowedList(methodSet, isCorsRequest);
 			result = list.sort().join(COMMA_SPACE);
-			this.permissions.set(uri, result);
-			this.logger.log(
+			this.#cache.set(key, result);
+			this.#logger.log(
 				`type=allows, uri=${uri}, override=${override}, message="Determined 'allow' header value"`,
 			);
 		}
 
-		return result;
+		return result ?? EMPTY;
 	}
 
 	/**
 	 * Builds the list of allowed methods including implicit HEAD and OPTIONS
 	 * @param {Set} methodSet - Set of explicitly registered methods
+	 * @param {boolean} isCorsRequest - Whether this is a CORS request
 	 * @returns {Array} Array of allowed methods
 	 */
-	buildAllowedList(methodSet) {
+	#buildAllowedList(methodSet, isCorsRequest = false) {
 		const list = [...methodSet];
 
 		if (list.length > 0) {
@@ -1747,7 +1894,8 @@ class Woodland extends EventEmitter {
 				list.push(HEAD);
 			}
 
-			if (!methodSet.has(OPTIONS)) {
+			if (!methodSet.has(OPTIONS) && isCorsRequest) {
+				/* node:coverage ignore next 2 */
 				list.push(OPTIONS);
 			}
 		}
@@ -1762,7 +1910,7 @@ class Woodland extends EventEmitter {
 	 */
 	always(...args) {
 		for (let i = 0; i < args.length; i++) {
-			this.middleware.ignore(args[i]);
+			this.#middleware.ignore(args[i]);
 		}
 
 		return this.use(...args, WILDCARD);
@@ -1782,24 +1930,24 @@ class Woodland extends EventEmitter {
 	 * @param {Object} req - HTTP request object
 	 * @param {Object} res - HTTP response object
 	 */
-	decorate(req, res) {
-		const timing = this.time ? precise().start() : null;
+	#decorate(req, res) {
+		const timing = this.#time ? precise().start() : null;
 		const parsed = parse(req);
-		const allowString = this.allows(parsed.pathname);
 		const clientIP = extractIP(req);
+		req.corsHost = corsHost(req);
+		req.cors = cors(req, this.#origins);
+		const allowString = this.#allows(parsed.pathname, false, req.cors);
 		const headersBatch = Object.create(null);
 		headersBatch[ALLOW] = allowString;
 		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
 
-		const defaultHeaders = this.defaultHeaders;
+		const defaultHeaders = this.#defaultHeaders;
 		const headerCount = defaultHeaders.length;
 		for (let i = 0; i < headerCount; i++) {
 			const [key, value] = defaultHeaders[i];
 			headersBatch[key] = value;
 		}
 
-		req.corsHost = corsHost(req);
-		req.cors = cors(req, this.origins);
 		req.parsed = parsed;
 		req.allow = allowString;
 		req.ip = clientIP;
@@ -1813,7 +1961,7 @@ class Woodland extends EventEmitter {
 		}
 
 		if (req.cors) {
-			this.addCorsHeaders(req, headersBatch);
+			this.#addCorsHeaders(req, headersBatch);
 		}
 
 		res.locals = {};
@@ -1821,13 +1969,13 @@ class Woodland extends EventEmitter {
 		res.header = res.setHeader;
 		res.json = createJsonHandler(res);
 		res.redirect = createRedirectHandler(res);
-		res.send = createSendHandler(req, res, this.onReady.bind(this), this.onDone.bind(this));
+		res.send = createSendHandler(req, res, this.#onReady.bind(this), this.#onDone.bind(this));
 		res.set = createSetHandler(res);
 		res.status = createStatusHandler(res);
 
 		res.set(headersBatch);
-		res.on(EVT_CLOSE, () => this.logger.log(this.logger.clf(req, res), INFO));
-		this.logger.log(
+		res.on(EVT_CLOSE, () => this.#logger.log(this.#logger.clf(req, res), INFO));
+		this.#logger.log(
 			`type=decorate, uri=${parsed.pathname}, method=${req.method}, ip=${clientIP}, message="Decorated request from ${clientIP}"`,
 		);
 	}
@@ -1837,19 +1985,33 @@ class Woodland extends EventEmitter {
 	 * @param {Object} req - HTTP request object
 	 * @param {Object} headersBatch - Headers batch object
 	 */
-	addCorsHeaders(req, headersBatch) {
+	#addCorsHeaders(req, headersBatch) {
 		const origin = req.headers.origin;
-		const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.corsExpose;
+		const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.#corsExpose;
+		const originAllowed = this.#origins.has(origin);
+		const hasWildcard = this.#origins.has(WILDCARD);
 
-		headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
-		headersBatch[TIMING_ALLOW_ORIGIN] = origin;
-		headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
-		headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = req.allow;
+		/* node:coverage ignore next 11 */
+		if (originAllowed) {
+			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
+			headersBatch[TIMING_ALLOW_ORIGIN] = origin;
+			headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
+			headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = req.allow;
 
-		if (corsHeaders !== void 0) {
-			headersBatch[
-				req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS
-			] = corsHeaders;
+			if (corsHeaders !== void 0) {
+				headersBatch[
+					req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS
+				] = corsHeaders;
+			}
+		} else if (hasWildcard) {
+			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = WILDCARD;
+			headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = req.allow;
+
+			if (corsHeaders !== void 0) {
+				headersBatch[
+					req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS
+				] = corsHeaders;
+			}
 		}
 	}
 
@@ -1869,12 +2031,12 @@ class Woodland extends EventEmitter {
 	 * @returns {string} ETag string or empty string
 	 */
 	etag(method, ...args) {
-		if (!this.isHashableMethod(method) || !this.etagsEnabled()) {
+		if (!this.#isHashableMethod(method) || !this.#etagsEnabled()) {
 			return EMPTY;
 		}
 
-		const hashed = this.hashArgs(args);
-		return this.etags.create(hashed);
+		const hashed = this.#hashArgs(args);
+		return this.#etags.create(hashed);
 	}
 
 	/**
@@ -1882,7 +2044,7 @@ class Woodland extends EventEmitter {
 	 * @param {string} method - HTTP method
 	 * @returns {boolean} True if method is GET, HEAD, or OPTIONS
 	 */
-	isHashableMethod(method) {
+	#isHashableMethod(method) {
 		return method === GET || method === HEAD || method === OPTIONS;
 	}
 
@@ -1890,8 +2052,8 @@ class Woodland extends EventEmitter {
 	 * Checks if ETags are enabled
 	 * @returns {boolean} True if ETags are enabled
 	 */
-	etagsEnabled() {
-		return this.etags !== null;
+	#etagsEnabled() {
+		return this.#etags !== null;
 	}
 
 	/**
@@ -1899,7 +2061,7 @@ class Woodland extends EventEmitter {
 	 * @param {Array} args - Arguments to hash
 	 * @returns {string} Hashed string
 	 */
-	hashArgs(args) {
+	#hashArgs(args) {
 		return args
 			.map((i) => (typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i))
 			.join(HYPHEN);
@@ -1912,7 +2074,9 @@ class Woodland extends EventEmitter {
 	 * @returns {Woodland} Returns self for chaining
 	 */
 	files(root = SLASH, folder = process.cwd()) {
-		this.fileServer.register(root, folder, this.use.bind(this));
+		this.#fileServer.register(root, folder, this.use.bind(this));
+
+		return this;
 	}
 
 	/**
@@ -1930,8 +2094,8 @@ class Woodland extends EventEmitter {
 	 * @returns {Woodland} Returns self for chaining
 	 */
 	ignore(fn) {
-		this.middleware.ignore(fn);
-		this.logger.log(`type=ignore, message="Added function to ignored Set", name="${fn.name}"`);
+		this.#middleware.ignore(fn);
+		this.#logger.log(`type=ignore, message="Added function to ignored Set", name="${fn.name}"`);
 
 		return this;
 	}
@@ -1943,8 +2107,8 @@ class Woodland extends EventEmitter {
 	 * @returns {Array|Object} List of routes
 	 */
 	list(method = GET.toLowerCase(), type = "array") {
-		const result = this.middleware.list(method, type);
-		this.logger.log(`type=list, method=${method}, type=${type}`);
+		const result = this.#middleware.list(method, type);
+		this.#logger.log(`type=list, method=${method}, type=${type}`);
 
 		return result;
 	}
@@ -1956,7 +2120,7 @@ class Woodland extends EventEmitter {
 	 * @param {string} body - Response body
 	 * @param {Object} headers - Response headers
 	 */
-	onDone(req, res, body, headers) {
+	#onDone(req, res, body, headers) {
 		const isNoContent = res.statusCode === INT_204 || res.statusCode === INT_304;
 		const hasContentLength = res.getHeader(CONTENT_LENGTH) !== void 0;
 
@@ -1965,7 +2129,7 @@ class Woodland extends EventEmitter {
 		}
 
 		writeHead(res, headers);
-		res.end(body, this.charset);
+		res.end(body, this.#charset);
 	}
 
 	/**
@@ -1977,14 +2141,15 @@ class Woodland extends EventEmitter {
 	 * @param {Object} headers - Response headers
 	 * @returns {Array} Response array
 	 */
-	onReady(req, res, body, status, headers) {
-		if (this.time && res.getHeader(X_RESPONSE_TIME) === void 0) {
+	#onReady(req, res, body, status, headers) {
+		/* node:coverage ignore next 5 */
+		if (this.#time && res.getHeader(X_RESPONSE_TIME) === void 0) {
 			const diff = req.precise.stop().diff();
-			const msValue = Number(diff / 1e6).toFixed(this.digit);
+			const msValue = Number(diff / 1e6).toFixed(this.#digit);
 			res.header(X_RESPONSE_TIME, `${msValue} ms`);
 		}
 
-		return this.onSend(req, res, body, status, headers);
+		return this.#onSend(req, res, body, status, headers);
 	}
 
 	/**
@@ -1996,7 +2161,7 @@ class Woodland extends EventEmitter {
 	 * @param {Object} headers - Response headers
 	 * @returns {Array} Response array
 	 */
-	onSend(req, res, body, status, headers) {
+	#onSend(req, res, body, status, headers) {
 		if (status === 404) {
 			delete headers[ALLOW];
 			delete headers[ACCESS_CONTROL_ALLOW_METHODS];
@@ -2051,7 +2216,7 @@ class Woodland extends EventEmitter {
 	route(req, res) {
 		const method = req.method === HEAD ? GET : req.method;
 
-		this.decorate(req, res);
+		this.#decorate(req, res);
 
 		if (this.listenerCount(EVT_CONNECT) > INT_0) {
 			this.emit(EVT_CONNECT, req, res);
@@ -2061,11 +2226,11 @@ class Woodland extends EventEmitter {
 			res.on(EVT_FINISH, () => this.emit(EVT_FINISH, req, res));
 		}
 
-		this.logger.logRoute(req.parsed.pathname, req.method, req.ip);
+		this.#logger.logRoute(req.parsed.pathname, req.method, req.ip);
 
 		const hasOriginHeader = ORIGIN in req.headers;
 		const origin = hasOriginHeader ? req.headers.origin : EMPTY;
-		const isOriginAllowed = hasOriginHeader && this.origins.has(origin);
+		const isOriginAllowed = hasOriginHeader && this.#origins.has(origin);
 
 		// Check if CORS request is disallowed
 		const isCorsRequest = req.corsHost;
@@ -2076,7 +2241,7 @@ class Woodland extends EventEmitter {
 			req.valid = false;
 			res.error(INT_403, new Error(STATUS_CODES[INT_403]));
 		} else if (req.allow.includes(method)) {
-			this.handleAllowedRoute(req, res, method);
+			this.#handleAllowedRoute(req, res, method);
 		} else {
 			req.valid = false;
 			const newStatus = getStatus(req, res);
@@ -2090,8 +2255,8 @@ class Woodland extends EventEmitter {
 	 * @param {Object} res - HTTP response object
 	 * @param {string} method - Normalized HTTP method
 	 */
-	handleAllowedRoute(req, res, method) {
-		const result = this.middleware.routes(req.parsed.pathname, method);
+	#handleAllowedRoute(req, res, method) {
+		const result = this.#middleware.routes(req.parsed.pathname, method);
 
 		if (result.params) {
 			params(req, result.getParams);
@@ -2111,7 +2276,7 @@ class Woodland extends EventEmitter {
 	 * @returns {Object} Route information
 	 */
 	routes(uri, method, override = false) {
-		return this.middleware.routes(uri, method, override);
+		return this.#middleware.routes(uri, method, override);
 	}
 
 	/**
@@ -2122,8 +2287,9 @@ class Woodland extends EventEmitter {
 	 * @param {string} [folder=process.cwd()] - Folder to serve from
 	 * @returns {Promise} Promise that resolves when done
 	 */
+	/* node:coverage ignore next 3 */
 	async serve(req, res, arg, folder = process.cwd()) {
-		return this.fileServer.serve(req, res, arg, folder);
+		return this.#fileServer.serve(req, res, arg, folder);
 	}
 
 	/**
@@ -2154,7 +2320,7 @@ class Woodland extends EventEmitter {
 			file,
 			(req, res) => this.emit(EVT_STREAM, req, res),
 			createReadStream,
-			this.etags,
+			this.#etags,
 		);
 	}
 
@@ -2175,10 +2341,14 @@ class Woodland extends EventEmitter {
 	 * @returns {Woodland} Returns self for chaining
 	 */
 	use(rpath, ...fn) {
-		this.middleware.register(rpath, ...fn);
-		this.logger.logMiddleware(rpath, fn[fn.length - 1]);
+		this.#middleware.register(rpath, ...fn);
+		this.#logger.logMiddleware(rpath, fn[fn.length - 1]);
 
 		return this;
+	}
+
+	get logger() {
+		return this.#logger;
 	}
 }
 

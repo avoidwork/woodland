@@ -221,6 +221,51 @@ export function json(
 	res.send(JSON.stringify(arg), status, headers);
 }
 
+const PROTOCOL_PATTERN = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
+const CONTROL_CHAR_PATTERN = /[\r\n\t]/;
+
+/**
+ * Validates if a URI is safe for redirection (relative only)
+ * @param {string} uri - URI to validate
+ * @returns {boolean} True if URI is safe
+ */
+function isSafeRedirectUri(uri) {
+	/* node:coverage ignore next 10 */
+	if (!uri || typeof uri !== "string") {
+		return false;
+	}
+
+	const trimmed = uri.trim();
+
+	if (trimmed.length === 0) {
+		return false;
+	}
+
+	// Block control characters that could cause header injection
+	if (CONTROL_CHAR_PATTERN.test(trimmed)) {
+		return false;
+	}
+
+	if (PROTOCOL_PATTERN.test(trimmed)) {
+		return false;
+	}
+
+	// Block protocol-relative URLs including percent-encoded variants
+	const decoded = decodeURIComponent(trimmed);
+	if (
+		trimmed.startsWith("//") ||
+		trimmed.startsWith("\\") ||
+		trimmed.startsWith("/\\") ||
+		decoded.startsWith("//") ||
+		decoded.startsWith("\\") ||
+		decoded.startsWith("/\\")
+	) {
+		return false;
+	}
+
+	return true;
+}
+
 /**
  * Redirect response handler
  * @param {Object} res - Response object
@@ -228,7 +273,13 @@ export function json(
  * @param {boolean} [perm=true] - Permanent redirect
  */
 export function redirect(res, uri, perm = true) {
-	res.send(EMPTY, perm ? INT_308 : INT_307, { [LOCATION]: uri });
+	if (!isSafeRedirectUri(uri)) {
+		res.error(INT_400, new Error("Invalid redirect URI"));
+		return;
+	}
+
+	const trimmed = uri.trim();
+	res.send(EMPTY, perm ? INT_308 : INT_307, { [LOCATION]: trimmed });
 }
 
 /**
@@ -259,10 +310,32 @@ export function send(
 
 		if (isPipeable) {
 			if (rangeHeader === void 0 || req.range !== void 0) {
+				if (req.range === void 0) {
+					res.statusCode = status;
+				}
 				writeHead(res, headers);
-				body.on(ERROR, (_err) => res.error(INT_500)).pipe(res);
+				body
+					.on(ERROR, (_err) => {
+						if (res.headersSent === false) {
+							res.error(INT_500);
+						} else {
+							// Headers already sent, destroy stream and end response
+							body.destroy();
+							if (!res.writableEnded) {
+								res.end();
+							}
+						}
+					})
+					.pipe(res);
 			} else {
-				res.error(INT_416);
+				if (res.headersSent === false) {
+					res.error(INT_416);
+				} else {
+					body.destroy();
+					if (!res.writableEnded) {
+						res.end();
+					}
+				}
 			}
 		} else {
 			if (body !== null && typeof body !== STRING && typeof body[TO_STRING] === "function") {

@@ -1,423 +1,160 @@
-# AGENTS.md - Woodland HTTP Framework
+# Woodland Development Guidelines
 
 ## Project Overview
 
-Woodland is a lightweight, security-focused HTTP server framework for Node.js that extends EventEmitter. It provides middleware-based routing with built-in CORS, file serving, caching, and comprehensive logging.
+Woodland is a high-performance HTTP framework for Node.js. This document provides context for AI agents working on the codebase.
 
-**Key Statistics:**
-- 324 tests passing
-- 100% line coverage
-- 97%+ branch and function coverage
-- Minimal dependencies
-- Express-compatible API
+## Architecture
 
----
+### Core Files
 
-## Setup Commands
+- **`src/woodland.js`**: Main HTTP server framework class extending EventEmitter
+- **`src/middleware.js`**: Middleware registry and routing logic
+- **`src/request.js`**: Request parsing, IP extraction, CORS handling
+- **`src/response.js`**: Response handlers, MIME types, streaming
+- **`src/fileserver.js`**: Static file serving with directory indexing
+- **`src/logger.js`**: Logging utilities with configurable format/level
+- **`src/config.js`**: Configuration validation using jsonschema
+- **`src/constants.js`**: HTTP constants, status codes, headers
+- **`src/cli.js`**: CLI entry point for running the framework
+
+### Type Definitions
+
+- **`types/woodland.d.ts`**: TypeScript definitions for the public API
+
+### Testing
+
+- **`tests/unit/`**: Unit tests for individual modules
+- **`tests/integration/`**: Integration tests
+- **`tests/test-files/`**: Test fixtures
+
+### Benchmarks
+
+- **`benchmarks/`**: Performance comparison tests
+
+## Public API
+
+### Factory Function
+
+```javascript
+import { woodland } from "woodland";
+const app = woodland(config);
+```
+
+### Woodland Class Methods
+
+#### Routing Methods (all return `Woodland` for chaining)
+
+- `get(rpath, ...fn)` - GET route
+- `post(rpath, ...fn)` - POST route
+- `put(rpath, ...fn)` - PUT route
+- `delete(rpath, ...fn)` - DELETE route
+- `patch(rpath, ...fn)` - PATCH route
+- `options(rpath, ...fn)` - OPTIONS route
+- `connect(rpath, ...fn)` - CONNECT route
+- `trace(rpath, ...fn)` - TRACE route
+- `always(rpath, ...fn)` - All methods (wildcard)
+
+#### Middleware Methods
+
+- `use(rpath, ...fn)` - Register middleware (last arg can be method string)
+- `ignore(fn)` - Add function to ignored set
+- `list(method, type)` - List routes (returns array or object)
+
+#### File Serving
+
+- `files(root, folder)` - Register file server middleware
+- `serve(req, res, arg, folder)` - Serve file from disk (async)
+- `stream(req, res, file)` - Stream file to response
+
+#### Utilities
+
+- `etag(method, ...args)` - Generate ETag for caching
+- `route(req, res)` - Main request handler
+- `routes(uri, method, override)` - Get route information
+- `logger` - Logger instance (getter only)
+
+### Configuration Options
+
+All optional in constructor:
+
+```typescript
+{
+  autoIndex?: boolean;      // Enable directory indexing (default: false)
+  cacheSize?: number;       // Cache size (default: 1000)
+  cacheTTL?: number;        // Cache TTL in ms (default: 10000)
+  charset?: string;         // Default charset (default: 'utf-8')
+  corsExpose?: string;      // CORS expose headers (default: '')
+  defaultHeaders?: Record<string, string>; // Default headers
+  digit?: number;           // Timing precision (default: 3)
+  etags?: boolean;          // Enable ETags (default: true)
+  indexes?: string[];       // Index files (default: ['index.htm','index.html'])
+  logging?: object;         // Logging config
+  origins?: string[];       // Allowed CORS origins (default: [])
+  silent?: boolean;         // Silent mode (default: false)
+  time?: boolean;           // Enable timing (default: false)
+}
+```
+
+## Internals (Avoid Modifying Unless Necessary)
+
+### Private Fields (using #)
+
+- `#autoIndex`, `#charset`, `#corsExpose`, `#defaultHeaders`
+- `#digit`, `#etags`, `#indexes`, `#logging`
+- `#origins`, `#time`, `#cache`, `#permissions`
+- `#methods`, `#logger`, `#fileServer`, `#middleware`
+
+### Private Methods
+
+- `#allowed()`, `#allows()`, `#buildAllowedList()`
+- `#decorate()`, `#addCorsHeaders()`
+- `#isHashableMethod()`, `#etagsEnabled()`, `#hashArgs()`
+- `#onDone()`, `#onReady()`, `#onSend()`
+- `#handleAllowedRoute()`
+
+## Code Style
+
+- Use ES modules (import/export)
+- Private fields with `#` prefix
+- JSDoc comments for all public APIs
+- Parameter tables in documentation with optional markers
+- Follow existing patterns in tests
+
+## Running Tests
 
 ```bash
-npm install          # Install dependencies
-npm test             # Run tests
-npm run coverage     # Run tests with coverage (target: 100%)
-npm run benchmarks   # Run performance benchmarks
-npm run benchmark comparison  # Compare against Express/Fastify
-npm run lint         # Check linting (oxlint)
-npm run fix          # Auto-fix linting issues
-npm run build        # Build with rollup
+npm test              # Full test suite with lint (100% line coverage)
+npm run test:watch    # Watch mode
+npm run coverage      # Generate coverage report
 ```
 
----
+## Key Design Patterns
 
-## Development Workflow
+1. **Middleware Chain**: Uses iterator pattern with `next()` function
+2. **Request Decoration**: Request/response objects decorated with utilities
+3. **EventEmitter**: Extends EventEmitter for lifecycle events
+4. **CORS Support**: Configurable origins with automatic header handling
+5. **ETag Caching**: Optional ETag generation for cacheable methods
+6. **File Serving**: Automatic MIME types, range requests, directory indexing
 
-1. Make changes to source files in `src/`
-2. Run tests: `npm test` (ensure all pass)
-3. Fix lint errors: `npm run fix`
-4. Build: `npm run build`
-5. Run coverage: `npm run coverage` (maintain 100% line coverage)
-6. Commit changes (husky pre-commit hook runs fix + coverage + git add)
+## Events
 
----
+- `error` - Error occurred: `(req, res, error)`
+- `connect` - Request connected: `(req, res)`
+- `finish` - Response finished: `(req, res)`
+- `stream` - File streaming started: `(req, res)`
 
-## Tooling Stack
+## Request/Response Decorations
 
-| Tool | Purpose |
-|------|---------|
-| **oxlint** | Linting (with `no-console: error`, `no-unused-vars: error`) |
-| **oxfmt** | Formatting |
-| **node --test** | Test runner (Node.js built-in) |
-| **husky** | Git hooks (pre-commit: fix + coverage + add) |
-| **rollup** | Build bundler |
-| **jsonschema** | Config validation (Draft-07) |
-| **tiny-lru** | LRU caching |
-| **tiny-etag** | ETag generation |
+### Request Properties
 
----
+- `req.corsHost`, `req.cors`, `req.parsed`, `req.allow`
+- `req.ip`, `req.body`, `req.host`, `req.params`
+- `req.valid`, `req.precise`, `req.range`
 
-## Codebase Structure
+### Response Methods
 
-### Source Files (`src/`)
-
-| File | Purpose | Key Exports |
-|------|---------|-------------|
-| `woodland.js` | Main framework class | `Woodland` class, `woodland` factory |
-| `config.js` | Configuration validation | `validateConfig`, `validateLogging`, `validateOrigins`, `resolveLoggingValue` |
-| `response.js` | Response handlers | `json`, `send`, `redirect`, `error`, `stream`, `set`, `status`, `partialHeaders`, `escapeHtml`, `mime`, `getStatus`, `getStatusText`, `writeHead`, `pipeable`, `createErrorHandler`, `createJsonHandler`, `createRedirectHandler`, `createSendHandler`, `createSetHandler`, `createStatusHandler` |
-| `request.js` | Request handlers | `cors`, `extractIP`, `params`, `parse`, `isValidIP` |
-| `logger.js` | Logging utilities | `createLogger`, `log`, `clf`, `ms`, `timeOffset` |
-| `middleware.js` | Middleware registry | `reduce`, `next`, `createMiddlewareRegistry` |
-| `fileserver.js` | Static file serving | `serve`, `createFileServer`, `autoindex` |
-| `constants.js` | HTTP constants | Methods, status codes, headers, patterns |
-| `cli.js` | CLI entry point | `main`, `parseArgs`, `validatePort`, `validateIP` |
-
-### Other Directories
-
-- `tests/unit/` - Unit tests (node-assert)
-- `tests/integration/` - Integration tests (node-assert)
-- `benchmarks/` - Performance benchmarks
-- `docs/` - Technical documentation
-- `tpl/` - HTML templates (autoindex)
-
----
-
-## Architecture Patterns
-
-### Single Class, Factories Everywhere
-
-- **Only one class**: `Woodland` (extends `EventEmitter`)
-- **Factory pattern**: `createLogger`, `createMiddlewareRegistry`, `createFileServer`
-- Factories use closures for private state (not class fields)
-- Factories return objects with bound methods for testability
-
-### HTTP Method Shortcuts
-
-All delegate to `use()`:
-- `get`, `post`, `put`, `delete`, `patch`, `options`, `connect`, `trace`
-- `always(path?, ...fn)` - Wildcard middleware for all methods
-
-### Curried Response Handlers
-
-```javascript
-res.json = this.json(res);  // res.json(data, status, headers)
-res.send = this.send(req, res);  // res.send(body, status, headers)
-```
-
-### Middleware Execution
-
-- Executes via `process.nextTick` (async by default)
-- Tests must `await` or use `done` callbacks
-- `immediate: true` in `next()` bypasses nextTick for sync execution
-- `always()` middleware ignored for route visibility
-- Error handlers detected by 4-argument signature: `(err, req, res, next)`
-
----
-
-## Key Implementation Details
-
-### Woodland Class (`src/woodland.js`)
-
-```javascript
-const app = woodland({
-  origins: [],          // CORS allowlist (empty = deny all)
-  autoindex: false,     // Directory listing
-  cacheSize: 1000,      // LRU cache size
-  cacheTTL: 10000,      // Cache TTL (ms)
-  etags: true,          // ETag generation
-  time: false,          // X-Response-Time header
-  silent: false,        // Disable server headers
-  logging: {
-    enabled: true,
-    level: "info",
-    format: "%h %l %u %t \"%r\" %>s %b"
-  }
-});
-```
-
-**Important:**
-- Logging delegated to `this.logger.log()` (no `app.log()` method)
-- CLI uses `app.logger.log()` for startup messages
-- HEAD routes cannot be registered directly (GET implies HEAD)
-
-### Request Decorations (`src/request.js`)
-
-After `decorate(req, res)`:
-
-| Property | Description |
-|----------|-------------|
-| `req.parsed` | URL object (pathname, search, hostname) |
-| `req.allow` | Allowed methods string (e.g., "GET, OPTIONS") |
-| `req.cors` | `true` if origin allowed and differs from host |
-| `req.corsHost` | `true` if origin header exists and host differs |
-| `req.ip` | Client IP (from X-Forwarded-For or connection) |
-| `req.params` | URL parameters array |
-| `req.body` | Request body (initialized as `{}`) |
-| `req.valid` | Request validation flag |
-
-**Exported utilities:**
-- `isValidIP(ip)` - Validate IPv4/IPv6
-- `extractIP(req)` - Extract IP from request
-- `params(req, regex)` - Extract URL params with XSS prevention
-- `parse(url)` - Parse URL with security fallback
-
-### Response Handlers (`src/response.js`)
-
-| Method | Usage | Notes |
-|--------|-------|-------|
-| `res.json(data, status, headers)` | JSON response | Always sets `Content-Type: application/json` |
-| `res.send(body, status, headers)` | Text/stream | Handles streams and ranged requests |
-| `res.redirect(url, permanent)` | Redirect | 308 permanent, 307 temporary |
-| `res.error(status, message)` | Error | Removes CORS headers if `req.cors` |
-| `res.set(headers)` | Set headers | Accepts Object, Map, or Headers |
-| `res.status(code)` | Set status | Simple setter |
-| `res.header(name, value)` | Native header | Direct Node.js access |
-
-**Utilities:**
-- `escapeHtml(str)` - XSS prevention (escapes `&<>"'`)
-- `mime(path)` - Get MIME type from path
-- `getStatus(method, req)` - Determine 404/405/500
-- `getStatusText(code)` - Get status text from `STATUS_CODES`
-- `pipeable(method, arg)` - Check if body is pipeable (excludes HEAD)
-
-### Middleware Registry (`src/middleware.js`)
-
-```javascript
-// Middleware registry methods
-app.middleware.register(path, ...fn, method)
-app.middleware.allowed(method, uri, override)
-app.middleware.routes(uri, method, override)
-app.middleware.ignore(fn)
-app.middleware.list(method, type)  // "array" or "object"
-```
-
-**Cache key format:** `${method}${DELIMITER}${uri}` (e.g., `"GET|/test"`)
-
-### File Server (`src/fileserver.js`)
-
-```javascript
-// Serve static files
-app.files("/static", "./public");
-
-// Manual serving
-await app.serve(req, res, "/path/to/file", "./public");
-```
-
-**Security:**
-- Path traversal blocked (resolved path must stay within folder)
-- Directories redirect to add trailing slash, or serve autoindex
-- Index files: `index.htm`, `index.html`
-
-### Config Validation (`src/config.js`)
-
-```javascript
-// Validation functions
-const config = validateConfig({ origins: ["https://app.com"] });
-const logging = validateLogging({ level: "debug" });
-const origins = validateOrigins(["https://app.com", "*"]);
-```
-
-**Important:**
-- `validateLogging()` handles environment variable merging (WOODLAND_LOG_*)
-- `resolveLoggingValue()` implements priority: config > env > default
-- `validateConfig()` uses jsonschema for Draft-07 validation
-
----
-
-### Logger (`src/logger.js`)
-
-```javascript
-// Create logger
-const logger = createLogger({ enabled: true, level: "debug" });
-
-// Usage
-logger.log("type=woodland, message=started", LOG_INFO);
-logger.clf(req, res);  // Common Log Format
-logger.ms(1234567);    // "1.234 ms"
-logger.timeOffset(300); // "-0500" (timezone)
-```
-
-**Log levels:** emerg (0), alert (1), crit (2), error (3), warn (4), notice (5), info (6), debug (7)
-
----
-
-## Security Considerations
-
-### Built-in Protections
-
-1. **Path Traversal**: Resolved paths validated against allowed directories
-2. **CORS**: Default deny (empty origins array), explicit allowlist required
-3. **XSS Prevention**: `escapeHtml()` for all user output
-4. **IP Validation**: `isValidIP()` before use
-5. **Error Handling**: No sensitive data exposure in error responses
-
-### Production Hardening
-
-```javascript
-import helmet from "helmet";
-import rateLimit from "express-rate-limit";
-
-app.always(helmet());
-app.always(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
-```
-
-### Environment Variables
-
-```bash
-WOODLAND_LOG_ENABLED=true|false
-WOODLAND_LOG_FORMAT="<format string>"
-WOODLAND_LOG_LEVEL=debug|info|warn|error|...
-```
-
----
-
-## Performance Patterns
-
-### Optimization Guidelines
-
-- Cache regex patterns at module level
-- Use `Object.create(null)` for null-prototype objects
-- Use `for` loops instead of `for..of` in hot paths
-- Cache env var reads in constructor (not module level)
-- Avoid optional chaining in hot paths
-- Use `Set` for O(1) lookups instead of `.includes()`
-- Pre-allocate arrays when size is known
-- Batch property assignments and header sets
-- Use spread `[...array]` instead of `structuredClone`
-
-### Benchmark Results (Mean of 5 runs)
-
-| Framework | Mean (ms) | Ops/sec |
-|-----------|-----------|---------|
-| Fastify | 0.0863ms | 11,698 |
-| **Woodland** | **0.0929ms** | **10,860** |
-| Node.js HTTP | 0.1092ms | 9,180 |
-| Express | 0.1043ms | 9,591 |
-
-**Additional Performance Metrics:**
-
-| Category | Metric | Result |
-|----------|--------|--------|
-| **Routing** | Method validation (`allows()`) | 3.7M ops/sec |
-| | Route resolution (`routes()`) | 922K ops/sec |
-| **Middleware** | Registration | 20K+ ops/sec |
-| | Simple execution | 29K ops/sec |
-| **HTTP Server** | JSON responses | 7,266 ops/sec |
-| | CRUD operations | 6-7K ops/sec |
-| **File Serving** | Small files (< 1KB) | 44K ops/sec |
-| | Streaming with ETags | 370K ops/sec |
-| **Capacity** | Single instance (JSON API) | 4,000-7,000 RPS |
-| | Cluster (10 instances) | 50,000-70,000 RPS |
-
----
-
-## Testing Guidelines
-
-### Test Structure
-
-- **Unit tests**: `tests/unit/` - Test individual functions
-- **Integration tests**: `tests/integration/` - Test full request cycles
-- **Benchmarks**: `benchmarks/` - Performance testing
-
-### Test Patterns
-
-```javascript
-import { describe, it } from "node:test";
-import assert from "node:assert";
-
-describe("module", () => {
-  it("should do something", async () => {
-    const result = await someFunction();
-    assert.strictEqual(result, expected);
-  });
-});
-```
-
-### Mocking Requirements
-
-For benchmark tests, mock responses must include:
-- `send()`, `json()`, `end()`, `pipe()`, `on()`, `emit()` methods
-- `socket.server._connectionKey` property for CORS/IP extraction
-- Stream bodies must be destroyed to prevent EMFILE errors
-
-### Coverage Targets
-
-- 100% line coverage (required)
-- Ongoing work: 100% branch and function coverage
-
----
-
-## Common Tasks
-
-### Adding a New Route
-
-```javascript
-// src/woodland.js or app setup
-app.get("/api/users/:id", (req, res) => {
-  const userId = req.params.id;
-  res.json({ id: userId });
-});
-```
-
-### Creating Middleware
-
-```javascript
-// Regular middleware (3 params)
-app.always((req, res, next) => {
-  req.startTime = Date.now();
-  next();
-});
-
-// Error handler (4 params - detected automatically)
-app.use("/(.*)", (err, req, res, next) => {
-  console.error(err);
-  res.error(500, err.message);
-});
-```
-
-### Configuring CORS
-
-```javascript
-const app = woodland({
-  origins: ["https://app.example.com", "https://api.example.com"],
-  corsExpose: "x-custom-header,x-request-id"
-});
-// Woodland automatically handles preflight OPTIONS requests
-```
-
-### Serving Static Files
-
-```javascript
-const app = woodland({ autoindex: true });
-app.files("/static", "./public");
-```
-
----
-
-## Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| CORS blocked | Add origins to config: `origins: ["https://myapp.com"]` |
-| Route not matching | Check trailing slashes, use consistent patterns |
-| EMFILE errors | Destroy file streams in mock responses |
-| Import errors | Check actual exports in `src/*.js` files |
-| Lint errors | Run `npm run fix` |
-| Test failures | Check mock response includes all required methods |
-
----
-
-## Git Workflow
-
-- **Main branch**: `main`
-- **Feature branches**: Create from main
-- **Pre-commit hook**: Runs `npm run fix && npm run coverage && git add -A`
-- **Commits**: Only when explicitly requested
-- **Never**: Force push to main, skip hooks, or amend pushed commits
-
----
-
-## Documentation References
-
-- [API Reference](docs/API.md) - Complete method documentation
-- [Technical Documentation](docs/TECHNICAL_DOCUMENTATION.md) - Architecture, OWASP security, internals
-- [Code Style Guide](docs/CODE_STYLE_GUIDE.md) - Conventions and best practices
-- [Benchmarks](docs/BENCHMARKS.md) - Performance testing results
+- `res.error()`, `res.header()`, `res.json()`
+- `res.redirect()`, `res.send()`, `res.set()`
+- `res.status()`, `res.locals`

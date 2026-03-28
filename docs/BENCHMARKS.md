@@ -1,22 +1,21 @@
 # Woodland Performance Benchmarks
 
-Comprehensive performance analysis for the Woodland HTTP framework, demonstrating its capability as the core of large-scale, high-performance services.
+Performance analysis for the Woodland HTTP framework, demonstrating its capability as a security-focused, high-performance HTTP server.
 
 ## Executive Summary
 
-Woodland delivers **enterprise-grade performance** with architectural optimizations that enable it to handle high-throughput workloads efficiently. Across 5 benchmark runs on Windows 11 with Node.js, Woodland consistently outperforms Express.js and raw Node.js HTTP while maintaining feature parity with production frameworks.
+Woodland delivers **production-grade performance** with a security-first architecture. Benchmarks conducted with Node.js 22.x show Woodland performing competitively against Express.js and raw Node.js HTTP, with built-in security features (CORS, path validation, HTML escaping) adding minimal overhead.
 
 ### Key Performance Indicators
 
 | Metric | Result |
 |--------|--------|
-| **Framework Throughput** | 5,482 req/sec (JSON responses) |
-| **Routing Performance** | 2.4M+ ops/sec (cached) |
-| **Utility Functions** | 1.5M-4M ops/sec |
-| **Middleware Registration** | 20K+ ops/sec |
-| **vs Express.js** | **+9.5% faster** |
-| **vs Raw Node.js** | **+8.9% faster** |
-| **vs Fastify** | 62% of throughput (with more features) |
+| **Framework Throughput** | ~5,400 req/sec (JSON responses) |
+| **Routing Performance** | 3.3M ops/sec (cached) |
+| **Middleware Registration** | 28K+ ops/sec |
+| **vs Fastify** | 80% throughput (with more built-in features) |
+| **vs Node.js HTTP** | 2% faster |
+| **vs Express.js** | 9.5% faster |
 
 ---
 
@@ -24,38 +23,38 @@ Woodland delivers **enterprise-grade performance** with architectural optimizati
 
 ### Test Methodology
 
-- **5 independent runs** for statistical accuracy
-- **1,000 iterations** per framework per run
+- **1,000 iterations** per framework
 - **100 warmup iterations** before measurement
 - Identical JSON payload: `{message, timestamp, success}`
 - All frameworks configured with logging disabled
 - Random ports on `127.0.0.1`
+- Single run for statistical comparison
 
-### Results (5-Run Average)
+### Results
 
 | Framework | Mean (ms) | Ops/sec | Relative |
 |-----------|-----------|---------|----------|
-| Fastify | 0.0863ms | 11,698 | 100% |
-| **Woodland** | **0.0929ms** | **10,860** | **93%** |
-| Node.js HTTP | 0.1092ms | 9,180 | 78% |
-| Express | 0.1043ms | 9,591 | 82% |
+| Fastify | 0.1471ms | 6,799 | 100% |
+| **Woodland** | **0.1841ms** | **5,432** | **80%** |
+| Node.js HTTP | 0.1878ms | 5,326 | 78% |
+| Express | 0.2020ms | 4,949 | 73% |
 
 ### Performance Analysis
 
 **Woodland vs Express.js:**
-- **11.5% faster** for JSON response scenarios
+- ~9.5% faster throughput (5,432 vs 4,949 ops/sec)
 - Lower memory overhead (minimal dependencies)
-- Built-in features that require Express middleware (CORS, ETags, logging)
+- Built-in security features (CORS, path validation, HTML escaping) require no middleware
 
 **Woodland vs Raw Node.js:**
-- **14.8% faster** despite abstraction layer
+- ~2% faster throughput (5,432 vs 5,326 ops/sec)
 - Optimized request/response pipeline
-- Efficient header management and caching
+- Built-in security without significant overhead
 
 **Woodland vs Fastify:**
-- 93% of Fastify's raw throughput
+- ~80% of Fastify's raw throughput
 - Trade-off: Woodland includes more built-in features (CORS, file serving, directory indexing, comprehensive logging)
-- Fastify's schema validation and serialization optimizations are specialized; Woodland prioritizes general-purpose HTTP handling
+- Fastify's schema validation and serialization optimizations are specialized; Woodland prioritizes general-purpose HTTP handling with security
 
 ---
 
@@ -72,18 +71,16 @@ Woodland delivers **enterprise-grade performance** with architectural optimizati
 
 | Operation | Mean (ms) | Ops/sec | Use Case |
 |-----------|-----------|---------|----------|
-| `allows()` - with cache | 0.0002ms | **4,916,950** | Method validation |
-| `allowed()` - with cache | 0.0003ms | **3,294,424** | Permission checking |
-| `routes()` - with cache | 0.0006ms | **1,787,871** | Route resolution |
-| Static route matching | 0.0002ms | **5,003,828** | Fixed paths |
-| Parameter route matching | 0.0002ms | **4,527,105** | Dynamic paths |
-| Not found handling | 0.0002ms | **4,295,133** | 404 scenarios |
+| Static route matching | 0.0003ms | **3,306,703** | Fixed paths |
+| Parameter route matching | 0.0003ms | **3,140,703** | Dynamic paths |
+| Not found handling | 0.0003ms | **3,298,066** | 404 scenarios |
+| `routes()` - with cache | 0.0004ms | **2,630,360** | Route resolution |
+| `routes()` - no cache | 0.0011ms | **870,596** | First lookup |
 
 ### Scalability Implications
 
-At **3.7M ops/sec** for method validation, Woodland can theoretically handle:
-- **3.7 million requests/sec** for simple method checks
-- **922K requests/sec** for full route resolution (cached)
+At **3.3M ops/sec** for route matching, Woodland can theoretically handle:
+- **3.3 million requests/sec** for simple route checks
 - Real-world throughput limited by I/O, not routing
 
 **Memory Efficiency:**
@@ -106,28 +103,27 @@ At **3.7M ops/sec** for method validation, Woodland can theoretically handle:
 
 | Operation | Mean (ms) | Ops/sec | Use Case |
 |-----------|-----------|---------|----------|
-| `ignore()` middleware | 0.0230ms | **43,520** | Global exclusions |
-| Multiple handlers | 0.0227ms | **44,082** | Chained middleware |
-| `always()` registration | 0.0238ms | **41,927** | Global middleware |
-| Method-specific | 0.0238ms | **42,094** | GET/POST/etc. |
-| `use()` registration | 0.0276ms | **36,295** | Route-specific |
-| Response helpers | 0.0286ms | **34,922** | `res.json()`, `res.send()` |
-| Parameter extraction | 0.0298ms | **33,534** | `req.params` |
-| CORS handling | 0.0355ms | **28,168** | Origin validation |
-| Error handlers | 0.0311ms | **32,224** | 4-arg middleware |
-| Complex execution | 0.0338ms | **29,579** | Multi-layer stacks |
-| Simple execution | 0.0319ms | **31,330** | Single middleware |
+| `ignore()` middleware | 0.0349ms | **28,645** | Global exclusions |
+| Multiple handlers | 0.0345ms | **28,964** | Chained middleware |
+| `always()` registration | 0.0347ms | **28,842** | Global middleware |
+| Method-specific | 0.0352ms | **28,378** | GET/POST/etc. |
+| `use()` registration | 0.0419ms | **23,841** | Route-specific |
+| Simple execution | 0.0443ms | **22,557** | Single middleware |
+| Parameter extraction | 0.0450ms | **22,203** | `req.params` |
+| Error handlers | 0.0471ms | **21,212** | 4-arg middleware |
+| Complex execution | 0.0530ms | **18,881** | Multi-layer stacks |
+| CORS handling | 0.0540ms | **18,509** | Origin validation |
 
 ### Middleware Chain Analysis
 
-**Registration Overhead:** Minimal (20K+ ops/sec)
+**Registration Overhead:** Minimal (28K+ ops/sec)
 - Registration happens once at startup
 - Negligible impact on request throughput
 
 **Execution Performance:**
-- Simple chains: 29K ops/sec
-- Complex stacks (3+ layers): 8K ops/sec
-- Real-world apps typically see 5-15K ops/sec with 2-4 middleware layers
+- Simple chains: 22K ops/sec
+- Complex stacks (3+ layers): 18K ops/sec
+- Real-world apps typically see 15K-20K ops/sec with 2-4 middleware layers
 
 **Production Recommendation:**
 - Keep middleware chains under 5 layers for optimal performance
@@ -148,16 +144,16 @@ At **3.7M ops/sec** for method validation, Woodland can theoretically handle:
 
 | Function | Mean (ms) | Ops/sec | Purpose |
 |----------|-----------|---------|---------|
-| `timeOffset()` | 0.0002ms | **5,667,442** | Timezone formatting |
-| `isValidIP()` | 0.0003ms | **4,043,810** | IP validation |
-| `reduce()` | 0.0003ms | **3,036,753** | Route reduction |
-| `getStatus()` | 0.0004ms | **2,375,586** | Status determination |
-| `ms()` | 0.0002ms | **4,273,513** | Time formatting |
-| `mime()` - basic | 0.0003ms | **2,990,611** | MIME detection |
-| `mime()` - complex | 0.0004ms | **2,569,543** | Multi-extension files |
-| `parse()` - URL | 0.0009ms | **1,112,206** | URL parsing |
-| `pipeable()` | 0.0004ms | **2,644,794** | Stream detection |
-| `writeHead()` | 0.0005ms | **1,978,418** | Header writing |
+| `mime()` - basic | 0.0003ms | **3,760,020** | MIME detection |
+| `ms()` | 0.0003ms | **3,551,363** | Time formatting |
+| `timeOffset()` | 0.0003ms | **3,313,068** | Timezone formatting |
+| `isValidIP()` | 0.0004ms | **2,409,731** | IP validation |
+| `pipeable()` | 0.0004ms | **2,459,631** | Stream detection |
+| `getStatus()` | 0.0005ms | **2,103,876** | Status determination |
+| `parse()` - URL | 0.0005ms | **2,209,217** | URL parsing |
+| `reduce()` | 0.0005ms | **2,183,258** | Route reduction |
+| `writeHead()` | 0.0007ms | **1,431,694** | Header writing |
+| `parse()` - request | 0.0007ms | **1,361,377** | Request parsing |
 
 ### Utility Performance Implications
 
@@ -172,7 +168,7 @@ At **3.7M ops/sec** for method validation, Woodland can theoretically handle:
 - `parse()` for every incoming request URL
 
 **Scalability:**
-- At 2M ops/sec, utilities can handle **2M requests/sec**
+- At 2M+ ops/sec, utilities can handle **2M+ requests/sec**
 - Not a bottleneck even at extreme scale
 
 ---
@@ -190,19 +186,20 @@ At **3.7M ops/sec** for method validation, Woodland can theoretically handle:
 
 | Scenario | Mean (ms) | Ops/sec | Description |
 |----------|-----------|---------|-------------|
-| Server startup | 0.0355ms | **28,257** | App initialization |
-| DELETE requests | 0.0680ms | **14,706** | Idempotent operations |
-| Complex middleware | 0.0719ms | **13,947** | Multi-layer stacks |
-| Nested parameterized | 0.0782ms | **12,859** | `/users/:id/posts/:postId` |
-| Parameterized routes | 0.0738ms | **13,599** | `/users/:id` |
-| JSON response | 0.0759ms | **13,225** | `res.json()` |
-| Error handling | 0.0750ms | **13,345** | `res.error()` |
-| PUT requests | 0.0895ms | **11,218** | Resource updates |
-| Middleware chain | 0.0944ms | **10,784** | 2-3 layer stacks |
-| Mixed workload | 0.0933ms | **10,750** | Varied response types |
-| POST requests | 0.0968ms | **10,391** | Resource creation |
-| Simple GET | 0.1088ms | **9,238** | Basic responses |
-| Large response | 1.1349ms | **882** | 1,000-item JSON array |
+| Server startup | 0.0478ms | **20,920** | App initialization |
+| DELETE requests | 0.1290ms | **7,753** | Idempotent operations |
+| Complex middleware | 0.1468ms | **6,811** | Multi-layer stacks |
+| Nested parameterized | 0.1664ms | **6,008** | `/users/:id/posts/:postId` |
+| Parameterized routes | 0.1626ms | **6,149** | `/users/:id` |
+| Error handling | 0.1649ms | **6,065** | `res.error()` |
+| 404 handling | 0.1646ms | **6,074** | Not found |
+| JSON response | 0.1680ms | **5,952** | `res.json()` |
+| Simple GET | 0.1794ms | **5,574** | Basic responses |
+| Middleware chain | 0.1826ms | **5,476** | 2-3 layer stacks |
+| Mixed workload | 0.2062ms | **4,848** | Varied response types |
+| PUT requests | 0.2151ms | **4,650** | Resource updates |
+| POST requests | 0.2218ms | **4,508** | Resource creation |
+| Large response | 1.5014ms | **666** | 1,000-item JSON array |
 
 ### Real-World Throughput Estimates
 
@@ -210,16 +207,16 @@ Based on benchmark data, a single Woodland instance can handle:
 
 | Workload Type | Estimated RPS | Hardware |
 |---------------|---------------|----------|
-| Simple JSON API | 5,000-7,000 | 2 vCPU, 2GB RAM |
-| REST API (CRUD) | 4,000-6,000 | 2 vCPU, 2GB RAM |
+| Simple JSON API | 5,000-6,000 | 2 vCPU, 2GB RAM |
+| REST API (CRUD) | 4,000-5,000 | 2 vCPU, 2GB RAM |
 | Middleware-heavy | 2,000-4,000 | 4 vCPU, 4GB RAM |
-| File serving | 40,000+ | Depends on disk I/O |
-| Static content | 60,000+ | With autoIndex disabled |
+| File serving | 16,000+ | Depends on disk I/O |
+| Static content | 18,000+ | With autoIndex disabled |
 
 **Horizontal Scaling:**
 - Stateless design enables infinite horizontal scaling
 - Load balancer distribution: linear scaling
-- 10 instances = 50,000-70,000 RPS for JSON APIs
+- 10 instances = 50,000-60,000 RPS for JSON APIs
 
 ---
 
@@ -236,26 +233,27 @@ Based on benchmark data, a single Woodland instance can handle:
 
 | Operation | Mean (ms) | Ops/sec | File Type |
 |-----------|-----------|---------|-----------|
-| `files()` setup | - | **594,692** | Static config |
-| Stream with ETags | - | **370,153** | Cached responses |
-| ETag generation | - | **366,024** | Cache validation |
-| Stream (small) | - | **309,458** | < 1KB |
-| Stream (no ETags) | - | **298,359** | Fresh content |
-| HEAD requests | - | **65,888** | Metadata only |
-| OPTIONS requests | - | **64,843** | Preflight |
-| Not found | - | **60,094** | 404 handling |
-| Small file | - | **44,494** | < 1KB |
-| Large file | - | **42,534** | 100KB |
-| Range request | - | **38,105** | Partial content |
-| Directory redirect | - | **81,846** | Trailing slash |
-| Autoindex | - | **18,165** | Directory listing |
+| `files()` setup | 0.0352ms | **28,399** | Static config |
+| Stream with ETags | 0.0383ms | **26,135** | Cached responses |
+| ETag generation | 0.0346ms | **28,893** | Cache validation |
+| Stream (no ETags) | 0.0380ms | **26,310** | Fresh content |
+| Stream (small) | 0.0367ms | **27,230** | < 1KB |
+| HEAD requests | 0.0562ms | **17,783** | Metadata only |
+| Directory redirect | 0.0540ms | **18,511** | Trailing slash |
+| Not found | 0.0624ms | **16,023** | 404 handling |
+| OPTIONS requests | 0.0641ms | **15,599** | Preflight |
+| Small file | 0.0703ms | **14,231** | < 1KB |
+| Range request | 0.0717ms | **13,946** | Partial content |
+| Large file | 0.0609ms | **16,429** | 100KB |
+| Autoindex | 0.1102ms | **9,076** | Directory listing |
+| Directory | 0.1086ms | **9,209** | Folder listing |
 
 ### Static Content Serving
 
 **High-Performance Scenarios:**
-- Small files (< 1KB): 44K ops/sec
-- Large files (100KB): 42K ops/sec
-- Streaming with ETags: 370K ops/sec (304 Not Modified)
+- Small files (< 1KB): 14K ops/sec
+- Large files (100KB): 16K ops/sec
+- Streaming with ETags: 26K ops/sec (304 Not Modified)
 
 **Production Deployment:**
 - For high-traffic static content, use CDN (CloudFront, Cloudflare)
@@ -270,9 +268,9 @@ Based on benchmark data, a single Woodland instance can handle:
 
 | Metric | Conservative | Aggressive |
 |--------|--------------|------------|
-| JSON API RPS | 4,000 | 7,000 |
+| JSON API RPS | 4,000 | 6,000 |
 | REST API RPS | 3,000 | 5,000 |
-| Static files RPS | 30,000 | 60,000 |
+| Static files RPS | 14,000 | 18,000 |
 | Memory footprint | 50MB | 100MB |
 | CPU utilization | 20% (2 vCPU) | 60% (2 vCPU) |
 
@@ -283,8 +281,8 @@ For **100,000 RPS** target:
 | Configuration | Instances | Total RPS | Redundancy |
 |---------------|-----------|-----------|------------|
 | JSON API (conservative) | 25 | 100,000 | 5-instance failure tolerance |
-| JSON API (aggressive) | 15 | 105,000 | 3-instance failure tolerance |
-| Static files | 4 | 240,000 | 1-instance failure tolerance |
+| JSON API (aggressive) | 20 | 120,000 | 4-instance failure tolerance |
+| Static files | 7 | 126,000 | 2-instance failure tolerance |
 
 **Recommendation:** Start with 3-5 instances, scale horizontally based on monitoring.
 
@@ -311,25 +309,20 @@ For **100,000 RPS** target:
 
 ### Test Environment
 
-- **OS:** Windows 11
+- **OS:** Linux (benchmark runner)
 - **Runtime:** Node.js 22.x
 - **Iterations:** 1,000 per benchmark
 - **Warmup:** 100 iterations
-- **Runs:** 5 independent executions (averaged)
+- **Run:** Single execution for comparison
 
 ### Running Benchmarks
 
 ```bash
 # All benchmarks
-npm run benchmarks
+npm run benchmark
 
-# Specific suite
+# Framework comparison only
 npm run benchmark comparison
-npm run benchmark routing
-npm run benchmark middleware
-npm run benchmark utility
-npm run benchmark serving
-npm run benchmark http
 
 # Custom iterations
 node benchmark.js -i 2000 -w 200
@@ -394,14 +387,6 @@ node benchmark.js -i 2000 -w 200
    // Automatic 304 Not Modified for cached resources
    ```
 
-3. **Pre-warm routes at startup:**
-   ```javascript
-   app.on("connect", () => {
-     app.allows("/api/health");  // Pre-populate cache
-     app.allowed("GET", "/api/users");
-   });
-   ```
-
 ---
 
 ## Conclusion
@@ -411,22 +396,23 @@ Woodland delivers **production-grade performance** suitable for:
 - **High-traffic APIs:** 5,000+ RPS per instance for JSON responses
 - **Real-time services:** Sub-millisecond routing for WebSocket gateways
 - **Microservices:** Lightweight footprint with minimal overhead
-- **Static content:** 40K+ RPS for file serving
+- **Static content:** 14K+ RPS for file serving
 - **Enterprise applications:** Built-in features reduce dependency complexity
 
 **Key Takeaways:**
 
-1. Woodland is **11.5% faster than Express.js** with more built-in features
-2. Routing performance (**2-4M ops/sec**) is not a bottleneck at any scale
+1. Woodland is **9.5% faster than Express.js** with more built-in features
+2. Routing performance (**3.3M ops/sec**) is not a bottleneck at any scale
 3. Utility functions execute in **sub-microsecond** time
 4. Horizontal scaling enables **100K+ RPS** with modest infrastructure
 5. Memory-efficient design enables high density deployments
+6. Security features (CORS, path traversal, IP validation) add minimal overhead
 
 For mission-critical services requiring maximum throughput, Woodland provides the performance foundation with the feature set needed for production deployment.
 
 ---
 
 *Last updated: March 2026*
-*Benchmark version: 2.8*
-*Framework version: 21.0.0*
-*Test framework: Node.js 22.x on Windows 11*
+*Benchmark version: 3.0*
+*Framework version: 21.0.10*
+*Test framework: Node.js 22.x*

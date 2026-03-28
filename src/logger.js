@@ -24,6 +24,7 @@ import {
 	VALID_LOG_LEVELS,
 	EMPTY,
 	LOG_B,
+	LOG_FORMAT,
 	LOG_H,
 	LOG_L,
 	LOG_R,
@@ -183,10 +184,10 @@ export function log(msg, logLevel = DEBUG, enabled = true, actualLevel = INFO) {
  * @returns {Object} Logger with log, clf, logRoute, logMiddleware, logDecoration, logError, logServe methods
  */
 export function createLogger(config = {}) {
-	const { enabled = true, format, level = INFO } = config;
+	const { enabled = true, format = LOG_FORMAT, level = INFO } = config;
 	const actualLevel = VALID_LOG_LEVELS.has(level) ? level : INFO;
 
-	return {
+	return Object.freeze({
 		log: (msg, logLevel = DEBUG) => log(msg, logLevel, enabled, actualLevel),
 		clf: (req, res) => clf(req, res, format),
 		logRoute: (uri, method, ip) =>
@@ -199,7 +200,7 @@ export function createLogger(config = {}) {
 			logError(uri, method, ip, (msg, lvl) => log(msg, lvl, enabled, actualLevel)),
 		logServe: (req, message) =>
 			logServe(req, message, (msg, lvl) => log(msg, lvl, enabled, actualLevel)),
-	};
+	});
 }
 
 /**

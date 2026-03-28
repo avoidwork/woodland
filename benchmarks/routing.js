@@ -101,44 +101,6 @@ function benchmarkRoutesNoCache() {
 }
 
 /**
- * Benchmark allows() function - determines allowed methods for URI
- */
-function benchmarkAllows() {
-	const uri = testUris[Math.floor(Math.random() * testUris.length)];
-
-	return app.allows(uri);
-}
-
-/**
- * Benchmark allows() function without cache
- */
-function benchmarkAllowsNoCache() {
-	const uri = testUris[Math.floor(Math.random() * testUris.length)];
-
-	return app.allows(uri, true); // override cache
-}
-
-/**
- * Benchmark allowed() function - checks if method is allowed for URI
- */
-function benchmarkAllowed() {
-	const uri = testUris[Math.floor(Math.random() * testUris.length)];
-	const method = ["GET", "POST", "PUT", "DELETE"][Math.floor(Math.random() * 4)];
-
-	return app.allowed(method, uri);
-}
-
-/**
- * Benchmark allowed() function without cache
- */
-function benchmarkAllowedNoCache() {
-	const uri = testUris[Math.floor(Math.random() * testUris.length)];
-	const method = ["GET", "POST", "PUT", "DELETE"][Math.floor(Math.random() * 4)];
-
-	return app.allowed(method, uri, true); // override cache
-}
-
-/**
  * Benchmark route matching with parameters
  */
 function benchmarkParameterRoutes() {
@@ -206,10 +168,6 @@ function benchmarkNotFoundRoutes() {
 export default {
 	"routes() - with cache": benchmarkRoutes,
 	"routes() - no cache": benchmarkRoutesNoCache,
-	"allows() - with cache": benchmarkAllows,
-	"allows() - no cache": benchmarkAllowsNoCache,
-	"allowed() - with cache": benchmarkAllowed,
-	"allowed() - no cache": benchmarkAllowedNoCache,
 	"parameter routes": benchmarkParameterRoutes,
 	"static routes": benchmarkStaticRoutes,
 	"not found routes": benchmarkNotFoundRoutes,

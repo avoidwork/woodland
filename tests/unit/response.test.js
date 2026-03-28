@@ -301,6 +301,256 @@ describe("response", () => {
 
 			assert.strictEqual(sentStatus, 307);
 		});
+
+		it("should reject redirect with empty URI", () => {
+			let errorCalled = false;
+			const res = {
+				send: () => {},
+				error: (_status, _err) => {
+					errorCalled = true;
+				},
+				headersSent: false,
+				statusCode: 200,
+			};
+
+			redirect(res, "");
+			assert.strictEqual(errorCalled, true);
+		});
+
+		it("should reject redirect with protocol URI", () => {
+			let errorCalled = false;
+			const res = {
+				send: () => {},
+				error: (_status, _err) => {
+					errorCalled = true;
+				},
+				headersSent: false,
+				statusCode: 200,
+			};
+
+			redirect(res, "http://evil.com");
+			assert.strictEqual(errorCalled, true);
+		});
+
+		it("should reject redirect with protocol-relative URI", () => {
+			let errorCalled = false;
+			const res = {
+				send: () => {},
+				error: (_status, _err) => {
+					errorCalled = true;
+				},
+				headersSent: false,
+				statusCode: 200,
+			};
+
+			redirect(res, "//evil.com/path");
+			assert.strictEqual(errorCalled, true);
+		});
+
+		it("should reject redirect with backslash protocol-relative URI", () => {
+			let errorCalled = false;
+			const res = {
+				send: () => {},
+				error: (_status, _err) => {
+					errorCalled = true;
+				},
+				headersSent: false,
+				statusCode: 200,
+			};
+
+			redirect(res, "\\\\evil.com/path");
+			assert.strictEqual(errorCalled, true);
+		});
+
+		it("should reject redirect with mixed backslash protocol-relative URI", () => {
+			let errorCalled = false;
+			const res = {
+				send: () => {},
+				error: (_status, _err) => {
+					errorCalled = true;
+				},
+				headersSent: false,
+				statusCode: 200,
+			};
+
+			redirect(res, "/\\evil.com/path");
+			assert.strictEqual(errorCalled, true);
+		});
+
+		it("should reject redirect with non-string URI", () => {
+			let errorCalled = false;
+			const res = {
+				send: () => {},
+				error: (_status, _err) => {
+					errorCalled = true;
+				},
+				headersSent: false,
+				statusCode: 200,
+			};
+
+			redirect(res, null);
+			assert.strictEqual(errorCalled, true);
+		});
+
+		it("should reject redirect with control characters", () => {
+			let errorCalled = false;
+			const res = {
+				send: () => {},
+				error: (_status, _err) => {
+					errorCalled = true;
+				},
+				headersSent: false,
+				statusCode: 200,
+			};
+
+			redirect(res, "/path\r\nSet-Cookie: evil=1");
+			assert.strictEqual(errorCalled, true);
+		});
+
+		it("should reject redirect with percent-encoded protocol-relative", () => {
+			let errorCalled = false;
+			const res = {
+				send: () => {},
+				error: (_status, _err) => {
+					errorCalled = true;
+				},
+				headersSent: false,
+				statusCode: 200,
+			};
+
+			redirect(res, "/%2f%2fevil.com/path");
+			assert.strictEqual(errorCalled, true);
+		});
+
+		it("should reject redirect with percent-encoded backslash", () => {
+			let errorCalled = false;
+			const res = {
+				send: () => {},
+				error: (_status, _err) => {
+					errorCalled = true;
+				},
+				headersSent: false,
+				statusCode: 200,
+			};
+
+			redirect(res, "/%5c%5cevil.com/path");
+			assert.strictEqual(errorCalled, true);
+		});
+
+		it("should reject redirect with tab character", () => {
+			let errorCalled = false;
+			const res = {
+				send: () => {},
+				error: (_status, _err) => {
+					errorCalled = true;
+				},
+				headersSent: false,
+				statusCode: 200,
+			};
+
+			redirect(res, "/path\t/evil.com");
+			assert.strictEqual(errorCalled, true);
+		});
+	});
+
+	describe("send with stream error handling", () => {
+		it("should handle stream error after headers sent", () => {
+			let destroyCalled = false;
+			let endCalled = false;
+			let errorHandler = null;
+			const req = { method: "GET", headers: {} };
+			const stream = {
+				on: (event, handler) => {
+					if (event === "error") {
+						errorHandler = handler;
+					}
+					return stream;
+				},
+				destroy: () => {
+					destroyCalled = true;
+				},
+				pipe: () => {},
+			};
+			const res = {
+				headersSent: false,
+				statusCode: 200,
+				writeHead: () => {
+					res.headersSent = true;
+				},
+				writableEnded: false,
+				end: () => {
+					endCalled = true;
+				},
+				error: () => {},
+			};
+
+			send(
+				req,
+				res,
+				stream,
+				200,
+				{},
+				(_req, _res, body, status, headers) => [body, status, headers],
+				() => {},
+			);
+
+			// Trigger the error handler manually
+			if (errorHandler) {
+				errorHandler(new Error("Stream error"));
+			}
+
+			assert.strictEqual(destroyCalled, true);
+			assert.strictEqual(endCalled, true);
+		});
+
+		it("should not call end() if writableEnded is true", () => {
+			let destroyCalled = false;
+			let endCalled = false;
+			let errorHandler = null;
+			const req = { method: "GET", headers: {} };
+			const stream = {
+				on: (event, handler) => {
+					if (event === "error") {
+						errorHandler = handler;
+					}
+					return stream;
+				},
+				destroy: () => {
+					destroyCalled = true;
+				},
+				pipe: () => {},
+			};
+			const res = {
+				headersSent: false,
+				statusCode: 200,
+				writeHead: () => {
+					res.headersSent = true;
+				},
+				writableEnded: true,
+				end: () => {
+					endCalled = true;
+				},
+				error: () => {},
+			};
+
+			send(
+				req,
+				res,
+				stream,
+				200,
+				{},
+				(_req, _res, body, status, headers) => [body, status, headers],
+				() => {},
+			);
+
+			// Trigger the error handler manually
+			if (errorHandler) {
+				errorHandler(new Error("Stream error"));
+			}
+
+			assert.strictEqual(destroyCalled, true);
+			assert.strictEqual(endCalled, false);
+		});
 	});
 
 	describe("send", () => {

@@ -1,868 +1,384 @@
 # Woodland API Reference
 
-Complete API documentation for the Woodland HTTP framework.
-
-## Table of Contents
-
-- [Factory Functions](#factory-functions)
-- [Woodland Class](#woodland-class)
-- [Configuration](#configuration)
-- [Routing Methods](#routing-methods)
-- [Middleware Methods](#middleware-methods)
-- [Response Methods](#response-methods)
-- [Request Properties](#request-properties)
-- [Utility Methods](#utility-methods)
-- [Event Emitters](#event-emitters)
-- [Logger API](#logger-api)
+API documentation for `src/woodland.js` - the core HTTP server framework.
 
 ---
 
-## Factory Functions
+## Table of Contents
 
-### `woodland(config?)`
+- [Factory Function](#factory-function)
+- [Woodland Class](#woodland-class)
+  - [Constructor](#constructor)
+  - [HTTP Method Routes](#http-method-routes)
+  - [Middleware Methods](#middleware-methods)
+  - [File Serving Methods](#file-serving-methods)
+  - [Utility Methods](#utility-methods)
+  - [EventEmitter Methods](#eventemitter-methods)
+  - [Properties](#properties)
 
-Creates a new Woodland instance.
+---
 
-**Parameters:**
-- `config` (Object, optional) - Configuration object
+## Factory Function
 
-**Returns:** `Woodland` instance with bound `route` method
+### `woodland(arg)`
 
-**Example:**
-```javascript
-import { woodland } from "woodland";
+Creates a new Woodland instance. Binds the `route` method to the instance.
 
-const app = woodland({
-  origins: ["https://myapp.com"],
-  autoIndex: true,
-  time: true
-});
-```
+| Parameter | Type | Default | Optional | Description |
+|-----------|------|---------|----------|-------------|
+| `arg` | `Object` | `{}` | **Yes** | Configuration object |
+
+**Returns:** `Woodland` - New Woodland instance
 
 ---
 
 ## Woodland Class
 
-Extends `EventEmitter`. Provides HTTP server functionality with middleware routing.
+Extends `EventEmitter`. Main framework class for creating HTTP servers.
 
 ### Constructor
 
 ```javascript
-new Woodland(config)
+new Woodland(config = {})
 ```
 
-**Parameters:**
-- `config` (Object) - Configuration object (see [Configuration](#configuration))
+Creates a new Woodland instance with optional configuration.
+
+| Parameter | Type | Default | Optional | Description |
+|-----------|------|---------|----------|-------------|
+| `config` | `Object` | `{}` | **Yes** | Configuration object |
+
+#### Config Options
+
+| Option | Type | Default | Optional | Description |
+|--------|------|---------|----------|-------------|
+| `autoIndex` | `boolean` | `false` | **Yes** | Enable automatic directory indexing |
+| `cacheSize` | `number` | `1000` | **Yes** | Size of internal cache |
+| `cacheTTL` | `number` | `10000` | **Yes** | Cache TTL in milliseconds |
+| `charset` | `string` | `'utf-8'` | **Yes** | Default charset |
+| `corsExpose` | `string` | `''` | **Yes** | CORS expose headers |
+| `defaultHeaders` | `Object` | `{}` | **Yes** | Default headers to set |
+| `digit` | `number` | `3` | **Yes** | Digit precision for timing |
+| `etags` | `boolean` | `true` | **Yes** | Enable ETags |
+| `indexes` | `Array<string>` | `['index.htm','index.html']` | **Yes** | Index files to look for |
+| `logging` | `Object` | `{}` | **Yes** | Logging configuration |
+| `origins` | `Array<string>` | `[]` | **Yes** | Allowed CORS origins |
+| `silent` | `boolean` | `false` | **Yes** | Silent mode (disables server headers) |
+| `time` | `boolean` | `false` | **Yes** | Enable response time tracking |
 
 ---
 
-## Configuration
+### HTTP Method Routes
 
-### Core Options
+All route methods accept middleware functions and optionally a method type as the last argument. All return `Woodland` instance for chaining.
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `autoIndex` | `boolean` | `false` | Enable automatic directory indexing |
-| `cacheSize` | `number` | `1000` | Size of LRU cache for routes |
-| `cacheTTL` | `number` | `10000` | Cache TTL in milliseconds |
-| `charset` | `string` | `"utf-8"` | Default character set |
-| `corsExpose` | `string` | `""` | Headers to expose via CORS |
-| `defaultHeaders` | `Object` | `{}` | Additional default headers |
-| `digit` | `number` | `3` | Digit precision for timing |
-| `etags` | `boolean` | `true` | Enable ETag generation |
-| `indexes` | `Array<string>` | `["index.htm", "index.html"]` | Index files for directories |
-| `origins` | `Array<string>` | `[]` | Allowed CORS origins (empty = deny all) |
-| `silent` | `boolean` | `false` | Disable server headers |
-| `time` | `boolean` | `false` | Enable X-Response-Time header |
-
-### Logging Configuration
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `enabled` | `boolean` | `true` | Enable logging |
-| `level` | `string` | `"info"` | Log level (see below) |
-| `format` | `string` | `"%h %l %u %t \"%r\" %>s %b"` | Log format string |
-
-**Log Levels:**
-- `emerg` (0) - System is unusable
-- `alert` (1) - Action must be taken immediately
-- `crit` (2) - Critical conditions
-- `error` (3) - Error conditions
-- `warn` (4) - Warning conditions
-- `notice` (5) - Normal but significant
-- `info` (6) - Informational (default)
-- `debug` (7) - Debug-level messages
-
-**Format Specifiers:**
-- `%h` - Remote host IP
-- `%l` - Remote logname (always `-`)
-- `%u` - Remote user (always `-`)
-- `%t` - Time stamp
-- `%r` - First line of request
-- `%>s` - Final status code
-- `%b` - Response size in bytes
-
----
-
-## Routing Methods
-
-All routing methods return `Woodland` instance for chaining.
-
-### Method-Specific Routes
-
-```javascript
-app.get(path, ...handlers)      // GET
-app.post(path, ...handlers)     // POST
-app.put(path, ...handlers)      // PUT
-app.delete(path, ...handlers)   // DELETE
-app.patch(path, ...handlers)    // PATCH
-app.options(path, ...handlers)  // OPTIONS
-app.connect(path, ...handlers)  // CONNECT
-app.trace(path, ...handlers)    // TRACE
-```
-
-**Parameters:**
-- `path` (string) - Route path or RegExp pattern
-- `...handlers` (Function) - One or more middleware handlers
-
-**Example:**
-```javascript
-app.get("/users/:id", (req, res) => {
-  res.json({ id: req.params.id });
-});
-
-app.post("/users", validate, createUser);
-```
-
-### `always(...handlers)`
+#### `always(rpath, ...fn)`
 
 Registers wildcard middleware for all HTTP methods.
 
-**Parameters:**
-- `...handlers` (Function) - Middleware function(s)
+| Parameter | Type | Optional | Description |
+|-----------|------|----------|-------------|
+| `rpath` | `string` | **Yes** | Route path (optional, defaults to wildcard) |
+| `...fn` | `Function` | No | Middleware function(s) |
 
-**Returns:** `Woodland` instance
+**Returns:** `Woodland` - Returns self for chaining
 
-**Example:**
-```javascript
-app.always((req, res, next) => {
-  req.startTime = Date.now();
-  next();
-});
-```
+#### `connect(rpath, ...fn)`
 
-### `use(path, ...handlers)`
+Registers CONNECT method middleware.
+
+| Parameter | Type | Optional | Description |
+|-----------|------|----------|-------------|
+| `rpath` | `string` | **Yes** | Route path |
+| `...fn` | `Function` | No | Middleware function(s) |
+
+**Returns:** `Woodland` - Returns self for chaining
+
+#### `delete(rpath, ...fn)`
+
+Registers DELETE method middleware.
+
+| Parameter | Type | Optional | Description |
+|-----------|------|----------|-------------|
+| `rpath` | `string` | **Yes** | Route path |
+| `...fn` | `Function` | No | Middleware function(s) |
+
+**Returns:** `Woodland` - Returns self for chaining
+
+#### `get(rpath, ...fn)`
+
+Registers GET method middleware.
+
+| Parameter | Type | Optional | Description |
+|-----------|------|----------|-------------|
+| `rpath` | `string` | **Yes** | Route path |
+| `...fn` | `Function` | No | Middleware function(s) |
+
+**Returns:** `Woodland` - Returns self for chaining
+
+#### `options(rpath, ...fn)`
+
+Registers OPTIONS method middleware.
+
+| Parameter | Type | Optional | Description |
+|-----------|------|----------|-------------|
+| `rpath` | `string` | **Yes** | Route path |
+| `...fn` | `Function` | No | Middleware function(s) |
+
+**Returns:** `Woodland` - Returns self for chaining
+
+#### `patch(rpath, ...fn)`
+
+Registers PATCH method middleware.
+
+| Parameter | Type | Optional | Description |
+|-----------|------|----------|-------------|
+| `rpath` | `string` | **Yes** | Route path |
+| `...fn` | `Function` | No | Middleware function(s) |
+
+**Returns:** `Woodland` - Returns self for chaining
+
+#### `post(rpath, ...fn)`
+
+Registers POST method middleware.
+
+| Parameter | Type | Optional | Description |
+|-----------|------|----------|-------------|
+| `rpath` | `string` | **Yes** | Route path |
+| `...fn` | `Function` | No | Middleware function(s) |
+
+**Returns:** `Woodland` - Returns self for chaining
+
+#### `put(rpath, ...fn)`
+
+Registers PUT method middleware.
+
+| Parameter | Type | Optional | Description |
+|-----------|------|----------|-------------|
+| `rpath` | `string` | **Yes** | Route path |
+| `...fn` | `Function` | No | Middleware function(s) |
+
+**Returns:** `Woodland` - Returns self for chaining
+
+#### `trace(rpath, ...fn)`
+
+Registers TRACE method middleware.
+
+| Parameter | Type | Optional | Description |
+|-----------|------|----------|-------------|
+| `rpath` | `string` | **Yes** | Route path |
+| `...fn` | `Function` | No | Middleware function(s) |
+
+**Returns:** `Woodland` - Returns self for chaining
+
+---
+
+### Middleware Methods
+
+#### `ignore(fn)`
+
+Adds a middleware function to the ignored set. Ignored functions are excluded from route visibility counts.
+
+| Parameter | Type | Optional | Description |
+|-----------|------|----------|-------------|
+| `fn` | `Function` | No | Function to ignore |
+
+**Returns:** `Woodland` - Returns self for chaining
+
+#### `use(rpath, ...fn, method)`
 
 Registers middleware for a route.
 
-**Parameters:**
-- `path` (string|Function) - Route path or middleware function
-- `...handlers` (Function) - Middleware function(s)
+| Parameter | Type | Default | Optional | Description |
+|-----------|------|---------|----------|-------------|
+| `rpath` | `string\|Function` | No | No | Route path or middleware function |
+| `...fn` | `Function` | No | No | Middleware function(s) |
+| `method` | `string` | `'GET'` | **Yes** | HTTP method |
 
-**Returns:** `Woodland` instance
+**Returns:** `Woodland` - Returns self for chaining
 
-**Example:**
-```javascript
-// Route-specific middleware
-app.use("/api", auth, (req, res, next) => {
-  res.header("x-api", "true");
-  next();
-});
-
-// Global middleware (when path is function)
-app.use((req, res, next) => next());
-```
+**Notes:**
+- If `rpath` is a function, it is treated as middleware without a specific path (defaults to `/. *`)
+- The last argument can be a string specifying the HTTP method
+- Middleware can be chained for multiple handlers on the same route
 
 ---
 
-## Middleware Methods
+### File Serving Methods
 
-### `ignore(fn)`
+#### `files(root, folder)`
 
-Adds a function to the ignored set (excluded from route visibility).
+Registers file server middleware for serving static files.
 
-**Parameters:**
-- `fn` (Function) - Function to ignore
+| Parameter | Type | Default | Optional | Description |
+|-----------|------|---------|----------|-------------|
+| `root` | `string` | `'/'` | **Yes** | Root path to mount the file server |
+| `folder` | `string` | `process.cwd()` | **Yes** | Folder to serve files from |
 
-**Returns:** `Woodland` instance
+**Returns:** `Woodland` - Returns self for chaining
 
-**Example:**
-```javascript
-const logging = (req, res, next) => next();
-app.ignore(logging);
-app.always(logging);
-```
+#### `serve(req, res, arg, folder)`
 
-### `list(method?, type?)`
+Serves a file from disk directly.
 
-Lists middleware routes.
+| Parameter | Type | Default | Optional | Description |
+|-----------|------|---------|----------|-------------|
+| `req` | `Object` | No | No | HTTP request object |
+| `res` | `Object` | No | No | HTTP response object |
+| `arg` | `string` | No | No | File path to serve |
+| `folder` | `string` | `process.cwd()` | **Yes** | Folder to serve from |
 
-**Parameters:**
-- `method` (string, optional) - HTTP method (default: `"GET"`)
-- `type` (string, optional) - Return type: `"array"` or `"object"` (default: `"array"`)
+**Returns:** `Promise` - Promise that resolves when done
 
-**Returns:** `Array` or `Object` of routes
+#### `stream(req, res, file)`
 
-**Example:**
-```javascript
-const routes = app.list("GET", "array");
-// ["/", "/users", "/users/:id"]
+Streams a file to the response with proper headers and range support.
 
-const routesObj = app.list("POST", "object");
-// { "/users": [handler1, handler2] }
-```
+| Parameter | Type | Default | Optional | Description |
+|-----------|------|---------|----------|-------------|
+| `req` | `Object` | No | No | HTTP request object |
+| `res` | `Object` | No | No | HTTP response object |
+| `file` | `Object` | `{ charset: '', etag: '', path: '', stats: { mtime: Date, size: 0 } }` | **Yes** | File descriptor object |
 
-### `allowed(method, uri, override?)`
+**File Object Properties:**
 
-Checks if a method is allowed for a URI.
-
-**Parameters:**
-- `method` (string) - HTTP method
-- `uri` (string) - URI to check
-- `override` (boolean, optional) - Override cache (default: `false`)
-
-**Returns:** `boolean`
-
-**Example:**
-```javascript
-const isAllowed = app.allowed("GET", "/users"); // true
-```
-
-### `allows(uri, override?)`
-
-Determines allowed methods for a URI.
-
-**Parameters:**
-- `uri` (string) - URI to check
-- `override` (boolean, optional) - Override cache (default: `false`)
-
-**Returns:** `string` - Comma-separated list of allowed methods
-
-**Example:**
-```javascript
-const methods = app.allows("/users"); // "GET, HEAD, OPTIONS"
-```
-
-### `routes(uri, method, override?)`
-
-Gets route information.
-
-**Parameters:**
-- `uri` (string) - URI to check
-- `method` (string) - HTTP method
-- `override` (boolean, optional) - Override cache (default: `false`)
-
-**Returns:** `Object` - Route information with `middleware` and `getParams` properties
-
-**Example:**
-```javascript
-const info = app.routes("/users/:id", "GET");
-// { middleware: [Array], getParams: RegExp, params: true }
-```
+| Property | Type | Optional | Description |
+|----------|------|----------|-------------|
+| `file.path` | `string` | No | File path |
+| `file.etag` | `string` | No | File ETag |
+| `file.charset` | `string` | No | File charset |
+| `file.stats` | `Object` | No | File statistics |
+| `file.stats.size` | `number` | No | File size in bytes |
+| `file.stats.mtime` | `Date` | No | File modification time |
 
 ---
 
-## Response Methods
+### Utility Methods
 
-Response methods are available on the `res` object in handlers.
+#### `etag(method, ...args)`
 
-### `res.json(data, status?, headers?)`
+Generates an ETag for response caching based on method and values.
 
-Sends JSON response.
+| Parameter | Type | Optional | Description |
+|-----------|------|----------|-------------|
+| `method` | `string` | No | HTTP method (must be GET, HEAD, or OPTIONS) |
+| `...args` | `*` | No | Values to hash into the ETag |
 
-**Parameters:**
-- `data` (any) - Data to serialize
-- `status` (number, optional) - HTTP status code (default: `200`)
-- `headers` (Object, optional) - Additional headers
+**Returns:** `string` - ETag string or empty string if method is not hashable or ETags are disabled
 
-**Returns:** `void`
+#### `list(method, type)`
 
-**Example:**
-```javascript
-res.json({ message: "Hello" });
-res.json({ error: "Not found" }, 404);
-```
+Lists registered middleware routes for a specific HTTP method.
 
-### `res.send(body?, status?, headers?)`
+| Parameter | Type | Default | Optional | Description |
+|-----------|------|---------|----------|-------------|
+| `method` | `string` | `'get'` | **Yes** | HTTP method to list routes for |
+| `type` | `string` | `'array'` | **Yes** | Return type: `'array'` or `'object'` |
 
-Sends text or stream response.
+**Returns:** `Array\|Object` - List of route paths (array of strings or object mapping paths to handlers)
 
-**Parameters:**
-- `body` (string|Buffer|Stream, optional) - Response body (default: `""`)
-- `status` (number, optional) - HTTP status code
-- `headers` (Object, optional) - Additional headers
+#### `routes(uri, method, override)`
 
-**Returns:** `void`
+Gets route information for a specific URI and method.
 
-**Example:**
-```javascript
-res.send("Hello World");
-res.send("<html>...</html>", 200, { "Content-Type": "text/html" });
-```
+| Parameter | Type | Default | Optional | Description |
+|-----------|------|---------|----------|-------------|
+| `uri` | `string` | No | No | URI to check |
+| `method` | `string` | No | No | HTTP method |
+| `override` | `boolean` | `false` | **Yes** | Override cached route information |
 
-### `res.redirect(uri, permanent?)`
+**Returns:** `Object` - Route information object containing:
+- `middleware`: Array of middleware handlers
+- `params`: Boolean indicating if parameters were found
+- `getParams`: RegExp for extracting parameters
+- `visible`: Count of visible middleware
+- `exit`: Exit index
 
-Redirects to a URL.
+#### `route(req, res)`
 
-**Parameters:**
-- `uri` (string) - Redirect URL
-- `permanent` (boolean, optional) - Permanent redirect (default: `true`)
-  - `true` = 308 Permanent Redirect
-  - `false` = 307 Temporary Redirect
+Routes an HTTP request to the appropriate middleware. This is the main request handler.
 
-**Returns:** `void`
+| Parameter | Type | Optional | Description |
+|-----------|------|----------|-------------|
+| `req` | `Object` | No | HTTP request object |
+| `res` | `Object` | No | HTTP response object |
 
-**Example:**
-```javascript
-res.redirect("/new-path");
-res.redirect("/temp", false);
-```
-
-### `res.error(status, message?)`
-
-Sends error response.
-
-**Parameters:**
-- `status` (number) - HTTP status code
-- `message` (string|Error, optional) - Error message
-
-**Returns:** `void`
-
-**Example:**
-```javascript
-res.error(404);
-res.error(500, "Internal Server Error");
-res.error(403, new Error("Forbidden"));
-```
-
-### `res.set(headers)`
-
-Sets multiple headers.
-
-**Parameters:**
-- `headers` (Object|Map|Headers) - Headers to set
-
-**Returns:** `void`
-
-**Example:**
-```javascript
-res.set({ "X-Custom": "value", "X-Another": "123" });
-res.set(new Map([["X-One", "1"]]));
-```
-
-### `res.header(name, value)`
-
-Sets a single header (native Node.js access).
-
-**Parameters:**
-- `name` (string) - Header name
-- `value` (string) - Header value
-
-**Returns:** `void`
-
-**Example:**
-```javascript
-res.header("X-Custom", "value");
-```
-
-### `res.status(code)`
-
-Sets HTTP status code.
-
-**Parameters:**
-- `code` (number) - HTTP status code
-
-**Returns:** `void`
-
-**Example:**
-```javascript
-res.status(201);
-```
+**Notes:**
+- Decorates request and response objects with framework utilities
+- Emits `connect` event if listeners are registered
+- Emits `finish` event when response completes
+- Logs routing information
 
 ---
 
-## Request Properties
+### EventEmitter Methods
 
-Decorated request properties available in handlers.
+As an `EventEmitter` subclass, Woodland supports all standard EventEmitter methods:
 
-### `req.method`
+| Method | Description |
+|--------|-------------|
+| `on(event, listener)` | Add event listener |
+| `once(event, listener)` | Add one-time event listener |
+| `off(event, listener)` | Remove event listener |
+| `removeAllListeners(event)` | Remove all listeners for event |
+| `emit(event, ...args)` | Emit event with arguments |
+| `listeners(event)` | Get listeners for event |
+| `listenerCount(event)` | Get count of listeners for event |
 
-HTTP method (string).
+**Supported Events:**
 
-```javascript
-app.get("/test", (req, res) => {
-  console.log(req.method); // "GET"
-});
-```
-
-### `req.parsed`
-
-Parsed URL object with properties:
-- `pathname` - URL path
-- `search` - Query string
-- `hostname` - Host name
-- `port` - Port number
-- `href` - Full URL
-
-```javascript
-app.get("/test", (req, res) => {
-  console.log(req.parsed.pathname); // "/test"
-});
-```
-
-### `req.ip`
-
-Client IP address (extracted from `X-Forwarded-For` or connection).
-
-```javascript
-app.get("/", (req, res) => {
-  console.log(req.ip); // "192.168.1.1"
-});
-```
-
-### `req.params`
-
-URL parameters object (populated when route matches).
-
-```javascript
-app.get("/users/:id/posts/:postId", (req, res) => {
-  console.log(req.params); // { id: "123", postId: "456" }
-});
-```
-
-### `req.allow`
-
-Allowed methods string for the route.
-
-```javascript
-app.get("/test", (req, res) => {
-  console.log(req.allow); // "GET, HEAD, OPTIONS"
-});
-```
-
-### `req.cors`
-
-Boolean indicating if CORS is enabled for this request.
-
-```javascript
-app.get("/", (req, res) => {
-  if (req.cors) {
-    // CORS headers already set
-  }
-});
-```
-
-### `req.corsHost`
-
-Boolean indicating if origin header exists and differs from host.
-
-```javascript
-app.get("/", (req, res) => {
-  console.log(req.corsHost); // true/false
-});
-```
-
-### `req.body`
-
-Request body object (initialized as `{}`).
-
-```javascript
-app.post("/", (req, res) => {
-  console.log(req.body); // {}
-});
-```
-
-### `req.host`
-
-Hostname from request.
-
-```javascript
-app.get("/", (req, res) => {
-  console.log(req.host); // "example.com"
-});
-```
-
-### `req.valid`
-
-Request validation flag (false if CORS rejected or method not allowed).
-
-```javascript
-app.get("/", (req, res) => {
-  if (!req.valid) {
-    res.error(403);
-  }
-});
-```
-
-### `req.precise`
-
-Precise timer instance (when `time: true` in config).
-
-```javascript
-app.get("/", (req, res) => {
-  const start = req.precise;
-  // ... do work ...
-  const diff = start.stop().diff();
-});
-```
-
-### `req.exit`
-
-Iterator for exiting middleware chain early.
+| Event | Description | Listener Arguments |
+|-------|-------------|-------------------|
+| `error` | Error occurred | `(req, res, error)` |
+| `connect` | Request connected | `(req, res)` |
+| `finish` | Response finished | `(req, res)` |
+| `stream` | File streaming started | `(req, res)` |
 
 ---
 
-## Utility Methods
+### Properties
 
-### `etag(method, ...values)`
+#### `logger`
 
-Generates ETag for response caching.
+**Type:** `Object`
 
-**Parameters:**
-- `method` (string) - HTTP method
-- `...values` (any) - Values to hash
+Returns the logger instance with methods: `log`, `clf`, `logRoute`, `logMiddleware`, `logDecoration`, `logError`, `logServe`.
 
-**Returns:** `string` - ETag string or empty string
-
-**Example:**
-```javascript
-const etag = app.etag("GET", data, timestamp);
-res.header("ETag", etag);
-```
-
-### `files(root, folder)`
-
-Registers file server middleware.
-
-**Parameters:**
-- `root` (string, optional) - Root path (default: `"/"`)
-- `folder` (string, optional) - Folder to serve (default: `process.cwd()`)
-
-**Returns:** `void`
-
-**Example:**
-```javascript
-app.files("/static", "./public");
-app.files("/", "./www");
-```
-
-### `serve(req, res, path, folder?)`
-
-Serves a file from disk.
-
-**Parameters:**
-- `req` (Object) - HTTP request object
-- `res` (Object) - HTTP response object
-- `path` (string) - File path
-- `folder` (string, optional) - Folder to serve from
-
-**Returns:** `Promise`
-
-**Example:**
-```javascript
-await app.serve(req, res, "/path/to/file.txt", "./public");
-```
-
-### `stream(req, res, file)`
-
-Streams a file to response.
-
-**Parameters:**
-- `req` (Object) - HTTP request object
-- `res` (Object) - HTTP response object
-- `file` (Object) - File descriptor:
-  - `path` (string) - File path
-  - `etag` (string) - File ETag
-  - `charset` (string) - File charset
-  - `stats` (Object) - File statistics:
-    - `size` (number) - File size
-    - `mtime` (Date) - Modification time
-
-**Returns:** `void`
-
-**Example:**
-```javascript
-app.stream(req, res, {
-  path: "./public/file.txt",
-  etag: "abc123",
-  charset: "utf-8",
-  stats: { size: 1024, mtime: new Date() }
-});
-```
-
-### `decorate(req, res)`
-
-Decorates request and response objects with framework utilities.
-
-**Parameters:**
-- `req` (Object) - HTTP request object
-- `res` (Object) - HTTP response object
-
-**Returns:** `void`
-
-**Note:** Called automatically by `route()`.
-
-### `route(req, res)`
-
-Main request handler. Routes requests to appropriate middleware.
-
-**Parameters:**
-- `req` (Object) - HTTP request object
-- `res` (Object) - HTTP response object
-
-**Returns:** `void`
-
-**Example:**
-```javascript
-import { createServer } from "node:http";
-
-const app = woodland();
-createServer(app.route).listen(3000);
-```
-
-### `onDone(req, res, body, headers)`
-
-Handles response done event.
-
-**Parameters:**
-- `req` (Object) - HTTP request object
-- `res` (Object) - HTTP response object
-- `body` (string) - Response body
-- `headers` (Object) - Response headers
-
-**Returns:** `void`
-
-### `onReady(req, res, body, status, headers)`
-
-Handles response ready event.
-
-**Parameters:**
-- `req` (Object) - HTTP request object
-- `res` (Object) - HTTP response object
-- `body` (string) - Response body
-- `status` (number) - HTTP status code
-- `headers` (Object) - Response headers
-
-**Returns:** `Array` - Response array `[body, status, headers]`
-
-### `onSend(req, res, body, status, headers)`
-
-Handles response send event.
-
-**Parameters:**
-- `req` (Object) - HTTP request object
-- `res` (Object) - HTTP response object
-- `body` (string) - Response body
-- `status` (number) - HTTP status code
-- `headers` (Object) - Response headers
-
-**Returns:** `Array` - Response array `[body, status, headers]`
+**Getter only** - Read-only property.
 
 ---
 
-## Event Emitters
+## Request Object Decorations
 
-Woodland extends `EventEmitter` and emits the following events:
+The `route()` method decorates request objects with the following properties:
 
-### `connect`
-
-Emitted when a connection is established.
-
-**Listeners:** `(req, res) => void`
-
-**Example:**
-```javascript
-app.on("connect", (req, res) => {
-  console.log(`Connection from ${req.ip}`);
-});
-```
-
-### `finish`
-
-Emitted when response finishes.
-
-**Listeners:** `(req, res) => void`
-
-**Example:**
-```javascript
-app.on("finish", (req, res) => {
-  analytics.track({ method: req.method, status: res.statusCode });
-});
-```
-
-### `error`
-
-Emitted when an error occurs.
-
-**Listeners:** `(req, res, err) => void`
-
-**Example:**
-```javascript
-app.on("error", (req, res, err) => {
-  console.error(`Error ${res.statusCode}:`, err);
-});
-```
-
-### `stream`
-
-Emitted when streaming a file.
-
-**Listeners:** `(req, res) => void`
-
-**Example:**
-```javascript
-app.on("stream", (req, res) => {
-  console.log("Streaming file");
-});
-```
+| Property | Type | Description |
+|----------|------|-------------|
+| `req.corsHost` | `boolean` | True if CORS host differs from request host |
+| `req.cors` | `boolean` | True if CORS is allowed for this request |
+| `req.parsed` | `URL` | Parsed URL object |
+| `req.allow` | `string` | Comma-separated list of allowed methods |
+| `req.ip` | `string` | Client IP address |
+| `req.body` | `string` | Request body (initialized as empty string) |
+| `req.host` | `string` | Request hostname |
+| `req.params` | `Object` | URL parameters (populated if route has params) |
+| `req.valid` | `boolean` | Request validity status |
+| `req.precise` | `Object` | Timing object (if `time` config is enabled) |
+| `req.range` | `Object` | Range options (if range request is valid) |
 
 ---
 
-## Logger API
+## Response Object Decorations
 
-Access via `app.logger`.
+The `route()` method decorates response objects with the following methods:
 
-### `logger.log(message, level?)`
-
-Logs a message.
-
-**Parameters:**
-- `message` (string) - Log message
-- `level` (number, optional) - Log level (default: `INFO`)
-
-**Example:**
-```javascript
-app.logger.log("type=custom, message=hello");
-```
-
-### `logger.logError(path, method, ip)`
-
-Logs an error.
-
-**Parameters:**
-- `path` (string) - Request path
-- `method` (string) - HTTP method
-- `ip` (string) - Client IP
-
-**Example:**
-```javascript
-app.logger.logError("/api/users", "GET", "192.168.1.1");
-```
-
-### `logger.logRoute(path, method, ip)`
-
-Logs a route access.
-
-**Parameters:**
-- `path` (string) - Request path
-- `method` (string) - HTTP method
-- `ip` (string) - Client IP
-
-**Example:**
-```javascript
-app.logger.logRoute("/users", "GET", "192.168.1.1");
-```
-
-### `logger.logMiddleware(path, handler)`
-
-Logs middleware registration.
-
-**Parameters:**
-- `path` (string) - Route path
-- `handler` (Function) - Middleware handler
-
-**Example:**
-```javascript
-app.logger.logMiddleware("/api", authHandler);
-```
-
-### `logger.logDecoration(path, method, ip)`
-
-Logs request decoration.
-
-**Parameters:**
-- `path` (string) - Request path
-- `method` (string) - HTTP method
-- `ip` (string) - Client IP
-
-**Example:**
-```javascript
-app.logger.logDecoration("/users", "GET", "192.168.1.1");
-```
-
-### `logger.logServe(req, message)`
-
-Logs file serving.
-
-**Parameters:**
-- `req` (Object) - HTTP request object
-- `message` (string) - Log message
-
-**Example:**
-```javascript
-app.logger.logServe(req, "Serving file");
-```
-
-### `logger.clf(req, res)`
-
-Generates Common Log Format string.
-
-**Parameters:**
-- `req` (Object) - HTTP request object
-- `res` (Object) - HTTP response object
-
-**Returns:** `string` - CLF log string
-
-**Example:**
-```javascript
-const clf = app.logger.clf(req, res);
-// "192.168.1.1 - - [20/Mar/2026:10:30:00 +0000] \"GET / HTTP/1.1\" 200 1234"
-```
-
-### `logger.ms(nanoseconds)`
-
-Formats nanoseconds to milliseconds.
-
-**Parameters:**
-- `nanoseconds` (number) - Time in nanoseconds
-
-**Returns:** `string` - Formatted milliseconds
-
-**Example:**
-```javascript
-app.logger.ms(1234567); // "1.234 ms"
-```
-
-### `logger.timeOffset(minutes)`
-
-Gets timezone offset string.
-
-**Parameters:**
-- `minutes` (number) - Timezone offset in minutes
-
-**Returns:** `string` - Formatted offset
-
-**Example:**
-```javascript
-app.logger.timeOffset(-300); // "-0500"
-```
-
----
-
-## Exports
-
-```javascript
-// Main factory
-import { woodland } from "woodland";
-
-// Class for inheritance
-import { Woodland } from "woodland";
-
-// Utility functions
-import { createLogger, isValidIP, escapeHtml } from "woodland";
-```
-
----
-
-*Last updated: March 2026*
-*Version: 21.0.8*
+| Method | Description |
+|--------|-------------|
+| `res.error(status, body)` | Error response handler |
+| `res.header(name, value)` | Set response header (alias for `setHeader`) |
+| `res.json(arg, status, headers)` | Send JSON response |
+| `res.redirect(uri, perm)` | Redirect response |
+| `res.send(body, status, headers)` | Send response body |
+| `res.set(arg)` | Set multiple headers |
+| `res.status(arg)` | Set HTTP status code |
+| `res.locals` | `Object` - Local variables for the request |

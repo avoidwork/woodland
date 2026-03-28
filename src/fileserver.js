@@ -1,12 +1,13 @@
 import { STATUS_CODES } from "node:http";
-import { readdir, stat } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { readdir, stat, realpath } from "node:fs/promises";
+import { join, resolve, sep } from "node:path";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
 	COLLECTION,
 	CONTENT_TYPE,
 	EMPTY,
+	INT_400,
 	ITEM,
 	INT_403,
 	INT_404,
@@ -66,18 +67,28 @@ export function autoIndex(title = EMPTY, files = []) {
 
 /**
  * Serves files from filesystem
- * @param {Object} app - Woodland application instance
+ * @param {Object} config - File server config (autoIndex, charset, indexes, logger, stream, etag)
  * @param {Object} req - Request object
  * @param {Object} res - Response object
  * @param {string} arg - File path argument
  * @param {string} [folder=process.cwd()] - Root folder to serve from
  */
-export async function serve(app, req, res, arg, folder = process.cwd()) {
+export async function serve(config, req, res, arg, folder = process.cwd()) {
 	const fp = resolve(folder, arg);
 	const resolvedFolder = resolve(folder);
 
-	if (!fp.startsWith(resolvedFolder)) {
-		app.logger.logServe(req, MSG_SERVE_PATH_OUTSIDE);
+	const realFp = await realpath(fp).catch(() => fp);
+	const realFolder = await realpath(resolvedFolder).catch(() => resolvedFolder);
+
+	const isRoot =
+		realFolder === sep ||
+		(realFolder.length === 3 && realFolder[1] === ":" && realFolder.endsWith("\\"));
+	const isWithin = isRoot
+		? realFp.startsWith(realFolder)
+		: realFp === realFolder || (realFp.startsWith(realFolder) && realFp[realFolder.length] === sep);
+
+	if (!isWithin) {
+		config.logger.logServe(req, MSG_SERVE_PATH_OUTSIDE);
 		res.error(INT_403, new Error(STATUS_CODES[INT_403]));
 
 		return;
@@ -86,10 +97,10 @@ export async function serve(app, req, res, arg, folder = process.cwd()) {
 	let valid = true;
 	let stats;
 
-	app.logger.logServe(req, MSG_ROUTING_FILE);
+	config.logger.logServe(req, MSG_ROUTING_FILE);
 
 	try {
-		stats = await stat(fp, { bigint: false });
+		stats = await stat(realFp, { bigint: false });
 	} catch {
 		valid = false;
 	}
@@ -97,41 +108,59 @@ export async function serve(app, req, res, arg, folder = process.cwd()) {
 	if (!valid) {
 		res.error(INT_404, new Error(STATUS_CODES[INT_404]));
 	} else if (!stats.isDirectory()) {
-		app.stream(req, res, {
-			charset: app.charset,
-			etag: app.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
-			path: fp,
+		config.stream(req, res, {
+			charset: config.charset,
+			etag: config.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
+			path: realFp,
 			stats: stats,
 		});
 	} else if (!req.parsed.pathname.endsWith(SLASH)) {
 		res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
 	} else {
-		const files = await readdir(fp, { encoding: UTF8, withFileTypes: true });
+		let files;
+		/* node:coverage ignore next 7 */
+		try {
+			files = await readdir(realFp, { encoding: UTF8, withFileTypes: true });
+		} catch {
+			res.error(INT_404, new Error(STATUS_CODES[INT_404]));
+			return;
+		}
+
 		let result = EMPTY;
 
-		const indexes = app.indexes;
 		for (let i = 0; i < files.length; i++) {
 			const file = files[i];
-			if (indexes.includes(file.name)) {
-				result = join(fp, file.name);
+			if (config.indexes.includes(file.name)) {
+				result = join(realFp, file.name);
 				break;
 			}
 		}
 
 		if (!result.length) {
-			if (!app.autoIndex) {
+			if (!config.autoIndex) {
 				res.error(INT_404, new Error(STATUS_CODES[INT_404]));
 			} else {
-				const body = autoIndex(decodeURIComponent(req.parsed.pathname), files);
-				res.header(CONTENT_TYPE, `${TEXT_HTML}; charset=${app.charset}`);
-				res.send(body);
+				try {
+					const body = autoIndex(decodeURIComponent(req.parsed.pathname), files);
+					res.header(CONTENT_TYPE, `${TEXT_HTML}; charset=${config.charset}`);
+					res.send(body);
+				} catch {
+					res.error(INT_400, new Error(STATUS_CODES[INT_400]));
+				}
 			}
 		} else {
-			const rstats = await stat(result, { bigint: false });
+			let rstats;
+			/* node:coverage ignore next 7 */
+			try {
+				rstats = await stat(result, { bigint: false });
+			} catch {
+				res.error(INT_404, new Error(STATUS_CODES[INT_404]));
+				return;
+			}
 
-			app.stream(req, res, {
-				charset: app.charset,
-				etag: app.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
+			config.stream(req, res, {
+				charset: config.charset,
+				etag: config.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
 				path: result,
 				stats: rstats,
 			});
@@ -141,26 +170,44 @@ export async function serve(app, req, res, arg, folder = process.cwd()) {
 
 /**
  * Registers file serving middleware for a root path
- * @param {Object} app - Woodland application instance
+ * @param {Object} config - File server config
  * @param {string} root - Root path to register
  * @param {string} folder - Folder to serve files from
  * @param {Function} useMiddleware - Middleware registration function
  */
-export function register(app, root, folder, useMiddleware) {
-	useMiddleware(`${root.replace(/\/$/, EMPTY)}/(.*)?`, (req, res) =>
-		serve(app, req, res, req.parsed.pathname.substring(1), folder),
-	);
+export function register(config, root, folder, useMiddleware) {
+	const normalizedRoot = root.replace(/\/$/, EMPTY) || SLASH;
+	// Match mount root and any path beneath it: /static, /static/, /static/foo
+	const rootPattern = normalizedRoot === SLASH ? "(/.*)?" : `${normalizedRoot}(/.*)?`;
+
+	useMiddleware(rootPattern, (req, res) => {
+		const pathname = decodeURIComponent(req.parsed.pathname);
+		// For root mount "/", strip leading "/" (slice(1))
+		// For other mounts like "/static", strip "/static" prefix
+		const relativePath =
+			pathname === normalizedRoot
+				? EMPTY
+				: normalizedRoot === SLASH
+					? pathname.slice(1)
+					: pathname.slice(normalizedRoot.length + 1);
+		return serve(config, req, res, relativePath, folder);
+	});
 }
 
 /**
  * Creates file server middleware for serving static files
- * @param {Object} app - Woodland application instance
+ * @param {Object} config - File server config (autoIndex, charset, indexes, logger, stream, etag)
  * @returns {Object} File server with register, serve methods
  */
-export function createFileServer(app) {
-	return {
-		register: (root, folder, useMiddleware) =>
-			register(app, root, folder, useMiddleware || app.use.bind(app)),
-		serve: (req, res, arg, folder) => serve(app, req, res, arg, folder),
-	};
+export function createFileServer(config) {
+	return Object.freeze({
+		register: (root, folder, useMiddleware) => {
+			const fn = useMiddleware ?? config.use;
+			if (typeof fn !== "function") {
+				throw new TypeError("useMiddleware is required or config.use must be a function");
+			}
+			register(config, root, folder, fn);
+		},
+		serve: (req, res, arg, folder) => serve(config, req, res, arg, folder),
+	});
 }

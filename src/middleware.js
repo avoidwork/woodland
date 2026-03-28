@@ -7,7 +7,6 @@ import {
 	INT_0,
 	LEFT_PAREN,
 	NODE_METHODS,
-	OBJECT,
 	SLASH,
 	STRING,
 	WILDCARD,
@@ -169,20 +168,23 @@ export function computeRoutes(middleware, ignored, uri, method, cache, override 
  * @returns {Array|Object} List of routes
  */
 export function listRoutes(middleware, method = GET.toLowerCase(), type = ARRAY) {
-	let result;
 	const methodMap = middleware.get(method.toUpperCase());
 
-	if (type === ARRAY) {
-		result = [...methodMap.keys()];
-	} else if (type === OBJECT) {
-		result = {};
-		const entries = Array.from(methodMap.entries());
-		const entryCount = entries.length;
+	if (!methodMap) {
+		return type === ARRAY ? [] : {};
+	}
 
-		for (let i = 0; i < entryCount; i++) {
-			const [key, value] = entries[i];
-			result[key] = value;
-		}
+	if (type === ARRAY) {
+		return [...methodMap.keys()];
+	}
+
+	const result = {};
+	const entries = Array.from(methodMap.entries());
+	const entryCount = entries.length;
+
+	for (let i = 0; i < entryCount; i++) {
+		const [key, value] = entries[i];
+		result[key] = value;
 	}
 
 	return result;
@@ -204,7 +206,7 @@ export function checkAllowed(middleware, ignored, cache, method, uri, override =
 
 /**
  * Creates a registry object with middleware management methods
- * @param {Array} methods - Array of registered HTTP methods
+ * @param {Set} methods - Set of registered HTTP methods
  * @param {Object|Map} cache - Cache for route results
  * @returns {Object} Registry object with ignore, allowed, routes, register, list methods
  */
@@ -218,7 +220,7 @@ export function createMiddlewareRegistry(methods, cache) {
 		},
 		allowed: (m, u, o) => checkAllowed(middleware, ignored, cache, m, u, o),
 		routes: (u, m, o) => computeRoutes(middleware, ignored, u, m, cache, o),
-		register: (p, ...fns) => registerMiddleware(middleware, ignored, methods, cache, p, ...fns),
+		register: (p, ...fns) => registerMiddleware(middleware, ignored, methods, p, ...fns),
 		list: (m, t) => listRoutes(middleware, m, t),
 	};
 }
@@ -227,12 +229,11 @@ export function createMiddlewareRegistry(methods, cache) {
  * Registers middleware for a route
  * @param {Map} middleware - Map of middleware by method
  * @param {Set} ignored - Set of ignored middleware functions
- * @param {Array} methods - Array of registered HTTP methods
- * @param {Object|Map} cache - Cache for route results
+ * @param {Set} methods - Set of registered HTTP methods
  * @param {string|Function} rpath - Route path or middleware function
  * @param {...Function} fn - Middleware functions to register
  */
-export function registerMiddleware(middleware, ignored, methods, cache, rpath, ...fn) {
+export function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 	if (rpath === void 0) {
 		return;
 	}
@@ -254,7 +255,7 @@ export function registerMiddleware(middleware, ignored, methods, cache, rpath, .
 
 	if (middleware.has(method) === false) {
 		if (method !== WILDCARD) {
-			methods.push(method);
+			methods.add(method);
 		}
 
 		middleware.set(method, new Map());
@@ -270,6 +271,13 @@ export function registerMiddleware(middleware, ignored, methods, cache, rpath, .
 	}
 
 	const current = mmethod.get(lrpath) ?? { handlers: [] };
+
+	// Validate route pattern before mutating handlers
+	const quantifierPattern = /([.*+?^${}()|[\]\\])\1{3,}/;
+	/* node:coverage ignore next 3 */
+	if (quantifierPattern.test(lrpath)) {
+		throw new TypeError("Invalid route pattern: potential ReDoS vulnerability");
+	}
 
 	current.handlers.push(...fn);
 	mmethod.set(lrpath, {
