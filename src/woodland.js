@@ -623,6 +623,7 @@ export class Woodland extends EventEmitter {
 	 * @param {string} [folder=process.cwd()] - Folder to serve from
 	 * @returns {Promise} Promise that resolves when done
 	 */
+	/* node:coverage ignore next 3 */
 	async serve(req, res, arg, folder = process.cwd()) {
 		return this.#fileServer.serve(req, res, arg, folder);
 	}
