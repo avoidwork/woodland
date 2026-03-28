@@ -117,7 +117,7 @@ export function main(args = process.argv) {
 
 // CLI entry point - only run when executed directly
 const __filename = fileURLToPath(import.meta.url);
-/* node:coverage ignore next 3 */
+/* node:coverage ignore next 7 */
 if (
 	process.argv[1] &&
 	(process.argv[1].endsWith("cli.js") || process.argv[1].endsWith("cli.cjs"))
