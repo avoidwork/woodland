@@ -190,9 +190,10 @@ export class Woodland extends EventEmitter {
 	 * Determines allowed methods for a URI
 	 * @param {string} uri - URI to check
 	 * @param {boolean} [override=false] - Override cache
+	 * @param {boolean} [isCorsRequest=false] - Whether this is a CORS request
 	 * @returns {string} Comma-separated list of allowed methods
 	 */
-	#allows(uri, override = false) {
+	#allows(uri, override = false, isCorsRequest = false) {
 		let result = override === false ? this.#permissions.get(uri) : void 0;
 
 		if (override || result === void 0) {
@@ -204,7 +205,7 @@ export class Woodland extends EventEmitter {
 				}
 			}
 
-			const list = this.#buildAllowedList(methodSet);
+			const list = this.#buildAllowedList(methodSet, isCorsRequest);
 			result = list.sort().join(COMMA_SPACE);
 			this.#permissions.set(uri, result);
 			this.#logger.log(
@@ -218,9 +219,10 @@ export class Woodland extends EventEmitter {
 	/**
 	 * Builds the list of allowed methods including implicit HEAD and OPTIONS
 	 * @param {Set} methodSet - Set of explicitly registered methods
+	 * @param {boolean} isCorsRequest - Whether this is a CORS request
 	 * @returns {Array} Array of allowed methods
 	 */
-	#buildAllowedList(methodSet) {
+	#buildAllowedList(methodSet, isCorsRequest = false) {
 		const list = [...methodSet];
 
 		if (list.length > 0) {
@@ -228,7 +230,7 @@ export class Woodland extends EventEmitter {
 				list.push(HEAD);
 			}
 
-			if (!methodSet.has(OPTIONS)) {
+			if (!methodSet.has(OPTIONS) && isCorsRequest) {
 				list.push(OPTIONS);
 			}
 		}
@@ -266,7 +268,8 @@ export class Woodland extends EventEmitter {
 	#decorate(req, res) {
 		const timing = this.#time ? precise().start() : null;
 		const parsed = parse(req);
-		const allowString = this.#allows(parsed.pathname);
+		const isCorsRequest = req.headers.origin !== void 0;
+		const allowString = this.#allows(parsed.pathname, false, isCorsRequest);
 		const clientIP = extractIP(req);
 		const headersBatch = Object.create(null);
 		headersBatch[ALLOW] = allowString;
