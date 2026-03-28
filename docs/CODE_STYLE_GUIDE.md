@@ -269,7 +269,8 @@ For HTTP tests, mock responses must include:
 ### Coverage Targets
 
 - **100% line coverage** (required)
-- Ongoing work: 100% branch and function coverage
+- **100% function coverage** (required)
+- **96%+ branch coverage** (current: 96.43%)
 
 ### Test Edge Cases
 
@@ -324,7 +325,8 @@ const isWithin =
 
 ```bash
 npm run lint   # Check linting
-npm run fix    # Auto-fix issues
+npm run fix    # Auto-fix issues (lint + format)
+npm run coverage  # Verify 100% line coverage
 ```
 
 ---
@@ -333,10 +335,10 @@ npm run fix    # Auto-fix issues
 
 1. Make changes
 2. Run `npm run fix` (fixes lint + formatting)
-3. Run `npm run coverage` (ensures 100% line coverage)
+3. Run `npm run coverage` (verifies 100% line coverage)
 4. Commit only when explicitly requested
 
-**Pre-commit hook**: `npm run fix && npm run coverage && git add -A`
+**Pre-commit check**: `npm run fix && npm run coverage`
 
 ---
 
