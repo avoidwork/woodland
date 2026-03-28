@@ -44,7 +44,7 @@
     "build": "npm run rollup",
     "changelog": "auto-changelog -p",
     "clean": "rimraf dist",
-    "coverage": "node --test --experimental-test-coverage --test-coverage-exclude=dist/** --test-coverage-exclude=tests/** --test-reporter=spec tests/**/*.test.js 2>&1 | grep -A 1000 \"start of coverage report\" > coverage.txt",
+    "coverage": "node --test --experimental-test-coverage --test-coverage-exclude=dist/** --test-coverage-exclude=tests/** --test-reporter=spec tests/**/*.test.js 2>&1 | tee /tmp/test-output.txt | grep -A 1000 \"start of coverage report\" > coverage.txt && ! grep -q \"failing tests\" /tmp/test-output.txt",
     "fix": "oxlint --fix *.js benchmarks src tests && oxfmt *.js benchmarks src tests/unit --write",
     "lint": "oxlint *.js benchmarks src tests && oxfmt *.js benchmarks src tests/unit --check",
     "prepare": "husky",
