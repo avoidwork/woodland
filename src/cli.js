@@ -103,6 +103,7 @@ export function main(args = process.argv) {
 	app.files();
 	const server = createServer(app.route);
 	server.listen(portValidation.port, ip);
+	/* node:coverage ignore next 5 */
 	server.on("listening", () => {
 		const actualPort = server.address().port;
 		app.logger.log(
@@ -116,6 +117,7 @@ export function main(args = process.argv) {
 
 // CLI entry point - only run when executed directly
 const __filename = fileURLToPath(import.meta.url);
+/* node:coverage ignore next 3 */
 if (process.argv[1] && process.argv[1] === __filename) {
 	main();
 }

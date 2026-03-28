@@ -754,5 +754,95 @@ describe("woodland", () => {
 			assert.ok(finishOnCalled);
 			assert.ok(finishEmitted);
 		});
+
+		it("should handle CORS with wildcard origin", () => {
+			const app = woodland({ origins: ["*"] });
+			app.get("/test", () => {});
+
+			const req = {
+				method: "GET",
+				headers: { host: "example.com", origin: "http://any-origin.com" },
+				url: "/test",
+				socket: null,
+			};
+			let headersSet = {};
+			const res = {
+				statusCode: 200,
+				headersSent: false,
+				setHeader: (name, value) => {
+					headersSet[name] = value;
+				},
+				set: () => {},
+				getHeader: () => void 0,
+				on: () => {},
+				removeHeader: () => {},
+				header: () => {},
+			};
+
+			app.route(req, res);
+			assert.strictEqual(headersSet["access-control-allow-origin"], "*");
+		});
+
+		it("should handle timing when enabled", () => {
+			const app = woodland({ time: true });
+			app.get("/test", () => {});
+
+			const req = {
+				method: "GET",
+				headers: { host: "example.com" },
+				url: "/test",
+				socket: { server: { _connectionKey: "::8000" } },
+			};
+			let headersSet = {};
+			const res = {
+				statusCode: 200,
+				headersSent: false,
+				setHeader: (name, value) => {
+					headersSet[name] = value;
+				},
+				set: () => {},
+				getHeader: (name) => headersSet[name],
+				on: () => {},
+				removeHeader: () => {},
+				header: () => {},
+			};
+
+			app.route(req, res);
+			assert.ok(req.precise);
+		});
+
+		it("should handle OPTIONS request with CORS", () => {
+			const app = woodland({ origins: ["http://example.com"] });
+			app.options("/test", (req, res) => res.status(204).send(""));
+
+			const req = {
+				method: "OPTIONS",
+				headers: { host: "example.com", origin: "http://example.com" },
+				url: "/test",
+				socket: null,
+			};
+			let headersSet = {};
+			const res = {
+				statusCode: 204,
+				headersSent: false,
+				setHeader: (name, value) => {
+					headersSet[name] = value;
+				},
+				set: (headers) => {
+					for (const [k, v] of Object.entries(headers)) {
+						headersSet[k] = v;
+					}
+				},
+				getHeader: () => void 0,
+				on: () => {},
+				removeHeader: () => {},
+				header: () => {},
+				writeHead: () => {},
+				end: () => {},
+			};
+
+			app.route(req, res);
+			assert.ok(headersSet["access-control-allow-methods"] || headersSet["allow"]);
+		});
 	});
 });

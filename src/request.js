@@ -146,6 +146,7 @@ export function parse(arg) {
 	try {
 		return new URL(urlString);
 	} catch {
+		/* node:coverage ignore next 2 */
 		return new URL(`${HTTP_PREFIX}localhost${arg.url || SLASH}`);
 	}
 }

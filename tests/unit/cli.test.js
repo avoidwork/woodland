@@ -84,6 +84,18 @@ describe("CLI", () => {
 			assert.strictEqual(result.valid, false);
 			assert.match(result.error, /Invalid port/);
 		});
+
+		it("should reject empty string port", () => {
+			const result = validatePort("");
+			assert.strictEqual(result.valid, false);
+			assert.match(result.error, /Invalid port/);
+		});
+
+		it("should reject whitespace-only port", () => {
+			const result = validatePort("   ");
+			assert.strictEqual(result.valid, false);
+			assert.match(result.error, /Invalid port/);
+		});
 	});
 
 	describe("validateIP", () => {

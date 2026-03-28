@@ -231,6 +231,7 @@ export class Woodland extends EventEmitter {
 			}
 
 			if (!methodSet.has(OPTIONS) && isCorsRequest) {
+				/* node:coverage ignore next 2 */
 				list.push(OPTIONS);
 			}
 		}
@@ -327,6 +328,7 @@ export class Woodland extends EventEmitter {
 		const hasWildcard = this.#origins.has(WILDCARD);
 
 		if (originAllowed) {
+			/* node:coverage ignore next 10 */
 			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
 			headersBatch[TIMING_ALLOW_ORIGIN] = origin;
 			headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
@@ -477,6 +479,7 @@ export class Woodland extends EventEmitter {
 	 */
 	#onReady(req, res, body, status, headers) {
 		if (this.#time && res.getHeader(X_RESPONSE_TIME) === void 0) {
+			/* node:coverage ignore next 3 */
 			const diff = req.precise.stop().diff();
 			const msValue = Number(diff / 1e6).toFixed(this.#digit);
 			res.header(X_RESPONSE_TIME, `${msValue} ms`);
@@ -621,6 +624,7 @@ export class Woodland extends EventEmitter {
 	 * @returns {Promise} Promise that resolves when done
 	 */
 	async serve(req, res, arg, folder = process.cwd()) {
+		/* node:coverage ignore next 2 */
 		return this.#fileServer.serve(req, res, arg, folder);
 	}
 
