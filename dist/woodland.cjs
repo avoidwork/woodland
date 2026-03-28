@@ -1657,7 +1657,14 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
 	} else if (!req.parsed.pathname.endsWith(SLASH)) {
 		res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
 	} else {
-		const files = await promises.readdir(realFp, { encoding: UTF8, withFileTypes: true });
+		let files;
+		try {
+			files = await promises.readdir(realFp, { encoding: UTF8, withFileTypes: true });
+		} catch {
+			res.error(INT_404, new Error(node_http.STATUS_CODES[INT_404]));
+			return;
+		}
+
 		let result = EMPTY;
 
 		for (let i = 0; i < files.length; i++) {
@@ -1681,7 +1688,13 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
 				}
 			}
 		} else {
-			const rstats = await promises.stat(result, { bigint: false });
+			let rstats;
+			try {
+				rstats = await promises.stat(result, { bigint: false });
+			} catch {
+				res.error(INT_404, new Error(node_http.STATUS_CODES[INT_404]));
+				return;
+			}
 
 			config.stream(req, res, {
 				charset: config.charset,
