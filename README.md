@@ -209,9 +209,9 @@ Woodland delivers **enterprise-grade security without sacrificing performance**.
 
 | Framework | Security Approach | Mean Response Time |
 |-----------|------------------|-------------------|
+| Fastify | Requires plugins | 0.1491ms |
 | **Woodland** | **Built-in** | **0.1866ms** |
 | Express | Requires middleware | 0.1956ms |
-| Fastify | Requires plugins | 0.1491ms |
 
 ## Security
 

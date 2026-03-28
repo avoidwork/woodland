@@ -124,7 +124,7 @@ All optional in constructor:
 ## Running Tests
 
 ```bash
-npm test              # Full test suite with lint
+npm test              # Full test suite with lint (100% line coverage)
 npm run test:watch    # Watch mode
 npm run coverage      # Generate coverage report
 ```
