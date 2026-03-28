@@ -198,10 +198,10 @@ npm run lint          # Check linting
 
 ## Documentation
 
-- [API Reference](docs/API.md) - Complete method documentation
-- [Technical Documentation](docs/TECHNICAL_DOCUMENTATION.md) - Architecture, OWASP security, internals
-- [Code Style Guide](docs/CODE_STYLE_GUIDE.md) - Conventions and best practices
-- [Benchmarks](docs/BENCHMARKS.md) - Performance testing results
+- [API Reference](https://github.com/avoidwork/woodland/tree/master/docs/API.md) - Complete method documentation
+- [Technical Documentation](https://github.com/avoidwork/woodland/tree/master/docs/TECHNICAL_DOCUMENTATION.md) - Architecture, OWASP security, internals
+- [Code Style Guide](https://github.com/avoidwork/woodland/tree/master/docs/CODE_STYLE_GUIDE.md) - Conventions and best practices
+- [Benchmarks](https://github.com/avoidwork/woodland/tree/master/docs/BENCHMARKS.md) - Performance testing results
 
 ## Performance
 
