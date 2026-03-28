@@ -222,6 +222,7 @@ export function json(
 }
 
 const PROTOCOL_PATTERN = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
+const CONTROL_CHAR_PATTERN = /[\r\n\t]/;
 
 /**
  * Validates if a URI is safe for redirection (relative only)
@@ -240,11 +241,25 @@ function isSafeRedirectUri(uri) {
 		return false;
 	}
 
+	// Block control characters that could cause header injection
+	if (CONTROL_CHAR_PATTERN.test(trimmed)) {
+		return false;
+	}
+
 	if (PROTOCOL_PATTERN.test(trimmed)) {
 		return false;
 	}
 
-	if (trimmed.startsWith("//") || trimmed.startsWith("\\") || trimmed.startsWith("/\\")) {
+	// Block protocol-relative URLs including percent-encoded variants
+	const decoded = decodeURIComponent(trimmed);
+	if (
+		trimmed.startsWith("//") ||
+		trimmed.startsWith("\\") ||
+		trimmed.startsWith("/\\") ||
+		decoded.startsWith("//") ||
+		decoded.startsWith("\\") ||
+		decoded.startsWith("/\\")
+	) {
 		return false;
 	}
 

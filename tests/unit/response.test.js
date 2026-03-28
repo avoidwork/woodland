@@ -391,6 +391,66 @@ describe("response", () => {
 			redirect(res, null);
 			assert.strictEqual(errorCalled, true);
 		});
+
+		it("should reject redirect with control characters", () => {
+			let errorCalled = false;
+			const res = {
+				send: () => {},
+				error: (_status, _err) => {
+					errorCalled = true;
+				},
+				headersSent: false,
+				statusCode: 200,
+			};
+
+			redirect(res, "/path\r\nSet-Cookie: evil=1");
+			assert.strictEqual(errorCalled, true);
+		});
+
+		it("should reject redirect with percent-encoded protocol-relative", () => {
+			let errorCalled = false;
+			const res = {
+				send: () => {},
+				error: (_status, _err) => {
+					errorCalled = true;
+				},
+				headersSent: false,
+				statusCode: 200,
+			};
+
+			redirect(res, "/%2f%2fevil.com/path");
+			assert.strictEqual(errorCalled, true);
+		});
+
+		it("should reject redirect with percent-encoded backslash", () => {
+			let errorCalled = false;
+			const res = {
+				send: () => {},
+				error: (_status, _err) => {
+					errorCalled = true;
+				},
+				headersSent: false,
+				statusCode: 200,
+			};
+
+			redirect(res, "/%5c%5cevil.com/path");
+			assert.strictEqual(errorCalled, true);
+		});
+
+		it("should reject redirect with tab character", () => {
+			let errorCalled = false;
+			const res = {
+				send: () => {},
+				error: (_status, _err) => {
+					errorCalled = true;
+				},
+				headersSent: false,
+				statusCode: 200,
+			};
+
+			redirect(res, "/path\t/evil.com");
+			assert.strictEqual(errorCalled, true);
+		});
 	});
 
 	describe("send with stream error handling", () => {
