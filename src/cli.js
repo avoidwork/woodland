@@ -125,8 +125,8 @@ if (process.argv[1]) {
 		scriptPath === __filename ||
 		scriptPath.endsWith("/cli.cjs") ||
 		scriptPath.endsWith("\\cli.cjs") ||
-		scriptPath.endsWith("/bin/woodland") ||
-		scriptPath.endsWith("\\bin\\woodland")
+		scriptPath.endsWith("bin/woodland") ||
+		scriptPath.endsWith("bin\\woodland")
 	) {
 		main();
 	}
