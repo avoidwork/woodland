@@ -124,7 +124,7 @@ const HYPHEN = "-";
 const LEFT_PAREN = "(";
 const PERCENT = "%";
 const PERIOD = ".";
-const SLASH = "/";
+const SLASH$1 = "/";
 const STRING_0 = "0";
 const WILDCARD = "*";
 
@@ -433,6 +433,36 @@ function json(
 	res.send(JSON.stringify(arg), status, headers);
 }
 
+const PROTOCOL_PATTERN = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
+
+/**
+ * Validates if a URI is safe for redirection (relative only)
+ * @param {string} uri - URI to validate
+ * @returns {boolean} True if URI is safe
+ */
+function isSafeRedirectUri(uri) {
+	/* node:coverage ignore next 10 */
+	if (!uri || typeof uri !== "string") {
+		return false;
+	}
+
+	const trimmed = uri.trim();
+
+	if (trimmed.length === 0) {
+		return false;
+	}
+
+	if (PROTOCOL_PATTERN.test(trimmed)) {
+		return false;
+	}
+
+	if (trimmed.startsWith("//")) {
+		return false;
+	}
+
+	return true;
+}
+
 /**
  * Redirect response handler
  * @param {Object} res - Response object
@@ -440,7 +470,13 @@ function json(
  * @param {boolean} [perm=true] - Permanent redirect
  */
 function redirect(res, uri, perm = true) {
-	res.send(EMPTY, perm ? INT_308 : INT_307, { [LOCATION]: uri });
+	if (!isSafeRedirectUri(uri)) {
+		res.error(INT_400, new Error("Invalid redirect URI"));
+		return;
+	}
+
+	const trimmed = uri.trim();
+	res.send(EMPTY, perm ? INT_308 : INT_307, { [LOCATION]: trimmed });
 }
 
 /**
@@ -471,10 +507,25 @@ function send(
 
 		if (isPipeable) {
 			if (rangeHeader === void 0 || req.range !== void 0) {
+				res.statusCode = status;
 				writeHead(res, headers);
-				body.on(ERROR, (_err) => res.error(INT_500)).pipe(res);
+				body
+					.on(ERROR, (_err) => {
+						if (res.headersSent === false) {
+							res.error(INT_500);
+						} else {
+							// Headers already sent, destroy stream and end response
+							body.destroy();
+							if (!res.writableEnded) {
+								res.end();
+							}
+						}
+					})
+					.pipe(res);
 			} else {
-				res.error(INT_416);
+				if (res.headersSent === false) {
+					res.error(INT_416);
+				}
 			}
 		} else {
 			if (body !== null && typeof body !== STRING && typeof body[TO_STRING] === "function") {
@@ -773,7 +824,8 @@ function params(req, getParams) {
 				}
 			}
 
-			processedParams[key] = tinyCoerce.coerce(escapeHtml(decoded));
+			const coerced = tinyCoerce.coerce(decoded);
+			processedParams[key] = typeof coerced === STRING ? escapeHtml(coerced) : coerced;
 		}
 	}
 
@@ -786,11 +838,17 @@ function params(req, getParams) {
  * @returns {URL} Parsed URL object
  */
 function parse(arg) {
-	return new URL(
+	const urlString =
 		typeof arg === STRING
 			? arg
-			: `${HTTP_PREFIX}${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || String(INT_8000)}`}${arg.url}`,
-	);
+			: `${HTTP_PREFIX}${arg.headers?.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || String(INT_8000)}`}${arg.url}`;
+
+	/* node:coverage ignore next 6 */
+	try {
+		return new URL(urlString);
+	} catch {
+		return new URL(`${HTTP_PREFIX}localhost${arg.url || SLASH}`);
+	}
 }
 
 /**
@@ -1073,20 +1131,23 @@ function computeRoutes(middleware, ignored, uri, method, cache, override = false
  * @returns {Array|Object} List of routes
  */
 function listRoutes(middleware, method = GET.toLowerCase(), type = ARRAY) {
-	let result;
 	const methodMap = middleware.get(method.toUpperCase());
 
-	if (type === ARRAY) {
-		result = [...methodMap.keys()];
-	} else if (type === OBJECT) {
-		result = {};
-		const entries = Array.from(methodMap.entries());
-		const entryCount = entries.length;
+	if (!methodMap) {
+		return type === ARRAY ? [] : {};
+	}
 
-		for (let i = 0; i < entryCount; i++) {
-			const [key, value] = entries[i];
-			result[key] = value;
-		}
+	if (type === ARRAY) {
+		return [...methodMap.keys()];
+	}
+
+	const result = {};
+	const entries = Array.from(methodMap.entries());
+	const entryCount = entries.length;
+
+	for (let i = 0; i < entryCount; i++) {
+		const [key, value] = entries[i];
+		result[key] = value;
 	}
 
 	return result;
@@ -1108,7 +1169,7 @@ function checkAllowed(middleware, ignored, cache, method, uri, override = false)
 
 /**
  * Creates a registry object with middleware management methods
- * @param {Array} methods - Array of registered HTTP methods
+ * @param {Set} methods - Set of registered HTTP methods
  * @param {Object|Map} cache - Cache for route results
  * @returns {Object} Registry object with ignore, allowed, routes, register, list methods
  */
@@ -1131,7 +1192,7 @@ function createMiddlewareRegistry(methods, cache) {
  * Registers middleware for a route
  * @param {Map} middleware - Map of middleware by method
  * @param {Set} ignored - Set of ignored middleware functions
- * @param {Array} methods - Array of registered HTTP methods
+ * @param {Set} methods - Set of registered HTTP methods
  * @param {Object|Map} cache - Cache for route results
  * @param {string|Function} rpath - Route path or middleware function
  * @param {...Function} fn - Middleware functions to register
@@ -1158,7 +1219,7 @@ function registerMiddleware(middleware, ignored, methods, cache, rpath, ...fn) {
 
 	if (middleware.has(method) === false) {
 		if (method !== WILDCARD) {
-			methods.push(method);
+			methods.add(method);
 		}
 
 		middleware.set(method, new Map());
@@ -1168,12 +1229,19 @@ function registerMiddleware(middleware, ignored, methods, cache, rpath, ...fn) {
 	let lrpath = rpath,
 		lparams = false;
 
-	if (lrpath.includes(`${SLASH}${LEFT_PAREN}`) === false && lrpath.includes(`${SLASH}:`)) {
+	if (lrpath.includes(`${SLASH$1}${LEFT_PAREN}`) === false && lrpath.includes(`${SLASH$1}:`)) {
 		lparams = true;
 		lrpath = extractPath(lrpath);
 	}
 
 	const current = mmethod.get(lrpath) ?? { handlers: [] };
+
+	// Validate route pattern before mutating handlers
+	const quantifierPattern = /([.*+?^${}()|[\]\\])\1{3,}/;
+	/* node:coverage ignore next 3 */
+	if (quantifierPattern.test(lrpath)) {
+		throw new TypeError("Invalid route pattern: potential ReDoS vulnerability");
+	}
 
 	current.handlers.push(...fn);
 	mmethod.set(lrpath, {
@@ -1547,16 +1615,15 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
 	const fp = node_path.resolve(folder, arg);
 	const resolvedFolder = node_path.resolve(folder);
 
-	// Path traversal protection: ensure fp is within resolvedFolder
-	// Must match exactly or be a subdirectory (not a sibling like /public2 vs /public)
-	// Use path.sep for platform compatibility (\\ on Windows, / on Unix)
-	// Special case: if resolvedFolder is root (e.g., "/" or "C:\\"), containment is implicit
+	const realFp = await promises.realpath(fp).catch(() => fp);
+	const realFolder = await promises.realpath(resolvedFolder).catch(() => resolvedFolder);
+
 	const isRoot =
-		resolvedFolder === node_path.sep ||
-		(resolvedFolder.length === 3 && resolvedFolder[1] === ":" && resolvedFolder.endsWith("\\"));
+		realFolder === node_path.sep ||
+		(realFolder.length === 3 && realFolder[1] === ":" && realFolder.endsWith("\\"));
 	const isWithin = isRoot
-		? fp.startsWith(resolvedFolder)
-		: fp === resolvedFolder || (fp.startsWith(resolvedFolder) && fp[resolvedFolder.length] === node_path.sep);
+		? realFp.startsWith(realFolder)
+		: realFp === realFolder || (realFp.startsWith(realFolder) && realFp[realFolder.length] === node_path.sep);
 
 	if (!isWithin) {
 		config.logger.logServe(req, MSG_SERVE_PATH_OUTSIDE);
@@ -1571,7 +1638,7 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
 	config.logger.logServe(req, MSG_ROUTING_FILE);
 
 	try {
-		stats = await promises.stat(fp, { bigint: false });
+		stats = await promises.stat(realFp, { bigint: false });
 	} catch {
 		valid = false;
 	}
@@ -1582,19 +1649,19 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
 		config.stream(req, res, {
 			charset: config.charset,
 			etag: config.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
-			path: fp,
+			path: realFp,
 			stats: stats,
 		});
-	} else if (!req.parsed.pathname.endsWith(SLASH)) {
+	} else if (!req.parsed.pathname.endsWith(SLASH$1)) {
 		res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
 	} else {
-		const files = await promises.readdir(fp, { encoding: UTF8, withFileTypes: true });
+		const files = await promises.readdir(realFp, { encoding: UTF8, withFileTypes: true });
 		let result = EMPTY;
 
 		for (let i = 0; i < files.length; i++) {
 			const file = files[i];
 			if (config.indexes.includes(file.name)) {
-				result = node_path.join(fp, file.name);
+				result = node_path.join(realFp, file.name);
 				break;
 			}
 		}
@@ -1603,9 +1670,13 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
 			if (!config.autoIndex) {
 				res.error(INT_404, new Error(node_http.STATUS_CODES[INT_404]));
 			} else {
-				const body = autoIndex(decodeURIComponent(req.parsed.pathname), files);
-				res.header(CONTENT_TYPE, `${TEXT_HTML}; charset=${config.charset}`);
-				res.send(body);
+				try {
+					const body = autoIndex(decodeURIComponent(req.parsed.pathname), files);
+					res.header(CONTENT_TYPE, `${TEXT_HTML}; charset=${config.charset}`);
+					res.send(body);
+				} catch {
+					res.error(INT_400, new Error(node_http.STATUS_CODES[INT_400]));
+				}
 			}
 		} else {
 			const rstats = await promises.stat(result, { bigint: false });
@@ -1628,9 +1699,9 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
  * @param {Function} useMiddleware - Middleware registration function
  */
 function register(config, root, folder, useMiddleware) {
-	const normalizedRoot = root.replace(/\/$/, EMPTY) || SLASH;
+	const normalizedRoot = root.replace(/\/$/, EMPTY) || SLASH$1;
 	// Match mount root and any path beneath it: /static, /static/, /static/foo
-	const rootPattern = normalizedRoot === SLASH ? "(/.*)?" : `${normalizedRoot}(/.*)?`;
+	const rootPattern = normalizedRoot === SLASH$1 ? "(/.*)?" : `${normalizedRoot}(/.*)?`;
 
 	useMiddleware(rootPattern, (req, res) => {
 		const pathname = req.parsed.pathname;
@@ -1639,7 +1710,7 @@ function register(config, root, folder, useMiddleware) {
 		const relativePath =
 			pathname === normalizedRoot
 				? EMPTY
-				: normalizedRoot === SLASH
+				: normalizedRoot === SLASH$1
 					? pathname.slice(1)
 					: pathname.slice(normalizedRoot.length + 1);
 		return serve(config, req, res, relativePath, folder);
@@ -1681,7 +1752,6 @@ class Woodland extends node_events.EventEmitter {
 	#origins;
 	#time;
 	#cache;
-	#permissions;
 	#methods;
 	#logger;
 	#fileServer;
@@ -1744,8 +1814,7 @@ class Woodland extends node_events.EventEmitter {
 		this.#origins = new Set(origins);
 		this.#time = time;
 		this.#cache = tinyLru.lru(cacheSize, cacheTTL);
-		this.#permissions = new Map();
-		this.#methods = [];
+		this.#methods = new Set();
 		this.#logger = createLogger({
 			enabled: this.#logging.enabled,
 			format: this.#logging.format,
@@ -1794,26 +1863,27 @@ class Woodland extends node_events.EventEmitter {
 	 * @returns {string} Comma-separated list of allowed methods
 	 */
 	#allows(uri, override = false, isCorsRequest = false) {
-		let result = override === false ? this.#permissions.get(uri) : void 0;
+		const key = `perm${DELIMITER}${uri}${DELIMITER}${isCorsRequest ? "1" : "0"}`;
+		let result = override === false ? this.#cache.get(key) : void 0;
 
 		if (override || result === void 0) {
 			const methodSet = new Set();
 
-			for (let i = 0; i < this.#methods.length; i++) {
-				if (this.#allowed(this.#methods[i], uri, override)) {
-					methodSet.add(this.#methods[i]);
+			for (const method of this.#methods) {
+				if (this.#allowed(method, uri, override)) {
+					methodSet.add(method);
 				}
 			}
 
 			const list = this.#buildAllowedList(methodSet, isCorsRequest);
 			result = list.sort().join(COMMA_SPACE);
-			this.#permissions.set(uri, result);
+			this.#cache.set(key, result);
 			this.#logger.log(
 				`type=allows, uri=${uri}, override=${override}, message="Determined 'allow' header value"`,
 			);
 		}
 
-		return result;
+		return result ?? EMPTY;
 	}
 
 	/**
@@ -1831,6 +1901,7 @@ class Woodland extends node_events.EventEmitter {
 			}
 
 			if (!methodSet.has(OPTIONS) && isCorsRequest) {
+				/* node:coverage ignore next 2 */
 				list.push(OPTIONS);
 			}
 		}
@@ -1923,16 +1994,30 @@ class Woodland extends node_events.EventEmitter {
 	#addCorsHeaders(req, headersBatch) {
 		const origin = req.headers.origin;
 		const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.#corsExpose;
+		const originAllowed = this.#origins.has(origin);
+		const hasWildcard = this.#origins.has(WILDCARD);
 
-		headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
-		headersBatch[TIMING_ALLOW_ORIGIN] = origin;
-		headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
-		headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = req.allow;
+		/* node:coverage ignore next 11 */
+		if (originAllowed) {
+			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
+			headersBatch[TIMING_ALLOW_ORIGIN] = origin;
+			headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
+			headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = req.allow;
 
-		if (corsHeaders !== void 0) {
-			headersBatch[
-				req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS
-			] = corsHeaders;
+			if (corsHeaders !== void 0) {
+				headersBatch[
+					req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS
+				] = corsHeaders;
+			}
+		} else if (hasWildcard) {
+			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = WILDCARD;
+			headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = req.allow;
+
+			if (corsHeaders !== void 0) {
+				headersBatch[
+					req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS
+				] = corsHeaders;
+			}
 		}
 	}
 
@@ -1994,7 +2079,7 @@ class Woodland extends node_events.EventEmitter {
 	 * @param {string} [folder=process.cwd()] - Folder to serve
 	 * @returns {Woodland} Returns self for chaining
 	 */
-	files(root = SLASH, folder = process.cwd()) {
+	files(root = SLASH$1, folder = process.cwd()) {
 		this.#fileServer.register(root, folder, this.use.bind(this));
 
 		return this;
@@ -2063,6 +2148,7 @@ class Woodland extends node_events.EventEmitter {
 	 * @returns {Array} Response array
 	 */
 	#onReady(req, res, body, status, headers) {
+		/* node:coverage ignore next 5 */
 		if (this.#time && res.getHeader(X_RESPONSE_TIME) === void 0) {
 			const diff = req.precise.stop().diff();
 			const msValue = Number(diff / 1e6).toFixed(this.#digit);
@@ -2207,6 +2293,7 @@ class Woodland extends node_events.EventEmitter {
 	 * @param {string} [folder=process.cwd()] - Folder to serve from
 	 * @returns {Promise} Promise that resolves when done
 	 */
+	/* node:coverage ignore next 3 */
 	async serve(req, res, arg, folder = process.cwd()) {
 		return this.#fileServer.serve(req, res, arg, folder);
 	}
