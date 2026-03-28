@@ -112,6 +112,7 @@ export const PERIOD = ".";
 export const SLASH = "/";
 export const STRING_0 = "0";
 export const WILDCARD = "*";
+export const WOODLAND = "woodland";
 
 // =============================================================================
 // DATA TYPES

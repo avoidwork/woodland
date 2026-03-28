@@ -42,6 +42,7 @@ const DOUBLE_COLON = "::";
 const EMPTY = "";
 const EQUAL = "=";
 const HYPHEN = "-";
+const WOODLAND = "woodland";
 const STRING = "string";
 `nodejs/${process.version}, ${process.platform}/${process.arch}`;
 const LOCALHOST = "127.0.0.1";
@@ -285,7 +286,7 @@ const __filename$1 = node_url.fileURLToPath((typeof document === 'undefined' ? r
 /* node:coverage ignore next 7 */
 if (process.argv[1]) {
 	const scriptPath = node_path.resolve(process.argv[1]);
-	if (scriptPath === __filename$1 || node_path.basename(scriptPath) === "woodland") {
+	if (scriptPath === __filename$1 || node_path.basename(scriptPath) === WOODLAND) {
 		main();
 	}
 }

@@ -21,6 +21,7 @@ import {
 	NO_CACHE,
 	STRING,
 	TEXT_PLAIN,
+	WOODLAND,
 } from "./constants.js";
 
 /**
@@ -121,7 +122,7 @@ const __filename = fileURLToPath(import.meta.url);
 /* node:coverage ignore next 7 */
 if (process.argv[1]) {
 	const scriptPath = resolve(process.argv[1]);
-	if (scriptPath === __filename || basename(scriptPath) === "woodland") {
+	if (scriptPath === __filename || basename(scriptPath) === WOODLAND) {
 		main();
 	}
 }
