@@ -1243,7 +1243,7 @@ app.get("/api/slow-operation", async (req, res) => {
 
 ### Production Logging
 
-For production, integrate with log aggregation services by configuring the `logging` option:
+For production, integrate with log aggregation services using event handlers:
 
 ```javascript
 import { woodland } from "woodland";
@@ -1268,10 +1268,24 @@ const app = woodland({
   },
 });
 
-// Use framework logger with custom transport
-app.logger.log = (msg, level) => {
-  logger.info(msg, { level });
-};
+// Use event handlers for custom logging
+app.on("error", (req, res, error) => {
+  logger.error(error.message, {
+    path: req.parsed.pathname,
+    method: req.method,
+    ip: req.ip,
+    status: res.statusCode,
+  });
+});
+
+app.on("finish", (req, res) => {
+  logger.info(`Request completed`, {
+    path: req.parsed.pathname,
+    method: req.method,
+    ip: req.ip,
+    status: res.statusCode,
+  });
+});
 ```
 
 ### Monitoring Integration
