@@ -131,9 +131,13 @@ export async function serve(config, req, res, arg, folder = process.cwd()) {
 			if (!config.autoIndex) {
 				res.error(INT_404, new Error(STATUS_CODES[INT_404]));
 			} else {
-				const body = autoIndex(decodeURIComponent(req.parsed.pathname), files);
-				res.header(CONTENT_TYPE, `${TEXT_HTML}; charset=${config.charset}`);
-				res.send(body);
+				try {
+					const body = autoIndex(decodeURIComponent(req.parsed.pathname), files);
+					res.header(CONTENT_TYPE, `${TEXT_HTML}; charset=${config.charset}`);
+					res.send(body);
+				} catch {
+					res.error(INT_400, new Error(STATUS_CODES[INT_400]));
+				}
 			}
 		} else {
 			const rstats = await stat(result, { bigint: false });
