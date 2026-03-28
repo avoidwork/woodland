@@ -437,7 +437,7 @@ function isSafeRedirectUri(uri) {
 		return false;
 	}
 
-	if (trimmed.startsWith("//")) {
+	if (trimmed.startsWith("//") || trimmed.startsWith("\\") || trimmed.startsWith("/\\")) {
 		return false;
 	}
 
@@ -1500,7 +1500,7 @@ function log(msg, logLevel = DEBUG, enabled = true, actualLevel = INFO) {
  * @returns {Object} Logger with log, clf, logRoute, logMiddleware, logDecoration, logError, logServe methods
  */
 function createLogger(config = {}) {
-	const { enabled = true, format, level = INFO } = config;
+	const { enabled = true, format = LOG_FORMAT, level = INFO } = config;
 	const actualLevel = VALID_LOG_LEVELS.has(level) ? level : INFO;
 
 	return Object.freeze({
