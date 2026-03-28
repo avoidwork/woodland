@@ -347,6 +347,36 @@ describe("response", () => {
 			assert.strictEqual(errorCalled, true);
 		});
 
+		it("should reject redirect with backslash protocol-relative URI", () => {
+			let errorCalled = false;
+			const res = {
+				send: () => {},
+				error: (_status, _err) => {
+					errorCalled = true;
+				},
+				headersSent: false,
+				statusCode: 200,
+			};
+
+			redirect(res, "\\\\evil.com/path");
+			assert.strictEqual(errorCalled, true);
+		});
+
+		it("should reject redirect with mixed backslash protocol-relative URI", () => {
+			let errorCalled = false;
+			const res = {
+				send: () => {},
+				error: (_status, _err) => {
+					errorCalled = true;
+				},
+				headersSent: false,
+				statusCode: 200,
+			};
+
+			redirect(res, "/\\evil.com/path");
+			assert.strictEqual(errorCalled, true);
+		});
+
 		it("should reject redirect with non-string URI", () => {
 			let errorCalled = false;
 			const res = {

@@ -244,7 +244,7 @@ function isSafeRedirectUri(uri) {
 		return false;
 	}
 
-	if (trimmed.startsWith("//")) {
+	if (trimmed.startsWith("//") || trimmed.startsWith("\\") || trimmed.startsWith("/\\")) {
 		return false;
 	}
 
