@@ -240,4 +240,48 @@ describe("fileserver integration", () => {
 
 		assert.strictEqual(response.status, 405);
 	});
+
+	it("should serve files from autoIndex with URL-encoded filenames", async () => {
+		const app = woodland({
+			logging: { enabled: false },
+			etags: false,
+			autoIndex: true,
+		});
+
+		app.files("/static", testFilesDir);
+
+		await setupServer(app);
+
+		const response = await fetch(`${baseUrl}/static/special-chars/`);
+		const body = await response.text();
+
+		assert.strictEqual(response.status, 200);
+		assert.ok(body.includes("<!doctype html>"));
+
+		const encodedSpace = body.includes("file%20with%20spaces.txt");
+		const encodedLt = body.includes("file%3Cwith%3Especial.txt");
+		const encodedAmp = body.includes("file%26with%26ampersand.txt");
+
+		assert.ok(encodedSpace, "Should URL-encode spaces in filenames");
+		assert.ok(encodedLt, "Should URL-encode special characters in filenames");
+		assert.ok(encodedAmp, "Should URL-encode ampersands in filenames");
+	});
+
+	it("should retrieve files with URL-encoded filenames from autoIndex", async () => {
+		const app = woodland({
+			logging: { enabled: false },
+			etags: false,
+			autoIndex: true,
+		});
+
+		app.files("/static", testFilesDir);
+
+		await setupServer(app);
+
+		const response = await fetch(`${baseUrl}/static/special-chars/file%20with%20spaces.txt`);
+
+		assert.strictEqual(response.status, 200);
+		const body = await response.text();
+		assert.ok(body.includes("test"));
+	});
 });

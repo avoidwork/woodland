@@ -671,5 +671,29 @@ describe("fileserver", () => {
 
 			assert.ok(result.includes("file%20with%20spaces.txt"));
 		});
+
+		it("should URL-encode special characters in filenames", () => {
+			const files = [
+				{ name: "file<with>special.txt", isDirectory: () => false },
+				{ name: "file&with&ampersand.txt", isDirectory: () => false },
+			];
+
+			const result = autoIndex("Test", files);
+
+			assert.ok(result.includes("file%3Cwith%3Especial.txt"));
+			assert.ok(result.includes("file%26with%26ampersand.txt"));
+		});
+
+		it("should URL-encode spaces in filenames", () => {
+			const files = [
+				{ name: "file with spaces.txt", isDirectory: () => false },
+				{ name: "another file.txt", isDirectory: () => false },
+			];
+
+			const result = autoIndex("Test", files);
+
+			assert.ok(result.includes("file%20with%20spaces.txt"));
+			assert.ok(result.includes("another%20file.txt"));
+		});
 	});
 });

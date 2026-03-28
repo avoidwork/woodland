@@ -1723,7 +1723,7 @@ function register(config, root, folder, useMiddleware) {
 	const rootPattern = normalizedRoot === SLASH ? "(/.*)?" : `${normalizedRoot}(/.*)?`;
 
 	useMiddleware(rootPattern, (req, res) => {
-		const pathname = req.parsed.pathname;
+		const pathname = decodeURIComponent(req.parsed.pathname);
 		// For root mount "/", strip leading "/" (slice(1))
 		// For other mounts like "/static", strip "/static" prefix
 		const relativePath =
