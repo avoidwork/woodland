@@ -508,6 +508,11 @@ function send(
 			} else {
 				if (res.headersSent === false) {
 					res.error(INT_416);
+				} else {
+					body.destroy();
+					if (!res.writableEnded) {
+						res.end();
+					}
 				}
 			}
 		} else {
