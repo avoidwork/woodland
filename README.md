@@ -3,7 +3,7 @@
 
 # Woodland
 
-High-performance HTTP framework for Node.js. Express-compatible with built-in security, no performance tradeoff.
+Secure HTTP framework for Node.js. Express-compatible with built-in security, no performance tradeoff.
 
 [![npm version](https://badge.fury.io/js/woodland.svg)](https://badge.fury.io/js/woodland)
 [![Node.js Version](https://img.shields.io/node/v/woodland.svg)](https://nodejs.org/)
