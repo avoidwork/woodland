@@ -1,0 +1,553 @@
+▶ fileserver integration
+  ✔ should serve file via mounted path (29.846764ms)
+  ✔ should strip mount prefix and serve nested files (3006.153028ms)
+  ✔ should redirect directory without trailing slash (2.729846ms)
+  ✔ should serve directory listing with autoIndex enabled (2.037785ms)
+  ✔ should return 404 for non-existent file (1.707954ms)
+  ✔ should block path traversal attempts (1.547412ms)
+  ✔ should serve correct MIME type for different file extensions (3002.196673ms)
+  ✔ should handle multiple file mounts correctly (3002.861745ms)
+  ✔ should serve index.html when accessing directory with autoIndex (3.780204ms)
+  ✔ should handle HEAD requests for files (1.680763ms)
+  ✔ should handle OPTIONS requests for files (1.133453ms)
+✔ fileserver integration (9056.677422ms)
+▶ CLI
+  ▶ parseArgs
+    ✔ should parse --port argument (0.631067ms)
+    ✔ should parse --ip argument (0.200728ms)
+    ✔ should parse --logging argument (0.072857ms)
+    ✔ should parse multiple arguments (0.096592ms)
+    ✔ should coerce string to boolean (0.496314ms)
+    ✔ should coerce string to number (0.076534ms)
+    ✔ should ignore non-double-dash arguments (0.17519ms)
+    ✔ should handle empty arguments (0.435369ms)
+  ✔ parseArgs (2.941575ms)
+  ▶ validatePort
+    ✔ should accept valid port 0 (0.383853ms)
+    ✔ should accept valid port 3000 (0.14879ms)
+    ✔ should accept valid port 65535 (0.303511ms)
+    ✔ should reject negative port (0.124744ms)
+    ✔ should reject port above 65535 (0.055855ms)
+    ✔ should reject non-integer port (0.043482ms)
+    ✔ should reject empty string port (0.038292ms)
+    ✔ should reject whitespace-only port (0.047269ms)
+  ✔ validatePort (1.327198ms)
+  ▶ validateIP
+    ✔ should accept valid IPv4 127.0.0.1 (0.286078ms)
+    ✔ should accept valid IPv4 192.168.1.1 (0.119866ms)
+    ✔ should accept valid IPv4 0.0.0.0 (0.054303ms)
+    ✔ should reject invalid IP 256.1.1.1 (0.065814ms)
+    ✔ should reject incomplete IP 192.168.1 (0.054212ms)
+    ✔ should reject empty IP (0.048882ms)
+  ✔ validateIP (0.884635ms)
+  ▶ main
+    ✔ should create and start server with default arguments (3.328543ms)
+    ✔ should create and start server with custom port (0.555235ms)
+    ✔ should create and start server with custom IP (0.594378ms)
+    ✔ should create and start server with custom logging (0.427774ms)
+    ✔ should exit with invalid port (0.322066ms)
+    ✔ should exit with invalid IP (0.34543ms)
+  ✔ main (5.729281ms)
+✔ CLI (11.335771ms)
+▶ config
+  ▶ validateConfig
+    ✔ should return default values for empty config (2.555659ms)
+    ✔ should accept valid custom config (0.476276ms)
+    ✔ should throw error for invalid types (1.314313ms)
+    ✔ should throw error for out-of-range numbers (0.548342ms)
+  ✔ validateConfig (5.409218ms)
+  ▶ validateLogging
+    ✔ should return defaults for empty logging config (0.669099ms)
+    ✔ should accept custom logging config (0.081994ms)
+    ✔ should normalize invalid log level to info (0.060985ms)
+    ✔ should accept valid log levels (0.22323ms)
+    ✔ should use environment variables when config is empty (0.106811ms)
+    ✔ should prioritize config over environment variables (0.17003ms)
+    ✔ should handle undefined config values falling back to env (0.16464ms)
+  ✔ validateLogging (1.623665ms)
+  ▶ validateOrigins
+    ✔ should return empty array for non-array or empty input (0.351421ms)
+    ✔ should accept wildcard and valid origins with scheme (0.115337ms)
+    ✔ should reject origins without scheme or with trailing slash (0.081925ms)
+    ✔ should filter out invalid origins (0.070843ms)
+  ✔ validateOrigins (0.718973ms)
+  ▶ resolveLoggingValue
+    ✔ should return config value when defined (0.080952ms)
+    ✔ should return env value when config is undefined (0.045326ms)
+    ✔ should return default value when both config and env are undefined (0.038062ms)
+    ✔ should handle falsy values correctly (0.051056ms)
+  ✔ resolveLoggingValue (0.31346ms)
+✔ config (8.511997ms)
+▶ Constants
+  ▶ HTTP Methods
+    ✔ should export HTTP method constants (0.463863ms)
+  ✔ HTTP Methods (1.21148ms)
+  ▶ HTTP Status Codes
+    ✔ should export status code constants (0.102202ms)
+  ✔ HTTP Status Codes (0.160181ms)
+  ▶ HTTP Headers
+    ✔ should export header name constants (0.108294ms)
+    ✔ should export CORS header constants (0.060875ms)
+    ✔ should export security header constants (0.063109ms)
+  ✔ HTTP Headers (0.314672ms)
+  ▶ Content Types
+    ✔ should export content type constants (0.537652ms)
+    ✔ should export charset constants (0.073238ms)
+  ✔ Content Types (0.690058ms)
+  ▶ Server Information
+    ✔ should export server value constants (0.118273ms)
+    ✔ should export default server constants (0.06906ms)
+  ✔ Server Information (0.237126ms)
+  ▶ File System Constants
+    ✔ should export index file constants (0.065924ms)
+    ✔ should export file system related constants (0.061416ms)
+  ✔ File System Constants (0.169319ms)
+  ▶ Numeric Constants
+    ✔ should export basic numeric constants (0.059221ms)
+  ✔ Numeric Constants (0.087645ms)
+  ▶ String and Symbol Constants
+    ✔ should export common symbols and strings (0.05829ms)
+  ✔ String and Symbol Constants (0.084138ms)
+  ▶ Export Validation
+    ✔ should not export undefined values (0.132259ms)
+    ✔ should export at least basic required constants (0.056557ms)
+  ✔ Export Validation (0.226817ms)
+✔ Constants (3.664306ms)
+▶ fileserver
+  ▶ createFileServer
+    ✔ should create file server with serve and register methods (0.498758ms)
+    ▶ serve
+      ✔ should block path traversal attempts (5.302087ms)
+      ✔ should return 404 for non-existent file (0.465496ms)
+      ✔ should redirect directory without trailing slash (0.399271ms)
+      ✔ should serve existing file (0.375427ms)
+      ✔ should return 404 for directory with no index and autoindex disabled (0.43601ms)
+      ✔ should serve index file from directory (0.429017ms)
+      ✔ should serve directory listing with autoindex enabled (0.505371ms)
+    ✔ serve (8.198176ms)
+    ▶ register
+      ✔ should register middleware for file serving (0.158038ms)
+      ✔ should handle trailing slash in root (0.104787ms)
+      ✔ should use app.use.bind when useMiddleware is not provided (0.07436ms)
+      ✔ should throw TypeError when useMiddleware is missing (0.29203ms)
+      ✔ should strip mount prefix correctly (e.g., /static/small.txt -> small.txt) (0.128883ms)
+      ✔ should strip mount prefix for root path (/static -> empty string) (0.07974ms)
+      ✔ should strip mount prefix for nested paths (/static/subdir/file.txt -> subdir/file.txt) (0.073268ms)
+    ✔ register (1.059644ms)
+  ✔ createFileServer (10.279724ms)
+  ▶ serve
+    ✔ should be a function (0.056016ms)
+    ✔ should serve file with custom app (2.008409ms)
+    ✔ should handle path traversal with custom app (0.596052ms)
+    ✔ should block sibling directory path bypass attempts (0.470325ms)
+    ✔ should allow valid subdirectory access (not sibling bypass) (1.31286ms)
+  ✔ serve (4.60226ms)
+  ▶ register
+    ✔ should be a function (0.065794ms)
+    ✔ should register middleware with custom useMiddleware (0.068239ms)
+    ✔ should handle root path without trailing slash (0.062698ms)
+    ✔ should execute registered middleware handler (10.124552ms)
+  ✔ register (10.446347ms)
+  ▶ autoIndex
+    ✔ should generate HTML for empty directory (0.136376ms)
+    ✔ should generate HTML for directory with files (0.118964ms)
+    ✔ should escape HTML in filenames (0.089528ms)
+    ✔ should escape HTML in title (0.069691ms)
+    ✔ should handle directory entries with trailing slash (0.072687ms)
+    ✔ should handle files with special characters in names (0.075803ms)
+  ✔ autoIndex (0.687443ms)
+✔ fileserver (26.330938ms)
+warn message
+▶ logger
+  ▶ createLogger
+    ✔ should create logger with default and custom config (0.518706ms)
+    ✔ should normalize invalid log level to info (0.103976ms)
+    ✔ should return logger object with all methods (0.088487ms)
+    ▶ log
+      ✔ should not log when disabled (0.130967ms)
+      ✔ should respect log level threshold (0.140435ms)
+    ✔ log (0.362302ms)
+  ✔ createLogger (1.617744ms)
+  ▶ ms
+    ✔ should format nanoseconds to milliseconds (0.09011ms)
+  ✔ ms (0.147868ms)
+  ▶ clf
+    ✔ should generate common log format entry (0.236345ms)
+    ✔ should use hyphen for missing values (0.12199ms)
+  ✔ clf (0.427454ms)
+  ▶ timeOffset
+    ✔ should format timezone offsets (0.073158ms)
+  ✔ timeOffset (0.123252ms)
+  ▶ logDecoration
+    ✔ should create decoration log message (0.102843ms)
+  ✔ logDecoration (1.071676ms)
+  ▶ logError
+    ✔ should create error log message (0.069711ms)
+  ✔ logError (0.103144ms)
+  ▶ logRoute
+    ✔ should create route log message (0.090711ms)
+  ✔ logRoute (0.120707ms)
+  ▶ logMiddleware
+    ✔ should create middleware log message (0.06875ms)
+  ✔ logMiddleware (0.107042ms)
+  ▶ logServe
+    ✔ should create serve log message (0.076354ms)
+  ✔ logServe (0.104707ms)
+✔ logger (4.303187ms)
+▶ middleware
+  ▶ reduce
+    ✔ should return undefined for empty map (0.519748ms)
+    ✔ should collect middleware for matching route (0.108053ms)
+    ✔ should set params flag when parameterized route matches (0.153319ms)
+    ✔ should handle wildcard middleware (0.100409ms)
+  ✔ reduce (1.428989ms)
+  ▶ next
+    ✔ should create next function (1.171304ms)
+    ✔ should call error handler when middleware is done (10.073807ms)
+    ✔ should call error handler with error when middleware has error (10.492654ms)
+    ✔ should send value when middleware returns non-function (10.488326ms)
+    ✔ should fall back to error response when no error handler exists (10.371526ms)
+    ✔ should skip non-error-handlers when searching for error handler (13.674542ms)
+  ✔ next (56.542819ms)
+  ▶ createMiddlewareRegistry
+    ✔ should create registry with all methods (0.266852ms)
+    ▶ register
+      ✔ should register middleware for GET route (0.274076ms)
+      ✔ should register wildcard middleware (0.109496ms)
+      ✔ should register middleware for specific method (0.111159ms)
+      ✔ should throw error for invalid or HEAD method (0.310464ms)
+      ✔ should convert parameterized routes to regex (0.126829ms)
+    ✔ register (1.065905ms)
+    ▶ ignore
+      ✔ should add function to ignored set (0.146917ms)
+    ✔ ignore (0.18054ms)
+    ▶ allowed
+      ✔ should return true for allowed route (0.123853ms)
+      ✔ should return false for non-allowed route (0.059391ms)
+    ✔ allowed (0.226767ms)
+    ▶ routes
+      ✔ should return route information (0.141145ms)
+      ✔ should cache and invalidate route results (0.089248ms)
+    ✔ routes (0.278203ms)
+    ▶ list
+      ✔ should return array of routes (0.117351ms)
+      ✔ should return object of routes (0.097443ms)
+    ✔ list (0.267734ms)
+  ✔ createMiddlewareRegistry (2.423971ms)
+  ▶ computeRoutes
+    ✔ should compute routes for wildcard and specific methods (0.130275ms)
+    ✔ should cache route results (0.086483ms)
+    ✔ should override cache when override is true (0.069731ms)
+    ✔ should count visible middleware when some are ignored (0.084499ms)
+  ✔ computeRoutes (0.462671ms)
+  ▶ listRoutes
+    ✔ should return array of routes (0.088617ms)
+    ✔ should return object of routes (0.073768ms)
+    ✔ should return empty array for non-existent method (0.201499ms)
+  ✔ listRoutes (0.430911ms)
+  ▶ checkAllowed
+    ✔ should return true for allowed route (0.119926ms)
+    ✔ should return false for non-allowed route (0.062828ms)
+    ✔ should return false when route is ignored (0.078448ms)
+  ✔ checkAllowed (0.341513ms)
+  ▶ registerMiddleware
+    ✔ should register middleware for path and method (0.156795ms)
+    ✔ should register middleware for specific method (0.073909ms)
+    ✔ should register wildcard middleware when function passed as first arg (0.10674ms)
+    ✔ should throw error for invalid or HEAD method (0.09585ms)
+    ✔ should convert parameterized routes to regex (0.102072ms)
+    ✔ should add multiple handlers to same route (0.076825ms)
+    ✔ should add method to methods array for non-wildcard (0.068869ms)
+    ✔ should not add method to methods array for wildcard method (0.057599ms)
+    ✔ should return early when rpath is undefined (0.057007ms)
+  ✔ registerMiddleware (0.954486ms)
+✔ middleware (63.052098ms)
+▶ request
+  ▶ isValidIP
+    ▶ IPv4 validation
+      ✔ should validate valid IPv4 addresses (0.716779ms)
+      ✔ should reject invalid IPv4 addresses (0.151726ms)
+    ✔ IPv4 validation (1.37145ms)
+    ▶ IPv6 validation
+      ✔ should validate valid IPv6 addresses (0.29226ms)
+      ✔ should reject invalid IPv6 addresses (0.089288ms)
+    ✔ IPv6 validation (0.452922ms)
+  ✔ isValidIP (1.967472ms)
+  ▶ cors
+    ✔ should return false when origins is empty or no origin header (0.132329ms)
+    ✔ should return true for wildcard or matching origin (0.303231ms)
+    ✔ should return false for non-matching origin (0.06919ms)
+  ✔ cors (0.665252ms)
+  ▶ corsHost
+    ✔ should return false when no origin or same host (0.395344ms)
+    ✔ should return true when different host (0.083387ms)
+  ✔ corsHost (1.469775ms)
+  ▶ corsRequest
+    ✔ should create handler that sends 204 (0.120086ms)
+  ✔ corsRequest (0.160593ms)
+  ▶ extractIP
+    ✔ should extract IP from connection or socket (0.139142ms)
+    ✔ should extract IP from X-Forwarded-For header (0.06397ms)
+    ✔ should skip invalid IPs in X-Forwarded-For (0.053671ms)
+  ✔ extractIP (0.311707ms)
+  ▶ params
+    ✔ should extract parameters from pathname (0.215766ms)
+    ✔ should handle multiple parameters (0.108404ms)
+    ✔ should decode URI components (0.11728ms)
+    ✔ should handle null/undefined values and reset when no match (0.490944ms)
+  ✔ params (1.011353ms)
+  ▶ parse
+    ✔ should parse URL string (0.103525ms)
+    ✔ should parse request object (0.058931ms)
+    ✔ should handle missing host header (0.080852ms)
+  ✔ parse (0.299193ms)
+  ▶ extractPath
+    ✔ should convert parameterized route to regex (0.079269ms)
+  ✔ extractPath (0.113484ms)
+✔ request (6.391908ms)
+▶ response
+  ▶ mime
+    ✔ should return MIME type for html file (1.390827ms)
+    ✔ should return MIME type for json file (0.07461ms)
+    ✔ should return octet-stream for unknown extension (0.051948ms)
+    ✔ should return octet-stream for empty string (0.059602ms)
+  ✔ mime (2.072369ms)
+  ▶ getStatusText
+    ✔ should return OK for 200 (0.107412ms)
+    ✔ should return Not Found for 404 (0.047068ms)
+    ✔ should return Range Not Satisfiable for 416 (0.066114ms)
+    ✔ should return Internal Server Error for unknown status (0.048781ms)
+  ✔ getStatusText (0.35082ms)
+  ▶ getStatus
+    ✔ should return 404 when allow array is empty (0.110959ms)
+    ✔ should return 405 when method is not GET (0.066856ms)
+    ✔ should return 404 when GET not in allow list (0.048982ms)
+    ✔ should return 500 when GET is allowed and status <= 500 (0.046487ms)
+    ✔ should return custom status when > 500 (0.054612ms)
+  ✔ getStatus (0.408389ms)
+  ▶ error
+    ✔ should clear allow header for 404 (0.11689ms)
+    ✔ should clear CORS headers for 404 (0.067777ms)
+    ✔ should not handle when headers already sent (0.049914ms)
+    ✔ should set status code (0.047729ms)
+    ✔ should clear content-length header (0.054573ms)
+    ✔ should set status to 500 when status < 400 (0.071966ms)
+  ✔ error (0.501063ms)
+  ▶ json
+    ✔ should create json response function (0.091352ms)
+    ✔ should accept custom status (0.055975ms)
+    ✔ should set content-type header (0.190909ms)
+  ✔ json (0.394302ms)
+  ▶ redirect
+    ✔ should create redirect function with permanent redirect (0.181672ms)
+    ✔ should create redirect function with temporary redirect (0.109617ms)
+    ✔ should reject redirect with empty URI (0.096422ms)
+    ✔ should reject redirect with protocol URI (0.094938ms)
+    ✔ should reject redirect with protocol-relative URI (0.076944ms)
+    ✔ should reject redirect with non-string URI (0.078407ms)
+  ✔ redirect (0.777894ms)
+  ▶ send
+    ✔ should create send function (2.114209ms)
+    ✔ should not send when headers already sent (0.086593ms)
+    ✔ should convert object to string (0.121087ms)
+    ✔ should handle range header with valid range (0.222548ms)
+    ✔ should handle range header with invalid range (0.092033ms)
+    ✔ should pipe stream when pipeable and no range (0.109647ms)
+    ✔ should handle pipeable stream error (0.125196ms)
+    ✔ should handle range with req.range defined (0.103474ms)
+  ✔ send (3.116274ms)
+  ▶ set
+    ✔ should set headers from plain object (0.66917ms)
+    ✔ should set headers from Map (0.085892ms)
+    ✔ should set headers from Headers object (0.152187ms)
+    ✔ should return res object (0.055063ms)
+    ✔ should handle empty headers object (0.059743ms)
+  ✔ set (1.103126ms)
+  ▶ status
+    ✔ should set status code (0.067387ms)
+    ✔ should default to 200 (0.038492ms)
+    ✔ should return res object (0.034105ms)
+  ✔ status (0.189056ms)
+  ▶ stream
+    ✔ should throw for invalid file descriptor (0.353185ms)
+    ✔ should throw for empty file (0.076664ms)
+    ✔ should serve file with GET request (0.232707ms)
+    ✔ should serve file with HEAD request (0.145023ms)
+    ✔ should handle OPTIONS request (0.095329ms)
+    ✔ should handle range request with partial headers (0.110177ms)
+    ✔ should not include etag when disabled (0.093526ms)
+    ✔ should remove cache-control when etag enabled (0.083697ms)
+    ✔ should call emitStream after sending (0.071735ms)
+    ✔ should include charset in content-type when present (0.07413ms)
+    ✔ should handle range request when partialHeaders returns empty options (0.082215ms)
+    ✔ should handle invalid range where start exceeds end (0.090591ms)
+  ✔ stream (1.687405ms)
+  ▶ escapeHtml
+    ✔ should escape ampersand (0.155343ms)
+    ✔ should escape less than (0.050014ms)
+    ✔ should escape greater than (0.055555ms)
+    ✔ should escape double quote (0.036649ms)
+    ✔ should escape single quote (0.033133ms)
+    ✔ should escape multiple characters (0.034926ms)
+    ✔ should return empty string for empty input (0.033884ms)
+    ✔ should return unchanged string with no special characters (0.033864ms)
+  ✔ escapeHtml (0.555565ms)
+  ▶ partialHeaders
+    ✔ should return headers unchanged when no range header (0.403019ms)
+    ✔ should set partial content headers for valid range (0.463271ms)
+    ✔ should handle suffix range (0.085121ms)
+    ✔ should set content range for invalid range (0.071244ms)
+    ✔ should return unchanged when hyphen not found in range spec (0.069751ms)
+    ✔ should return unchanged when suffix range has empty end (0.062978ms)
+    ✔ should return unchanged when suffix range has invalid end (0.060514ms)
+    ✔ should return unchanged when regular range has invalid start (0.057579ms)
+    ✔ should return unchanged when range has invalid end (0.056066ms)
+    ✔ should set end to size-1 when end is empty string (0.070653ms)
+    ✔ should return unchanged when range header does not start with bytes= (0.058961ms)
+    ✔ should return unchanged when both start and end are empty (0.054553ms)
+    ✔ should return unchanged when start is negative and exceeds size (0.065272ms)
+    ✔ should handle range where start equals end (0.066175ms)
+    ✔ should handle range where start is 0 (0.062447ms)
+  ✔ partialHeaders (1.932076ms)
+  ▶ pipeable
+    ✔ should return true for object with on method (0.095851ms)
+    ✔ should return false for HEAD method (0.044143ms)
+    ✔ should return false for null (0.033833ms)
+    ✔ should return false for undefined (0.031029ms)
+    ✔ should return false for object without on method (0.03683ms)
+  ✔ pipeable (0.313931ms)
+  ▶ writeHead
+    ✔ should call writeHead with status and headers (0.077977ms)
+    ✔ should handle empty headers (0.067627ms)
+  ✔ writeHead (0.195769ms)
+  ▶ createErrorHandler
+    ✔ should create error handler that calls send (0.147648ms)
+  ✔ createErrorHandler (0.18043ms)
+  ▶ createJsonHandler
+    ✔ should create json handler that calls send (0.103224ms)
+  ✔ createJsonHandler (0.133801ms)
+  ▶ createRedirectHandler
+    ✔ should create redirect handler that calls send (0.076163ms)
+  ✔ createRedirectHandler (0.104346ms)
+  ▶ createSendHandler
+    ✔ should create send handler (0.100248ms)
+  ✔ createSendHandler (0.138841ms)
+  ▶ createSetHandler
+    ✔ should create set handler that calls setHeader (0.127139ms)
+  ✔ createSetHandler (0.157616ms)
+  ▶ createStatusHandler
+    ✔ should create status handler that sets statusCode (0.068359ms)
+  ✔ createStatusHandler (0.096412ms)
+✔ response (15.158355ms)
+type=error, uri=/test, method=GET, ip=127.0.0.1, message="Handled error response for 127.0.0.1"
+▶ woodland
+  ▶ Woodland class
+    ✔ should create instance with default config or factory (2.058724ms)
+    ✔ should have EventEmitter methods (0.272092ms)
+    ✔ should have required properties and methods (0.202351ms)
+  ✔ Woodland class (3.011467ms)
+  ▶ Woodland methods
+    ▶ use
+      ✔ should register middleware for GET by default (0.550766ms)
+      ✔ should register middleware for specific method (0.259228ms)
+      ✔ should register wildcard middleware (0.279937ms)
+      ✔ should throw error for invalid HTTP method (0.385976ms)
+      ✔ should throw error for HEAD method (0.216037ms)
+      ✔ should convert parameterized routes to regex (0.333488ms)
+      ✔ should return app instance for chaining (0.215295ms)
+      ✔ should accept multiple handlers (0.217249ms)
+    ✔ use (2.634588ms)
+    ▶ HTTP method shortcuts
+      ✔ should register GET middleware (0.29741ms)
+      ✔ should register POST middleware (0.240102ms)
+      ✔ should register PUT middleware (0.230624ms)
+      ✔ should register DELETE middleware (0.230294ms)
+      ✔ should register PATCH middleware (0.224843ms)
+      ✔ should register OPTIONS middleware (0.226817ms)
+      ✔ should register CONNECT middleware (0.264267ms)
+      ✔ should register TRACE middleware (0.238198ms)
+      ✔ should return app instance for chaining (0.239271ms)
+    ✔ HTTP method shortcuts (2.373607ms)
+    ▶ always
+      ✔ should register wildcard middleware and ignore it for visible count (0.256162ms)
+      ✔ should return app instance for chaining (0.185199ms)
+    ✔ always (0.509259ms)
+    ▶ ignore
+      ✔ should add function to ignored set and exclude from visible routes (0.209935ms)
+      ✔ should return app instance for chaining (0.209344ms)
+    ✔ ignore (0.470626ms)
+    ▶ list
+      ✔ should return array of routes (0.24425ms)
+      ✔ should return object of routes (0.220244ms)
+      ✔ should return empty array for non-existent method (0.216697ms)
+    ✔ list (0.755742ms)
+    ▶ files
+      ✔ should register file server middleware (0.333387ms)
+      ✔ should use process.cwd() as default folder (0.231535ms)
+    ✔ files (0.621249ms)
+    ▶ routes
+      ✔ should return route information (0.931704ms)
+      ✔ should cache route results (0.205397ms)
+    ✔ routes (1.19015ms)
+    ▶ etag
+      ✔ should generate etag for GET/HEAD/OPTIONS methods (0.60029ms)
+      ✔ should return empty string for non-GET methods or when disabled (0.302619ms)
+    ✔ etag (0.95097ms)
+type=error, uri=/test, method=POST, ip=127.0.0.1, message="Handled error response for 127.0.0.1"
+    ▶ route with disallowed origin
+      ✔ should return 403 for disallowed origin (52.166012ms)
+    ✔ route with disallowed origin (52.285348ms)
+type=use, route=function () { [native code] }, method=GET, message="Registering middleware"
+type=ignore, message="Added function to ignored Set", name="bound middleware"
+    ▶ route with disallowed method
+      ✔ should return error for disallowed method (50.382768ms)
+    ✔ route with disallowed method (50.518092ms)
+  ✔ Woodland methods (112.595867ms)
+  ▶ Woodland with config
+    ✔ should configure origins, etags, and digit (0.672145ms)
+    ✔ should configure silent mode (0.678417ms)
+    ✔ should configure custom default headers (0.468682ms)
+    ✔ should configure logging (0.198794ms)
+  ✔ Woodland with config (2.126562ms)
+  ▶ Woodland request handling
+    ✔ should handle route with middleware (10.726454ms)
+    ✔ should handle parameterized routes (10.720985ms)
+type=error, uri=/, method=GET, ip=127.0.0.1, message="Handled error response for 127.0.0.1"
+type=error, uri=/, method=GET, ip=127.0.0.1, message="Handled error response for 127.0.0.1"
+    ✔ should handle HEAD requests as GET (10.514716ms)
+    ✔ should delegate to file server in serve (0.272653ms)
+    ✔ should delegate to response stream in stream (0.292811ms)
+    ✔ should emit connect event when listener exists (0.379023ms)
+    ✔ should not emit connect/finish when no listeners (0.471017ms)
+    ✔ should register finish listener when listener exists (0.371449ms)
+    ✔ should handle CORS with wildcard origin (0.438636ms)
+    ✔ should handle timing when enabled (0.390565ms)
+    ✔ should handle OPTIONS request with CORS (0.386778ms)
+  ✔ Woodland request handling (35.199677ms)
+✔ woodland (153.295904ms)
+ℹ tests 322
+ℹ suites 99
+ℹ pass 322
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9148.545023
+ℹ start of coverage report
+ℹ ---------------------------------------------------------------
+ℹ file           | line % | branch % | funcs % | uncovered lines
+ℹ ---------------------------------------------------------------
+ℹ src            |        |          |         | 
+ℹ  cli.js        | 100.00 |   100.00 |   85.71 | 
+ℹ  config.js     | 100.00 |    89.19 |  100.00 | 
+ℹ  constants.js  | 100.00 |   100.00 |  100.00 | 
+ℹ  fileserver.js | 100.00 |    90.20 |  100.00 | 
+ℹ  logger.js     | 100.00 |    94.23 |   95.45 | 
+ℹ  middleware.js | 100.00 |   100.00 |  100.00 | 
+ℹ  request.js    | 100.00 |   100.00 |  100.00 | 
+ℹ  response.js   |  98.82 |    97.48 |  100.00 | 303-308
+ℹ  woodland.js   | 100.00 |    94.51 |  100.00 | 
+ℹ ---------------------------------------------------------------
+ℹ all files      |  99.78 |    96.25 |   98.64 | 
+ℹ ---------------------------------------------------------------
+ℹ end of coverage report
