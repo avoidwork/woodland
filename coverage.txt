@@ -1,7 +1,7 @@
 ℹ start of coverage report
-ℹ ---------------------------------------------------------------------------------------
+ℹ -------------------------------------------------------------------------------------------------------
 ℹ file           | line % | branch % | funcs % | uncovered lines
-ℹ ---------------------------------------------------------------------------------------
+ℹ -------------------------------------------------------------------------------------------------------
 ℹ src            |        |          |         | 
 ℹ  cli.js        |  92.56 |    87.50 |   85.71 | 48-49 107-111 120-121
 ℹ  config.js     | 100.00 |    89.19 |  100.00 | 
@@ -11,8 +11,29 @@
 ℹ  middleware.js | 100.00 |   100.00 |  100.00 | 
 ℹ  request.js    | 100.00 |   100.00 |  100.00 | 
 ℹ  response.js   | 100.00 |    98.11 |  100.00 | 
-ℹ  woodland.js   |  96.50 |    91.03 |   95.12 | 296-297 300-301 325-338 468-471 612-613
-ℹ ---------------------------------------------------------------------------------------
-ℹ all files      |  98.76 |    95.19 |   97.22 | 
-ℹ ---------------------------------------------------------------------------------------
+ℹ  woodland.js   |  95.92 |    85.90 |   95.12 | 234-235 296-297 300-301 325-338 468-471 562-563 612-613
+ℹ -------------------------------------------------------------------------------------------------------
+ℹ all files      |  98.61 |    94.38 |   97.22 | 
+ℹ -------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
+
+✖ failing tests:
+
+test at tests/unit/woodland.test.js:319:4
+✖ should return 403 for disallowed origin (52.932002ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///home/jason/projects/woodland/tests/unit/woodland.test.js:351:12)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1619:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
