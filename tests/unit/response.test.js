@@ -306,7 +306,7 @@ describe("response", () => {
 			let errorCalled = false;
 			const res = {
 				send: () => {},
-				error: (status, err) => {
+				error: (_status, _err) => {
 					errorCalled = true;
 				},
 				headersSent: false,
@@ -321,7 +321,7 @@ describe("response", () => {
 			let errorCalled = false;
 			const res = {
 				send: () => {},
-				error: (status, err) => {
+				error: (_status, _err) => {
 					errorCalled = true;
 				},
 				headersSent: false,
@@ -336,7 +336,7 @@ describe("response", () => {
 			let errorCalled = false;
 			const res = {
 				send: () => {},
-				error: (status, err) => {
+				error: (_status, _err) => {
 					errorCalled = true;
 				},
 				headersSent: false,
@@ -351,7 +351,7 @@ describe("response", () => {
 			let errorCalled = false;
 			const res = {
 				send: () => {},
-				error: (status, err) => {
+				error: (_status, _err) => {
 					errorCalled = true;
 				},
 				headersSent: false,
