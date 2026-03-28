@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "22.0.1",
+  "version": "22.0.2",
   "description": "Secure HTTP framework for Node.js. Express-compatible with built-in security, no performance tradeoff.",
   "keywords": [
     "api",
@@ -58,7 +58,7 @@
   "dependencies": {
     "jsonschema": "^1.5.0",
     "mime-db": "^1.54.0",
-    "precise": "^4.0.3",
+    "precise": "^5.0.0",
     "tiny-coerce": "^3.0.2",
     "tiny-etag": "^4.0.5",
     "tiny-lru": "^11.4.7"
