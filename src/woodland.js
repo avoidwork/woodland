@@ -82,7 +82,6 @@ export class Woodland extends EventEmitter {
 	#origins;
 	#time;
 	#cache;
-	#permissions;
 	#methods;
 	#logger;
 	#fileServer;
@@ -145,7 +144,6 @@ export class Woodland extends EventEmitter {
 		this.#origins = new Set(origins);
 		this.#time = time;
 		this.#cache = lru(cacheSize, cacheTTL);
-		this.#permissions = lru(cacheSize, cacheTTL);
 		this.#methods = [];
 		this.#logger = createLogger({
 			enabled: this.#logging.enabled,
@@ -195,8 +193,8 @@ export class Woodland extends EventEmitter {
 	 * @returns {string} Comma-separated list of allowed methods
 	 */
 	#allows(uri, override = false, isCorsRequest = false) {
-		const key = `${uri}${DELIMITER}${isCorsRequest ? "1" : "0"}`;
-		let result = override === false ? this.#permissions.get(key) : void 0;
+		const key = `perm${DELIMITER}${uri}${DELIMITER}${isCorsRequest ? "1" : "0"}`;
+		let result = override === false ? this.#cache.get(key) : void 0;
 
 		if (override || result === void 0) {
 			const methodSet = new Set();
@@ -209,7 +207,7 @@ export class Woodland extends EventEmitter {
 
 			const list = this.#buildAllowedList(methodSet, isCorsRequest);
 			result = list.sort().join(COMMA_SPACE);
-			this.#permissions.set(key, result);
+			this.#cache.set(key, result);
 			this.#logger.log(
 				`type=allows, uri=${uri}, override=${override}, message="Determined 'allow' header value"`,
 			);
