@@ -100,7 +100,7 @@ export async function serve(config, req, res, arg, folder = process.cwd()) {
 	config.logger.logServe(req, MSG_ROUTING_FILE);
 
 	try {
-		stats = await stat(fp, { bigint: false });
+		stats = await stat(realFp, { bigint: false });
 	} catch {
 		valid = false;
 	}
@@ -111,19 +111,19 @@ export async function serve(config, req, res, arg, folder = process.cwd()) {
 		config.stream(req, res, {
 			charset: config.charset,
 			etag: config.etag(req.method, stats.ino, stats.size, stats.mtimeMs),
-			path: fp,
+			path: realFp,
 			stats: stats,
 		});
 	} else if (!req.parsed.pathname.endsWith(SLASH)) {
 		res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
 	} else {
-		const files = await readdir(fp, { encoding: UTF8, withFileTypes: true });
+		const files = await readdir(realFp, { encoding: UTF8, withFileTypes: true });
 		let result = EMPTY;
 
 		for (let i = 0; i < files.length; i++) {
 			const file = files[i];
 			if (config.indexes.includes(file.name)) {
-				result = join(fp, file.name);
+				result = join(realFp, file.name);
 				break;
 			}
 		}
