@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 import { createServer } from "node:http";
+import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { coerce } from "tiny-coerce";
 import { woodland } from "woodland";
 import { isValidIP } from "./request.js";
@@ -115,10 +117,17 @@ export function main(args = process.argv) {
 }
 
 // CLI entry point - only run when executed directly
+const __filename = fileURLToPath(import.meta.url);
 /* node:coverage ignore next 7 */
-if (
-	process.argv[1] &&
-	(process.argv[1].endsWith("cli.js") || process.argv[1].endsWith("cli.cjs"))
-) {
-	main();
+if (process.argv[1]) {
+	const scriptPath = resolve(process.argv[1]);
+	if (
+		scriptPath === __filename ||
+		scriptPath.endsWith("/cli.cjs") ||
+		scriptPath.endsWith("\\cli.cjs") ||
+		scriptPath.endsWith("/bin/woodland") ||
+		scriptPath.endsWith("\\bin\\woodland")
+	) {
+		main();
+	}
 }

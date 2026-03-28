@@ -9,11 +9,11 @@
 'use strict';
 
 var node_http = require('node:http');
+var node_url = require('node:url');
+var node_path = require('node:path');
 var tinyCoerce = require('tiny-coerce');
 var woodland = require('woodland');
 var node_module = require('node:module');
-var node_path = require('node:path');
-var node_url = require('node:url');
 var mimeDb = require('mime-db');
 
 var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
@@ -281,12 +281,19 @@ function main(args = process.argv) {
 }
 
 // CLI entry point - only run when executed directly
+const __filename$1 = node_url.fileURLToPath((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('cli.cjs', document.baseURI).href)));
 /* node:coverage ignore next 7 */
-if (
-	process.argv[1] &&
-	(process.argv[1].endsWith("cli.js") || process.argv[1].endsWith("cli.cjs"))
-) {
-	main();
+if (process.argv[1]) {
+	const scriptPath = node_path.resolve(process.argv[1]);
+	if (
+		scriptPath === __filename$1 ||
+		scriptPath.endsWith("/cli.cjs") ||
+		scriptPath.endsWith("\\cli.cjs") ||
+		scriptPath.endsWith("/bin/woodland") ||
+		scriptPath.endsWith("\\bin\\woodland")
+	) {
+		main();
+	}
 }
 
 exports.main = main;
