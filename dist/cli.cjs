@@ -285,13 +285,7 @@ const __filename$1 = node_url.fileURLToPath((typeof document === 'undefined' ? r
 /* node:coverage ignore next 7 */
 if (process.argv[1]) {
 	const scriptPath = node_path.resolve(process.argv[1]);
-	if (
-		scriptPath === __filename$1 ||
-		scriptPath.endsWith("/cli.cjs") ||
-		scriptPath.endsWith("\\cli.cjs") ||
-		scriptPath.endsWith("bin/woodland") ||
-		scriptPath.endsWith("bin\\woodland")
-	) {
+	if (scriptPath === __filename$1 || node_path.basename(scriptPath) === "woodland") {
 		main();
 	}
 }
