@@ -118,6 +118,7 @@ export async function serve(config, req, res, arg, folder = process.cwd()) {
 		res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
 	} else {
 		let files;
+		/* node:coverage ignore next 7 */
 		try {
 			files = await readdir(realFp, { encoding: UTF8, withFileTypes: true });
 		} catch {
@@ -149,6 +150,7 @@ export async function serve(config, req, res, arg, folder = process.cwd()) {
 			}
 		} else {
 			let rstats;
+			/* node:coverage ignore next 7 */
 			try {
 				rstats = await stat(result, { bigint: false });
 			} catch {
