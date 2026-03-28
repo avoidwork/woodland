@@ -84,11 +84,6 @@ export class Woodland extends EventEmitter {
 	serve(req: any, res: any, arg: string, folder?: string): Promise<void>;
 	stream(req: any, res: any, file?: FileDescriptor): void;
 
-	// Deprecated/Internal methods (marked for internal use only)
-	/** @deprecated Internal method - use routes() instead */
-	allowed(method: string, uri: string, override?: boolean): boolean;
-	/** @deprecated Internal method - use routes() instead */
-	allows(uri: string, override?: boolean): string;
 }
 
 export function woodland(arg?: WoodlandConfig): Woodland;
