@@ -271,12 +271,14 @@ export function registerMiddleware(middleware, ignored, methods, cache, rpath, .
 
 	const current = mmethod.get(lrpath) ?? { handlers: [] };
 
-	current.handlers.push(...fn);
+	// Validate route pattern before mutating handlers
 	const quantifierPattern = /([.*+?^${}()|[\]\\])\1{3,}/;
 	/* node:coverage ignore next 3 */
 	if (quantifierPattern.test(lrpath)) {
 		throw new TypeError("Invalid route pattern: potential ReDoS vulnerability");
 	}
+
+	current.handlers.push(...fn);
 	mmethod.set(lrpath, {
 		handlers: current.handlers,
 		params: lparams,
