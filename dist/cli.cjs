@@ -283,7 +283,7 @@ function main(args = process.argv) {
 
 // CLI entry point - only run when executed directly
 const __filename$1 = node_url.fileURLToPath((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('cli.cjs', document.baseURI).href)));
-/* node:coverage ignore next 7 */
+/* node:coverage ignore next 6 */
 if (process.argv[1]) {
 	const scriptPath = node_path.resolve(process.argv[1]);
 	if (scriptPath === __filename$1 || node_path.basename(scriptPath) === WOODLAND) {

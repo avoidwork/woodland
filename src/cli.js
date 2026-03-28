@@ -119,7 +119,7 @@ export function main(args = process.argv) {
 
 // CLI entry point - only run when executed directly
 const __filename = fileURLToPath(import.meta.url);
-/* node:coverage ignore next 7 */
+/* node:coverage ignore next 6 */
 if (process.argv[1]) {
 	const scriptPath = resolve(process.argv[1]);
 	if (scriptPath === __filename || basename(scriptPath) === WOODLAND) {
