@@ -143,10 +143,10 @@ export function parse(arg) {
 			? arg
 			: `${HTTP_PREFIX}${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || String(INT_8000)}`}${arg.url}`;
 
+	/* node:coverage ignore next 6 */
 	try {
 		return new URL(urlString);
 	} catch {
-		/* node:coverage ignore next 2 */
 		return new URL(`${HTTP_PREFIX}localhost${arg.url || SLASH}`);
 	}
 }

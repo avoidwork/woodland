@@ -103,7 +103,7 @@ export function main(args = process.argv) {
 	app.files();
 	const server = createServer(app.route);
 	server.listen(portValidation.port, ip);
-	/* node:coverage ignore next 5 */
+	/* node:coverage ignore next 6 */
 	server.on("listening", () => {
 		const actualPort = server.address().port;
 		app.logger.log(

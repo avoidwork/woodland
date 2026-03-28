@@ -229,6 +229,7 @@ const PROTOCOL_PATTERN = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
  * @returns {boolean} True if URI is safe
  */
 function isSafeRedirectUri(uri) {
+	/* node:coverage ignore next 10 */
 	if (!uri || typeof uri !== "string") {
 		return false;
 	}

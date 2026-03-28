@@ -301,6 +301,66 @@ describe("response", () => {
 
 			assert.strictEqual(sentStatus, 307);
 		});
+
+		it("should reject redirect with empty URI", () => {
+			let errorCalled = false;
+			const res = {
+				send: () => {},
+				error: (status, err) => {
+					errorCalled = true;
+				},
+				headersSent: false,
+				statusCode: 200,
+			};
+
+			redirect(res, "");
+			assert.strictEqual(errorCalled, true);
+		});
+
+		it("should reject redirect with protocol URI", () => {
+			let errorCalled = false;
+			const res = {
+				send: () => {},
+				error: (status, err) => {
+					errorCalled = true;
+				},
+				headersSent: false,
+				statusCode: 200,
+			};
+
+			redirect(res, "http://evil.com");
+			assert.strictEqual(errorCalled, true);
+		});
+
+		it("should reject redirect with protocol-relative URI", () => {
+			let errorCalled = false;
+			const res = {
+				send: () => {},
+				error: (status, err) => {
+					errorCalled = true;
+				},
+				headersSent: false,
+				statusCode: 200,
+			};
+
+			redirect(res, "//evil.com/path");
+			assert.strictEqual(errorCalled, true);
+		});
+
+		it("should reject redirect with non-string URI", () => {
+			let errorCalled = false;
+			const res = {
+				send: () => {},
+				error: (status, err) => {
+					errorCalled = true;
+				},
+				headersSent: false,
+				statusCode: 200,
+			};
+
+			redirect(res, null);
+			assert.strictEqual(errorCalled, true);
+		});
 	});
 
 	describe("send", () => {
