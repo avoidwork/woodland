@@ -141,7 +141,7 @@ export function parse(arg) {
 	const urlString =
 		typeof arg === STRING
 			? arg
-			: `${HTTP_PREFIX}${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || String(INT_8000)}`}${arg.url}`;
+			: `${HTTP_PREFIX}${arg.headers?.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || String(INT_8000)}`}${arg.url}`;
 
 	/* node:coverage ignore next 6 */
 	try {
