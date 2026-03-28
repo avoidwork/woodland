@@ -358,10 +358,7 @@ function benchmarkNext() {
 
 	const nextFn = next(req, res, iterator, immediate);
 
-	// Invoke the next function to actually run the middleware chain
-	if (immediate) {
-		nextFn();
-	}
+	nextFn();
 
 	return nextFn;
 }
