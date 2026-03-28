@@ -1865,17 +1865,6 @@ class Woodland extends node_events.EventEmitter {
 	}
 
 	/**
-	 * Checks if a method is allowed for a URI
-	 * @param {string} method - HTTP method
-	 * @param {string} uri - URI to check
-	 * @param {boolean} [override=false] - Override cache
-	 * @returns {boolean} True if method is allowed
-	 */
-	#allowed(method, uri, override = false) {
-		return this.#middleware.allowed(method, uri, override);
-	}
-
-	/**
 	 * Determines allowed methods for a URI
 	 * @param {string} uri - URI to check
 	 * @param {boolean} [override=false] - Override cache
@@ -1890,7 +1879,7 @@ class Woodland extends node_events.EventEmitter {
 			const methodSet = new Set();
 
 			for (const method of this.#methods) {
-				if (this.#allowed(method, uri, override)) {
+				if (this.#middleware.allowed(method, uri, override)) {
 					methodSet.add(method);
 				}
 			}
