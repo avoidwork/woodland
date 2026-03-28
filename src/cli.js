@@ -2,6 +2,7 @@
 
 import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
+import { resolve, basename } from "node:path";
 import { coerce } from "tiny-coerce";
 import { woodland } from "woodland";
 import { isValidIP } from "./request.js";
@@ -20,6 +21,7 @@ import {
 	NO_CACHE,
 	STRING,
 	TEXT_PLAIN,
+	WOODLAND,
 } from "./constants.js";
 
 /**
@@ -117,7 +119,10 @@ export function main(args = process.argv) {
 
 // CLI entry point - only run when executed directly
 const __filename = fileURLToPath(import.meta.url);
-/* node:coverage ignore next 3 */
-if (process.argv[1] && process.argv[1] === __filename) {
-	main();
+/* node:coverage ignore next 6 */
+if (process.argv[1]) {
+	const scriptPath = resolve(process.argv[1]);
+	if (scriptPath === __filename || basename(scriptPath) === WOODLAND) {
+		main();
+	}
 }

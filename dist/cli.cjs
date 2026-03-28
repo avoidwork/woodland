@@ -10,10 +10,10 @@
 
 var node_http = require('node:http');
 var node_url = require('node:url');
+var node_path = require('node:path');
 var tinyCoerce = require('tiny-coerce');
 var woodland = require('woodland');
 var node_module = require('node:module');
-var node_path = require('node:path');
 var mimeDb = require('mime-db');
 
 var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
@@ -42,6 +42,7 @@ const DOUBLE_COLON = "::";
 const EMPTY = "";
 const EQUAL = "=";
 const HYPHEN = "-";
+const WOODLAND = "woodland";
 const STRING = "string";
 `nodejs/${process.version}, ${process.platform}/${process.arch}`;
 const LOCALHOST = "127.0.0.1";
@@ -282,9 +283,12 @@ function main(args = process.argv) {
 
 // CLI entry point - only run when executed directly
 const __filename$1 = node_url.fileURLToPath((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('cli.cjs', document.baseURI).href)));
-/* node:coverage ignore next 3 */
-if (process.argv[1] && process.argv[1] === __filename$1) {
-	main();
+/* node:coverage ignore next 6 */
+if (process.argv[1]) {
+	const scriptPath = node_path.resolve(process.argv[1]);
+	if (scriptPath === __filename$1 || node_path.basename(scriptPath) === WOODLAND) {
+		main();
+	}
 }
 
 exports.main = main;
