@@ -224,7 +224,7 @@ export function json(
 const PROTOCOL_PATTERN = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
 
 /**
- * Validates if a URI is safe for redirection (relative or protocol-relative)
+ * Validates if a URI is safe for redirection (relative only)
  * @param {string} uri - URI to validate
  * @returns {boolean} True if URI is safe
  */
