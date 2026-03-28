@@ -124,7 +124,8 @@ export function params(req, getParams) {
 				}
 			}
 
-			processedParams[key] = coerce(escapeHtml(decoded));
+			const coerced = coerce(decoded);
+			processedParams[key] = typeof coerced === STRING ? escapeHtml(coerced) : coerced;
 		}
 	}
 
@@ -137,11 +138,16 @@ export function params(req, getParams) {
  * @returns {URL} Parsed URL object
  */
 export function parse(arg) {
-	return new URL(
+	const urlString =
 		typeof arg === STRING
 			? arg
-			: `${HTTP_PREFIX}${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || String(INT_8000)}`}${arg.url}`,
-	);
+			: `${HTTP_PREFIX}${arg.headers.host || `localhost:${arg.socket?.server?._connectionKey?.replace(/.*::/, EMPTY) || String(INT_8000)}`}${arg.url}`;
+
+	try {
+		return new URL(urlString);
+	} catch {
+		return new URL(`${HTTP_PREFIX}localhost${arg.url || SLASH}`);
+	}
 }
 
 /**

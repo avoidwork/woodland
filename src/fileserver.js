@@ -1,5 +1,5 @@
 import { STATUS_CODES } from "node:http";
-import { readdir, stat } from "node:fs/promises";
+import { readdir, stat, realpath } from "node:fs/promises";
 import { join, resolve, sep } from "node:path";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -76,16 +76,15 @@ export async function serve(config, req, res, arg, folder = process.cwd()) {
 	const fp = resolve(folder, arg);
 	const resolvedFolder = resolve(folder);
 
-	// Path traversal protection: ensure fp is within resolvedFolder
-	// Must match exactly or be a subdirectory (not a sibling like /public2 vs /public)
-	// Use path.sep for platform compatibility (\\ on Windows, / on Unix)
-	// Special case: if resolvedFolder is root (e.g., "/" or "C:\\"), containment is implicit
+	const realFp = await realpath(fp).catch(() => fp);
+	const realFolder = await realpath(resolvedFolder).catch(() => resolvedFolder);
+
 	const isRoot =
-		resolvedFolder === sep ||
-		(resolvedFolder.length === 3 && resolvedFolder[1] === ":" && resolvedFolder.endsWith("\\"));
+		realFolder === sep ||
+		(realFolder.length === 3 && realFolder[1] === ":" && realFolder.endsWith("\\"));
 	const isWithin = isRoot
-		? fp.startsWith(resolvedFolder)
-		: fp === resolvedFolder || (fp.startsWith(resolvedFolder) && fp[resolvedFolder.length] === sep);
+		? realFp.startsWith(realFolder)
+		: realFp === realFolder || (realFp.startsWith(realFolder) && realFp[realFolder.length] === sep);
 
 	if (!isWithin) {
 		config.logger.logServe(req, MSG_SERVE_PATH_OUTSIDE);

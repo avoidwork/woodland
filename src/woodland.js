@@ -144,7 +144,7 @@ export class Woodland extends EventEmitter {
 		this.#origins = new Set(origins);
 		this.#time = time;
 		this.#cache = lru(cacheSize, cacheTTL);
-		this.#permissions = new Map();
+		this.#permissions = lru(cacheSize, cacheTTL);
 		this.#methods = [];
 		this.#logger = createLogger({
 			enabled: this.#logging.enabled,
@@ -213,7 +213,7 @@ export class Woodland extends EventEmitter {
 			);
 		}
 
-		return result;
+		return result ?? EMPTY;
 	}
 
 	/**
@@ -323,16 +323,29 @@ export class Woodland extends EventEmitter {
 	#addCorsHeaders(req, headersBatch) {
 		const origin = req.headers.origin;
 		const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.#corsExpose;
+		const originAllowed = this.#origins.has(origin);
+		const hasWildcard = this.#origins.has(WILDCARD);
 
-		headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
-		headersBatch[TIMING_ALLOW_ORIGIN] = origin;
-		headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
-		headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = req.allow;
+		if (originAllowed) {
+			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
+			headersBatch[TIMING_ALLOW_ORIGIN] = origin;
+			headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
+			headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = req.allow;
 
-		if (corsHeaders !== void 0) {
-			headersBatch[
-				req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS
-			] = corsHeaders;
+			if (corsHeaders !== void 0) {
+				headersBatch[
+					req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS
+				] = corsHeaders;
+			}
+		} else if (hasWildcard) {
+			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = WILDCARD;
+			headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = req.allow;
+
+			if (corsHeaders !== void 0) {
+				headersBatch[
+					req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS
+				] = corsHeaders;
+			}
 		}
 	}
 
