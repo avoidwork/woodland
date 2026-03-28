@@ -356,7 +356,14 @@ function benchmarkNext() {
 	const iterator = middleware[Symbol.iterator]();
 	const immediate = Math.random() > 0.5;
 
-	return next(req, res, iterator, immediate);
+	const nextFn = next(req, res, iterator, immediate);
+
+	// Invoke the next function to actually run the middleware chain
+	if (immediate) {
+		nextFn();
+	}
+
+	return nextFn;
 }
 
 /**
