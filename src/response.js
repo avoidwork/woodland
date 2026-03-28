@@ -263,7 +263,8 @@ export function redirect(res, uri, perm = true) {
 		return;
 	}
 
-	res.send(EMPTY, perm ? INT_308 : INT_307, { [LOCATION]: uri });
+	const trimmed = uri.trim();
+	res.send(EMPTY, perm ? INT_308 : INT_307, { [LOCATION]: trimmed });
 }
 
 /**
