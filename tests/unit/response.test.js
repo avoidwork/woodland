@@ -363,6 +363,106 @@ describe("response", () => {
 		});
 	});
 
+	describe("send with stream error handling", () => {
+		it("should handle stream error after headers sent", () => {
+			let destroyCalled = false;
+			let endCalled = false;
+			let errorHandler = null;
+			const req = { method: "GET", headers: {} };
+			const stream = {
+				on: (event, handler) => {
+					if (event === "error") {
+						errorHandler = handler;
+					}
+					return stream;
+				},
+				destroy: () => {
+					destroyCalled = true;
+				},
+				pipe: () => {},
+			};
+			const res = {
+				headersSent: false,
+				statusCode: 200,
+				writeHead: () => {
+					res.headersSent = true;
+				},
+				writableEnded: false,
+				end: () => {
+					endCalled = true;
+				},
+				error: () => {},
+			};
+
+			send(
+				req,
+				res,
+				stream,
+				200,
+				{},
+				(_req, _res, body, status, headers) => [body, status, headers],
+				() => {},
+			);
+
+			// Trigger the error handler manually
+			if (errorHandler) {
+				errorHandler(new Error("Stream error"));
+			}
+
+			assert.strictEqual(destroyCalled, true);
+			assert.strictEqual(endCalled, true);
+		});
+
+		it("should not call end() if writableEnded is true", () => {
+			let destroyCalled = false;
+			let endCalled = false;
+			let errorHandler = null;
+			const req = { method: "GET", headers: {} };
+			const stream = {
+				on: (event, handler) => {
+					if (event === "error") {
+						errorHandler = handler;
+					}
+					return stream;
+				},
+				destroy: () => {
+					destroyCalled = true;
+				},
+				pipe: () => {},
+			};
+			const res = {
+				headersSent: false,
+				statusCode: 200,
+				writeHead: () => {
+					res.headersSent = true;
+				},
+				writableEnded: true,
+				end: () => {
+					endCalled = true;
+				},
+				error: () => {},
+			};
+
+			send(
+				req,
+				res,
+				stream,
+				200,
+				{},
+				(_req, _res, body, status, headers) => [body, status, headers],
+				() => {},
+			);
+
+			// Trigger the error handler manually
+			if (errorHandler) {
+				errorHandler(new Error("Stream error"));
+			}
+
+			assert.strictEqual(destroyCalled, true);
+			assert.strictEqual(endCalled, false);
+		});
+	});
+
 	describe("send", () => {
 		it("should create send function", () => {
 			const req = { method: "GET", headers: {} };

@@ -7,6 +7,7 @@ import {
 	COLLECTION,
 	CONTENT_TYPE,
 	EMPTY,
+	INT_400,
 	ITEM,
 	INT_403,
 	INT_404,

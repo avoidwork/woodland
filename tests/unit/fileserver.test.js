@@ -48,6 +48,40 @@ describe("fileserver", () => {
 				assert.strictEqual(errorCalled, true);
 			});
 
+			it("should handle malformed URI in autoIndex", async () => {
+				let errorStatus = null;
+				let errorArg = null;
+				const testFilesDir = process.cwd() + "/tests/test-files";
+				const app = createMockApp();
+				app.logger.logServe = () => ({ log: () => {} });
+				app.autoIndex = true;
+				app.indexes = []; // No index files to force autoIndex generation
+				const server = createFileServer(app);
+
+				// Malformed percent-encoding in pathname - path must end with / to reach autoIndex
+				await server.serve(
+					{
+						method: "GET",
+						parsed: { pathname: "/subdir%ZZ/", search: "" },
+					},
+					{
+						error: (status, err) => {
+							errorStatus = status;
+							errorArg = err;
+						},
+						header: () => {},
+						send: () => {},
+						redirect: () => {},
+					},
+					"subdir",
+					testFilesDir,
+				);
+
+				assert.strictEqual(errorStatus, 400);
+				assert.ok(errorArg instanceof Error);
+				assert.strictEqual(errorArg.message, "Bad Request");
+			});
+
 			it("should return 404 for non-existent file", async () => {
 				let errorCalled = false;
 				const app = createMockApp();
