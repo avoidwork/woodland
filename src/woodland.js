@@ -144,7 +144,7 @@ export class Woodland extends EventEmitter {
 		this.#origins = new Set(origins);
 		this.#time = time;
 		this.#cache = lru(cacheSize, cacheTTL);
-		this.#methods = [];
+		this.#methods = new Set();
 		this.#logger = createLogger({
 			enabled: this.#logging.enabled,
 			format: this.#logging.format,
@@ -199,9 +199,9 @@ export class Woodland extends EventEmitter {
 		if (override || result === void 0) {
 			const methodSet = new Set();
 
-			for (let i = 0; i < this.#methods.length; i++) {
-				if (this.#allowed(this.#methods[i], uri, override)) {
-					methodSet.add(this.#methods[i]);
+			for (const method of this.#methods) {
+				if (this.#allowed(method, uri, override)) {
+					methodSet.add(method);
 				}
 			}
 

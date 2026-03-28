@@ -204,7 +204,7 @@ export function checkAllowed(middleware, ignored, cache, method, uri, override =
 
 /**
  * Creates a registry object with middleware management methods
- * @param {Array} methods - Array of registered HTTP methods
+ * @param {Set} methods - Set of registered HTTP methods
  * @param {Object|Map} cache - Cache for route results
  * @returns {Object} Registry object with ignore, allowed, routes, register, list methods
  */
@@ -227,7 +227,7 @@ export function createMiddlewareRegistry(methods, cache) {
  * Registers middleware for a route
  * @param {Map} middleware - Map of middleware by method
  * @param {Set} ignored - Set of ignored middleware functions
- * @param {Array} methods - Array of registered HTTP methods
+ * @param {Set} methods - Set of registered HTTP methods
  * @param {Object|Map} cache - Cache for route results
  * @param {string|Function} rpath - Route path or middleware function
  * @param {...Function} fn - Middleware functions to register
@@ -254,7 +254,7 @@ export function registerMiddleware(middleware, ignored, methods, cache, rpath, .
 
 	if (middleware.has(method) === false) {
 		if (method !== WILDCARD) {
-			methods.push(method);
+			methods.add(method);
 		}
 
 		middleware.set(method, new Map());

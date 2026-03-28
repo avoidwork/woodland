@@ -244,7 +244,7 @@ describe("middleware", () => {
 		let methods, cache;
 
 		beforeEach(() => {
-			methods = [];
+			methods = new Set();
 			cache = new Map();
 		});
 
@@ -544,7 +544,7 @@ describe("middleware", () => {
 		beforeEach(() => {
 			middleware = new Map();
 			ignored = new Set();
-			methods = [];
+			methods = new Set();
 			cache = new Map();
 		});
 
@@ -603,13 +603,13 @@ describe("middleware", () => {
 		it("should add method to methods array for non-wildcard", () => {
 			registerMiddleware(middleware, ignored, methods, cache, "/test", () => {}, "POST");
 
-			assert.ok(methods.includes("POST"));
+			assert.ok(methods.has("POST"));
 		});
 
 		it("should not add method to methods array for wildcard method", () => {
 			registerMiddleware(middleware, ignored, methods, cache, "/test", () => {}, "*");
 
-			assert.strictEqual(methods.length, 0);
+			assert.strictEqual(methods.size, 0);
 		});
 
 		it("should return early when rpath is undefined", () => {
