@@ -190,14 +190,15 @@ describe("fileserver integration", () => {
 
 		await setupServer(app);
 
-		// Create a temp directory with index.html for this test
+		// Create a unique temp directory with index.html for this test
 		const { mkdirSync, writeFileSync, rmSync } = await import("node:fs");
-		const tempDir = join(testFilesDir, "temp-index");
+		const tempDirName = `temp-index-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+		const tempDir = join(testFilesDir, tempDirName);
 		mkdirSync(tempDir, { recursive: true });
 		writeFileSync(join(tempDir, "index.html"), "<h1>Temp Index</h1>");
 
 		try {
-			const response = await fetch(`${baseUrl}/static/temp-index/`);
+			const response = await fetch(`${baseUrl}/static/${tempDirName}/`);
 			const body = await response.text();
 
 			assert.strictEqual(response.status, 200);
