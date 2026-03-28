@@ -299,6 +299,12 @@ export function send(
 					.on(ERROR, (_err) => {
 						if (res.headersSent === false) {
 							res.error(INT_500);
+						} else {
+							// Headers already sent, destroy stream and end response
+							body.destroy();
+							if (!res.writableEnded) {
+								res.end();
+							}
 						}
 					})
 					.pipe(res);
