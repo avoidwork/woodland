@@ -281,9 +281,9 @@ function main(args = process.argv) {
 }
 
 // CLI entry point - only run when executed directly
-const __filename$1 = node_url.fileURLToPath((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('cli.cjs', document.baseURI).href)));
+node_url.fileURLToPath((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('cli.cjs', document.baseURI).href)));
 /* node:coverage ignore next 3 */
-if (process.argv[1] && process.argv[1] === __filename$1) {
+if (process.argv[1] && process.argv[1].endsWith("cli.js")) {
 	main();
 }
 
