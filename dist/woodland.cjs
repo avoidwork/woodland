@@ -434,6 +434,7 @@ function json(
 }
 
 const PROTOCOL_PATTERN = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
+const CONTROL_CHAR_PATTERN = /[\r\n\t]/;
 
 /**
  * Validates if a URI is safe for redirection (relative only)
@@ -452,11 +453,25 @@ function isSafeRedirectUri(uri) {
 		return false;
 	}
 
+	// Block control characters that could cause header injection
+	if (CONTROL_CHAR_PATTERN.test(trimmed)) {
+		return false;
+	}
+
 	if (PROTOCOL_PATTERN.test(trimmed)) {
 		return false;
 	}
 
-	if (trimmed.startsWith("//") || trimmed.startsWith("\\") || trimmed.startsWith("/\\")) {
+	// Block protocol-relative URLs including percent-encoded variants
+	const decoded = decodeURIComponent(trimmed);
+	if (
+		trimmed.startsWith("//") ||
+		trimmed.startsWith("\\") ||
+		trimmed.startsWith("/\\") ||
+		decoded.startsWith("//") ||
+		decoded.startsWith("\\") ||
+		decoded.startsWith("/\\")
+	) {
 		return false;
 	}
 
@@ -1662,6 +1677,7 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
 		res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
 	} else {
 		let files;
+		/* node:coverage ignore next 7 */
 		try {
 			files = await promises.readdir(realFp, { encoding: UTF8, withFileTypes: true });
 		} catch {
@@ -1693,6 +1709,7 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
 			}
 		} else {
 			let rstats;
+			/* node:coverage ignore next 7 */
 			try {
 				rstats = await promises.stat(result, { bigint: false });
 			} catch {
