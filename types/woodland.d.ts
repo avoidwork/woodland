@@ -48,16 +48,27 @@ export class Woodland extends EventEmitter {
 
 	constructor(config?: WoodlandConfig);
 
-	// Public routing methods
-	always(rpath?: string, ...fn: Function[]): Woodland;
-	connect(rpath?: string, ...fn: Function[]): Woodland;
-	delete(rpath?: string, ...fn: Function[]): Woodland;
-	get(rpath?: string, ...fn: Function[]): Woodland;
-	options(rpath?: string, ...fn: Function[]): Woodland;
-	patch(rpath?: string, ...fn: Function[]): Woodland;
-	post(rpath?: string, ...fn: Function[]): Woodland;
-	put(rpath?: string, ...fn: Function[]): Woodland;
-	trace(rpath?: string, ...fn: Function[]): Woodland;
+	// Public routing methods - with path
+	always(rpath: string, ...fn: Function[]): Woodland;
+	connect(rpath: string, ...fn: Function[]): Woodland;
+	delete(rpath: string, ...fn: Function[]): Woodland;
+	get(rpath: string, ...fn: Function[]): Woodland;
+	options(rpath: string, ...fn: Function[]): Woodland;
+	patch(rpath: string, ...fn: Function[]): Woodland;
+	post(rpath: string, ...fn: Function[]): Woodland;
+	put(rpath: string, ...fn: Function[]): Woodland;
+	trace(rpath: string, ...fn: Function[]): Woodland;
+
+	// Public routing methods - without path (handler only)
+	always(...fn: Function[]): Woodland;
+	connect(...fn: Function[]): Woodland;
+	delete(...fn: Function[]): Woodland;
+	get(...fn: Function[]): Woodland;
+	options(...fn: Function[]): Woodland;
+	patch(...fn: Function[]): Woodland;
+	post(...fn: Function[]): Woodland;
+	put(...fn: Function[]): Woodland;
+	trace(...fn: Function[]): Woodland;
 
 	// Middleware methods
 	ignore(fn: Function): Woodland;
