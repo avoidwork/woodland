@@ -1550,8 +1550,13 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
 	// Path traversal protection: ensure fp is within resolvedFolder
 	// Must match exactly or be a subdirectory (not a sibling like /public2 vs /public)
 	// Use path.sep for platform compatibility (\\ on Windows, / on Unix)
-	const isWithin =
-		fp === resolvedFolder || (fp.startsWith(resolvedFolder) && fp[resolvedFolder.length] === node_path.sep);
+	// Special case: if resolvedFolder is root (e.g., "/" or "C:\\"), containment is implicit
+	const isRoot =
+		resolvedFolder === node_path.sep ||
+		(resolvedFolder.length === 3 && resolvedFolder[1] === ":" && resolvedFolder.endsWith("\\"));
+	const isWithin = isRoot
+		? fp.startsWith(resolvedFolder)
+		: fp === resolvedFolder || (fp.startsWith(resolvedFolder) && fp[resolvedFolder.length] === node_path.sep);
 
 	if (!isWithin) {
 		config.logger.logServe(req, MSG_SERVE_PATH_OUTSIDE);
@@ -1785,9 +1790,10 @@ class Woodland extends node_events.EventEmitter {
 	 * Determines allowed methods for a URI
 	 * @param {string} uri - URI to check
 	 * @param {boolean} [override=false] - Override cache
+	 * @param {boolean} [isCorsRequest=false] - Whether this is a CORS request
 	 * @returns {string} Comma-separated list of allowed methods
 	 */
-	#allows(uri, override = false) {
+	#allows(uri, override = false, isCorsRequest = false) {
 		let result = override === false ? this.#permissions.get(uri) : void 0;
 
 		if (override || result === void 0) {
@@ -1799,7 +1805,7 @@ class Woodland extends node_events.EventEmitter {
 				}
 			}
 
-			const list = this.#buildAllowedList(methodSet);
+			const list = this.#buildAllowedList(methodSet, isCorsRequest);
 			result = list.sort().join(COMMA_SPACE);
 			this.#permissions.set(uri, result);
 			this.#logger.log(
@@ -1813,9 +1819,10 @@ class Woodland extends node_events.EventEmitter {
 	/**
 	 * Builds the list of allowed methods including implicit HEAD and OPTIONS
 	 * @param {Set} methodSet - Set of explicitly registered methods
+	 * @param {boolean} isCorsRequest - Whether this is a CORS request
 	 * @returns {Array} Array of allowed methods
 	 */
-	#buildAllowedList(methodSet) {
+	#buildAllowedList(methodSet, isCorsRequest = false) {
 		const list = [...methodSet];
 
 		if (list.length > 0) {
@@ -1823,7 +1830,7 @@ class Woodland extends node_events.EventEmitter {
 				list.push(HEAD);
 			}
 
-			if (!methodSet.has(OPTIONS)) {
+			if (!methodSet.has(OPTIONS) && isCorsRequest) {
 				list.push(OPTIONS);
 			}
 		}
@@ -1861,8 +1868,10 @@ class Woodland extends node_events.EventEmitter {
 	#decorate(req, res) {
 		const timing = this.#time ? precise.precise().start() : null;
 		const parsed = parse(req);
-		const allowString = this.#allows(parsed.pathname);
 		const clientIP = extractIP(req);
+		req.corsHost = corsHost(req);
+		req.cors = cors(req, this.#origins);
+		const allowString = this.#allows(parsed.pathname, false, req.cors);
 		const headersBatch = Object.create(null);
 		headersBatch[ALLOW] = allowString;
 		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
@@ -1874,8 +1883,6 @@ class Woodland extends node_events.EventEmitter {
 			headersBatch[key] = value;
 		}
 
-		req.corsHost = corsHost(req);
-		req.cors = cors(req, this.#origins);
 		req.parsed = parsed;
 		req.allow = allowString;
 		req.ip = clientIP;
