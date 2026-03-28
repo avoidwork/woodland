@@ -79,8 +79,13 @@ export async function serve(config, req, res, arg, folder = process.cwd()) {
 	// Path traversal protection: ensure fp is within resolvedFolder
 	// Must match exactly or be a subdirectory (not a sibling like /public2 vs /public)
 	// Use path.sep for platform compatibility (\\ on Windows, / on Unix)
-	const isWithin =
-		fp === resolvedFolder || (fp.startsWith(resolvedFolder) && fp[resolvedFolder.length] === sep);
+	// Special case: if resolvedFolder is root (e.g., "/" or "C:\\"), containment is implicit
+	const isRoot =
+		resolvedFolder === sep ||
+		(resolvedFolder.length === 3 && resolvedFolder[1] === ":" && resolvedFolder.endsWith("\\"));
+	const isWithin = isRoot
+		? fp.startsWith(resolvedFolder)
+		: fp === resolvedFolder || (fp.startsWith(resolvedFolder) && fp[resolvedFolder.length] === sep);
 
 	if (!isWithin) {
 		config.logger.logServe(req, MSG_SERVE_PATH_OUTSIDE);
