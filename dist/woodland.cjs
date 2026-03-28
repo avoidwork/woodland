@@ -124,7 +124,7 @@ const HYPHEN = "-";
 const LEFT_PAREN = "(";
 const PERCENT = "%";
 const PERIOD = ".";
-const SLASH$1 = "/";
+const SLASH = "/";
 const STRING_0 = "0";
 const WILDCARD = "*";
 
@@ -507,7 +507,9 @@ function send(
 
 		if (isPipeable) {
 			if (rangeHeader === void 0 || req.range !== void 0) {
-				res.statusCode = status;
+				if (req.range === void 0) {
+					res.statusCode = status;
+				}
 				writeHead(res, headers);
 				body
 					.on(ERROR, (_err) => {
@@ -1229,7 +1231,7 @@ function registerMiddleware(middleware, ignored, methods, cache, rpath, ...fn) {
 	let lrpath = rpath,
 		lparams = false;
 
-	if (lrpath.includes(`${SLASH$1}${LEFT_PAREN}`) === false && lrpath.includes(`${SLASH$1}:`)) {
+	if (lrpath.includes(`${SLASH}${LEFT_PAREN}`) === false && lrpath.includes(`${SLASH}:`)) {
 		lparams = true;
 		lrpath = extractPath(lrpath);
 	}
@@ -1652,7 +1654,7 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
 			path: realFp,
 			stats: stats,
 		});
-	} else if (!req.parsed.pathname.endsWith(SLASH$1)) {
+	} else if (!req.parsed.pathname.endsWith(SLASH)) {
 		res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
 	} else {
 		const files = await promises.readdir(realFp, { encoding: UTF8, withFileTypes: true });
@@ -1699,9 +1701,9 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
  * @param {Function} useMiddleware - Middleware registration function
  */
 function register(config, root, folder, useMiddleware) {
-	const normalizedRoot = root.replace(/\/$/, EMPTY) || SLASH$1;
+	const normalizedRoot = root.replace(/\/$/, EMPTY) || SLASH;
 	// Match mount root and any path beneath it: /static, /static/, /static/foo
-	const rootPattern = normalizedRoot === SLASH$1 ? "(/.*)?" : `${normalizedRoot}(/.*)?`;
+	const rootPattern = normalizedRoot === SLASH ? "(/.*)?" : `${normalizedRoot}(/.*)?`;
 
 	useMiddleware(rootPattern, (req, res) => {
 		const pathname = req.parsed.pathname;
@@ -1710,7 +1712,7 @@ function register(config, root, folder, useMiddleware) {
 		const relativePath =
 			pathname === normalizedRoot
 				? EMPTY
-				: normalizedRoot === SLASH$1
+				: normalizedRoot === SLASH
 					? pathname.slice(1)
 					: pathname.slice(normalizedRoot.length + 1);
 		return serve(config, req, res, relativePath, folder);
@@ -2079,7 +2081,7 @@ class Woodland extends node_events.EventEmitter {
 	 * @param {string} [folder=process.cwd()] - Folder to serve
 	 * @returns {Woodland} Returns self for chaining
 	 */
-	files(root = SLASH$1, folder = process.cwd()) {
+	files(root = SLASH, folder = process.cwd()) {
 		this.#fileServer.register(root, folder, this.use.bind(this));
 
 		return this;

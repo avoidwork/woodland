@@ -295,7 +295,9 @@ export function send(
 
 		if (isPipeable) {
 			if (rangeHeader === void 0 || req.range !== void 0) {
-				res.statusCode = status;
+				if (req.range === void 0) {
+					res.statusCode = status;
+				}
 				writeHead(res, headers);
 				body
 					.on(ERROR, (_err) => {
