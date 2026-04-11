@@ -102,12 +102,12 @@ All optional in constructor:
 
 - `#autoIndex`, `#charset`, `#corsExpose`, `#defaultHeaders`
 - `#digit`, `#etags`, `#indexes`, `#logging`
-- `#origins`, `#time`, `#cache`, `#permissions`
+- `#origins`, `#time`, `#cache`
 - `#methods`, `#logger`, `#fileServer`, `#middleware`
 
 ### Private Methods
 
-- `#allowed()`, `#allows()`, `#buildAllowedList()`
+- `#allows()`, `#buildAllowedList()`
 - `#decorate()`, `#addCorsHeaders()`
 - `#isHashableMethod()`, `#etagsEnabled()`, `#hashArgs()`
 - `#onDone()`, `#onReady()`, `#onSend()`
@@ -151,7 +151,7 @@ npm run coverage      # Generate coverage report
 
 - `req.corsHost`, `req.cors`, `req.parsed`, `req.allow`
 - `req.ip`, `req.body`, `req.host`, `req.params`
-- `req.valid`, `req.precise`, `req.range`
+- `req.valid`, `req.precise`
 
 ### Response Methods
 
