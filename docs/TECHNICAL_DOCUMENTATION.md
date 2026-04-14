@@ -281,8 +281,7 @@ class Woodland extends EventEmitter {
   #logging;        // Private: logging config (frozen)
   #origins;        // Private: CORS origins Set
   #time;           // Private: timing enabled
-  #cache;          // Private: LRU cache
-  #permissions;    // Private: permissions Map
+  #cache;          // Private: LRU cache (routes and permissions)
   #methods;        // Private: registered methods array
   #logger;         // Private: logger instance (frozen)
   #fileServer;     // Private: file server instance (frozen, wrapped by files/serve/stream)
@@ -308,8 +307,7 @@ class Woodland extends EventEmitter {
 ```
 
 **Private Methods:**
-- `#allowed(method, uri, override)` - Check if method is allowed for URI
-- `#allows(uri, override)` - Determine allowed methods for URI
+- `#allows(uri, override, isCorsRequest)` - Determine allowed methods for URI
 - `#buildAllowedList(methodSet)` - Build allowed methods list with HEAD/OPTIONS
 - `#decorate(req, res)` - Decorate request/response objects
 - `#addCorsHeaders(req, headersBatch)` - Add CORS headers to batch
@@ -493,7 +491,7 @@ v & \text{if } t - t_{\text{insert}} < \text{TTL} \\
 \end{cases}
 $$
 
-Cache key generation: $\mathcal{K}_{\text{key}}(method, uri) = method \parallel \text{DELIMITER} \parallel uri$
+Cache key generation: $\mathcal{K}_{\text{key}}(method, uri) = method \parallel \text{":"} \parallel uri$ (where DELIMITER is `:`)
 
 **Complexity**:
 - **Lookup**: $O(1)$ (LRU hash table)
@@ -1095,25 +1093,11 @@ All files         100.00    96.43      98.64
 ```
 
 **Test Results:** 339 tests passing across 9 source modules with 100% line coverage.
-File            | Line %  | Branch % | Funcs % | Status
-----------------|---------|----------|---------|--------
-cli.js          | 100.00  |  100.00  |  85.71  | 🎯 Perfect line coverage
-config.js       | 100.00  |   89.19  | 100.00  | 🎯 Perfect line/function coverage
-constants.js    | 100.00  |  100.00  | 100.00  | 🎯 Perfect
-fileserver.js   | 100.00  |   90.20  | 100.00  | 🎯 Perfect line/function coverage
-logger.js       | 100.00  |   94.23  |  95.45  | 🎯 Perfect line coverage
-middleware.js   | 100.00  |  100.00  | 100.00  | 🎯 Perfect
-request.js      | 100.00  |  100.00  | 100.00  | 🎯 Perfect
-response.js     | 100.00  |   98.31  | 100.00  | 🎯 Perfect line/function coverage
-woodland.js     | 100.00  |   94.51  | 100.00  | 🎯 Perfect line/function coverage
-
-All files         100.00    96.43      98.64
-```
 
 ### Coverage Status
 
 **Achieved:**
-- ✅ 322 passing tests
+- ✅ 339 passing tests
 - ✅ 100% line coverage across all source files
 - ✅ 100% function coverage across all source files
 - ✅ 96.43% branch coverage
