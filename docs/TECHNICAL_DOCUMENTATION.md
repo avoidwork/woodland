@@ -24,7 +24,7 @@ Woodland is a **security-first HTTP server framework** for Node.js that extends 
 
 **Key Differentiator:** Woodland delivers **security without performance tradeoff** - all security features (CORS validation, path traversal protection, IP validation, HTML escaping) add minimal overhead (~0.09ms per request).
 
-**Version:** 21.0.10
+**Version:** 22.0.4
 
 ### Key Features
 
@@ -35,6 +35,8 @@ Woodland is a **security-first HTTP server framework** for Node.js that extends 
 - **IP validation** - `isValidIP()` protects against header spoofing
 - **Secure error handling** - No sensitive data exposure in error responses
 - **X-Content-Type-Options** - Automatic `nosniff` header
+- **Header injection prevention** - Type validation for header values
+- **Prototype pollution protection** - Safe ETag generation with `Object.hasOwn()`
 
 **Performance Features:**
 - **Middleware-based routing** with parameter extraction
@@ -789,6 +791,31 @@ Woodland demonstrates **excellent adherence to OWASP security guidelines** with 
 
 #### 🛡️ Security Features Implementation
 
+##### Security Enhancements (v22.0.4)
+
+The latest version includes critical security hardening:
+
+```javascript
+// Header injection prevention in #decorate()
+for (let i = 0; i < headerCount; i++) {
+	const [key, value] = defaultHeaders[i];
+	if (typeof key === STRING && (typeof value === STRING || typeof value === "number")) {
+		headersBatch[key] = value;
+	}
+}
+
+// Origin validation in #addCorsHeaders()
+if (typeof origin === STRING && origin.length > 0) {
+	headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
+	headersBatch[TIMING_ALLOW_ORIGIN] = origin;
+}
+
+// Prototype pollution protection in #hashArgs()
+if (i !== null && typeof i === "object" && !Object.hasOwn(i, "toString")) {
+	return EMPTY;
+}
+```
+
 ##### Comprehensive Input Validation
 
 ```javascript
@@ -964,12 +991,12 @@ Woodland includes comprehensive security tests covering:
 | ------------------------------------ | ---------------- | -------------------------------------------- |
 | **A01: Broken Access Control**       | ✅ Excellent     | Strong CORS & file access controls           |
 | **A02: Cryptographic Failures**      | ✅ Good          | Secure error handling, no sensitive exposure |
-| **A03: Injection**                   | ✅ Excellent     | Comprehensive input validation & escaping    |
+| **A03: Injection**                   | ✅ Excellent     | Header injection prevention, input validation & escaping |
 | **A04: Insecure Design**             | ✅ Excellent     | Security-first architecture                  |
 | **A05: Security Misconfiguration**   | ✅ Good          | Secure defaults, configurable security       |
 | **A06: Vulnerable Components**       | ✅ Good          | Minimal dependencies, regular updates        |
 | **A07: Authentication Failures**     | ✅ N/A           | Framework provides hooks, not built-in auth  |
-| **A08: Software Integrity Failures** | ✅ N/A           | Minimal serialization/deserialization        |
+| **A08: Software Integrity Failures** | ✅ Excellent     | Prototype pollution protection in ETag generation |
 | **A09: Security Logging Failures**   | ✅ Good          | Comprehensive logging with CLF support       |
 | **A10: Server-Side Request Forgery** | ✅ N/A           | No outbound request functionality            |
 
@@ -977,10 +1004,11 @@ Woodland includes comprehensive security tests covering:
 
 **Woodland demonstrates excellent adherence to OWASP security guidance** with a security-first design philosophy. The framework implements robust protections against the most critical web application security risks including:
 
-- **Injection Prevention**: Comprehensive input validation and output encoding
-- **Access Control**: Strict file system and CORS access controls
+- **Injection Prevention**: Header injection prevention, comprehensive input validation and output encoding
+- **Access Control**: Strict file system and CORS access controls with origin validation
 - **Secure Configuration**: Secure defaults with flexibility for additional hardening
 - **Error Handling**: Secure error responses without information disclosure
+- **Prototype Pollution Protection**: Safe ETag generation with `Object.hasOwn()` validation
 
 While lightweight by design, Woodland provides the security foundation needed for production applications. Additional security measures (rate limiting, advanced headers, authentication) can be layered on top based on specific application requirements.
 
@@ -1051,6 +1079,22 @@ Woodland maintains comprehensive test coverage with **339 tests passing** across
 ### Coverage Metrics
 
 ```
+File            | Line %  | Branch % | Funcs % | Status
+----------------|---------|----------|---------|--------
+cli.js          | 100.00  |  100.00  |  85.71  | 🎯 Perfect line coverage
+config.js       | 100.00  |   89.19  | 100.00  | 🎯 Perfect line/function coverage
+constants.js    | 100.00  |  100.00  | 100.00  | 🎯 Perfect
+fileserver.js   | 100.00  |  90.20  | 100.00  | 🎯 Perfect line/function coverage
+logger.js       | 100.00  |   94.23  |  95.45  | 🎯 Perfect line coverage
+middleware.js   | 100.00  |  100.00  | 100.00  | 🎯 Perfect
+request.js      | 100.00  |  100.00  | 100.00  | 🎯 Perfect
+response.js     | 100.00  |   98.31  | 100.00  | 🎯 Perfect line/function coverage
+woodland.js     | 100.00  |   94.51  | 100.00  | 🎯 Perfect line/function coverage
+
+All files         100.00    96.43      98.64
+```
+
+**Test Results:** 339 tests passing across 9 source modules with 100% line coverage.
 File            | Line %  | Branch % | Funcs % | Status
 ----------------|---------|----------|---------|--------
 cli.js          | 100.00  |  100.00  |  85.71  | 🎯 Perfect line coverage

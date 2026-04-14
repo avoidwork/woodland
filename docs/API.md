@@ -257,7 +257,7 @@ Streams a file to the response with proper headers and range support.
 
 #### `etag(method, ...args)`
 
-Generates an ETag for response caching based on method and values.
+Generates an ETag for response caching based on method and values with prototype pollution protection.
 
 | Parameter | Type | Optional | Description |
 |-----------|------|----------|-------------|
@@ -265,6 +265,8 @@ Generates an ETag for response caching based on method and values.
 | `...args` | `*` | No | Values to hash into the ETag |
 
 **Returns:** `string` - ETag string or empty string if method is not hashable or ETags are disabled
+
+**Security:** Objects without `toString` property are rejected to prevent prototype pollution
 
 #### `list(method, type)`
 
@@ -294,6 +296,8 @@ Gets route information for a specific URI and method.
 - `visible`: Count of visible middleware
 - `exit`: Exit index
 
+**Security:** Validates `getParams` exists before parameter extraction
+
 #### `route(req, res)`
 
 Routes an HTTP request to the appropriate middleware. This is the main request handler.
@@ -304,7 +308,8 @@ Routes an HTTP request to the appropriate middleware. This is the main request h
 | `res` | `Object` | No | HTTP response object |
 
 **Notes:**
-- Decorates request and response objects with framework utilities
+- Decorates request and response objects with framework utilities and security validation
+- Validates CORS requests with simplified security logic
 - Emits `connect` event if listeners are registered
 - Emits `finish` event when response completes
 - Logs routing information
@@ -350,7 +355,7 @@ Returns the logger instance with methods: `log`, `clf`, `logRoute`, `logMiddlewa
 
 ## Request Object Decorations
 
-The `route()` method decorates request objects with the following properties:
+The `route()` method decorates request objects with the following properties including security validations:
 
 | Property | Type | Description |
 |----------|------|-------------|
@@ -370,15 +375,15 @@ The `route()` method decorates request objects with the following properties:
 
 ## Response Object Decorations
 
-The `route()` method decorates response objects with the following methods:
+The `route()` method decorates response objects with the following methods including security header validation:
 
 | Method | Description |
 |--------|-------------|
-| `res.error(status, body)` | Error response handler |
+| `res.error(status, body)` | Error response handler with security validation |
 | `res.header(name, value)` | Set response header (alias for `setHeader`) |
 | `res.json(arg, status, headers)` | Send JSON response |
-| `res.redirect(uri, perm)` | Redirect response |
-| `res.send(body, status, headers)` | Send response body |
-| `res.set(arg)` | Set multiple headers |
+| `res.redirect(uri, perm)` | Redirect response with URI validation |
+| `res.send(body, status, headers)` | Send response body with security headers |
+| `res.set(arg)` | Set multiple headers with type validation |
 | `res.status(arg)` | Set HTTP status code |
 | `res.locals` | `Object` - Local variables for the request |
