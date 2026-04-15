@@ -1067,35 +1067,35 @@ See `benchmarks/` directory for empirical performance measurements.
 
 ## Test Coverage
 
-Woodland maintains comprehensive test coverage with **340 tests passing** across 9 source modules. The framework achieves **100% line coverage** and **98.63% function coverage**.
+Woodland maintains comprehensive test coverage with **334 tests passing** across 9 source modules. The framework achieves **100% line coverage** and **99.31% function coverage**.
 
 ### Coverage Metrics
 
 ```
 File            | Line %  | Branch % | Funcs % | Status
 ----------------|---------|----------|---------|--------
-cli.js          | 100.00  |  100.00  |  85.71  | 🎯 Perfect line coverage
-config.js       | 100.00  |   89.19  | 100.00  | 🎯 Perfect line/function coverage
-constants.js    | 100.00  |  100.00  | 100.00  | 🎯 Perfect
-fileserver.js   | 100.00  |  90.91  | 100.00  | 🎯 Perfect line/function coverage
-logger.js       | 100.00  |   94.23  |  95.45  | 🎯 Perfect line coverage
-middleware.js   | 100.00  |  100.00  | 100.00  | 🎯 Perfect
-request.js      | 100.00  |  100.00  | 100.00  | 🎯 Perfect
-response.js     | 100.00  |   98.44  | 100.00  | 🎯 Perfect line/function coverage
-woodland.js     | 100.00  |   93.26  | 100.00  | 🎯 Perfect line/function coverage
+ cli-utils.js    | 100.00 |  100.00 |  100.00 | 🎯 Perfect
+ config.js       | 100.00 |   89.19 |  100.00 | 🎯 Perfect line/function coverage
+ constants.js    | 100.00 |  100.00 |  100.00 | 🎯 Perfect
+ fileserver.js   | 100.00 |    90.91 |  100.00 | 🎯 Perfect line/function coverage
+ logger.js       | 100.00 |   94.23 |   95.45 | 🎯 Perfect line coverage
+ middleware.js   | 100.00 |  100.00 |  100.00 | 🎯 Perfect
+ request.js      | 100.00 |   100.00 |  100.00 | 🎯 Perfect
+ response.js     | 100.00 |   98.44 |  100.00 | 🎯 Perfect line/function coverage
+ woodland.js     | 100.00 |   93.26 |  100.00 | 🎯 Perfect line/function coverage
 
-All files        | 100.00  |   96.36  |  98.63  | Overall coverage
+All files        | 100.00 |   96.28 |  99.31 | Overall coverage
 ```
 
-**Test Results:** 340 tests passing with 100% line coverage, 98.63% function coverage, and 96.36% branch coverage.
+**Test Results:** 334 tests passing with 100% line coverage, 98.63% function coverage, and 96.36% branch coverage.
 
 ### Coverage Status
 
 **Achieved:**
-- ✅ 340 passing tests
+- ✅ 334 passing tests
 - ✅ 100% line coverage across all source files
-- ✅ 98.63% function coverage across all source files
-- ✅ 96.36% branch coverage
+- ✅ 99.31% function coverage across all source files
+- ✅ 96.28% branch coverage
 - ✅ CLI module: comprehensive coverage
 - ✅ Security features: path traversal, CORS, input validation, XSS prevention
 
