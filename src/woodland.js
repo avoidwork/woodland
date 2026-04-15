@@ -263,7 +263,9 @@ export class Woodland extends EventEmitter {
 	 * @returns {Woodland} Returns self for chaining
 	 */
 	always(...args) {
-		for (let i = 0; i < args.length; i++) {
+		const argsLength = args.length;
+
+		for (let i = 0; i < argsLength; i++) {
 			this.#middleware.ignore(args[i]);
 		}
 

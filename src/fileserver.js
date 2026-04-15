@@ -127,8 +127,9 @@ export async function serve(config, req, res, arg, folder = process.cwd()) {
 		}
 
 		let result = EMPTY;
+		const fileCount = files.length;
 
-		for (let i = INT_0; i < files.length; i++) {
+		for (let i = INT_0; i < fileCount; i++) {
 			const file = files[i];
 			if (config.indexes.includes(file.name)) {
 				result = join(realFp, file.name);

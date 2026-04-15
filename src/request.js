@@ -82,8 +82,9 @@ export function extractIP(req) {
 	}
 
 	const forwardedIPs = forwardedHeader.split(COMMA);
+	const ipCount = forwardedIPs.length;
 
-	for (let i = INT_0; i < forwardedIPs.length; i++) {
+	for (let i = INT_0; i < ipCount; i++) {
 		const ip = forwardedIPs[i].trim();
 		if (isValidIP(ip)) {
 			return ip;
@@ -270,7 +271,9 @@ function validateUncompressedIPv6(ip) {
  * @returns {boolean} True if all groups are valid
  */
 function validateHexGroups(groups) {
-	for (let i = INT_0; i < groups.length; i++) {
+	const groupCount = groups.length;
+
+	for (let i = INT_0; i < groupCount; i++) {
 		/* node:coverage ignore next 3 */
 		if (!groups[i] || !HEX_GROUP_PATTERN.test(groups[i])) {
 			return false;
