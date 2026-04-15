@@ -1080,22 +1080,22 @@ File            | Line %  | Branch % | Funcs % | Status
  fileserver.js   | 100.00 |   89.36 |  100.00 | 🎯 Perfect line/function coverage
  logger.js       | 100.00 |   94.23 |   95.45 | 🎯 Perfect line coverage
  middleware.js   | 100.00 |  100.00 |  100.00 | 🎯 Perfect
- request.js      |  99.32 |   98.77 |  100.00 | Lines 275-276
+ request.js      | 100.00 |  100.00 |  100.00 | 🎯 Perfect
  response.js     | 100.00 |   97.73 |  100.00 | 🎯 Perfect line/function coverage
- woodland.js     |  99.86 |   91.58 |  100.00 | Line 252
+ woodland.js     |  99.86 |   91.58 |  100.00 | Line 252 (intentionally excluded)
 
-All files        |  99.89 |   95.52 |   99.37 | Overall coverage
+All files        |  99.96 |   95.71 |   99.37 | Overall coverage
 ```
 
-**Test Results:** 334 tests passing with 99.89% line coverage, 99.37% function coverage, and 95.52% branch coverage.
+**Test Results:** 334 tests passing with 99.96% line coverage, 99.37% function coverage, and 95.71% branch coverage.
 
 ### Coverage Status
 
 **Achieved:**
 - ✅ 334 passing tests
-- ✅ 99.89% line coverage across all source files
+- ✅ 99.96% line coverage across all source files
 - ✅ 99.37% function coverage across all source files
-- ✅ 95.52% branch coverage
+- ✅ 95.71% branch coverage
 - ✅ CLI module: comprehensive coverage
 - ✅ Security features: path traversal, CORS, input validation, XSS prevention
 

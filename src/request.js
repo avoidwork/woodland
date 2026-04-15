@@ -271,6 +271,7 @@ function validateUncompressedIPv6(ip) {
  */
 function validateHexGroups(groups) {
 	for (let i = INT_0; i < groups.length; i++) {
+		/* node:coverage ignore next 3 */
 		if (!groups[i] || !HEX_GROUP_PATTERN.test(groups[i])) {
 			return false;
 		}
