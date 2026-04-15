@@ -4,6 +4,54 @@
 
 Woodland is a high-performance HTTP framework for Node.js. This document provides context for AI agents working on the codebase.
 
+## Guiding Principles
+
+### Security-First Design
+
+1. **Default Deny**: All security features default to restrictive settings (e.g., empty CORS origins)
+2. **Input Validation**: Validate and sanitize all user input (headers, paths, parameters)
+3. **Output Encoding**: Escape all output to prevent XSS attacks
+4. **Path Traversal Protection**: Use `resolve()` + `startsWith()` for file path validation
+5. **Header Injection Prevention**: Type-check header values (string or number only)
+6. **Prototype Pollution Protection**: Use `Object.hasOwn()` before accessing object properties
+7. **Open Redirect Prevention**: Block protocol schemes and control characters in redirects
+
+### Code Quality Principles
+
+1. **DRY (Don't Repeat Yourself)**: Extract common logic into reusable functions
+2. **YAGNI (You Aren't Gonna Need It)**: Avoid adding features without clear requirements
+3. **SOLID Principles**:
+   - Single Responsibility: Each module has one purpose
+   - Open/Closed: Open for extension, closed for modification
+   - Liskov Substitution: Subtypes must be substitutable for base types
+   - Interface Segregation: Prefer small, focused interfaces
+   - Dependency Inversion: Depend on abstractions, not concretions
+4. **OWASP Compliance**: Follow OWASP Top 10 guidelines for web security
+
+### Performance Principles
+
+1. **Zero Overhead Security**: Security features must have minimal performance impact
+2. **LRU Caching**: Cache expensive operations (routes, permissions, ETags)
+3. **Iterator Pattern**: Use iterators for middleware chains to avoid array copies
+4. **Batch Operations**: Group header operations to reduce function calls
+5. **Event Loop Scheduling**: Use `process.nextTick()` for non-blocking operations
+
+### Testing Principles
+
+1. **100% Line Coverage**: All code paths must be tested
+2. **Security Testing**: Dedicated tests for security features
+3. **Edge Cases**: Test boundary conditions and error paths
+4. **Integration Tests**: Verify component interactions
+5. **No Flaky Tests**: All tests must be deterministic
+
+### Documentation Principles
+
+1. **Accuracy**: Documentation must match implementation exactly
+2. **Completeness**: Document all public APIs with JSDoc
+3. **Examples**: Provide working code examples
+4. **Security Notes**: Highlight security considerations
+5. **No Unverified Claims**: Remove performance claims without benchmarks
+
 ## Architecture
 
 ### Core Files
