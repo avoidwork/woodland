@@ -411,7 +411,7 @@ function getStatus(req, res) {
 	if (req.method !== GET) {
 		return INT_405;
 	}
-	if (req.allow.includes(GET) === false) {
+	if (!req.allow.includes(GET)) {
 		return INT_404;
 	}
 	return res.statusCode > INT_500 ? res.statusCode : INT_500;
@@ -428,7 +428,7 @@ function getStatusText(status) {
  * @param {number} [status=res.statusCode] - HTTP status code (coerces to 500 if < 400)
  */
 function error(req, res, status = res.statusCode) {
-	if (res.headersSent === false) {
+	if (!res.headersSent) {
 		if (status < INT_400) {
 			status = INT_500;
 		}
@@ -534,7 +534,7 @@ function send(
 	onReady,
 	onDone,
 ) {
-	if (res.headersSent === false) {
+	if (!res.headersSent) {
 		[body, status, headers] = onReady(req, res, body, status, headers);
 
 		const method = req.method;
@@ -549,7 +549,7 @@ function send(
 				writeHead(res, headers);
 				body
 					.on(ERROR, (_err) => {
-						if (res.headersSent === false) {
+						if (!res.headersSent) {
 							res.error(INT_500);
 						} else {
 							// Headers already sent, destroy stream and end response
@@ -561,7 +561,7 @@ function send(
 					})
 					.pipe(res);
 			} else {
-				if (res.headersSent === false) {
+				if (!res.headersSent) {
 					res.error(INT_416);
 				} else {
 					body.destroy();
@@ -1090,11 +1090,11 @@ function next(req, res, middleware, immediate = false) {
 	const handleError = (err, nextFn) => {
 		let obj = middleware.next();
 
-		while (obj.done === false && obj.value && obj.value.length !== ERROR_HANDLER_LENGTH) {
+		while (!obj.done && obj.value && obj.value.length !== ERROR_HANDLER_LENGTH) {
 			obj = middleware.next();
 		}
 
-		if (obj.done === false && obj.value) {
+		if (!obj.done && obj.value) {
 			obj.value(err, req, res, nextFn);
 		} else {
 			const newStatus = getStatus(req, res);
@@ -1109,7 +1109,7 @@ function next(req, res, middleware, immediate = false) {
 	const handleMiddleware = (nextFn) => {
 		const obj = middleware.next();
 
-		if (obj.done === false) {
+		if (!obj.done) {
 			const value = obj.value;
 			if (typeof value === FUNCTION) {
 				value(req, res, nextFn);
@@ -1149,7 +1149,7 @@ function next(req, res, middleware, immediate = false) {
  */
 function computeRoutes(middleware, ignored, uri, method, cache, override = false) {
 	const key = `${method}${DELIMITER}${uri}`;
-	const cached = override === false ? cache.get(key) : void 0;
+	const cached = !override ? cache.get(key) : void 0;
 	let result;
 
 	if (cached !== void 0) {
@@ -1247,7 +1247,7 @@ function createMiddlewareRegistry(methods, cache) {
  * @throws {TypeError} If method is invalid or HEAD
  */
 function validateMethod(method) {
-	if (method !== WILDCARD && NODE_METHODS.includes(method) === false) {
+	if (method !== WILDCARD && !NODE_METHODS.includes(method)) {
 		throw new TypeError(MSG_INVALID_HTTP_METHOD);
 	}
 
@@ -1290,7 +1290,7 @@ function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 
 	validateMethod(method);
 
-	if (middleware.has(method) === false) {
+	if (!middleware.has(method)) {
 		if (method !== WILDCARD) {
 			methods.add(method);
 		}
@@ -1302,7 +1302,7 @@ function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 	let lrpath = rpath,
 		lparams = false;
 
-	if (lrpath.includes(`${SLASH}${LEFT_PAREN}`) === false && lrpath.includes(`${SLASH}:`)) {
+	if (!lrpath.includes(`${SLASH}${LEFT_PAREN}`) && lrpath.includes(`${SLASH}:`)) {
 		lparams = true;
 		lrpath = extractPath(lrpath);
 	}
@@ -1948,7 +1948,7 @@ class Woodland extends EventEmitter {
 	 */
 	#allows(uri, override = false, isCorsRequest = false) {
 		const key = `perm${DELIMITER}${uri}${DELIMITER}${isCorsRequest ? INT_1 : INT_0}`;
-		let result = override === false ? this.#cache.get(key) : void 0;
+		let result = !override ? this.#cache.get(key) : void 0;
 
 		if (override || result === void 0) {
 			const methodSet = new Set();
@@ -2346,7 +2346,7 @@ class Woodland extends EventEmitter {
 
 		this.#logger.logRoute(req.parsed.pathname, req.method, req.ip);
 
-		if (req.cors === false && req.corsHost) {
+		if (!req.cors && req.corsHost) {
 			req.valid = false;
 			res.error(INT_403, new Error(STATUS_CODES[INT_403]));
 		} else if (req.allow.includes(method)) {
