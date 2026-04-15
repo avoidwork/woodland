@@ -389,15 +389,7 @@ export class Woodland extends EventEmitter {
 	 */
 	#hashArgs(args) {
 		return args
-			.map((i) => {
-				if (typeof i === STRING) {
-					return i;
-				}
-				if (i !== null && typeof i === "object" && !Object.hasOwn(i, "toString")) {
-					return EMPTY;
-				}
-				return JSON.stringify(i).replace(/^"|"$/g, EMPTY);
-			})
+			.map((i) => (typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i))
 			.join(HYPHEN);
 	}
 
