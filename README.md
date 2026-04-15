@@ -57,7 +57,7 @@ createServer(app.route).listen(3000, () => console.log("Server running at http:/
 - **No performance tradeoff** - Security features add ~0.02ms overhead per request
 - **Lightweight** - Minimal dependencies (6 packages)
 - **Dual module support** - CommonJS and ESM
-- **Production ready** - Graceful shutdown, health checks, monitoring support
+- **Production ready** - Event emitters for custom monitoring, examples for graceful shutdown
 
 **Built-in Security Features:**
 

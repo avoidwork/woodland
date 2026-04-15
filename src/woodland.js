@@ -27,7 +27,6 @@ import {
 	INT_403,
 	NO_SNIFF,
 	OPTIONS,
-	ORIGIN,
 	PATCH,
 	POST,
 	PUT,
