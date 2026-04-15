@@ -39,6 +39,7 @@ import {
 	TIMING_ALLOW_ORIGIN,
 	TRACE,
 	TRUE,
+	NUMBER,
 	WILDCARD,
 	X_CONTENT_TYPE_OPTIONS,
 	X_POWERED_BY,
@@ -273,7 +274,7 @@ export class Woodland extends EventEmitter {
 			const [key, value] = defaultHeaders[i];
 			if (
 				typeof key === STRING &&
-				(typeof value === STRING || typeof value === "number" || Array.isArray(value))
+				(typeof value === STRING || typeof value === NUMBER || Array.isArray(value))
 			) {
 				headersBatch[key] = value;
 			}
