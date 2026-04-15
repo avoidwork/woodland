@@ -1168,7 +1168,8 @@ function computeRoutes(middleware, ignored, uri, method, cache, override = false
 		}
 
 		let visible = INT_0;
-		for (let i = INT_0; i < result.middleware.length; i++) {
+		const middlewareLength = result.middleware.length;
+		for (let i = INT_0; i < middlewareLength; i++) {
 			if (!ignored.has(result.middleware[i])) {
 				visible++;
 			}
