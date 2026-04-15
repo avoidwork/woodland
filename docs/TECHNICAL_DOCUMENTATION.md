@@ -24,7 +24,7 @@ Woodland is a **security-first HTTP server framework** for Node.js that extends 
 
 **Key Differentiator:** Woodland delivers **security without performance tradeoff** - all security features (CORS validation, path traversal protection, IP validation, HTML escaping) add minimal overhead (~0.09ms per request).
 
-**Version:** 22.0.4
+**Version:** 22.0.4 (verify against package.json)
 
 ### Key Features
 
@@ -37,6 +37,7 @@ Woodland is a **security-first HTTP server framework** for Node.js that extends 
 - **X-Content-Type-Options** - Automatic `nosniff` header
 - **Header injection prevention** - Type validation for header values
 - **Prototype pollution protection** - Safe ETag generation with `Object.hasOwn()`
+- **404 security header removal** - Prevents information disclosure on 404 responses
 
 **Performance Features:**
 - **Middleware-based routing** with parameter extraction
@@ -137,7 +138,7 @@ graph TB
 - **Woodland Instance**: Central orchestrator extending EventEmitter
 - **Router**: Route matching and parameter extraction
 - **Middleware Manager**: Execution chain management
-- **Cache Layer**: LRU caching for routes and permissions
+- **Cache Layer**: LRU caching for routes and permissions (DELIMITER = `|`)
 - **Security Layer**: Input validation and path traversal protection
 - **File System**: Secure file serving with auto-indexing
 
@@ -315,6 +316,7 @@ class Woodland extends EventEmitter {
 - `#onReady(req, res, body, status, headers)` - Handle response ready event
 - `#onSend(req, res, body, status, headers)` - Handle response send event
 - `#onDone(req, res, body, headers)` - Handle response done event
+- `#remove404Headers(res)` - Remove security headers from 404 response
 - `#isHashableMethod(method)` - Check if method can be hashed for ETags
 - `#etagsEnabled()` - Check if ETags are enabled
 - `#hashArgs(args)` - Hash arguments for ETag generation
@@ -393,9 +395,9 @@ graph LR
 
 ### Formal Mathematical Model
 
-Woodland's behavior can be formally described using mathematical notation. This section provides a rigorous foundation for understanding the framework's operations, with empirical validation where applicable.
+Woodland's behavior can be formally described using mathematical notation. This section provides a rigorous foundation for understanding the framework's operations.
 
-> **Note**: Mathematical complexity claims are supported by benchmark data from `benchmarks/utility.js` and `benchmarks/routing.js`. See [Performance Characteristics](#performance-characteristics) for empirical results.
+> **Note**: For empirical performance measurements, see `benchmarks/` directory.
 
 #### Request-Response Function
 
@@ -491,13 +493,12 @@ v & \text{if } t - t_{\text{insert}} < \text{TTL} \\
 \end{cases}
 $$
 
-Cache key generation: $\mathcal{K}_{\text{key}}(method, uri) = method \parallel \text{":"} \parallel uri$ (where DELIMITER is `:`)
+Cache key generation: $\mathcal{K}_{\text{key}}(method, uri) = method \parallel \text{DELIMITER} \parallel uri$ (where DELIMITER is defined in constants.js)
 
 **Complexity**:
 - **Lookup**: $O(1)$ (LRU hash table)
 - **Insert**: $O(1)$ amortized
 - **Eviction**: $O(1)$ (LRU list operations)
-- **Empirical**: ~0.001ms for cache hit (benchmarked)
 
 Cache types:
 - **Route Cache**: LRU via `tiny-lru` (size=1000, TTL=10s)
@@ -812,6 +813,13 @@ if (typeof origin === STRING && origin.length > 0) {
 if (i !== null && typeof i === "object" && !Object.hasOwn(i, "toString")) {
 	return EMPTY;
 }
+
+// 404 security header removal in #onSend()
+if (status === 404) {
+	delete headers[ALLOW];
+	delete headers[ACCESS_CONTROL_ALLOW_METHODS];
+	this.#remove404Headers(res);
+}
 ```
 
 ##### Comprehensive Input Validation
@@ -1005,7 +1013,7 @@ Woodland includes comprehensive security tests covering:
 - **Injection Prevention**: Header injection prevention, comprehensive input validation and output encoding
 - **Access Control**: Strict file system and CORS access controls with origin validation
 - **Secure Configuration**: Secure defaults with flexibility for additional hardening
-- **Error Handling**: Secure error responses without information disclosure
+- **Error Handling**: Secure error responses without information disclosure, 404 security header removal
 - **Prototype Pollution Protection**: Safe ETag generation with `Object.hasOwn()` validation
 
 While lightweight by design, Woodland provides the security foundation needed for production applications. Additional security measures (rate limiting, advanced headers, authentication) can be layered on top based on specific application requirements.
@@ -1027,24 +1035,12 @@ While lightweight by design, Woodland provides the security foundation needed fo
 
 | Security Feature | Overhead per Request |
 |-----------------|---------------------|
-| CORS Validation | ~0.005ms (Set lookup) |
-| Path Traversal Check | ~0.01ms (path.resolve + startsWith) |
-| IP Validation | ~0.003ms (regex pattern match) |
-| HTML Escaping | ~0.002ms (string replace) |
-| **Total Security Overhead** | **~0.02ms** |
+| CORS Validation | O(1) (Set lookup) |
+| Path Traversal Check | O(d) (path.resolve + startsWith) |
+| IP Validation | O(1) (regex pattern match) |
+| HTML Escaping | O(s) (string replace) |
 
-### Benchmark Comparison
-
-Woodland delivers security without the performance penalty seen in other frameworks:
-
-| Framework | Security Approach | Mean Response Time | Security Features |
-|-----------|------------------|-------------------|-------------------|
-| **Woodland** | **Built-in** | **0.1866ms** | **CORS, path traversal, XSS, IP validation** |
-| Fastify | Requires plugins | 0.1491ms | Additional middleware overhead |
-| Express | Requires middleware | 0.1956ms | Additional middleware overhead |
-| Node.js HTTP | Manual implementation | 0.1899ms | Developer responsibility |
-
-**Conclusion:** Woodland provides ~25% better performance than Express while delivering superior security out of the box.
+See `benchmarks/` directory for empirical performance measurements.
 
 ---
 
@@ -1072,7 +1068,7 @@ Woodland delivers security without the performance penalty seen in other framewo
 
 ## Test Coverage
 
-Woodland maintains comprehensive test coverage with **339 tests passing** across 9 source modules. The framework achieves **100% line coverage** and **100% function coverage** across all modules.
+Woodland maintains comprehensive test coverage with **339 tests passing** across 9 source modules. The framework achieves **99.82% line coverage** and **98.64% function coverage**.
 
 ### Coverage Metrics
 
@@ -1082,25 +1078,25 @@ File            | Line %  | Branch % | Funcs % | Status
 cli.js          | 100.00  |  100.00  |  85.71  | 🎯 Perfect line coverage
 config.js       | 100.00  |   89.19  | 100.00  | 🎯 Perfect line/function coverage
 constants.js    | 100.00  |  100.00  | 100.00  | 🎯 Perfect
-fileserver.js   | 100.00  |  90.20  | 100.00  | 🎯 Perfect line/function coverage
+fileserver.js   | 100.00  |  90.91  | 100.00  | 🎯 Perfect line/function coverage
 logger.js       | 100.00  |   94.23  |  95.45  | 🎯 Perfect line coverage
 middleware.js   | 100.00  |  100.00  | 100.00  | 🎯 Perfect
 request.js      | 100.00  |  100.00  | 100.00  | 🎯 Perfect
-response.js     | 100.00  |   98.31  | 100.00  | 🎯 Perfect line/function coverage
-woodland.js     | 100.00  |   94.51  | 100.00  | 🎯 Perfect line/function coverage
+response.js     | 100.00  |   98.44  | 100.00  | 🎯 Perfect line/function coverage
+woodland.js     |  99.29  |   90.91  | 100.00  | Near-perfect coverage
 
-All files         100.00    96.43      98.64
+All files        |  99.82  |   95.99  |  98.64  | Overall coverage
 ```
 
-**Test Results:** 339 tests passing across 9 source modules with 100% line coverage.
+**Test Results:** 339 tests passing with 99.82% line coverage, 98.64% function coverage, and 95.99% branch coverage.
 
 ### Coverage Status
 
 **Achieved:**
 - ✅ 339 passing tests
-- ✅ 100% line coverage across all source files
-- ✅ 100% function coverage across all source files
-- ✅ 96.43% branch coverage
+- ✅ 99.82% line coverage across all source files
+- ✅ 98.64% function coverage across all source files
+- ✅ 95.99% branch coverage
 - ✅ CLI module: comprehensive coverage
 - ✅ Security features: path traversal, CORS, input validation, XSS prevention
 
@@ -1742,12 +1738,7 @@ app.ignore(fn);
 app.list(method, type);
 
 // Response utilities
-res.writeHead(status, headers); // Write response headers
-
-// Event handlers (internal)
-app.onReady(req, res, body, status, headers);
-app.onDone(req, res, body, headers);
-app.onSend(req, res, body, status, headers);
+writeHead(res, headers); // Write response headers (imported from response.js)
 
 // ETag generation
 app.etag(method, ...values);
