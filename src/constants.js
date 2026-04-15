@@ -148,6 +148,7 @@ export const NEWLINE = "\n";
 export const ROUTE_PATTERN = "(/.*)?";
 export const MSG_USE_MIDDLEWARE_REQUIRED =
 	"useMiddleware is required or config.use must be a function";
+export const EXTRACT_PATH_REPLACE = "(?<$1>[^/]+)";
 
 // =============================================================================
 // LOGGING & DEBUGGING
@@ -262,6 +263,10 @@ export const VALID_LOG_LEVELS = new Set([DEBUG, INFO, WARN, ERROR, CRITICAL, ALE
 export const HTTP_PROTOCOL_PATTERN = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
 export const CONTROL_CHAR_PATTERN = /[\r\n\t]/;
 export const QUANTIFIER_PATTERN = /([.*+?^${}()|[\\]])\1{3,}/;
+export const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+export const IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/;
+export const IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i;
+export const HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
 
 // =============================================================================
 // HTML ESCAPE MAPPING

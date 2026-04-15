@@ -3,6 +3,8 @@ import {
 	COMMA,
 	DOUBLE_COLON,
 	EMPTY,
+	EXTRACT_PATH_REPLACE,
+	HEX_GROUP_PATTERN,
 	HTTP_PREFIX,
 	INT_0,
 	INT_1,
@@ -13,6 +15,9 @@ import {
 	INT_5,
 	INT_8,
 	INT_8000,
+	IPV4_MAPPED_PATTERN,
+	IPV4_PATTERN,
+	IPV6_CHAR_PATTERN,
 	LOCALHOST,
 	ORIGIN,
 	PERCENT,
@@ -107,7 +112,7 @@ export function params(req, getParams) {
 	const keys = Object.keys(groups);
 	const keyCount = keys.length;
 
-	for (let i = 0; i < keyCount; i++) {
+	for (let i = INT_0; i < keyCount; i++) {
 		const key = keys[i];
 		const value = groups[key];
 
@@ -158,13 +163,8 @@ export function parse(arg) {
  * @returns {string} Regex pattern string
  */
 export function extractPath(path) {
-	return path.replace(/:([a-zA-Z_]\w*)/g, "(?<$1>[^/]+)");
+	return path.replace(/:([a-zA-Z_]\w*)/g, EXTRACT_PATH_REPLACE);
 }
-
-const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/,
-	IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/,
-	IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i,
-	HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
 
 /**
  * Validates IPv4 address format
@@ -177,7 +177,7 @@ function isValidIPv4(ip) {
 		return false;
 	}
 
-	for (let i = 1; i < INT_5; i++) {
+	for (let i = INT_1; i < INT_5; i++) {
 		const num = parseInt(match[i], INT_10);
 		if (num > INT_255) {
 			return false;
