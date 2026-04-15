@@ -37,7 +37,7 @@ import { coerce } from "tiny-coerce";
  * @returns {boolean} True if CORS is allowed
  */
 export function cors(req, origins) {
-	if (origins.size === 0) {
+	if (origins.size === INT_0) {
 		return false;
 	}
 
