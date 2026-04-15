@@ -139,12 +139,15 @@ const INDEX_HTM = "index.htm";
 const INDEX_HTML = "index.html";
 const EXTENSIONS = "extensions";
 const PARENT_DIR = "..";
+const CURRENT_DIR = ".";
 const BACKSLASH = "\\";
 const NEWLINE = "\n";
 const ROUTE_PATTERN = "(/.*)?";
 const MSG_USE_MIDDLEWARE_REQUIRED =
 	"useMiddleware is required or config.use must be a function";
 const EXTRACT_PATH_REPLACE = "(?<$1>[^/]+)";
+const TPL_DIR = "tpl";
+const INDEX_HTML_FILE = "index.html";
 
 // =============================================================================
 // LOGGING & DEBUGGING
@@ -1620,8 +1623,8 @@ function timeOffset(arg = INT_0) {
 	const minutesStr = String(minutes).padStart(INT_2, STRING_0);
 
 	return `${sign}${hoursStr}${minutesStr}`;
-}const __dirname$1 = fileURLToPath(new URL(".", import.meta.url));
-const html = readFileSync(join(__dirname$1, "..", "tpl", "index.html"), {
+}const __dirname$1 = fileURLToPath(new URL(CURRENT_DIR, import.meta.url));
+const html = readFileSync(join(__dirname$1, PARENT_DIR, TPL_DIR, INDEX_HTML_FILE), {
 	encoding: UTF8,
 });
 

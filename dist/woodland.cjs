@@ -156,12 +156,15 @@ const INDEX_HTM = "index.htm";
 const INDEX_HTML = "index.html";
 const EXTENSIONS = "extensions";
 const PARENT_DIR = "..";
+const CURRENT_DIR = ".";
 const BACKSLASH = "\\";
 const NEWLINE = "\n";
 const ROUTE_PATTERN = "(/.*)?";
 const MSG_USE_MIDDLEWARE_REQUIRED =
 	"useMiddleware is required or config.use must be a function";
 const EXTRACT_PATH_REPLACE = "(?<$1>[^/]+)";
+const TPL_DIR = "tpl";
+const INDEX_HTML_FILE = "index.html";
 
 // =============================================================================
 // LOGGING & DEBUGGING
@@ -1649,8 +1652,8 @@ function timeOffset(arg = INT_0) {
 	return `${sign}${hoursStr}${minutesStr}`;
 }
 
-const __dirname$1 = node_url.fileURLToPath(new URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href))));
-const html = node_fs.readFileSync(node_path.join(__dirname$1, "..", "tpl", "index.html"), {
+const __dirname$1 = node_url.fileURLToPath(new URL(CURRENT_DIR, (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('woodland.cjs', document.baseURI).href))));
+const html = node_fs.readFileSync(node_path.join(__dirname$1, PARENT_DIR, TPL_DIR, INDEX_HTML_FILE), {
 	encoding: UTF8,
 });
 
