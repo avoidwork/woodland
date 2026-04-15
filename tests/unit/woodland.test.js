@@ -844,5 +844,46 @@ describe("woodland", () => {
 			app.route(req, res);
 			assert.ok(headersSet["access-control-allow-methods"] || headersSet["allow"]);
 		});
+
+		it("should set ACCESS_CONTROL_ALLOW_HEADERS for OPTIONS with corsExpose", () => {
+			const app = woodland({
+				origins: ["http://other.com"],
+				corsExpose: "x-custom-header",
+			});
+			app.options("/test", (req, res) => res.status(204).send(""));
+
+			const req = {
+				method: "OPTIONS",
+				headers: {
+					host: "example.com",
+					origin: "http://other.com",
+					"access-control-request-headers": "x-custom-header",
+				},
+				url: "/test",
+				socket: null,
+			};
+			let headersSet = {};
+			const res = {
+				statusCode: 204,
+				headersSent: false,
+				setHeader: (name, value) => {
+					headersSet[name] = value;
+				},
+				set: (headers) => {
+					for (const [k, v] of Object.entries(headers)) {
+						headersSet[k] = v;
+					}
+				},
+				getHeader: () => void 0,
+				on: () => {},
+				removeHeader: () => {},
+				header: () => {},
+				writeHead: () => {},
+				end: () => {},
+			};
+
+			app.route(req, res);
+			assert.strictEqual(headersSet["access-control-allow-headers"], "x-custom-header");
+		});
 	});
 });
