@@ -122,7 +122,7 @@ const __filename = fileURLToPath(import.meta.url);
 /* node:coverage ignore next 6 */
 if (process.argv[1]) {
 	const scriptPath = resolve(process.argv[1]);
-	if (scriptPath === __filename || basename(scriptPath) === WOODLAND) {
+	if (scriptPath === __filename || basename(scriptPath) === "cli.js") {
 		main();
 	}
 }
