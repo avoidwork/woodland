@@ -1835,7 +1835,7 @@ class Woodland extends EventEmitter {
 		});
 		this.#middleware = createMiddlewareRegistry(this.#methods, this.#cache);
 
-		if (this.#etags) {
+		if (this.#etags !== null) {
 			this.get(this.#etags.middleware).ignore(this.#etags.middleware);
 		}
 
@@ -2145,15 +2145,6 @@ class Woodland extends EventEmitter {
 	}
 
 	/**
-	 * Removes security headers from 404 response
-	 * @param {Object} res - HTTP response object
-	 */
-	#remove404Headers(res) {
-		res.removeHeader(ALLOW);
-		res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
-	}
-
-	/**
 	 * Handles response ready event
 	 * @param {Object} req - HTTP request object
 	 * @param {Object} res - HTTP response object
@@ -2186,7 +2177,8 @@ class Woodland extends EventEmitter {
 		if (status === 404) {
 			delete headers[ALLOW];
 			delete headers[ACCESS_CONTROL_ALLOW_METHODS];
-			this.#remove404Headers(res);
+			res.removeHeader(ALLOW);
+			res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
 		}
 
 		return [body, status, headers];
@@ -2269,7 +2261,7 @@ class Woodland extends EventEmitter {
 	#handleAllowedRoute(req, res, method) {
 		const result = this.#middleware.routes(req.parsed.pathname, method);
 
-		if (result.params && result.getParams) {
+		if (result.params) {
 			params(req, result.getParams);
 		}
 
