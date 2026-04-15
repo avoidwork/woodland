@@ -229,6 +229,33 @@ export function createMiddlewareRegistry(methods, cache) {
 }
 
 /**
+ * Validates HTTP method for middleware registration
+ * @param {string} method - HTTP method to validate
+ * @throws {TypeError} If method is invalid or HEAD
+ */
+function validateMethod(method) {
+	if (method !== WILDCARD && NODE_METHODS.includes(method) === false) {
+		throw new TypeError(MSG_INVALID_HTTP_METHOD);
+	}
+
+	if (method === HEAD) {
+		throw new TypeError(MSG_CANNOT_SET_HEAD_ROUTE);
+	}
+}
+
+/**
+ * Validates route pattern for security issues
+ * @param {string} path - Route path to validate
+ * @throws {TypeError} If pattern has potential ReDoS vulnerability
+ */
+function validateRoutePattern(path) {
+	/* node:coverage ignore next 3 */
+	if (QUANTIFIER_PATTERN.test(path)) {
+		throw new TypeError(MSG_REDOS_VULNERABILITY);
+	}
+}
+
+/**
  * Registers middleware for a route
  * @param {Map} middleware - Map of middleware by method
  * @param {Set} ignored - Set of ignored middleware functions
@@ -248,13 +275,7 @@ export function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 
 	const method = typeof fn[fn.length - 1] === STRING ? fn.pop().toUpperCase() : GET;
 
-	if (method !== WILDCARD && NODE_METHODS.includes(method) === false) {
-		throw new TypeError(MSG_INVALID_HTTP_METHOD);
-	}
-
-	if (method === HEAD) {
-		throw new TypeError(MSG_CANNOT_SET_HEAD_ROUTE);
-	}
+	validateMethod(method);
 
 	if (middleware.has(method) === false) {
 		if (method !== WILDCARD) {
@@ -273,14 +294,9 @@ export function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 		lrpath = extractPath(lrpath);
 	}
 
+	validateRoutePattern(lrpath);
+
 	const current = mmethod.get(lrpath) ?? { handlers: [] };
-
-	// Validate route pattern before mutating handlers
-	/* node:coverage ignore next 3 */
-	if (QUANTIFIER_PATTERN.test(lrpath)) {
-		throw new TypeError(MSG_REDOS_VULNERABILITY);
-	}
-
 	current.handlers.push(...fn);
 	mmethod.set(lrpath, {
 		handlers: current.handlers,

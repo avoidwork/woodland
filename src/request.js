@@ -167,39 +167,39 @@ const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/,
 	HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
 
 /**
- * Validates if an IP address is properly formatted
- * @param {string} ip - IP address to validate
- * @returns {boolean} True if IP is valid format
+ * Validates IPv4 address format
+ * @param {string} ip - IPv4 address to validate
+ * @returns {boolean} True if valid IPv4
  */
-export function isValidIP(ip) {
-	if (!ip || typeof ip !== STRING) {
+function isValidIPv4(ip) {
+	const match = IPV4_PATTERN.exec(ip);
+	if (!match) {
 		return false;
 	}
 
-	if (ip.indexOf(COLON) === -1) {
-		const match = IPV4_PATTERN.exec(ip);
-
-		if (!match) {
+	for (let i = 1; i < INT_5; i++) {
+		const num = parseInt(match[i], INT_10);
+		if (num > INT_255) {
 			return false;
 		}
-
-		for (let i = 1; i < INT_5; i++) {
-			const num = parseInt(match[i], INT_10);
-			if (num > INT_255) {
-				return false;
-			}
-		}
-
-		return true;
 	}
 
+	return true;
+}
+
+/**
+ * Validates IPv6 address format
+ * @param {string} ip - IPv6 address to validate
+ * @returns {boolean} True if valid IPv6
+ */
+function isValidIPv6(ip) {
 	if (!IPV6_CHAR_PATTERN.test(ip)) {
 		return false;
 	}
 
 	const ipv4MappedMatch = IPV4_MAPPED_PATTERN.exec(ip);
 	if (ipv4MappedMatch) {
-		return isValidIP(ipv4MappedMatch[1]);
+		return isValidIPv4(ipv4MappedMatch[1]);
 	}
 
 	if (ip === DOUBLE_COLON) {
@@ -210,70 +210,87 @@ export function isValidIP(ip) {
 	const isCompressed = doubleColonIndex !== -1;
 
 	if (isCompressed) {
-		if (ip.indexOf(DOUBLE_COLON, doubleColonIndex + INT_2) !== -1) {
-			return false;
-		}
-
-		if (
-			(doubleColonIndex > INT_0 && ip.charAt(doubleColonIndex - INT_1) === COLON) ||
-			(doubleColonIndex + INT_2 < ip.length && ip.charAt(doubleColonIndex + INT_2) === COLON)
-		) {
-			return false;
-		}
-
-		const beforeDoubleColon = ip.substring(INT_0, doubleColonIndex);
-		const afterDoubleColon = ip.substring(doubleColonIndex + INT_2);
-
-		let leftGroups;
-		if (beforeDoubleColon) {
-			leftGroups = beforeDoubleColon.split(COLON);
-		} else {
-			leftGroups = [];
-		}
-
-		let rightGroups;
-		if (afterDoubleColon) {
-			rightGroups = afterDoubleColon.split(COLON);
-		} else {
-			rightGroups = [];
-		}
-
-		const nonEmptyLeft = leftGroups.filter((g) => g !== EMPTY);
-		const nonEmptyRight = rightGroups.filter((g) => g !== EMPTY);
-		const totalGroups = nonEmptyLeft.length + nonEmptyRight.length;
-
-		if (totalGroups >= INT_8) {
-			return false;
-		}
-
-		/* node:coverage ignore next 5 */
-		for (let i = INT_0; i < nonEmptyLeft.length; i++) {
-			if (!HEX_GROUP_PATTERN.test(nonEmptyLeft[i])) {
-				return false;
-			}
-		}
-
-		/* node:coverage ignore next 5 */
-		for (let i = INT_0; i < nonEmptyRight.length; i++) {
-			if (!HEX_GROUP_PATTERN.test(nonEmptyRight[i])) {
-				return false;
-			}
-		}
-
-		return true;
-	} else {
-		const groups = ip.split(COLON);
-		if (groups.length !== INT_8) {
-			return false;
-		}
-
-		/* node:coverage ignore next 5 */
-		for (let i = INT_0; i < INT_8; i++) {
-			if (!groups[i] || !HEX_GROUP_PATTERN.test(groups[i])) {
-				return false;
-			}
-		}
-
-		return true;
+		return validateCompressedIPv6(ip, doubleColonIndex);
 	}
+
+	return validateUncompressedIPv6(ip);
+}
+
+/**
+ * Validates compressed IPv6 address (with ::)
+ * @param {string} ip - IPv6 address
+ * @param {number} doubleColonIndex - Position of ::
+ * @returns {boolean} True if valid
+ */
+function validateCompressedIPv6(ip, doubleColonIndex) {
+	if (ip.indexOf(DOUBLE_COLON, doubleColonIndex + INT_2) !== -1) {
+		return false;
+	}
+
+	if (
+		(doubleColonIndex > INT_0 && ip.charAt(doubleColonIndex - INT_1) === COLON) ||
+		(doubleColonIndex + INT_2 < ip.length && ip.charAt(doubleColonIndex + INT_2) === COLON)
+	) {
+		return false;
+	}
+
+	const beforeDoubleColon = ip.substring(INT_0, doubleColonIndex);
+	const afterDoubleColon = ip.substring(doubleColonIndex + INT_2);
+
+	const leftGroups = beforeDoubleColon ? beforeDoubleColon.split(COLON) : [];
+	const rightGroups = afterDoubleColon ? afterDoubleColon.split(COLON) : [];
+
+	const totalGroups =
+		leftGroups.filter((g) => g !== EMPTY).length + rightGroups.filter((g) => g !== EMPTY).length;
+
+	if (totalGroups >= INT_8) {
+		return false;
+	}
+
+	return validateHexGroups(leftGroups) && validateHexGroups(rightGroups);
+}
+
+/**
+ * Validates uncompressed IPv6 address
+ * @param {string} ip - IPv6 address
+ * @returns {boolean} True if valid
+ */
+function validateUncompressedIPv6(ip) {
+	const groups = ip.split(COLON);
+	if (groups.length !== INT_8) {
+		return false;
+	}
+
+	return validateHexGroups(groups);
+}
+
+/**
+ * Validates hex groups in IPv6 address
+ * @param {Array} groups - Array of hex group strings
+ * @returns {boolean} True if all groups are valid
+ */
+function validateHexGroups(groups) {
+	for (let i = INT_0; i < groups.length; i++) {
+		if (!groups[i] || !HEX_GROUP_PATTERN.test(groups[i])) {
+			return false;
+		}
+	}
+	return true;
+}
+
+/**
+ * Validates if an IP address is properly formatted
+ * @param {string} ip - IP address to validate
+ * @returns {boolean} True if IP is valid format
+ */
+export function isValidIP(ip) {
+	if (!ip || typeof ip !== STRING) {
+		return false;
+	}
+
+	if (ip.indexOf(COLON) === -1) {
+		return isValidIPv4(ip);
+	}
+
+	return isValidIPv6(ip);
 }

@@ -58,6 +58,66 @@ const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
 	}, {});
 
 /**
+ * Parses range header value into start and end positions
+ * @param {string} rangeHeader - Range header value
+ * @param {number} size - Total size
+ * @returns {Object|null} Range object with start/end or null if invalid
+ */
+function parseRangeHeader(rangeHeader, size) {
+	if (!rangeHeader || !rangeHeader.startsWith(KEY_BYTES)) {
+		return null;
+	}
+
+	const rangePart = rangeHeader.substring(KEY_BYTES.length);
+	const commaIndex = rangePart.indexOf(COMMA);
+	const rangeSpec = commaIndex === -1 ? rangePart : rangePart.substring(0, commaIndex);
+	const hyphenIndex = rangeSpec.indexOf(HYPHEN);
+	if (hyphenIndex === -1) {
+		return null;
+	}
+
+	const startStr = rangeSpec.substring(0, hyphenIndex);
+	const endStr = rangeSpec.substring(hyphenIndex + 1);
+	let start, end;
+
+	if (startStr === EMPTY) {
+		if (endStr === EMPTY) {
+			return null;
+		}
+		end = parseInt(endStr, INT_10);
+		if (isNaN(end)) {
+			return null;
+		}
+		start = size - end;
+		end = size - INT_1;
+	} else {
+		start = parseInt(startStr, INT_10);
+		if (isNaN(start)) {
+			return null;
+		}
+
+		if (endStr !== EMPTY) {
+			end = parseInt(endStr, INT_10);
+			if (isNaN(end)) {
+				return null;
+			}
+		} else {
+			end = size - INT_1;
+		}
+	}
+
+	const startValid = !isNaN(start) && start >= INT_0;
+	const endValid = !isNaN(end) && end < size;
+	const rangeOrderValid = start <= end;
+
+	if (startValid && endValid && rangeOrderValid) {
+		return { start, end };
+	}
+
+	return null;
+}
+
+/**
  * Handles partial content headers for HTTP range requests
  * @param {Object} req - The HTTP request object
  * @param {Object} res - The HTTP response object
@@ -69,72 +129,25 @@ const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
  */
 export function partialHeaders(req, res, size, status, headers = {}, options = {}) {
 	const rangeHeader = req.headers.range;
-	if (!rangeHeader || !rangeHeader.startsWith(KEY_BYTES)) {
-		return [headers, options];
-	}
-
-	const rangePart = rangeHeader.substring(KEY_BYTES.length);
-	const commaIndex = rangePart.indexOf(COMMA);
-	const rangeSpec = commaIndex === -1 ? rangePart : rangePart.substring(0, commaIndex);
-	const hyphenIndex = rangeSpec.indexOf(HYPHEN);
-	if (hyphenIndex === -1) {
-		return [headers, options];
-	}
-
-	const startStr = rangeSpec.substring(0, hyphenIndex);
-	const endStr = rangeSpec.substring(hyphenIndex + 1);
-	let start, end;
-
-	if (startStr === EMPTY) {
-		if (endStr === EMPTY) {
-			return [headers, options];
-		}
-		end = parseInt(endStr, INT_10);
-		if (isNaN(end)) {
-			return [headers, options];
-		}
-		start = size - end;
-		end = size - INT_1;
-	} else {
-		start = parseInt(startStr, INT_10);
-		if (isNaN(start)) {
-			return [headers, options];
-		}
-
-		if (endStr !== EMPTY) {
-			end = parseInt(endStr, INT_10);
-			if (isNaN(end)) {
-				return [headers, options];
-			}
-		} else {
-			end = size - INT_1;
-		}
-	}
-
-	// Check if range is valid
-	const startValid = !isNaN(start) && start >= INT_0;
-	const endValid = !isNaN(end) && end < size;
-	const rangeOrderValid = start <= end;
-	const rangeValid = startValid && endValid && rangeOrderValid;
+	const range = parseRangeHeader(rangeHeader, size);
 
 	res.removeHeader(CONTENT_RANGE);
 	res.removeHeader(CONTENT_LENGTH);
 	res.removeHeader(ETAG);
 	delete headers.etag;
 
-	if (rangeValid) {
-		const rangeOptions = { start, end };
-		req.range = rangeOptions;
-		const contentLength = end - start + 1;
+	if (range) {
+		const contentLength = range.end - range.start + 1;
 
-		headers[CONTENT_RANGE] = BYTES_SPACE + `${start}-${end}/${size}`;
+		headers[CONTENT_RANGE] = BYTES_SPACE + `${range.start}-${range.end}/${size}`;
 		headers[CONTENT_LENGTH] = contentLength;
 
 		res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
 		res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
 		res.statusCode = INT_206;
 
-		return [headers, rangeOptions];
+		req.range = range;
+		return [headers, range];
 	}
 
 	headers[CONTENT_RANGE] = BYTES_SPACE + `*/${size}`;

@@ -21,7 +21,6 @@ import {
 	PARENT_DIR,
 	SLASH,
 	TEXT_HTML,
-	TOKEN_TITLE,
 	UTF8,
 	COLON,
 } from "./constants.js";
@@ -33,6 +32,22 @@ const html = readFileSync(join(__dirname, "..", "tpl", "index.html"), {
 });
 
 /**
+ * Generates HTML list item for a file entry
+ * @param {Object} file - File object from fs.readdir
+ * @returns {string} HTML list item
+ */
+function renderFileItem(file) {
+	const fileName = file.name;
+	const safeName = escapeHtml(fileName);
+	const safeHref = encodeURIComponent(fileName);
+	const isDir = file.isDirectory();
+
+	return isDir
+		? `    <li><a href="${safeHref}/" rel="${COLLECTION}">${safeName}/</a></li>`
+		: `    <li><a href="${safeHref}" rel="${ITEM}">${safeName}</a></li>`;
+}
+
+/**
  * Generates an HTML index page for directory listings
  * @param {string} [title=""] - The title for the index page
  * @param {Array} [files=[]] - Array of file objects from fs.readdir with withFileTypes: true
@@ -40,36 +55,12 @@ const html = readFileSync(join(__dirname, "..", "tpl", "index.html"), {
  */
 export function autoIndex(title = EMPTY, files = []) {
 	const safeTitle = escapeHtml(title);
+	const parentDirItem = `    <li><a href="${PARENT_DIR}" rel="${COLLECTION}">${PARENT_DIR}/</a></li>`;
 
-	if (files.length === INT_0) {
-		return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) => {
-			return key === TOKEN_TITLE
-				? safeTitle
-				: `    <li><a href="${PARENT_DIR}" rel="${COLLECTION}">${PARENT_DIR}/</a></li>`;
-		});
-	}
+	const fileItems = files.map((file) => renderFileItem(file));
+	const safeFiles = [parentDirItem, ...fileItems].join(NEWLINE);
 
-	const listItems = Array.from({ length: files.length + INT_1 });
-	listItems[INT_0] = `    <li><a href="${PARENT_DIR}" rel="${COLLECTION}">${PARENT_DIR}/</a></li>`;
-
-	const fileCount = files.length;
-	for (let i = INT_0; i < fileCount; i++) {
-		const file = files[i];
-		const fileName = file.name;
-		const safeName = escapeHtml(fileName);
-		const safeHref = encodeURIComponent(fileName);
-		const isDir = file.isDirectory();
-
-		listItems[i + INT_1] = isDir
-			? `    <li><a href="${safeHref}/" rel="${COLLECTION}">${safeName}/</a></li>`
-			: `    <li><a href="${safeHref}" rel="${ITEM}">${safeName}</a></li>`;
-	}
-
-	const safeFiles = listItems.join(NEWLINE);
-
-	return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) =>
-		key === TOKEN_TITLE ? safeTitle : safeFiles,
-	);
+	return html.replace(/\$\{\s*FILES\s*\}/g, safeFiles).replace(/\$\{\s*TITLE\s*\}/g, safeTitle);
 }
 
 /**

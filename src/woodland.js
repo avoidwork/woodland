@@ -110,49 +110,67 @@ export class Woodland extends EventEmitter {
 		super();
 
 		const validated = validateConfig(config);
-		const {
-			autoIndex,
-			cacheSize,
-			cacheTTL,
-			charset,
-			corsExpose,
-			defaultHeaders,
-			digit,
-			etags,
-			indexes,
-			logging,
-			origins,
-			time,
-		} = validated;
 
+		this.#autoIndex = validated.autoIndex;
+		this.#charset = validated.charset;
+		this.#corsExpose = validated.corsExpose;
+		this.#defaultHeaders = this.#buildFinalHeaders(validated.defaultHeaders, validated.silent);
+		this.#digit = validated.digit;
+		this.#etags = validated.etags
+			? Object.freeze(etag({ cacheSize: validated.cacheSize, cacheTTL: validated.cacheTTL }))
+			: null;
+		this.#indexes = [...validated.indexes];
+		this.#logging = Object.freeze(validateLogging(validated.logging));
+		this.#origins = new Set(validated.origins);
+		this.#time = validated.time;
+		this.#cache = lru(validated.cacheSize, validated.cacheTTL);
+		this.#methods = new Set();
+		this.#logger = this.#createLogger();
+		this.#fileServer = this.#createFileServer();
+		this.#middleware = createMiddlewareRegistry(this.#methods, this.#cache);
+
+		this.#setupMiddleware();
+		this.#setupErrorHandling();
+	}
+
+	/**
+	 * Builds final headers object from defaults
+	 * @param {Object} defaultHeaders - Default headers from config
+	 * @param {boolean} silent - Silent mode flag
+	 * @returns {Array} Array of [key, value] pairs
+	 */
+	#buildFinalHeaders(defaultHeaders, silent) {
 		const finalHeaders = { ...defaultHeaders };
-		if (!validated.silent) {
+		if (!silent) {
 			if (!(SERVER in finalHeaders)) {
 				finalHeaders[SERVER] = SERVER_VALUE;
 			}
 			finalHeaders[X_POWERED_BY] = X_POWERED_BY_VALUE;
 		}
 
-		this.#autoIndex = autoIndex;
-		this.#charset = charset;
-		this.#corsExpose = corsExpose;
-		this.#defaultHeaders = Reflect.ownKeys(finalHeaders)
+		return Reflect.ownKeys(finalHeaders)
 			.filter((key) => typeof key === STRING)
 			.map((key) => [key.toLowerCase(), finalHeaders[key]]);
-		this.#digit = digit;
-		this.#etags = etags ? Object.freeze(etag({ cacheSize, cacheTTL })) : null;
-		this.#indexes = [...indexes];
-		this.#logging = Object.freeze(validateLogging(logging));
-		this.#origins = new Set(origins);
-		this.#time = time;
-		this.#cache = lru(cacheSize, cacheTTL);
-		this.#methods = new Set();
-		this.#logger = createLogger({
+	}
+
+	/**
+	 * Creates logger instance
+	 * @returns {Object} Logger instance
+	 */
+	#createLogger() {
+		return createLogger({
 			enabled: this.#logging.enabled,
 			format: this.#logging.format,
 			level: this.#logging.level,
 		});
-		this.#fileServer = createFileServer({
+	}
+
+	/**
+	 * Creates file server instance
+	 * @returns {Object} File server instance
+	 */
+	#createFileServer() {
+		return createFileServer({
 			autoIndex: this.#autoIndex,
 			charset: this.#charset,
 			indexes: this.#indexes,
@@ -160,8 +178,12 @@ export class Woodland extends EventEmitter {
 			stream: this.stream.bind(this),
 			etag: this.etag.bind(this),
 		});
-		this.#middleware = createMiddlewareRegistry(this.#methods, this.#cache);
+	}
 
+	/**
+	 * Sets up middleware and CORS handling
+	 */
+	#setupMiddleware() {
 		if (this.#etags !== null) {
 			this.get(this.#etags.middleware).ignore(this.#etags.middleware);
 		}
@@ -170,7 +192,12 @@ export class Woodland extends EventEmitter {
 			const fnCorsRequest = corsRequest();
 			this.options(fnCorsRequest).ignore(fnCorsRequest);
 		}
+	}
 
+	/**
+	 * Sets up error handling event listener
+	 */
+	#setupErrorHandling() {
 		this.on(ERROR, (req, _res, _error) =>
 			this.#logger.logError(req.parsed.pathname, req.method, req.ip),
 		);
@@ -261,25 +288,11 @@ export class Woodland extends EventEmitter {
 		const timing = this.#time ? precise().start() : null;
 		const parsed = parse(req);
 		const clientIP = extractIP(req);
+		const allowString = this.#allows(parsed.pathname, false, req.cors);
+		const headersBatch = this.#buildDefaultHeaders(allowString);
+
 		req.corsHost = corsHost(req);
 		req.cors = cors(req, this.#origins);
-		const allowString = this.#allows(parsed.pathname, false, req.cors);
-		const headersBatch = Object.create(null);
-		headersBatch[ALLOW] = allowString;
-		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
-
-		const defaultHeaders = this.#defaultHeaders;
-		const headerCount = defaultHeaders.length;
-		for (let i = 0; i < headerCount; i++) {
-			const [key, value] = defaultHeaders[i];
-			if (
-				typeof key === STRING &&
-				(typeof value === STRING || typeof value === NUMBER || Array.isArray(value))
-			) {
-				headersBatch[key] = value;
-			}
-		}
-
 		req.parsed = parsed;
 		req.allow = allowString;
 		req.ip = clientIP;
@@ -296,6 +309,44 @@ export class Woodland extends EventEmitter {
 			this.#addCorsHeaders(req, headersBatch);
 		}
 
+		this.#decorateResponse(res, req, headersBatch);
+		this.#logger.log(
+			`type=decorate, uri=${parsed.pathname}, method=${req.method}, ip=${clientIP}, message="Decorated request from ${clientIP}"`,
+		);
+	}
+
+	/**
+	 * Builds default headers batch
+	 * @param {string} allowString - Allow header value
+	 * @returns {Object} Headers batch object
+	 */
+	#buildDefaultHeaders(allowString) {
+		const headersBatch = Object.create(null);
+		headersBatch[ALLOW] = allowString;
+		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
+
+		const defaultHeaders = this.#defaultHeaders;
+		const headerCount = defaultHeaders.length;
+		for (let i = 0; i < headerCount; i++) {
+			const [key, value] = defaultHeaders[i];
+			if (
+				typeof key === STRING &&
+				(typeof value === STRING || typeof value === NUMBER || Array.isArray(value))
+			) {
+				headersBatch[key] = value;
+			}
+		}
+
+		return headersBatch;
+	}
+
+	/**
+	 * Decorates response object with methods and event handlers
+	 * @param {Object} res - HTTP response object
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} headersBatch - Headers batch to set
+	 */
+	#decorateResponse(res, req, headersBatch) {
 		res.locals = {};
 		res.error = createErrorHandler(req, res, this);
 		res.header = res.setHeader;
@@ -307,9 +358,6 @@ export class Woodland extends EventEmitter {
 
 		res.set(headersBatch);
 		res.on(EVT_CLOSE, () => this.#logger.log(this.#logger.clf(req, res), INFO));
-		this.#logger.log(
-			`type=decorate, uri=${parsed.pathname}, method=${req.method}, ip=${clientIP}, message="Decorated request from ${clientIP}"`,
-		);
 	}
 
 	/**
