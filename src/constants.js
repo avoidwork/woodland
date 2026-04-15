@@ -113,7 +113,6 @@ export const SLASH = "/";
 export const STRING_0 = "0";
 export const WILDCARD = "*";
 export const WOODLAND = "woodland";
-export const WOODLAND_CLI = "cli.js";
 
 // =============================================================================
 // DATA TYPES

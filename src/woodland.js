@@ -22,9 +22,11 @@ import {
 	HEAD,
 	INFO,
 	INT_0,
+	INT_1,
 	INT_204,
 	INT_304,
 	INT_403,
+	INT_404,
 	NO_SNIFF,
 	OPTIONS,
 	PATCH,
@@ -181,7 +183,7 @@ export class Woodland extends EventEmitter {
 	 * @returns {string} Comma-separated list of allowed methods
 	 */
 	#allows(uri, override = false, isCorsRequest = false) {
-		const key = `perm${DELIMITER}${uri}${DELIMITER}${isCorsRequest ? "1" : "0"}`;
+		const key = `perm${DELIMITER}${uri}${DELIMITER}${isCorsRequest ? INT_1 : INT_0}`;
 		let result = override === false ? this.#cache.get(key) : void 0;
 
 		if (override || result === void 0) {
@@ -491,7 +493,7 @@ export class Woodland extends EventEmitter {
 	 * @returns {Array} Response array
 	 */
 	#onSend(req, res, body, status, headers) {
-		if (status === 404) {
+		if (status === INT_404) {
 			delete headers[ALLOW];
 			delete headers[ACCESS_CONTROL_ALLOW_METHODS];
 			res.removeHeader(ALLOW);
