@@ -121,6 +121,7 @@ const FUNCTION = "function";
 const NUMBER = "number";
 const OBJECT = "object";
 const STRING = "string";
+const TYPE = "type";
 const ERROR_HANDLER_LENGTH = 4;
 
 // =============================================================================
@@ -1373,14 +1374,14 @@ function validateConfig(config = {}) {
 
 			if (msg.includes(MSG_MUST_BE_TYPE)) {
 				const types = msg.match(/type\(s\) ([a-z, ]+)/i);
-				const type = types ? types[1].split(COMMA)[0].trim() : TYPE;
+				const type = types ? types[INT_1].split(COMMA)[INT_0].trim() : TYPE;
 				msg = `must be ${type}`;
 			} else if (msg.includes(MSG_MUST_BE_GREATER_THAN)) {
 				const val = msg.match(/greater than or equal to (\d+)/);
-				msg = val ? `must be >= ${val[1]}` : msg;
+				msg = val ? `must be >= ${val[INT_1]}` : msg;
 			} else if (msg.includes(MSG_MUST_BE_LESS_THAN)) {
 				const val = msg.match(/less than or equal to (\d+)/);
-				msg = val ? `must be <= ${val[1]}` : msg;
+				msg = val ? `must be <= ${val[INT_1]}` : msg;
 			}
 
 			return `${MSG_CONFIG_FIELD}"${field}" ${msg}`;
