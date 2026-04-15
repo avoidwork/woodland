@@ -1945,7 +1945,10 @@ class Woodland extends EventEmitter {
 		const headerCount = defaultHeaders.length;
 		for (let i = 0; i < headerCount; i++) {
 			const [key, value] = defaultHeaders[i];
-			if (typeof key === STRING && (typeof value === STRING || typeof value === "number")) {
+			if (
+				typeof key === STRING &&
+				(typeof value === STRING || typeof value === "number" || Array.isArray(value))
+			) {
 				headersBatch[key] = value;
 			}
 		}
