@@ -266,16 +266,6 @@ Generates an ETag for response caching based on method and values with prototype
 
 **Security:** Objects without own `toString` property are rejected to prevent prototype pollution. Objects are stringified with `JSON.stringify()` and joined with hyphens
 
-#### `#remove404Headers(res)`
-
-Removes security headers from 404 response.
-
-| Parameter | Type | Optional | Description |
-|-----------|------|----------|-------------|
-| `res` | `Object` | No | HTTP response object |
-
-**Note:** Private method that removes `ALLOW` and `ACCESS_CONTROL_ALLOW_METHODS` headers
-
 #### `list(method, type)`
 
 Lists registered middleware routes for a specific HTTP method.
