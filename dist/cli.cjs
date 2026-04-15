@@ -9,12 +9,12 @@
 'use strict';
 
 var node_http = require('node:http');
-var tinyCoerce = require('tiny-coerce');
 var woodland = require('woodland');
 var node_module = require('node:module');
 var node_path = require('node:path');
 var node_url = require('node:url');
 var mimeDb = require('mime-db');
+var tinyCoerce = require('tiny-coerce');
 
 var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
 const __dirname$1 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('cli.cjs', document.baseURI).href))));
@@ -40,7 +40,6 @@ const INT_65535 = 65535;
 const COLON = ":";
 const DOUBLE_COLON = "::";
 const EMPTY = "";
-const EQUAL = "=";
 const HYPHEN = "-";
 const STRING = "string";
 `nodejs/${process.version}, ${process.platform}/${process.arch}`;
@@ -196,7 +195,7 @@ function parseArgs(args) {
 	return args
 		.filter((i) => i.charAt(0) === HYPHEN && i.charAt(1) === HYPHEN)
 		.reduce((a, v) => {
-			const x = v.split(`${HYPHEN}${HYPHEN}`)[1].split(EQUAL);
+			const x = v.split(`${HYPHEN}${HYPHEN}`)[1].split("=");
 			a[x[0]] = tinyCoerce.coerce(x[1]);
 			return a;
 		}, {});
@@ -208,7 +207,6 @@ function parseArgs(args) {
  * @returns {Object} Validation result with valid flag and error message
  */
 function validatePort(port) {
-	// Reject empty strings and whitespace-only values
 	if (port === EMPTY || (typeof port === STRING && port.trim() === EMPTY)) {
 		return { valid: false, error: "Invalid port: must be an integer between 0 and 65535." };
 	}
@@ -283,12 +281,8 @@ function main(args = process.argv) {
 	return server;
 }
 
-// CLI entry point - run main only when executed directly
-if (process.argv[1] && process.argv[1].includes("cli")) {
-	main();
-}
+// CLI entry point - always run main
+/* node:coverage ignore next */
+main();
 
 exports.main = main;
-exports.parseArgs = parseArgs;
-exports.validateIP = validateIP;
-exports.validatePort = validatePort;
