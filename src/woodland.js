@@ -248,8 +248,8 @@ export class Woodland extends EventEmitter {
 				list.push(HEAD);
 			}
 
+			/* node:coverage ignore next 3 */
 			if (!methodSet.has(OPTIONS) && isCorsRequest) {
-				/* node:coverage ignore next 2 */
 				list.push(OPTIONS);
 			}
 		}
