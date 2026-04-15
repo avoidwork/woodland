@@ -264,7 +264,7 @@ Generates an ETag for response caching based on method and values with prototype
 
 **Returns:** `string` - ETag string or empty string if method is not hashable or ETags are disabled
 
-**Security:** Objects without own `toString` property are rejected to prevent prototype pollution. Objects are stringified with `JSON.stringify()` and joined with hyphens
+**Implementation:** Non-string arguments are converted to strings using `JSON.stringify()` with surrounding quotes removed, then joined with hyphens
 
 #### `list(method, type)`
 

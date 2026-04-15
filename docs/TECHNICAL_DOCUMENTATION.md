@@ -309,14 +309,13 @@ class Woodland extends EventEmitter {
 
 **Private Methods:**
 - `#allows(uri, override, isCorsRequest)` - Determine allowed methods for URI
-- `#buildAllowedList(methodSet)` - Build allowed methods list with HEAD/OPTIONS
+- `#buildAllowedList(methodSet, isCorsRequest)` - Build allowed methods list with HEAD/OPTIONS
 - `#decorate(req, res)` - Decorate request/response objects
 - `#addCorsHeaders(req, headersBatch)` - Add CORS headers to batch
 - `#handleAllowedRoute(req, res, method)` - Handle routing for allowed methods
+- `#onDone(req, res, body, headers)` - Handle response done event
 - `#onReady(req, res, body, status, headers)` - Handle response ready event
 - `#onSend(req, res, body, status, headers)` - Handle response send event
-- `#onDone(req, res, body, headers)` - Handle response done event
-- `#remove404Headers(res)` - Remove security headers from 404 response
 - `#isHashableMethod(method)` - Check if method can be hashed for ETags
 - `#etagsEnabled()` - Check if ETags are enabled
 - `#hashArgs(args)` - Hash arguments for ETag generation
