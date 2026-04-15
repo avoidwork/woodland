@@ -214,7 +214,7 @@ export function createMiddlewareRegistry(methods, cache) {
 	const middleware = new Map();
 	const ignored = new Set();
 
-	return {
+	return Object.freeze({
 		ignore: (f) => {
 			ignored.add(f);
 		},
@@ -222,7 +222,7 @@ export function createMiddlewareRegistry(methods, cache) {
 		routes: (u, m, o) => computeRoutes(middleware, ignored, u, m, cache, o),
 		register: (p, ...fns) => registerMiddleware(middleware, ignored, methods, p, ...fns),
 		list: (m, t) => listRoutes(middleware, m, t),
-	};
+	});
 }
 
 /**

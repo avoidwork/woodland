@@ -1199,7 +1199,7 @@ function createMiddlewareRegistry(methods, cache) {
 	const middleware = new Map();
 	const ignored = new Set();
 
-	return {
+	return Object.freeze({
 		ignore: (f) => {
 			ignored.add(f);
 		},
@@ -1207,7 +1207,7 @@ function createMiddlewareRegistry(methods, cache) {
 		routes: (u, m, o) => computeRoutes(middleware, ignored, u, m, cache, o),
 		register: (p, ...fns) => registerMiddleware(middleware, ignored, methods, p, ...fns),
 		list: (m, t) => listRoutes(middleware, m, t),
-	};
+	});
 }
 
 /**
@@ -1866,7 +1866,7 @@ class Woodland extends node_events.EventEmitter {
 		});
 		this.#middleware = createMiddlewareRegistry(this.#methods, this.#cache);
 
-		if (this.#etags !== null) {
+		if (this.#etags) {
 			this.get(this.#etags.middleware).ignore(this.#etags.middleware);
 		}
 
@@ -1976,7 +1976,9 @@ class Woodland extends node_events.EventEmitter {
 		const headerCount = defaultHeaders.length;
 		for (let i = 0; i < headerCount; i++) {
 			const [key, value] = defaultHeaders[i];
-			headersBatch[key] = value;
+			if (typeof key === STRING && (typeof value === STRING || typeof value === "number")) {
+				headersBatch[key] = value;
+			}
 		}
 
 		req.parsed = parsed;
@@ -2024,8 +2026,10 @@ class Woodland extends node_events.EventEmitter {
 
 		/* node:coverage ignore next 11 */
 		if (originAllowed) {
-			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
-			headersBatch[TIMING_ALLOW_ORIGIN] = origin;
+			if (typeof origin === STRING && origin.length > 0) {
+				headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
+				headersBatch[TIMING_ALLOW_ORIGIN] = origin;
+			}
 			headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
 			headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = req.allow;
 
@@ -2094,7 +2098,15 @@ class Woodland extends node_events.EventEmitter {
 	 */
 	#hashArgs(args) {
 		return args
-			.map((i) => (typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i))
+			.map((i) => {
+				if (typeof i === STRING) {
+					return i;
+				}
+				if (i !== null && typeof i === "object" && !Object.hasOwn(i, "toString")) {
+					return EMPTY;
+				}
+				return JSON.stringify(i).replace(/^"|"$/g, EMPTY);
+			})
 			.join(HYPHEN);
 	}
 
@@ -2164,6 +2176,15 @@ class Woodland extends node_events.EventEmitter {
 	}
 
 	/**
+	 * Removes security headers from 404 response
+	 * @param {Object} res - HTTP response object
+	 */
+	#remove404Headers(res) {
+		res.removeHeader(ALLOW);
+		res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
+	}
+
+	/**
 	 * Handles response ready event
 	 * @param {Object} req - HTTP request object
 	 * @param {Object} res - HTTP response object
@@ -2196,8 +2217,7 @@ class Woodland extends node_events.EventEmitter {
 		if (status === 404) {
 			delete headers[ALLOW];
 			delete headers[ACCESS_CONTROL_ALLOW_METHODS];
-			res.removeHeader(ALLOW);
-			res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
+			this.#remove404Headers(res);
 		}
 
 		return [body, status, headers];
@@ -2259,16 +2279,7 @@ class Woodland extends node_events.EventEmitter {
 
 		this.#logger.logRoute(req.parsed.pathname, req.method, req.ip);
 
-		const hasOriginHeader = ORIGIN in req.headers;
-		const origin = hasOriginHeader ? req.headers.origin : EMPTY;
-		const isOriginAllowed = hasOriginHeader && this.#origins.has(origin);
-
-		// Check if CORS request is disallowed
-		const isCorsRequest = req.corsHost;
-		const isCorsDisallowed =
-			req.cors === false && hasOriginHeader && isCorsRequest && !isOriginAllowed;
-
-		if (isCorsDisallowed) {
+		if (req.cors === false && req.headers[ORIGIN]) {
 			req.valid = false;
 			res.error(INT_403, new Error(node_http.STATUS_CODES[INT_403]));
 		} else if (req.allow.includes(method)) {
@@ -2289,7 +2300,7 @@ class Woodland extends node_events.EventEmitter {
 	#handleAllowedRoute(req, res, method) {
 		const result = this.#middleware.routes(req.parsed.pathname, method);
 
-		if (result.params) {
+		if (result.params && result.getParams) {
 			params(req, result.getParams);
 		}
 
