@@ -168,6 +168,7 @@ All optional in constructor:
 - JSDoc comments for all public APIs
 - Parameter tables in documentation with optional markers
 - Follow existing patterns in tests
+- **Use constants instead of magic strings or numbers** - Define all string literals and numeric values as constants in `constants.js`
 
 ## Running Tests
 
