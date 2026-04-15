@@ -1075,18 +1075,18 @@ function reduce(uri, map = new Map(), arg = {}) {
 	const values = Array.from(map.values());
 	const len = values.length;
 
-	for (let i = 0; i < len; i++) {
+	for (let i = INT_0; i < len; i++) {
 		const middleware = values[i];
-		middleware.regex.lastIndex = 0;
+		middleware.regex.lastIndex = INT_0;
 
 		if (middleware.regex.test(uri)) {
 			const handlers = middleware.handlers;
 			const handlerLen = handlers.length;
 
 			if (handlerLen === 1) {
-				middlewareArray.push(handlers[0]);
+				middlewareArray.push(handlers[INT_0]);
 			} else {
-				for (let j = 0; j < handlerLen; j++) {
+				for (let j = INT_0; j < handlerLen; j++) {
 					middlewareArray.push(handlers[j]);
 				}
 			}
@@ -1182,7 +1182,7 @@ function computeRoutes(middleware, ignored, uri, method, cache, override = false
 	if (cached !== void 0) {
 		result = cached;
 	} else {
-		result = { getParams: null, middleware: [], params: false, visible: 0, exit: -1 };
+		result = { getParams: null, middleware: [], params: false, visible: INT_0, exit: INT_NEG_1 };
 		reduce(uri, middleware.get(WILDCARD) ?? new Map(), result);
 
 		if (method !== WILDCARD) {
@@ -1190,8 +1190,8 @@ function computeRoutes(middleware, ignored, uri, method, cache, override = false
 			reduce(uri, middleware.get(method) ?? new Map(), result);
 		}
 
-		let visible = 0;
-		for (let i = 0; i < result.middleware.length; i++) {
+		let visible = INT_0;
+		for (let i = INT_0; i < result.middleware.length; i++) {
 			if (!ignored.has(result.middleware[i])) {
 				visible++;
 			}
@@ -1225,7 +1225,7 @@ function listRoutes(middleware, method = GET.toLowerCase(), type = ARRAY) {
 	const entries = Array.from(methodMap.entries());
 	const entryCount = entries.length;
 
-	for (let i = 0; i < entryCount; i++) {
+	for (let i = INT_0; i < entryCount; i++) {
 		const [key, value] = entries[i];
 		result[key] = value;
 	}
