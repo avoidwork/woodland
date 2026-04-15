@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import { createServer } from "node:http";
-import { basename } from "node:path";
 import { coerce } from "tiny-coerce";
 import { woodland } from "woodland";
 import { isValidIP } from "./request.js";
@@ -20,7 +19,6 @@ import {
 	NO_CACHE,
 	STRING,
 	TEXT_PLAIN,
-	WOODLAND_CLI,
 } from "./constants.js";
 
 /**
@@ -104,7 +102,7 @@ export function main(args = process.argv) {
 	app.files();
 	const server = createServer(app.route);
 	server.listen(portValidation.port, ip);
-	/* node:coverage ignore next 6 */
+	/* node:coverage ignore next 10 */
 	server.on("listening", () => {
 		const actualPort = server.address().port;
 		app.logger.log(
@@ -112,11 +110,15 @@ export function main(args = process.argv) {
 			INFO,
 		);
 	});
+	server.on("error", (err) => {
+		console.error(`Server error: ${err.message}`);
+	});
 
 	return server;
 }
 
-// CLI entry point - only run when executed directly
-if (basename(process.argv[1]) === WOODLAND_CLI) {
+// CLI entry point - only run when executed directly (not imported)
+const isMainModule = process.argv[1] && process.argv[1].endsWith("cli.js");
+if (isMainModule) {
 	main();
 }

@@ -1,6 +1,7 @@
 import assert from "node:assert";
 import { describe, it, beforeEach, afterEach } from "node:test";
 import { main, parseArgs, validatePort, validateIP } from "../../src/cli.js";
+import { WOODLAND_CLI } from "../../src/constants.js";
 
 describe("CLI", () => {
 	describe("parseArgs", () => {
@@ -155,26 +156,28 @@ describe("CLI", () => {
 				server.close();
 				server = null;
 			}
+			// Reset process.argv to prevent side effects from CLI auto-execution
+			process.argv = ["node", "test"];
 		});
 
 		it("should create and start server with default arguments", () => {
-			server = main(["node", "cli.js", "--port=0"]);
+			server = main(["node", WOODLAND_CLI, "--port=0"]);
 			assert.ok(server);
 			assert.strictEqual(typeof server.listen, "function");
 		});
 
 		it("should create and start server with custom port", () => {
-			server = main(["node", "cli.js", "--port=0"]);
+			server = main(["node", WOODLAND_CLI, "--port=0"]);
 			assert.ok(server);
 		});
 
 		it("should create and start server with custom IP", () => {
-			server = main(["node", "cli.js", "--port=0", "--ip=127.0.0.1"]);
+			server = main(["node", WOODLAND_CLI, "--port=0", "--ip=127.0.0.1"]);
 			assert.ok(server);
 		});
 
 		it("should create and start server with custom logging", () => {
-			server = main(["node", "cli.js", "--port=0", "--logging=false"]);
+			server = main(["node", WOODLAND_CLI, "--port=0", "--logging=false"]);
 			assert.ok(server);
 		});
 
@@ -188,7 +191,7 @@ describe("CLI", () => {
 				errorMessage = msg;
 			};
 
-			main(["node", "cli.js", "--port=-1"]);
+			main(["node", WOODLAND_CLI, "--port=-1"]);
 			assert.strictEqual(exitCalled, true);
 			assert.match(errorMessage, /Invalid port/);
 		});
@@ -203,7 +206,7 @@ describe("CLI", () => {
 				errorMessage = msg;
 			};
 
-			main(["node", "cli.js", "--ip=invalid"]);
+			main(["node", WOODLAND_CLI, "--ip=invalid"]);
 			assert.strictEqual(exitCalled, true);
 			assert.match(errorMessage, /Invalid IP/);
 		});

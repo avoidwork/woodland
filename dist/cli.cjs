@@ -9,10 +9,10 @@
 'use strict';
 
 var node_http = require('node:http');
-var node_path = require('node:path');
 var tinyCoerce = require('tiny-coerce');
 var woodland = require('woodland');
 var node_module = require('node:module');
+var node_path = require('node:path');
 var node_url = require('node:url');
 var mimeDb = require('mime-db');
 
@@ -42,7 +42,6 @@ const DOUBLE_COLON = "::";
 const EMPTY = "";
 const EQUAL = "=";
 const HYPHEN = "-";
-const WOODLAND_CLI = "cli.js";
 const STRING = "string";
 `nodejs/${process.version}, ${process.platform}/${process.arch}`;
 const LOCALHOST = "127.0.0.1";
@@ -281,10 +280,8 @@ function main(args = process.argv) {
 	return server;
 }
 
-// CLI entry point - only run when executed directly
-if (node_path.basename(process.argv[1]) === WOODLAND_CLI) {
-	main();
-}
+// CLI entry point - always run main
+main();
 
 exports.main = main;
 exports.parseArgs = parseArgs;
