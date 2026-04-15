@@ -26,6 +26,7 @@ import {
 	INT_0,
 	INT_1,
 	INT_10,
+	INT_NEG_1,
 	INT_200,
 	INT_206,
 	INT_307,
@@ -47,9 +48,9 @@ import {
 	TO_STRING,
 } from "./constants.js";
 
-const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
+const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[INT_1]),
 	mimeExtensions = valid.reduce((a, v) => {
-		const result = Object.assign({ type: v[0] }, v[1]);
+		const result = Object.assign({ type: v[INT_0] }, v[INT_1]);
 		const extCount = result.extensions.length;
 		for (let i = 0; i < extCount; i++) {
 			a[`.${result.extensions[i]}`] = result;
@@ -70,9 +71,9 @@ function parseRangeHeader(rangeHeader, size) {
 
 	const rangePart = rangeHeader.substring(KEY_BYTES.length);
 	const commaIndex = rangePart.indexOf(COMMA);
-	const rangeSpec = commaIndex === -1 ? rangePart : rangePart.substring(0, commaIndex);
+	const rangeSpec = commaIndex === INT_NEG_1 ? rangePart : rangePart.substring(0, commaIndex);
 	const hyphenIndex = rangeSpec.indexOf(HYPHEN);
-	if (hyphenIndex === -1) {
+	if (hyphenIndex === INT_NEG_1) {
 		return null;
 	}
 
@@ -430,11 +431,11 @@ export function stream(req, res, file, emitStream, createReadStream, etags) {
 	res.header(CONTENT_LENGTH, file.stats.size);
 	res.header(
 		CONTENT_TYPE,
-		file.charset.length > 0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path),
+		file.charset.length > INT_0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path),
 	);
 	res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
 
-	if (etags && file.etag.length > 0) {
+	if (etags && file.etag.length > INT_0) {
 		res.header(ETAG, file.etag);
 		res.removeHeader(CACHE_CONTROL);
 	}
@@ -447,7 +448,7 @@ export function stream(req, res, file, emitStream, createReadStream, etags) {
 		if (RANGE in req.headers) {
 			[headers, options] = partialHeaders(req, res, file.stats.size, status);
 
-			if (Object.keys(options).length > 0) {
+			if (Object.keys(options).length > INT_0) {
 				res.removeHeader(CONTENT_LENGTH);
 				res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
 
@@ -460,7 +461,7 @@ export function stream(req, res, file, emitStream, createReadStream, etags) {
 		}
 
 		res.send(
-			createReadStream(file.path, Object.keys(options).length > 0 ? options : undefined),
+			createReadStream(file.path, Object.keys(options).length > INT_0 ? options : undefined),
 			status,
 		);
 	} else if (req.method === HEAD) {

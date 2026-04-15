@@ -67,9 +67,9 @@ const IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/;
 const IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i;
 const HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
 
-const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]);
+const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[INT_1]);
 	valid.reduce((a, v) => {
-		const result = Object.assign({ type: v[0] }, v[1]);
+		const result = Object.assign({ type: v[INT_0] }, v[INT_1]);
 		const extCount = result.extensions.length;
 		for (let i = 0; i < extCount; i++) {
 			a[`.${result.extensions[i]}`] = result;
