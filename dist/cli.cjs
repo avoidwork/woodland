@@ -40,6 +40,7 @@ const INT_65535 = 65535;
 const COLON = ":";
 const DOUBLE_COLON = "::";
 const EMPTY = "";
+const EQUAL = "=";
 const HYPHEN = "-";
 const STRING = "string";
 `nodejs/${process.version}, ${process.platform}/${process.arch}`;
@@ -197,7 +198,7 @@ function parseArgs(args) {
 	return args
 		.filter((i) => i.charAt(0) === HYPHEN && i.charAt(1) === HYPHEN)
 		.reduce((a, v) => {
-			const x = v.split(`${HYPHEN}${HYPHEN}`)[1].split("=");
+			const x = v.split(`${HYPHEN}${HYPHEN}`)[1].split(EQUAL);
 			a[x[0]] = tinyCoerce.coerce(x[1]);
 			return a;
 		}, {});
