@@ -857,7 +857,6 @@ describe("woodland", () => {
 				headers: {
 					host: "example.com",
 					origin: "http://other.com",
-					"access-control-request-headers": "x-custom-header",
 				},
 				url: "/test",
 				socket: null,
