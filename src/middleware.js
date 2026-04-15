@@ -77,11 +77,11 @@ export function next(req, res, middleware, immediate = false) {
 	const handleError = (err, nextFn) => {
 		let obj = middleware.next();
 
-		while (obj.done === false && obj.value && obj.value.length !== ERROR_HANDLER_LENGTH) {
+		while (!obj.done && obj.value && obj.value.length !== ERROR_HANDLER_LENGTH) {
 			obj = middleware.next();
 		}
 
-		if (obj.done === false && obj.value) {
+		if (!obj.done && obj.value) {
 			obj.value(err, req, res, nextFn);
 		} else {
 			const newStatus = getStatus(req, res);
@@ -96,7 +96,7 @@ export function next(req, res, middleware, immediate = false) {
 	const handleMiddleware = (nextFn) => {
 		const obj = middleware.next();
 
-		if (obj.done === false) {
+		if (!obj.done) {
 			const value = obj.value;
 			if (typeof value === FUNCTION) {
 				value(req, res, nextFn);
@@ -136,7 +136,7 @@ export function next(req, res, middleware, immediate = false) {
  */
 export function computeRoutes(middleware, ignored, uri, method, cache, override = false) {
 	const key = `${method}${DELIMITER}${uri}`;
-	const cached = override === false ? cache.get(key) : void 0;
+	const cached = !override ? cache.get(key) : void 0;
 	let result;
 
 	if (cached !== void 0) {
@@ -234,7 +234,7 @@ export function createMiddlewareRegistry(methods, cache) {
  * @throws {TypeError} If method is invalid or HEAD
  */
 function validateMethod(method) {
-	if (method !== WILDCARD && NODE_METHODS.includes(method) === false) {
+	if (method !== WILDCARD && !NODE_METHODS.includes(method)) {
 		throw new TypeError(MSG_INVALID_HTTP_METHOD);
 	}
 
@@ -277,7 +277,7 @@ export function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 
 	validateMethod(method);
 
-	if (middleware.has(method) === false) {
+	if (!middleware.has(method)) {
 		if (method !== WILDCARD) {
 			methods.add(method);
 		}
@@ -289,7 +289,7 @@ export function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 	let lrpath = rpath,
 		lparams = false;
 
-	if (lrpath.includes(`${SLASH}${LEFT_PAREN}`) === false && lrpath.includes(`${SLASH}:`)) {
+	if (!lrpath.includes(`${SLASH}${LEFT_PAREN}`) && lrpath.includes(`${SLASH}:`)) {
 		lparams = true;
 		lrpath = extractPath(lrpath);
 	}

@@ -199,7 +199,7 @@ export function getStatus(req, res) {
 	if (req.method !== GET) {
 		return INT_405;
 	}
-	if (req.allow.includes(GET) === false) {
+	if (!req.allow.includes(GET)) {
 		return INT_404;
 	}
 	return res.statusCode > INT_500 ? res.statusCode : INT_500;
@@ -216,7 +216,7 @@ export function getStatusText(status) {
  * @param {number} [status=res.statusCode] - HTTP status code (coerces to 500 if < 400)
  */
 export function error(req, res, status = res.statusCode) {
-	if (res.headersSent === false) {
+	if (!res.headersSent) {
 		if (status < INT_400) {
 			status = INT_500;
 		}
@@ -322,7 +322,7 @@ export function send(
 	onReady,
 	onDone,
 ) {
-	if (res.headersSent === false) {
+	if (!res.headersSent) {
 		[body, status, headers] = onReady(req, res, body, status, headers);
 
 		const method = req.method;
@@ -337,7 +337,7 @@ export function send(
 				writeHead(res, headers);
 				body
 					.on(ERROR, (_err) => {
-						if (res.headersSent === false) {
+						if (!res.headersSent) {
 							res.error(INT_500);
 						} else {
 							// Headers already sent, destroy stream and end response
@@ -349,7 +349,7 @@ export function send(
 					})
 					.pipe(res);
 			} else {
-				if (res.headersSent === false) {
+				if (!res.headersSent) {
 					res.error(INT_416);
 				} else {
 					body.destroy();

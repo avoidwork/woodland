@@ -523,6 +523,8 @@ describe("woodland", () => {
 			const res = {
 				statusCode: 200,
 				setHeader: () => {},
+				getHeader: () => void 0,
+				writeHead: () => {},
 				on: () => {},
 				end: () => {},
 				error: () => {},
@@ -553,6 +555,8 @@ describe("woodland", () => {
 			const res = {
 				statusCode: 200,
 				setHeader: () => {},
+				getHeader: () => void 0,
+				writeHead: () => {},
 				on: () => {},
 				end: () => {},
 				error: () => {},
@@ -578,6 +582,8 @@ describe("woodland", () => {
 			const res = {
 				statusCode: 200,
 				setHeader: () => {},
+				getHeader: () => void 0,
+				writeHead: () => {},
 				on: () => {},
 				end: () => {},
 				error: () => {},

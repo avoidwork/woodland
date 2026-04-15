@@ -212,7 +212,7 @@ export class Woodland extends EventEmitter {
 	 */
 	#allows(uri, override = false, isCorsRequest = false) {
 		const key = `perm${DELIMITER}${uri}${DELIMITER}${isCorsRequest ? INT_1 : INT_0}`;
-		let result = override === false ? this.#cache.get(key) : void 0;
+		let result = !override ? this.#cache.get(key) : void 0;
 
 		if (override || result === void 0) {
 			const methodSet = new Set();
@@ -610,7 +610,7 @@ export class Woodland extends EventEmitter {
 
 		this.#logger.logRoute(req.parsed.pathname, req.method, req.ip);
 
-		if (req.cors === false && req.corsHost) {
+		if (!req.cors && req.corsHost) {
 			req.valid = false;
 			res.error(INT_403, new Error(STATUS_CODES[INT_403]));
 		} else if (req.allow.includes(method)) {
