@@ -137,7 +137,6 @@ const FUNCTION = "function";
 const NUMBER = "number";
 const OBJECT = "object";
 const STRING = "string";
-const TYPE = "type";
 const ERROR_HANDLER_LENGTH = 4;
 
 // =============================================================================
@@ -157,6 +156,10 @@ const EXTENSIONS = "extensions";
 const PARENT_DIR = "..";
 const BACKSLASH = "\\";
 const NEWLINE = "\n";
+const ROUTE_PATTERN = "(/.*)?";
+const MSG_USE_MIDDLEWARE_REQUIRED =
+	"useMiddleware is required or config.use must be a function";
+const EXTRACT_PATH_REPLACE = "(?<$1>[^/]+)";
 
 // =============================================================================
 // LOGGING & DEBUGGING
@@ -201,6 +204,9 @@ const MSG_REDOS_VULNERABILITY = "Invalid route pattern: potential ReDoS vulnerab
 const MSG_ROUTING_FILE = "Routing request to file system";
 const MSG_SERVE_PATH_OUTSIDE = "Path outside allowed directory";
 const MSG_VALIDATION_FAILED = "Configuration validation failed: ";
+const MSG_MUST_BE_TYPE = "is not of a type(s)";
+const MSG_MUST_BE_GREATER_THAN = "must be greater than or equal to";
+const MSG_MUST_BE_LESS_THAN = "must be less than or equal to";
 const SEMICOLON_SPACE = "; ";
 const OPTIONS_BODY = "Make a GET request to retrieve the file";
 
@@ -234,7 +240,6 @@ const ITEM = "item";
 const NOTICE = "notice";
 const SHORT = "short";
 const TO_STRING = "toString";
-const TOKEN_TITLE = "TITLE";
 const TRUE = "true";
 const WARN = "warn";
 const ALERT = "alert";
@@ -256,6 +261,10 @@ const VALID_LOG_LEVELS = new Set([DEBUG, INFO, WARN, ERROR, CRITICAL, ALERT, EME
 const HTTP_PROTOCOL_PATTERN = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
 const CONTROL_CHAR_PATTERN = /[\r\n\t]/;
 const QUANTIFIER_PATTERN = /([.*+?^${}()|[\\]])\1{3,}/;
+const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+const IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/;
+const IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i;
+const HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
 
 // =============================================================================
 // HTML ESCAPE MAPPING
@@ -279,6 +288,66 @@ const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
 	}, {});
 
 /**
+ * Parses range header value into start and end positions
+ * @param {string} rangeHeader - Range header value
+ * @param {number} size - Total size
+ * @returns {Object|null} Range object with start/end or null if invalid
+ */
+function parseRangeHeader(rangeHeader, size) {
+	if (!rangeHeader || !rangeHeader.startsWith(KEY_BYTES)) {
+		return null;
+	}
+
+	const rangePart = rangeHeader.substring(KEY_BYTES.length);
+	const commaIndex = rangePart.indexOf(COMMA);
+	const rangeSpec = commaIndex === -1 ? rangePart : rangePart.substring(0, commaIndex);
+	const hyphenIndex = rangeSpec.indexOf(HYPHEN);
+	if (hyphenIndex === -1) {
+		return null;
+	}
+
+	const startStr = rangeSpec.substring(0, hyphenIndex);
+	const endStr = rangeSpec.substring(hyphenIndex + 1);
+	let start, end;
+
+	if (startStr === EMPTY) {
+		if (endStr === EMPTY) {
+			return null;
+		}
+		end = parseInt(endStr, INT_10);
+		if (isNaN(end)) {
+			return null;
+		}
+		start = size - end;
+		end = size - INT_1;
+	} else {
+		start = parseInt(startStr, INT_10);
+		if (isNaN(start)) {
+			return null;
+		}
+
+		if (endStr !== EMPTY) {
+			end = parseInt(endStr, INT_10);
+			if (isNaN(end)) {
+				return null;
+			}
+		} else {
+			end = size - INT_1;
+		}
+	}
+
+	const startValid = !isNaN(start) && start >= INT_0;
+	const endValid = !isNaN(end) && end < size;
+	const rangeOrderValid = start <= end;
+
+	if (startValid && endValid && rangeOrderValid) {
+		return { start, end };
+	}
+
+	return null;
+}
+
+/**
  * Handles partial content headers for HTTP range requests
  * @param {Object} req - The HTTP request object
  * @param {Object} res - The HTTP response object
@@ -290,72 +359,25 @@ const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
  */
 function partialHeaders(req, res, size, status, headers = {}, options = {}) {
 	const rangeHeader = req.headers.range;
-	if (!rangeHeader || !rangeHeader.startsWith(KEY_BYTES)) {
-		return [headers, options];
-	}
-
-	const rangePart = rangeHeader.substring(KEY_BYTES.length);
-	const commaIndex = rangePart.indexOf(COMMA);
-	const rangeSpec = commaIndex === -1 ? rangePart : rangePart.substring(0, commaIndex);
-	const hyphenIndex = rangeSpec.indexOf(HYPHEN);
-	if (hyphenIndex === -1) {
-		return [headers, options];
-	}
-
-	const startStr = rangeSpec.substring(0, hyphenIndex);
-	const endStr = rangeSpec.substring(hyphenIndex + 1);
-	let start, end;
-
-	if (startStr === EMPTY) {
-		if (endStr === EMPTY) {
-			return [headers, options];
-		}
-		end = parseInt(endStr, INT_10);
-		if (isNaN(end)) {
-			return [headers, options];
-		}
-		start = size - end;
-		end = size - INT_1;
-	} else {
-		start = parseInt(startStr, INT_10);
-		if (isNaN(start)) {
-			return [headers, options];
-		}
-
-		if (endStr !== EMPTY) {
-			end = parseInt(endStr, INT_10);
-			if (isNaN(end)) {
-				return [headers, options];
-			}
-		} else {
-			end = size - INT_1;
-		}
-	}
-
-	// Check if range is valid
-	const startValid = !isNaN(start) && start >= INT_0;
-	const endValid = !isNaN(end) && end < size;
-	const rangeOrderValid = start <= end;
-	const rangeValid = startValid && endValid && rangeOrderValid;
+	const range = parseRangeHeader(rangeHeader, size);
 
 	res.removeHeader(CONTENT_RANGE);
 	res.removeHeader(CONTENT_LENGTH);
 	res.removeHeader(ETAG);
 	delete headers.etag;
 
-	if (rangeValid) {
-		const rangeOptions = { start, end };
-		req.range = rangeOptions;
-		const contentLength = end - start + 1;
+	if (range) {
+		const contentLength = range.end - range.start + 1;
 
-		headers[CONTENT_RANGE] = BYTES_SPACE + `${start}-${end}/${size}`;
+		headers[CONTENT_RANGE] = BYTES_SPACE + `${range.start}-${range.end}/${size}`;
 		headers[CONTENT_LENGTH] = contentLength;
 
 		res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
 		res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
 		res.statusCode = INT_206;
 
-		return [headers, rangeOptions];
+		req.range = range;
+		return [headers, range];
 	}
 
 	headers[CONTENT_RANGE] = BYTES_SPACE + `*/${size}`;
@@ -815,8 +837,9 @@ function extractIP(req) {
 	}
 
 	const forwardedIPs = forwardedHeader.split(COMMA);
+	const ipCount = forwardedIPs.length;
 
-	for (let i = INT_0; i < forwardedIPs.length; i++) {
+	for (let i = INT_0; i < ipCount; i++) {
 		const ip = forwardedIPs[i].trim();
 		if (isValidIP(ip)) {
 			return ip;
@@ -845,7 +868,7 @@ function params(req, getParams) {
 	const keys = Object.keys(groups);
 	const keyCount = keys.length;
 
-	for (let i = 0; i < keyCount; i++) {
+	for (let i = INT_0; i < keyCount; i++) {
 		const key = keys[i];
 		const value = groups[key];
 
@@ -896,13 +919,123 @@ function parse(arg) {
  * @returns {string} Regex pattern string
  */
 function extractPath(path) {
-	return path.replace(/:([a-zA-Z_]\w*)/g, "(?<$1>[^/]+)");
+	return path.replace(/:([a-zA-Z_]\w*)/g, EXTRACT_PATH_REPLACE);
 }
 
-const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/,
-	IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/,
-	IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i,
-	HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
+/**
+ * Validates IPv4 address format
+ * @param {string} ip - IPv4 address to validate
+ * @returns {boolean} True if valid IPv4
+ */
+function isValidIPv4(ip) {
+	const match = IPV4_PATTERN.exec(ip);
+	if (!match) {
+		return false;
+	}
+
+	for (let i = INT_1; i < INT_5; i++) {
+		const num = parseInt(match[i], INT_10);
+		if (num > INT_255) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+/**
+ * Validates IPv6 address format
+ * @param {string} ip - IPv6 address to validate
+ * @returns {boolean} True if valid IPv6
+ */
+function isValidIPv6(ip) {
+	if (!IPV6_CHAR_PATTERN.test(ip)) {
+		return false;
+	}
+
+	const ipv4MappedMatch = IPV4_MAPPED_PATTERN.exec(ip);
+	if (ipv4MappedMatch) {
+		return isValidIPv4(ipv4MappedMatch[1]);
+	}
+
+	if (ip === DOUBLE_COLON) {
+		return true;
+	}
+
+	const doubleColonIndex = ip.indexOf(DOUBLE_COLON);
+	const isCompressed = doubleColonIndex !== -1;
+
+	if (isCompressed) {
+		return validateCompressedIPv6(ip, doubleColonIndex);
+	}
+
+	return validateUncompressedIPv6(ip);
+}
+
+/**
+ * Validates compressed IPv6 address (with ::)
+ * @param {string} ip - IPv6 address
+ * @param {number} doubleColonIndex - Position of ::
+ * @returns {boolean} True if valid
+ */
+function validateCompressedIPv6(ip, doubleColonIndex) {
+	if (ip.indexOf(DOUBLE_COLON, doubleColonIndex + INT_2) !== -1) {
+		return false;
+	}
+
+	if (
+		(doubleColonIndex > INT_0 && ip.charAt(doubleColonIndex - INT_1) === COLON) ||
+		(doubleColonIndex + INT_2 < ip.length && ip.charAt(doubleColonIndex + INT_2) === COLON)
+	) {
+		return false;
+	}
+
+	const beforeDoubleColon = ip.substring(INT_0, doubleColonIndex);
+	const afterDoubleColon = ip.substring(doubleColonIndex + INT_2);
+
+	const leftGroups = beforeDoubleColon ? beforeDoubleColon.split(COLON) : [];
+	const rightGroups = afterDoubleColon ? afterDoubleColon.split(COLON) : [];
+
+	const totalGroups =
+		leftGroups.filter((g) => g !== EMPTY).length + rightGroups.filter((g) => g !== EMPTY).length;
+
+	if (totalGroups >= INT_8) {
+		return false;
+	}
+
+	return validateHexGroups(leftGroups) && validateHexGroups(rightGroups);
+}
+
+/**
+ * Validates uncompressed IPv6 address
+ * @param {string} ip - IPv6 address
+ * @returns {boolean} True if valid
+ */
+function validateUncompressedIPv6(ip) {
+	const groups = ip.split(COLON);
+	if (groups.length !== INT_8) {
+		return false;
+	}
+
+	return validateHexGroups(groups);
+}
+
+/**
+ * Validates hex groups in IPv6 address
+ * @param {Array} groups - Array of hex group strings
+ * @returns {boolean} True if all groups are valid
+ */
+function validateHexGroups(groups) {
+	const groupCount = groups.length;
+
+	for (let i = INT_0; i < groupCount; i++) {
+		/* node:coverage ignore next 3 */
+		if (!groups[i] || !HEX_GROUP_PATTERN.test(groups[i])) {
+			return false;
+		}
+	}
+	return true;
+}
 
 /**
  * Validates if an IP address is properly formatted
@@ -915,105 +1048,10 @@ function isValidIP(ip) {
 	}
 
 	if (ip.indexOf(COLON) === -1) {
-		const match = IPV4_PATTERN.exec(ip);
-
-		if (!match) {
-			return false;
-		}
-
-		for (let i = 1; i < INT_5; i++) {
-			const num = parseInt(match[i], INT_10);
-			if (num > INT_255) {
-				return false;
-			}
-		}
-
-		return true;
+		return isValidIPv4(ip);
 	}
 
-	if (!IPV6_CHAR_PATTERN.test(ip)) {
-		return false;
-	}
-
-	const ipv4MappedMatch = IPV4_MAPPED_PATTERN.exec(ip);
-	if (ipv4MappedMatch) {
-		return isValidIP(ipv4MappedMatch[1]);
-	}
-
-	if (ip === DOUBLE_COLON) {
-		return true;
-	}
-
-	const doubleColonIndex = ip.indexOf(DOUBLE_COLON);
-	const isCompressed = doubleColonIndex !== -1;
-
-	if (isCompressed) {
-		if (ip.indexOf(DOUBLE_COLON, doubleColonIndex + INT_2) !== -1) {
-			return false;
-		}
-
-		if (
-			(doubleColonIndex > INT_0 && ip.charAt(doubleColonIndex - INT_1) === COLON) ||
-			(doubleColonIndex + INT_2 < ip.length && ip.charAt(doubleColonIndex + INT_2) === COLON)
-		) {
-			return false;
-		}
-
-		const beforeDoubleColon = ip.substring(INT_0, doubleColonIndex);
-		const afterDoubleColon = ip.substring(doubleColonIndex + INT_2);
-
-		let leftGroups;
-		if (beforeDoubleColon) {
-			leftGroups = beforeDoubleColon.split(COLON);
-		} else {
-			leftGroups = [];
-		}
-
-		let rightGroups;
-		if (afterDoubleColon) {
-			rightGroups = afterDoubleColon.split(COLON);
-		} else {
-			rightGroups = [];
-		}
-
-		const nonEmptyLeft = leftGroups.filter((g) => g !== EMPTY);
-		const nonEmptyRight = rightGroups.filter((g) => g !== EMPTY);
-		const totalGroups = nonEmptyLeft.length + nonEmptyRight.length;
-
-		if (totalGroups >= INT_8) {
-			return false;
-		}
-
-		/* node:coverage ignore next 5 */
-		for (let i = INT_0; i < nonEmptyLeft.length; i++) {
-			if (!HEX_GROUP_PATTERN.test(nonEmptyLeft[i])) {
-				return false;
-			}
-		}
-
-		/* node:coverage ignore next 5 */
-		for (let i = INT_0; i < nonEmptyRight.length; i++) {
-			if (!HEX_GROUP_PATTERN.test(nonEmptyRight[i])) {
-				return false;
-			}
-		}
-
-		return true;
-	} else {
-		const groups = ip.split(COLON);
-		if (groups.length !== INT_8) {
-			return false;
-		}
-
-		/* node:coverage ignore next 5 */
-		for (let i = INT_0; i < INT_8; i++) {
-			if (!groups[i] || !HEX_GROUP_PATTERN.test(groups[i])) {
-				return false;
-			}
-		}
-
-		return true;
-	}
+	return isValidIPv6(ip);
 }
 
 /**
@@ -1226,6 +1264,33 @@ function createMiddlewareRegistry(methods, cache) {
 }
 
 /**
+ * Validates HTTP method for middleware registration
+ * @param {string} method - HTTP method to validate
+ * @throws {TypeError} If method is invalid or HEAD
+ */
+function validateMethod(method) {
+	if (method !== WILDCARD && NODE_METHODS.includes(method) === false) {
+		throw new TypeError(MSG_INVALID_HTTP_METHOD);
+	}
+
+	if (method === HEAD) {
+		throw new TypeError(MSG_CANNOT_SET_HEAD_ROUTE);
+	}
+}
+
+/**
+ * Validates route pattern for security issues
+ * @param {string} path - Route path to validate
+ * @throws {TypeError} If pattern has potential ReDoS vulnerability
+ */
+function validateRoutePattern(path) {
+	/* node:coverage ignore next 3 */
+	if (QUANTIFIER_PATTERN.test(path)) {
+		throw new TypeError(MSG_REDOS_VULNERABILITY);
+	}
+}
+
+/**
  * Registers middleware for a route
  * @param {Map} middleware - Map of middleware by method
  * @param {Set} ignored - Set of ignored middleware functions
@@ -1245,13 +1310,7 @@ function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 
 	const method = typeof fn[fn.length - 1] === STRING ? fn.pop().toUpperCase() : GET;
 
-	if (method !== WILDCARD && NODE_METHODS.includes(method) === false) {
-		throw new TypeError(MSG_INVALID_HTTP_METHOD);
-	}
-
-	if (method === HEAD) {
-		throw new TypeError(MSG_CANNOT_SET_HEAD_ROUTE);
-	}
+	validateMethod(method);
 
 	if (middleware.has(method) === false) {
 		if (method !== WILDCARD) {
@@ -1270,14 +1329,9 @@ function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 		lrpath = extractPath(lrpath);
 	}
 
+	validateRoutePattern(lrpath);
+
 	const current = mmethod.get(lrpath) ?? { handlers: [] };
-
-	// Validate route pattern before mutating handlers
-	/* node:coverage ignore next 3 */
-	if (QUANTIFIER_PATTERN.test(lrpath)) {
-		throw new TypeError(MSG_REDOS_VULNERABILITY);
-	}
-
 	current.handlers.push(...fn);
 	mmethod.set(lrpath, {
 		handlers: current.handlers,
@@ -1341,14 +1395,14 @@ function validateConfig(config = {}) {
 				: String(err.path).replace(/^\./, EMPTY);
 			let msg = err.message;
 
-			if (msg.includes("is not of a type(s)")) {
+			if (msg.includes(MSG_MUST_BE_TYPE)) {
 				const types = msg.match(/type\(s\) ([a-z, ]+)/i);
 				const type = types ? types[1].split(COMMA)[0].trim() : TYPE;
 				msg = `must be ${type}`;
-			} else if (msg.includes("must be greater than or equal to")) {
+			} else if (msg.includes(MSG_MUST_BE_GREATER_THAN)) {
 				const val = msg.match(/greater than or equal to (\d+)/);
 				msg = val ? `must be >= ${val[1]}` : msg;
-			} else if (msg.includes("must be less than or equal to")) {
+			} else if (msg.includes(MSG_MUST_BE_LESS_THAN)) {
 				const val = msg.match(/less than or equal to (\d+)/);
 				msg = val ? `must be <= ${val[1]}` : msg;
 			}
@@ -1599,6 +1653,22 @@ const html = node_fs.readFileSync(node_path.join(__dirname$1, "..", "tpl", "inde
 });
 
 /**
+ * Generates HTML list item for a file entry
+ * @param {Object} file - File object from fs.readdir
+ * @returns {string} HTML list item
+ */
+function renderFileItem(file) {
+	const fileName = file.name;
+	const safeName = escapeHtml(fileName);
+	const safeHref = encodeURIComponent(fileName);
+	const isDir = file.isDirectory();
+
+	return isDir
+		? `    <li><a href="${safeHref}/" rel="${COLLECTION}">${safeName}/</a></li>`
+		: `    <li><a href="${safeHref}" rel="${ITEM}">${safeName}</a></li>`;
+}
+
+/**
  * Generates an HTML index page for directory listings
  * @param {string} [title=""] - The title for the index page
  * @param {Array} [files=[]] - Array of file objects from fs.readdir with withFileTypes: true
@@ -1606,36 +1676,12 @@ const html = node_fs.readFileSync(node_path.join(__dirname$1, "..", "tpl", "inde
  */
 function autoIndex(title = EMPTY, files = []) {
 	const safeTitle = escapeHtml(title);
+	const parentDirItem = `    <li><a href="${PARENT_DIR}" rel="${COLLECTION}">${PARENT_DIR}/</a></li>`;
 
-	if (files.length === INT_0) {
-		return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) => {
-			return key === TOKEN_TITLE
-				? safeTitle
-				: `    <li><a href="${PARENT_DIR}" rel="${COLLECTION}">${PARENT_DIR}/</a></li>`;
-		});
-	}
+	const fileItems = files.map((file) => renderFileItem(file));
+	const safeFiles = [parentDirItem, ...fileItems].join(NEWLINE);
 
-	const listItems = Array.from({ length: files.length + INT_1 });
-	listItems[INT_0] = `    <li><a href="${PARENT_DIR}" rel="${COLLECTION}">${PARENT_DIR}/</a></li>`;
-
-	const fileCount = files.length;
-	for (let i = INT_0; i < fileCount; i++) {
-		const file = files[i];
-		const fileName = file.name;
-		const safeName = escapeHtml(fileName);
-		const safeHref = encodeURIComponent(fileName);
-		const isDir = file.isDirectory();
-
-		listItems[i + INT_1] = isDir
-			? `    <li><a href="${safeHref}/" rel="${COLLECTION}">${safeName}/</a></li>`
-			: `    <li><a href="${safeHref}" rel="${ITEM}">${safeName}</a></li>`;
-	}
-
-	const safeFiles = listItems.join(NEWLINE);
-
-	return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) =>
-		key === TOKEN_TITLE ? safeTitle : safeFiles,
-	);
+	return html.replace(/\$\{\s*FILES\s*\}/g, safeFiles).replace(/\$\{\s*TITLE\s*\}/g, safeTitle);
 }
 
 /**
@@ -1700,8 +1746,9 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
 		}
 
 		let result = EMPTY;
+		const fileCount = files.length;
 
-		for (let i = INT_0; i < files.length; i++) {
+		for (let i = INT_0; i < fileCount; i++) {
 			const file = files[i];
 			if (config.indexes.includes(file.name)) {
 				result = node_path.join(realFp, file.name);
@@ -1751,7 +1798,8 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
 function register(config, root, folder, useMiddleware) {
 	const normalizedRoot = root.replace(/\/$/, EMPTY) || SLASH;
 	// Match mount root and any path beneath it: /static, /static/, /static/foo
-	const rootPattern = normalizedRoot === SLASH ? "(/.*)?" : `${normalizedRoot}(/.*)?`;
+	const rootPattern =
+		normalizedRoot === SLASH ? ROUTE_PATTERN : `${normalizedRoot}${ROUTE_PATTERN}`;
 
 	useMiddleware(rootPattern, (req, res) => {
 		const pathname = decodeURIComponent(req.parsed.pathname);
@@ -1777,7 +1825,7 @@ function createFileServer(config) {
 		register: (root, folder, useMiddleware) => {
 			const fn = useMiddleware ?? config.use;
 			if (typeof fn !== "function") {
-				throw new TypeError("useMiddleware is required or config.use must be a function");
+				throw new TypeError(MSG_USE_MIDDLEWARE_REQUIRED);
 			}
 			register(config, root, folder, fn);
 		},
@@ -1828,49 +1876,67 @@ class Woodland extends node_events.EventEmitter {
 		super();
 
 		const validated = validateConfig(config);
-		const {
-			autoIndex,
-			cacheSize,
-			cacheTTL,
-			charset,
-			corsExpose,
-			defaultHeaders,
-			digit,
-			etags,
-			indexes,
-			logging,
-			origins,
-			time,
-		} = validated;
 
+		this.#autoIndex = validated.autoIndex;
+		this.#charset = validated.charset;
+		this.#corsExpose = validated.corsExpose;
+		this.#defaultHeaders = this.#buildFinalHeaders(validated.defaultHeaders, validated.silent);
+		this.#digit = validated.digit;
+		this.#etags = validated.etags
+			? Object.freeze(tinyEtag.etag({ cacheSize: validated.cacheSize, cacheTTL: validated.cacheTTL }))
+			: null;
+		this.#indexes = [...validated.indexes];
+		this.#logging = Object.freeze(validateLogging(validated.logging));
+		this.#origins = new Set(validated.origins);
+		this.#time = validated.time;
+		this.#cache = tinyLru.lru(validated.cacheSize, validated.cacheTTL);
+		this.#methods = new Set();
+		this.#logger = this.#createLogger();
+		this.#fileServer = this.#createFileServer();
+		this.#middleware = createMiddlewareRegistry(this.#methods, this.#cache);
+
+		this.#setupMiddleware();
+		this.#setupErrorHandling();
+	}
+
+	/**
+	 * Builds final headers object from defaults
+	 * @param {Object} defaultHeaders - Default headers from config
+	 * @param {boolean} silent - Silent mode flag
+	 * @returns {Array} Array of [key, value] pairs
+	 */
+	#buildFinalHeaders(defaultHeaders, silent) {
 		const finalHeaders = { ...defaultHeaders };
-		if (!validated.silent) {
+		if (!silent) {
 			if (!(SERVER in finalHeaders)) {
 				finalHeaders[SERVER] = SERVER_VALUE;
 			}
 			finalHeaders[X_POWERED_BY] = X_POWERED_BY_VALUE;
 		}
 
-		this.#autoIndex = autoIndex;
-		this.#charset = charset;
-		this.#corsExpose = corsExpose;
-		this.#defaultHeaders = Reflect.ownKeys(finalHeaders)
+		return Reflect.ownKeys(finalHeaders)
 			.filter((key) => typeof key === STRING)
 			.map((key) => [key.toLowerCase(), finalHeaders[key]]);
-		this.#digit = digit;
-		this.#etags = etags ? Object.freeze(tinyEtag.etag({ cacheSize, cacheTTL })) : null;
-		this.#indexes = [...indexes];
-		this.#logging = Object.freeze(validateLogging(logging));
-		this.#origins = new Set(origins);
-		this.#time = time;
-		this.#cache = tinyLru.lru(cacheSize, cacheTTL);
-		this.#methods = new Set();
-		this.#logger = createLogger({
+	}
+
+	/**
+	 * Creates logger instance
+	 * @returns {Object} Logger instance
+	 */
+	#createLogger() {
+		return createLogger({
 			enabled: this.#logging.enabled,
 			format: this.#logging.format,
 			level: this.#logging.level,
 		});
-		this.#fileServer = createFileServer({
+	}
+
+	/**
+	 * Creates file server instance
+	 * @returns {Object} File server instance
+	 */
+	#createFileServer() {
+		return createFileServer({
 			autoIndex: this.#autoIndex,
 			charset: this.#charset,
 			indexes: this.#indexes,
@@ -1878,8 +1944,12 @@ class Woodland extends node_events.EventEmitter {
 			stream: this.stream.bind(this),
 			etag: this.etag.bind(this),
 		});
-		this.#middleware = createMiddlewareRegistry(this.#methods, this.#cache);
+	}
 
+	/**
+	 * Sets up middleware and CORS handling
+	 */
+	#setupMiddleware() {
 		if (this.#etags !== null) {
 			this.get(this.#etags.middleware).ignore(this.#etags.middleware);
 		}
@@ -1888,7 +1958,12 @@ class Woodland extends node_events.EventEmitter {
 			const fnCorsRequest = corsRequest();
 			this.options(fnCorsRequest).ignore(fnCorsRequest);
 		}
+	}
 
+	/**
+	 * Sets up error handling event listener
+	 */
+	#setupErrorHandling() {
 		this.on(ERROR, (req, _res, _error) =>
 			this.#logger.logError(req.parsed.pathname, req.method, req.ip),
 		);
@@ -1939,8 +2014,8 @@ class Woodland extends node_events.EventEmitter {
 				list.push(HEAD);
 			}
 
+			/* node:coverage ignore next 3 */
 			if (!methodSet.has(OPTIONS) && isCorsRequest) {
-				/* node:coverage ignore next 2 */
 				list.push(OPTIONS);
 			}
 		}
@@ -1954,7 +2029,9 @@ class Woodland extends node_events.EventEmitter {
 	 * @returns {Woodland} Returns self for chaining
 	 */
 	always(...args) {
-		for (let i = 0; i < args.length; i++) {
+		const argsLength = args.length;
+
+		for (let i = 0; i < argsLength; i++) {
 			this.#middleware.ignore(args[i]);
 		}
 
@@ -1979,25 +2056,11 @@ class Woodland extends node_events.EventEmitter {
 		const timing = this.#time ? precise.precise().start() : null;
 		const parsed = parse(req);
 		const clientIP = extractIP(req);
+		const allowString = this.#allows(parsed.pathname, false, req.cors);
+		const headersBatch = this.#buildDefaultHeaders(allowString);
+
 		req.corsHost = corsHost(req);
 		req.cors = cors(req, this.#origins);
-		const allowString = this.#allows(parsed.pathname, false, req.cors);
-		const headersBatch = Object.create(null);
-		headersBatch[ALLOW] = allowString;
-		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
-
-		const defaultHeaders = this.#defaultHeaders;
-		const headerCount = defaultHeaders.length;
-		for (let i = 0; i < headerCount; i++) {
-			const [key, value] = defaultHeaders[i];
-			if (
-				typeof key === STRING &&
-				(typeof value === STRING || typeof value === NUMBER || Array.isArray(value))
-			) {
-				headersBatch[key] = value;
-			}
-		}
-
 		req.parsed = parsed;
 		req.allow = allowString;
 		req.ip = clientIP;
@@ -2014,6 +2077,44 @@ class Woodland extends node_events.EventEmitter {
 			this.#addCorsHeaders(req, headersBatch);
 		}
 
+		this.#decorateResponse(res, req, headersBatch);
+		this.#logger.log(
+			`type=decorate, uri=${parsed.pathname}, method=${req.method}, ip=${clientIP}, message="Decorated request from ${clientIP}"`,
+		);
+	}
+
+	/**
+	 * Builds default headers batch
+	 * @param {string} allowString - Allow header value
+	 * @returns {Object} Headers batch object
+	 */
+	#buildDefaultHeaders(allowString) {
+		const headersBatch = Object.create(null);
+		headersBatch[ALLOW] = allowString;
+		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
+
+		const defaultHeaders = this.#defaultHeaders;
+		const headerCount = defaultHeaders.length;
+		for (let i = 0; i < headerCount; i++) {
+			const [key, value] = defaultHeaders[i];
+			if (
+				typeof key === STRING &&
+				(typeof value === STRING || typeof value === NUMBER || Array.isArray(value))
+			) {
+				headersBatch[key] = value;
+			}
+		}
+
+		return headersBatch;
+	}
+
+	/**
+	 * Decorates response object with methods and event handlers
+	 * @param {Object} res - HTTP response object
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} headersBatch - Headers batch to set
+	 */
+	#decorateResponse(res, req, headersBatch) {
 		res.locals = {};
 		res.error = createErrorHandler(req, res, this);
 		res.header = res.setHeader;
@@ -2025,9 +2126,6 @@ class Woodland extends node_events.EventEmitter {
 
 		res.set(headersBatch);
 		res.on(EVT_CLOSE, () => this.#logger.log(this.#logger.clf(req, res), INFO));
-		this.#logger.log(
-			`type=decorate, uri=${parsed.pathname}, method=${req.method}, ip=${clientIP}, message="Decorated request from ${clientIP}"`,
-		);
 	}
 
 	/**
