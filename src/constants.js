@@ -94,6 +94,7 @@ export const INT_1e4 = 1e4;
 export const INT_1e6 = 1e6;
 export const INT_8000 = 8000;
 export const INT_65535 = 65535;
+export const INT_NEG_1 = -1;
 
 // =============================================================================
 // STRING & CHARACTER CONSTANTS

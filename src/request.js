@@ -15,6 +15,7 @@ import {
 	INT_5,
 	INT_8,
 	INT_8000,
+	INT_NEG_1,
 	IPV4_MAPPED_PATTERN,
 	IPV4_PATTERN,
 	IPV6_CHAR_PATTERN,
@@ -121,7 +122,7 @@ export function params(req, getParams) {
 			processedParams[key] = coerce(null);
 		} else {
 			let decoded;
-			if (value.indexOf(PERCENT) === -1) {
+			if (value.indexOf(PERCENT) === INT_NEG_1) {
 				decoded = value;
 			} else {
 				try {
@@ -200,7 +201,7 @@ function isValidIPv6(ip) {
 
 	const ipv4MappedMatch = IPV4_MAPPED_PATTERN.exec(ip);
 	if (ipv4MappedMatch) {
-		return isValidIPv4(ipv4MappedMatch[1]);
+		return isValidIPv4(ipv4MappedMatch[INT_1]);
 	}
 
 	if (ip === DOUBLE_COLON) {
@@ -208,7 +209,7 @@ function isValidIPv6(ip) {
 	}
 
 	const doubleColonIndex = ip.indexOf(DOUBLE_COLON);
-	const isCompressed = doubleColonIndex !== -1;
+	const isCompressed = doubleColonIndex !== INT_NEG_1;
 
 	if (isCompressed) {
 		return validateCompressedIPv6(ip, doubleColonIndex);
@@ -224,7 +225,7 @@ function isValidIPv6(ip) {
  * @returns {boolean} True if valid
  */
 function validateCompressedIPv6(ip, doubleColonIndex) {
-	if (ip.indexOf(DOUBLE_COLON, doubleColonIndex + INT_2) !== -1) {
+	if (ip.indexOf(DOUBLE_COLON, doubleColonIndex + INT_2) !== INT_NEG_1) {
 		return false;
 	}
 
@@ -292,7 +293,7 @@ export function isValidIP(ip) {
 		return false;
 	}
 
-	if (ip.indexOf(COLON) === -1) {
+	if (ip.indexOf(COLON) === INT_NEG_1) {
 		return isValidIPv4(ip);
 	}
 
