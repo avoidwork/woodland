@@ -1,15 +1,20 @@
 import {
 	ARRAY,
 	DELIMITER,
+	ERROR_HANDLER_LENGTH,
 	FUNCTION,
 	GET,
 	HEAD,
 	INT_0,
 	LEFT_PAREN,
 	NODE_METHODS,
+	QUANTIFIER_PATTERN,
 	SLASH,
 	STRING,
 	WILDCARD,
+	MSG_CANNOT_SET_HEAD_ROUTE,
+	MSG_INVALID_HTTP_METHOD,
+	MSG_REDOS_VULNERABILITY,
 } from "./constants.js";
 import { getStatus, getStatusText } from "./response.js";
 import { extractPath } from "./request.js";
@@ -54,8 +59,6 @@ export function reduce(uri, map = new Map(), arg = {}) {
 		}
 	}
 }
-
-const ERROR_HANDLER_LENGTH = 4;
 
 /**
  * Creates a next function for middleware processing with error handling
@@ -246,11 +249,11 @@ export function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 	const method = typeof fn[fn.length - 1] === STRING ? fn.pop().toUpperCase() : GET;
 
 	if (method !== WILDCARD && NODE_METHODS.includes(method) === false) {
-		throw new TypeError("Invalid HTTP method");
+		throw new TypeError(MSG_INVALID_HTTP_METHOD);
 	}
 
 	if (method === HEAD) {
-		throw new TypeError("Cannot set HEAD route, use GET");
+		throw new TypeError(MSG_CANNOT_SET_HEAD_ROUTE);
 	}
 
 	if (middleware.has(method) === false) {
@@ -273,10 +276,9 @@ export function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 	const current = mmethod.get(lrpath) ?? { handlers: [] };
 
 	// Validate route pattern before mutating handlers
-	const quantifierPattern = /([.*+?^${}()|[\]\\])\1{3,}/;
 	/* node:coverage ignore next 3 */
-	if (quantifierPattern.test(lrpath)) {
-		throw new TypeError("Invalid route pattern: potential ReDoS vulnerability");
+	if (QUANTIFIER_PATTERN.test(lrpath)) {
+		throw new TypeError(MSG_REDOS_VULNERABILITY);
 	}
 
 	current.handlers.push(...fn);

@@ -4,11 +4,14 @@ import mimeDb from "mime-db";
 import {
 	APPLICATION_JSON,
 	APPLICATION_OCTET_STREAM,
+	BACKSLASH,
+	BYTES_SPACE,
 	CACHE_CONTROL,
 	CONTENT_LENGTH,
 	CONTENT_RANGE,
 	CONTENT_TYPE,
 	COMMA,
+	CONTROL_CHAR_PATTERN,
 	EMPTY,
 	ETAG,
 	ERROR,
@@ -17,8 +20,11 @@ import {
 	FUNCTION,
 	GET,
 	HEAD,
+	HTTP_PROTOCOL_PATTERN,
 	HYPHEN,
 	HTML_ESCAPES,
+	INT_0,
+	INT_1,
 	INT_10,
 	INT_200,
 	INT_206,
@@ -32,6 +38,8 @@ import {
 	KEY_BYTES,
 	LAST_MODIFIED,
 	LOCATION,
+	MSG_INVALID_FILE_DESCRIPTOR,
+	MSG_INVALID_REDIRECT_URI,
 	OPTIONS,
 	OPTIONS_BODY,
 	RANGE,
@@ -86,7 +94,7 @@ export function partialHeaders(req, res, size, status, headers = {}, options = {
 			return [headers, options];
 		}
 		start = size - end;
-		end = size - 1;
+		end = size - INT_1;
 	} else {
 		start = parseInt(startStr, INT_10);
 		if (isNaN(start)) {
@@ -99,12 +107,12 @@ export function partialHeaders(req, res, size, status, headers = {}, options = {
 				return [headers, options];
 			}
 		} else {
-			end = size - 1;
+			end = size - INT_1;
 		}
 	}
 
 	// Check if range is valid
-	const startValid = !isNaN(start) && start >= 0;
+	const startValid = !isNaN(start) && start >= INT_0;
 	const endValid = !isNaN(end) && end < size;
 	const rangeOrderValid = start <= end;
 	const rangeValid = startValid && endValid && rangeOrderValid;
@@ -119,7 +127,7 @@ export function partialHeaders(req, res, size, status, headers = {}, options = {
 		req.range = rangeOptions;
 		const contentLength = end - start + 1;
 
-		headers[CONTENT_RANGE] = `bytes ${start}-${end}/${size}`;
+		headers[CONTENT_RANGE] = BYTES_SPACE + `${start}-${end}/${size}`;
 		headers[CONTENT_LENGTH] = contentLength;
 
 		res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
@@ -129,7 +137,7 @@ export function partialHeaders(req, res, size, status, headers = {}, options = {
 		return [headers, rangeOptions];
 	}
 
-	headers[CONTENT_RANGE] = `bytes */${size}`;
+	headers[CONTENT_RANGE] = BYTES_SPACE + `*/${size}`;
 	res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
 
 	return [headers, options];
@@ -197,7 +205,7 @@ export function getStatusText(status) {
 export function error(req, res, status = res.statusCode) {
 	if (res.headersSent === false) {
 		if (status < INT_400) {
-			status = 500;
+			status = INT_500;
 		}
 
 		res.removeHeader(CONTENT_LENGTH);
@@ -221,8 +229,8 @@ export function json(
 	res.send(JSON.stringify(arg), status, headers);
 }
 
-const PROTOCOL_PATTERN = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
-const CONTROL_CHAR_PATTERN = /[\r\n\t]/;
+const PROTOCOL_PATTERN = HTTP_PROTOCOL_PATTERN;
+const CONTROL_CHAR_PATTERN_LOCAL = CONTROL_CHAR_PATTERN;
 
 /**
  * Validates if a URI is safe for redirection (relative only)
@@ -231,18 +239,18 @@ const CONTROL_CHAR_PATTERN = /[\r\n\t]/;
  */
 function isSafeRedirectUri(uri) {
 	/* node:coverage ignore next 10 */
-	if (!uri || typeof uri !== "string") {
+	if (!uri || typeof uri !== STRING) {
 		return false;
 	}
 
 	const trimmed = uri.trim();
 
-	if (trimmed.length === 0) {
+	if (trimmed.length === INT_0) {
 		return false;
 	}
 
 	// Block control characters that could cause header injection
-	if (CONTROL_CHAR_PATTERN.test(trimmed)) {
+	if (CONTROL_CHAR_PATTERN_LOCAL.test(trimmed)) {
 		return false;
 	}
 
@@ -254,11 +262,11 @@ function isSafeRedirectUri(uri) {
 	const decoded = decodeURIComponent(trimmed);
 	if (
 		trimmed.startsWith("//") ||
-		trimmed.startsWith("\\") ||
-		trimmed.startsWith("/\\") ||
+		trimmed.startsWith(BACKSLASH) ||
+		trimmed.startsWith("/" + BACKSLASH) ||
 		decoded.startsWith("//") ||
-		decoded.startsWith("\\") ||
-		decoded.startsWith("/\\")
+		decoded.startsWith(BACKSLASH) ||
+		decoded.startsWith("/" + BACKSLASH)
 	) {
 		return false;
 	}
@@ -274,7 +282,7 @@ function isSafeRedirectUri(uri) {
  */
 export function redirect(res, uri, perm = true) {
 	if (!isSafeRedirectUri(uri)) {
-		res.error(INT_400, new Error("Invalid redirect URI"));
+		res.error(INT_400, new Error(MSG_INVALID_REDIRECT_URI));
 		return;
 	}
 
@@ -402,8 +410,8 @@ export function status(res, arg = INT_200) {
  * @param {boolean} etags - ETag support enabled
  */
 export function stream(req, res, file, emitStream, createReadStream, etags) {
-	if (file.path === EMPTY || file.stats.size === 0) {
-		throw new TypeError("Invalid file descriptor");
+	if (file.path === EMPTY || file.stats.size === INT_0) {
+		throw new TypeError(MSG_INVALID_FILE_DESCRIPTOR);
 	}
 
 	res.header(CONTENT_LENGTH, file.stats.size);
@@ -476,7 +484,7 @@ export function createErrorHandler(req, res, emitter) {
 		if (req.headers) {
 			delete req.headers.range;
 		}
-		res.send(err.message);
+		res.send(err.message || getStatusText(res.statusCode));
 	};
 }
 

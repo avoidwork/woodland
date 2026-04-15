@@ -4,19 +4,26 @@ import { join, resolve, sep } from "node:path";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
+	BACKSLASH,
 	COLLECTION,
 	CONTENT_TYPE,
 	EMPTY,
+	INT_0,
+	INT_1,
+	INT_3,
 	INT_400,
 	ITEM,
 	INT_403,
 	INT_404,
 	MSG_ROUTING_FILE,
 	MSG_SERVE_PATH_OUTSIDE,
+	NEWLINE,
+	PARENT_DIR,
 	SLASH,
 	TEXT_HTML,
 	TOKEN_TITLE,
 	UTF8,
+	COLON,
 } from "./constants.js";
 import { escapeHtml } from "./response.js";
 
@@ -34,31 +41,31 @@ const html = readFileSync(join(__dirname, "..", "tpl", "index.html"), {
 export function autoIndex(title = EMPTY, files = []) {
 	const safeTitle = escapeHtml(title);
 
-	if (files.length === 0) {
+	if (files.length === INT_0) {
 		return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) => {
 			return key === TOKEN_TITLE
 				? safeTitle
-				: `    <li><a href=".." rel="${COLLECTION}">../</a></li>`;
+				: `    <li><a href="${PARENT_DIR}" rel="${COLLECTION}">${PARENT_DIR}/</a></li>`;
 		});
 	}
 
-	const listItems = Array.from({ length: files.length + 1 });
-	listItems[0] = `    <li><a href=".." rel="${COLLECTION}">../</a></li>`;
+	const listItems = Array.from({ length: files.length + INT_1 });
+	listItems[INT_0] = `    <li><a href="${PARENT_DIR}" rel="${COLLECTION}">${PARENT_DIR}/</a></li>`;
 
 	const fileCount = files.length;
-	for (let i = 0; i < fileCount; i++) {
+	for (let i = INT_0; i < fileCount; i++) {
 		const file = files[i];
 		const fileName = file.name;
 		const safeName = escapeHtml(fileName);
 		const safeHref = encodeURIComponent(fileName);
 		const isDir = file.isDirectory();
 
-		listItems[i + 1] = isDir
+		listItems[i + INT_1] = isDir
 			? `    <li><a href="${safeHref}/" rel="${COLLECTION}">${safeName}/</a></li>`
 			: `    <li><a href="${safeHref}" rel="${ITEM}">${safeName}</a></li>`;
 	}
 
-	const safeFiles = listItems.join("\n");
+	const safeFiles = listItems.join(NEWLINE);
 
 	return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) =>
 		key === TOKEN_TITLE ? safeTitle : safeFiles,
@@ -82,7 +89,7 @@ export async function serve(config, req, res, arg, folder = process.cwd()) {
 
 	const isRoot =
 		realFolder === sep ||
-		(realFolder.length === 3 && realFolder[1] === ":" && realFolder.endsWith("\\"));
+		(realFolder.length === INT_3 && realFolder[INT_1] === COLON && realFolder.endsWith(BACKSLASH));
 	const isWithin = isRoot
 		? realFp.startsWith(realFolder)
 		: realFp === realFolder || (realFp.startsWith(realFolder) && realFp[realFolder.length] === sep);
@@ -115,7 +122,7 @@ export async function serve(config, req, res, arg, folder = process.cwd()) {
 			stats: stats,
 		});
 	} else if (!req.parsed.pathname.endsWith(SLASH)) {
-		res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
+		res.redirect(`${req.parsed.pathname}${SLASH}${req.parsed.search}`);
 	} else {
 		let files;
 		/* node:coverage ignore next 7 */
@@ -128,7 +135,7 @@ export async function serve(config, req, res, arg, folder = process.cwd()) {
 
 		let result = EMPTY;
 
-		for (let i = 0; i < files.length; i++) {
+		for (let i = INT_0; i < files.length; i++) {
 			const file = files[i];
 			if (config.indexes.includes(file.name)) {
 				result = join(realFp, file.name);
@@ -188,8 +195,8 @@ export function register(config, root, folder, useMiddleware) {
 			pathname === normalizedRoot
 				? EMPTY
 				: normalizedRoot === SLASH
-					? pathname.slice(1)
-					: pathname.slice(normalizedRoot.length + 1);
+					? pathname.slice(INT_1)
+					: pathname.slice(normalizedRoot.length + INT_1);
 		return serve(config, req, res, relativePath, folder);
 	});
 }
