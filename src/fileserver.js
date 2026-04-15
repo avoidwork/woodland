@@ -17,12 +17,14 @@ import {
 	INT_404,
 	MSG_ROUTING_FILE,
 	MSG_SERVE_PATH_OUTSIDE,
+	MSG_USE_MIDDLEWARE_REQUIRED,
 	NEWLINE,
 	PARENT_DIR,
 	SLASH,
 	TEXT_HTML,
 	UTF8,
 	COLON,
+	ROUTE_PATTERN,
 } from "./constants.js";
 import { escapeHtml } from "./response.js";
 
@@ -176,7 +178,8 @@ export async function serve(config, req, res, arg, folder = process.cwd()) {
 export function register(config, root, folder, useMiddleware) {
 	const normalizedRoot = root.replace(/\/$/, EMPTY) || SLASH;
 	// Match mount root and any path beneath it: /static, /static/, /static/foo
-	const rootPattern = normalizedRoot === SLASH ? "(/.*)?" : `${normalizedRoot}(/.*)?`;
+	const rootPattern =
+		normalizedRoot === SLASH ? ROUTE_PATTERN : `${normalizedRoot}${ROUTE_PATTERN}`;
 
 	useMiddleware(rootPattern, (req, res) => {
 		const pathname = decodeURIComponent(req.parsed.pathname);
@@ -202,7 +205,7 @@ export function createFileServer(config) {
 		register: (root, folder, useMiddleware) => {
 			const fn = useMiddleware ?? config.use;
 			if (typeof fn !== "function") {
-				throw new TypeError("useMiddleware is required or config.use must be a function");
+				throw new TypeError(MSG_USE_MIDDLEWARE_REQUIRED);
 			}
 			register(config, root, folder, fn);
 		},

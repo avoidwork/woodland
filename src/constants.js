@@ -145,6 +145,9 @@ export const PARAMS_GROUP = "/(?<$1>[^/]+)";
 export const PARENT_DIR = "..";
 export const BACKSLASH = "\\";
 export const NEWLINE = "\n";
+export const ROUTE_PATTERN = "(/.*)?";
+export const MSG_USE_MIDDLEWARE_REQUIRED =
+	"useMiddleware is required or config.use must be a function";
 
 // =============================================================================
 // LOGGING & DEBUGGING
@@ -181,7 +184,7 @@ export const LOG_V = "%v";
 // MESSAGES & RESPONSES
 // =============================================================================
 export const MSG_CONFIG_FIELD = "Config ";
-export const MSG_INVALID_IP = "Invalid IP: must be a valid IPv4 or IPv6 address.";
+export const MSG_INVALID_IP = "Invalid IP: must be a valid IPv4 and IPv6 address.";
 export const MSG_INVALID_PORT = "Invalid port: must be an integer between 0 and 65535.";
 export const MSG_INVALID_REDIRECT_URI = "Invalid redirect URI";
 export const MSG_INVALID_FILE_DESCRIPTOR = "Invalid file descriptor";
@@ -195,6 +198,9 @@ export const MSG_ROUTING = "Routing request";
 export const MSG_ROUTING_FILE = "Routing request to file system";
 export const MSG_SERVE_PATH_OUTSIDE = "Path outside allowed directory";
 export const MSG_VALIDATION_FAILED = "Configuration validation failed: ";
+export const MSG_MUST_BE_TYPE = "is not of a type(s)";
+export const MSG_MUST_BE_GREATER_THAN = "must be greater than or equal to";
+export const MSG_MUST_BE_LESS_THAN = "must be less than or equal to";
 export const SEMICOLON_SPACE = "; ";
 export const OPTIONS_BODY = "Make a GET request to retrieve the file";
 
