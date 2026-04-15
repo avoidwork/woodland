@@ -144,12 +144,15 @@ export const FILES = "files";
 export const EXTENSIONS = "extensions";
 export const PARAMS_GROUP = "/(?<$1>[^/]+)";
 export const PARENT_DIR = "..";
+export const CURRENT_DIR = ".";
 export const BACKSLASH = "\\";
 export const NEWLINE = "\n";
 export const ROUTE_PATTERN = "(/.*)?";
 export const MSG_USE_MIDDLEWARE_REQUIRED =
 	"useMiddleware is required or config.use must be a function";
 export const EXTRACT_PATH_REPLACE = "(?<$1>[^/]+)";
+export const TPL_DIR = "tpl";
+export const INDEX_HTML_FILE = "index.html";
 
 // =============================================================================
 // LOGGING & DEBUGGING

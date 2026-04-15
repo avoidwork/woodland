@@ -7,7 +7,9 @@ import {
 	BACKSLASH,
 	COLLECTION,
 	CONTENT_TYPE,
+	CURRENT_DIR,
 	EMPTY,
+	INDEX_HTML_FILE,
 	INT_0,
 	INT_1,
 	INT_3,
@@ -22,14 +24,15 @@ import {
 	PARENT_DIR,
 	SLASH,
 	TEXT_HTML,
+	TPL_DIR,
 	UTF8,
 	COLON,
 	ROUTE_PATTERN,
 } from "./constants.js";
 import { escapeHtml } from "./response.js";
 
-const __dirname = fileURLToPath(new URL(".", import.meta.url));
-const html = readFileSync(join(__dirname, "..", "tpl", "index.html"), {
+const __dirname = fileURLToPath(new URL(CURRENT_DIR, import.meta.url));
+const html = readFileSync(join(__dirname, PARENT_DIR, TPL_DIR, INDEX_HTML_FILE), {
 	encoding: UTF8,
 });
 
