@@ -121,6 +121,7 @@ const NUMBER = "number";
 const OBJECT = "object";
 const STRING = "string";
 const TYPE = "type";
+const ERROR_HANDLER_LENGTH = 4;
 
 // =============================================================================
 // SERVER & SYSTEM INFO
@@ -136,6 +137,9 @@ const HTTP_PREFIX = "http://";
 const INDEX_HTM = "index.htm";
 const INDEX_HTML = "index.html";
 const EXTENSIONS = "extensions";
+const PARENT_DIR = "..";
+const BACKSLASH = "\\";
+const NEWLINE = "\n";
 
 // =============================================================================
 // LOGGING & DEBUGGING
@@ -172,6 +176,11 @@ const LOG_V = "%v";
 // MESSAGES & RESPONSES
 // =============================================================================
 const MSG_CONFIG_FIELD = "Config ";
+const MSG_INVALID_REDIRECT_URI = "Invalid redirect URI";
+const MSG_INVALID_FILE_DESCRIPTOR = "Invalid file descriptor";
+const MSG_INVALID_HTTP_METHOD = "Invalid HTTP method";
+const MSG_CANNOT_SET_HEAD_ROUTE = "Cannot set HEAD route, use GET";
+const MSG_REDOS_VULNERABILITY = "Invalid route pattern: potential ReDoS vulnerability";
 const MSG_ROUTING_FILE = "Routing request to file system";
 const MSG_SERVE_PATH_OUTSIDE = "Path outside allowed directory";
 const MSG_VALIDATION_FAILED = "Configuration validation failed: ";
@@ -182,6 +191,7 @@ const OPTIONS_BODY = "Make a GET request to retrieve the file";
 // HTTP RANGE & CACHING
 // =============================================================================
 const KEY_BYTES = "bytes=";
+const BYTES_SPACE = "bytes ";
 
 // =============================================================================
 // EVENT & STREAM CONSTANTS
@@ -222,6 +232,13 @@ const MONTHS = Object.freeze(
 );
 
 const VALID_LOG_LEVELS = new Set([DEBUG, INFO, WARN, ERROR, CRITICAL, ALERT, EMERG, NOTICE]);
+
+// =============================================================================
+// REGULAR EXPRESSION PATTERNS
+// =============================================================================
+const HTTP_PROTOCOL_PATTERN = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
+const CONTROL_CHAR_PATTERN = /[\r\n\t]/;
+const QUANTIFIER_PATTERN = /([.*+?^${}()|[\\]])\1{3,}/;
 
 // =============================================================================
 // HTML ESCAPE MAPPING
@@ -279,7 +296,7 @@ function partialHeaders(req, res, size, status, headers = {}, options = {}) {
 			return [headers, options];
 		}
 		start = size - end;
-		end = size - 1;
+		end = size - INT_1;
 	} else {
 		start = parseInt(startStr, INT_10);
 		if (isNaN(start)) {
@@ -292,12 +309,12 @@ function partialHeaders(req, res, size, status, headers = {}, options = {}) {
 				return [headers, options];
 			}
 		} else {
-			end = size - 1;
+			end = size - INT_1;
 		}
 	}
 
 	// Check if range is valid
-	const startValid = !isNaN(start) && start >= 0;
+	const startValid = !isNaN(start) && start >= INT_0;
 	const endValid = !isNaN(end) && end < size;
 	const rangeOrderValid = start <= end;
 	const rangeValid = startValid && endValid && rangeOrderValid;
@@ -312,7 +329,7 @@ function partialHeaders(req, res, size, status, headers = {}, options = {}) {
 		req.range = rangeOptions;
 		const contentLength = end - start + 1;
 
-		headers[CONTENT_RANGE] = `bytes ${start}-${end}/${size}`;
+		headers[CONTENT_RANGE] = BYTES_SPACE + `${start}-${end}/${size}`;
 		headers[CONTENT_LENGTH] = contentLength;
 
 		res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
@@ -322,7 +339,7 @@ function partialHeaders(req, res, size, status, headers = {}, options = {}) {
 		return [headers, rangeOptions];
 	}
 
-	headers[CONTENT_RANGE] = `bytes */${size}`;
+	headers[CONTENT_RANGE] = BYTES_SPACE + `*/${size}`;
 	res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
 
 	return [headers, options];
@@ -390,7 +407,7 @@ function getStatusText(status) {
 function error(req, res, status = res.statusCode) {
 	if (res.headersSent === false) {
 		if (status < INT_400) {
-			status = 500;
+			status = INT_500;
 		}
 
 		res.removeHeader(CONTENT_LENGTH);
@@ -414,8 +431,8 @@ function json(
 	res.send(JSON.stringify(arg), status, headers);
 }
 
-const PROTOCOL_PATTERN = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
-const CONTROL_CHAR_PATTERN = /[\r\n\t]/;
+const PROTOCOL_PATTERN = HTTP_PROTOCOL_PATTERN;
+const CONTROL_CHAR_PATTERN_LOCAL = CONTROL_CHAR_PATTERN;
 
 /**
  * Validates if a URI is safe for redirection (relative only)
@@ -424,18 +441,18 @@ const CONTROL_CHAR_PATTERN = /[\r\n\t]/;
  */
 function isSafeRedirectUri(uri) {
 	/* node:coverage ignore next 10 */
-	if (!uri || typeof uri !== "string") {
+	if (!uri || typeof uri !== STRING) {
 		return false;
 	}
 
 	const trimmed = uri.trim();
 
-	if (trimmed.length === 0) {
+	if (trimmed.length === INT_0) {
 		return false;
 	}
 
 	// Block control characters that could cause header injection
-	if (CONTROL_CHAR_PATTERN.test(trimmed)) {
+	if (CONTROL_CHAR_PATTERN_LOCAL.test(trimmed)) {
 		return false;
 	}
 
@@ -447,11 +464,11 @@ function isSafeRedirectUri(uri) {
 	const decoded = decodeURIComponent(trimmed);
 	if (
 		trimmed.startsWith("//") ||
-		trimmed.startsWith("\\") ||
-		trimmed.startsWith("/\\") ||
+		trimmed.startsWith(BACKSLASH) ||
+		trimmed.startsWith("/" + BACKSLASH) ||
 		decoded.startsWith("//") ||
-		decoded.startsWith("\\") ||
-		decoded.startsWith("/\\")
+		decoded.startsWith(BACKSLASH) ||
+		decoded.startsWith("/" + BACKSLASH)
 	) {
 		return false;
 	}
@@ -467,7 +484,7 @@ function isSafeRedirectUri(uri) {
  */
 function redirect(res, uri, perm = true) {
 	if (!isSafeRedirectUri(uri)) {
-		res.error(INT_400, new Error("Invalid redirect URI"));
+		res.error(INT_400, new Error(MSG_INVALID_REDIRECT_URI));
 		return;
 	}
 
@@ -595,8 +612,8 @@ function status(res, arg = INT_200) {
  * @param {boolean} etags - ETag support enabled
  */
 function stream(req, res, file, emitStream, createReadStream, etags) {
-	if (file.path === EMPTY || file.stats.size === 0) {
-		throw new TypeError("Invalid file descriptor");
+	if (file.path === EMPTY || file.stats.size === INT_0) {
+		throw new TypeError(MSG_INVALID_FILE_DESCRIPTOR);
 	}
 
 	res.header(CONTENT_LENGTH, file.stats.size);
@@ -669,7 +686,7 @@ function createErrorHandler(req, res, emitter) {
 		if (req.headers) {
 			delete req.headers.range;
 		}
-		res.send(err.message);
+		res.send(err.message || getStatusText(res.statusCode));
 	};
 }
 
@@ -1017,8 +1034,6 @@ function reduce(uri, map = new Map(), arg = {}) {
 	}
 }
 
-const ERROR_HANDLER_LENGTH = 4;
-
 /**
  * Creates a next function for middleware processing with error handling
  * @param {Object} req - The HTTP request object
@@ -1208,11 +1223,11 @@ function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 	const method = typeof fn[fn.length - 1] === STRING ? fn.pop().toUpperCase() : GET;
 
 	if (method !== WILDCARD && NODE_METHODS.includes(method) === false) {
-		throw new TypeError("Invalid HTTP method");
+		throw new TypeError(MSG_INVALID_HTTP_METHOD);
 	}
 
 	if (method === HEAD) {
-		throw new TypeError("Cannot set HEAD route, use GET");
+		throw new TypeError(MSG_CANNOT_SET_HEAD_ROUTE);
 	}
 
 	if (middleware.has(method) === false) {
@@ -1235,10 +1250,9 @@ function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 	const current = mmethod.get(lrpath) ?? { handlers: [] };
 
 	// Validate route pattern before mutating handlers
-	const quantifierPattern = /([.*+?^${}()|[\]\\])\1{3,}/;
 	/* node:coverage ignore next 3 */
-	if (quantifierPattern.test(lrpath)) {
-		throw new TypeError("Invalid route pattern: potential ReDoS vulnerability");
+	if (QUANTIFIER_PATTERN.test(lrpath)) {
+		throw new TypeError(MSG_REDOS_VULNERABILITY);
 	}
 
 	current.handlers.push(...fn);
@@ -1564,31 +1578,31 @@ const html = readFileSync(join(__dirname$1, "..", "tpl", "index.html"), {
 function autoIndex(title = EMPTY, files = []) {
 	const safeTitle = escapeHtml(title);
 
-	if (files.length === 0) {
+	if (files.length === INT_0) {
 		return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) => {
 			return key === TOKEN_TITLE
 				? safeTitle
-				: `    <li><a href=".." rel="${COLLECTION}">../</a></li>`;
+				: `    <li><a href="${PARENT_DIR}" rel="${COLLECTION}">${PARENT_DIR}/</a></li>`;
 		});
 	}
 
-	const listItems = Array.from({ length: files.length + 1 });
-	listItems[0] = `    <li><a href=".." rel="${COLLECTION}">../</a></li>`;
+	const listItems = Array.from({ length: files.length + INT_1 });
+	listItems[INT_0] = `    <li><a href="${PARENT_DIR}" rel="${COLLECTION}">${PARENT_DIR}/</a></li>`;
 
 	const fileCount = files.length;
-	for (let i = 0; i < fileCount; i++) {
+	for (let i = INT_0; i < fileCount; i++) {
 		const file = files[i];
 		const fileName = file.name;
 		const safeName = escapeHtml(fileName);
 		const safeHref = encodeURIComponent(fileName);
 		const isDir = file.isDirectory();
 
-		listItems[i + 1] = isDir
+		listItems[i + INT_1] = isDir
 			? `    <li><a href="${safeHref}/" rel="${COLLECTION}">${safeName}/</a></li>`
 			: `    <li><a href="${safeHref}" rel="${ITEM}">${safeName}</a></li>`;
 	}
 
-	const safeFiles = listItems.join("\n");
+	const safeFiles = listItems.join(NEWLINE);
 
 	return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) =>
 		key === TOKEN_TITLE ? safeTitle : safeFiles,
@@ -1612,7 +1626,7 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
 
 	const isRoot =
 		realFolder === sep ||
-		(realFolder.length === 3 && realFolder[1] === ":" && realFolder.endsWith("\\"));
+		(realFolder.length === INT_3 && realFolder[INT_1] === COLON && realFolder.endsWith(BACKSLASH));
 	const isWithin = isRoot
 		? realFp.startsWith(realFolder)
 		: realFp === realFolder || (realFp.startsWith(realFolder) && realFp[realFolder.length] === sep);
@@ -1645,7 +1659,7 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
 			stats: stats,
 		});
 	} else if (!req.parsed.pathname.endsWith(SLASH)) {
-		res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
+		res.redirect(`${req.parsed.pathname}${SLASH}${req.parsed.search}`);
 	} else {
 		let files;
 		/* node:coverage ignore next 7 */
@@ -1658,7 +1672,7 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
 
 		let result = EMPTY;
 
-		for (let i = 0; i < files.length; i++) {
+		for (let i = INT_0; i < files.length; i++) {
 			const file = files[i];
 			if (config.indexes.includes(file.name)) {
 				result = join(realFp, file.name);
@@ -1718,8 +1732,8 @@ function register(config, root, folder, useMiddleware) {
 			pathname === normalizedRoot
 				? EMPTY
 				: normalizedRoot === SLASH
-					? pathname.slice(1)
-					: pathname.slice(normalizedRoot.length + 1);
+					? pathname.slice(INT_1)
+					: pathname.slice(normalizedRoot.length + INT_1);
 		return serve(config, req, res, relativePath, folder);
 	});
 }
@@ -1947,7 +1961,7 @@ class Woodland extends EventEmitter {
 			const [key, value] = defaultHeaders[i];
 			if (
 				typeof key === STRING &&
-				(typeof value === STRING || typeof value === "number" || Array.isArray(value))
+				(typeof value === STRING || typeof value === NUMBER || Array.isArray(value))
 			) {
 				headersBatch[key] = value;
 			}
