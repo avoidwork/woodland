@@ -796,7 +796,7 @@ function createStatusHandler(res) {
  * @returns {boolean} True if CORS is allowed
  */
 function cors(req, origins) {
-	if (origins.size === 0) {
+	if (origins.size === INT_0) {
 		return false;
 	}
 
