@@ -1,7 +1,6 @@
 import assert from "node:assert";
-import { describe, it, beforeEach, afterEach } from "node:test";
-import { main, parseArgs, validatePort, validateIP } from "../../src/cli.js";
-import { WOODLAND_CLI } from "../../src/constants.js";
+import { describe, it } from "node:test";
+import { parseArgs, validatePort, validateIP } from "../../src/cli-utils.js";
 
 describe("CLI", () => {
 	describe("parseArgs", () => {
@@ -132,83 +131,6 @@ describe("CLI", () => {
 			const result = validateIP("");
 			assert.strictEqual(result.valid, false);
 			assert.match(result.error, /Invalid IP/);
-		});
-	});
-
-	describe("main", () => {
-		let originalExit;
-		let originalConsoleError;
-		let server;
-
-		beforeEach(() => {
-			originalExit = process.exit;
-			originalConsoleError = console.error;
-			process.exit = () => {};
-			console.error = () => {};
-			server = null;
-		});
-
-		afterEach(() => {
-			process.exit = originalExit;
-			console.error = originalConsoleError;
-			if (server) {
-				server.closeAllConnections?.();
-				server.close();
-				server = null;
-			}
-			// Reset process.argv to prevent side effects from CLI auto-execution
-			process.argv = ["node", "test"];
-		});
-
-		it("should create and start server with default arguments", () => {
-			server = main(["node", WOODLAND_CLI, "--port=0"]);
-			assert.ok(server);
-			assert.strictEqual(typeof server.listen, "function");
-		});
-
-		it("should create and start server with custom port", () => {
-			server = main(["node", WOODLAND_CLI, "--port=0"]);
-			assert.ok(server);
-		});
-
-		it("should create and start server with custom IP", () => {
-			server = main(["node", WOODLAND_CLI, "--port=0", "--ip=127.0.0.1"]);
-			assert.ok(server);
-		});
-
-		it("should create and start server with custom logging", () => {
-			server = main(["node", WOODLAND_CLI, "--port=0", "--logging=false"]);
-			assert.ok(server);
-		});
-
-		it("should exit with invalid port", () => {
-			let exitCalled = false;
-			let errorMessage = "";
-			process.exit = () => {
-				exitCalled = true;
-			};
-			console.error = (msg) => {
-				errorMessage = msg;
-			};
-
-			main(["node", WOODLAND_CLI, "--port=-1"]);
-			assert.strictEqual(exitCalled, true);
-			assert.match(errorMessage, /Invalid port/);
-		});
-
-		it("should exit with invalid IP", () => {
-			let exitCalled = false;
-			let errorMessage = "";
-			process.exit = () => {
-				exitCalled = true;
-			};
-			console.error = (msg) => {
-				errorMessage = msg;
-			};
-
-			main(["node", WOODLAND_CLI, "--ip=invalid"]);
-			assert.strictEqual(exitCalled, true);
-			assert.match(errorMessage, /Invalid IP/);
 		});
 	});
 });

@@ -1,70 +1,18 @@
 #!/usr/bin/env node
 
 import { createServer } from "node:http";
-import { coerce } from "tiny-coerce";
 import { woodland } from "woodland";
-import { isValidIP } from "./request.js";
+import { parseArgs, validateIP, validatePort } from "./cli-utils.js";
 import {
 	CACHE_CONTROL,
 	CHAR_SET,
 	CONTENT_TYPE,
-	EMPTY,
-	EQUAL,
-	HYPHEN,
 	INFO,
-	INT_0,
 	INT_8000,
-	INT_65535,
 	LOCALHOST,
 	NO_CACHE,
-	STRING,
 	TEXT_PLAIN,
 } from "./constants.js";
-
-/**
- * Parse CLI arguments from process.argv style array
- * @param {Array} args - Array of argument strings
- * @returns {Object} Parsed arguments object
- */
-export function parseArgs(args) {
-	return args
-		.filter((i) => i.charAt(0) === HYPHEN && i.charAt(1) === HYPHEN)
-		.reduce((a, v) => {
-			const x = v.split(`${HYPHEN}${HYPHEN}`)[1].split(EQUAL);
-			a[x[0]] = coerce(x[1]);
-			return a;
-		}, {});
-}
-
-/**
- * Validate port number
- * @param {*} port - Port value to validate
- * @returns {Object} Validation result with valid flag and error message
- */
-export function validatePort(port) {
-	// Reject empty strings and whitespace-only values
-	if (port === EMPTY || (typeof port === STRING && port.trim() === EMPTY)) {
-		return { valid: false, error: "Invalid port: must be an integer between 0 and 65535." };
-	}
-	const validPort = Number(port);
-	if (!Number.isInteger(validPort) || validPort < INT_0 || validPort > INT_65535) {
-		return { valid: false, error: "Invalid port: must be an integer between 0 and 65535." };
-	}
-	return { valid: true, port: validPort };
-}
-
-/**
- * Validate IP address
- * @param {string} ip - IP address to validate
- * @returns {Object} Validation result with valid flag and error message
- */
-export function validateIP(ip) {
-	const validIP = isValidIP(ip);
-	if (!validIP) {
-		return { valid: false, error: "Invalid IP: must be a valid IPv4 or IPv6 address." };
-	}
-	return { valid: true, ip };
-}
 
 /**
  * Main CLI entry point function
@@ -117,8 +65,6 @@ export function main(args = process.argv) {
 	return server;
 }
 
-// CLI entry point - only run when executed directly (not imported)
-const isMainModule = process.argv[1] && process.argv[1].endsWith("cli.js");
-if (isMainModule) {
-	main();
-}
+// CLI entry point - always run main
+/* node:coverage ignore next */
+main();

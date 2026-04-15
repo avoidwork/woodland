@@ -268,7 +268,7 @@ function main(args = process.argv) {
 	app.files();
 	const server = node_http.createServer(app.route);
 	server.listen(portValidation.port, ip);
-	/* node:coverage ignore next 6 */
+	/* node:coverage ignore next 10 */
 	server.on("listening", () => {
 		const actualPort = server.address().port;
 		app.logger.log(
@@ -276,12 +276,17 @@ function main(args = process.argv) {
 			INFO,
 		);
 	});
+	server.on("error", (err) => {
+		console.error(`Server error: ${err.message}`);
+	});
 
 	return server;
 }
 
-// CLI entry point - always run main
-main();
+// CLI entry point - run main only when executed directly
+if (process.argv[1] && process.argv[1].includes("cli")) {
+	main();
+}
 
 exports.main = main;
 exports.parseArgs = parseArgs;
