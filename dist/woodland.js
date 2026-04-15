@@ -1993,12 +1993,10 @@ class Woodland extends EventEmitter {
 		const originAllowed = this.#origins.has(origin);
 		const hasWildcard = this.#origins.has(WILDCARD);
 
-		/* node:coverage ignore next 11 */
+		/* node:coverage ignore next 9 */
 		if (originAllowed) {
-			if (typeof origin === STRING && origin.length > 0) {
-				headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
-				headersBatch[TIMING_ALLOW_ORIGIN] = origin;
-			}
+			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
+			headersBatch[TIMING_ALLOW_ORIGIN] = origin;
 			headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
 			headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = req.allow;
 
@@ -2067,15 +2065,7 @@ class Woodland extends EventEmitter {
 	 */
 	#hashArgs(args) {
 		return args
-			.map((i) => {
-				if (typeof i === STRING) {
-					return i;
-				}
-				if (i !== null && typeof i === "object" && !Object.hasOwn(i, "toString")) {
-					return EMPTY;
-				}
-				return JSON.stringify(i).replace(/^"|"$/g, EMPTY);
-			})
+			.map((i) => (typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i))
 			.join(HYPHEN);
 	}
 
