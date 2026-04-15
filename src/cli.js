@@ -50,16 +50,13 @@ export function main(args = process.argv) {
 	app.files();
 	const server = createServer(app.route);
 	server.listen(portValidation.port, ip);
-	/* node:coverage ignore next 10 */
+	/* node:coverage ignore next 6 */
 	server.on("listening", () => {
 		const actualPort = server.address().port;
 		app.logger.log(
 			`id=woodland, hostname=${process.env.HOSTNAME ?? "localhost"}, ip=${ip}, port=${actualPort}`,
 			INFO,
 		);
-	});
-	server.on("error", (err) => {
-		console.error(`Server error: ${err.message}`);
 	});
 
 	return server;

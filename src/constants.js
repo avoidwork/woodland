@@ -178,6 +178,8 @@ export const LOG_V = "%v";
 // MESSAGES & RESPONSES
 // =============================================================================
 export const MSG_CONFIG_FIELD = "Config ";
+export const MSG_INVALID_IP = "Invalid IP: must be a valid IPv4 or IPv6 address.";
+export const MSG_INVALID_PORT = "Invalid port: must be an integer between 0 and 65535.";
 export const MSG_ROUTING = "Routing request";
 export const MSG_ROUTING_FILE = "Routing request to file system";
 export const MSG_SERVE_PATH_OUTSIDE = "Path outside allowed directory";

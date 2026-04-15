@@ -1,5 +1,14 @@
 import { isValidIP } from "./request.js";
-import { EMPTY, HYPHEN, INT_0, INT_65535, STRING } from "./constants.js";
+import {
+	EMPTY,
+	EQUAL,
+	HYPHEN,
+	INT_0,
+	INT_65535,
+	MSG_INVALID_IP,
+	MSG_INVALID_PORT,
+	STRING,
+} from "./constants.js";
 import { coerce } from "tiny-coerce";
 
 /**
@@ -24,11 +33,11 @@ export function parseArgs(args) {
  */
 export function validatePort(port) {
 	if (port === EMPTY || (typeof port === STRING && port.trim() === EMPTY)) {
-		return { valid: false, error: "Invalid port: must be an integer between 0 and 65535." };
+		return { valid: false, error: MSG_INVALID_PORT };
 	}
 	const validPort = Number(port);
 	if (!Number.isInteger(validPort) || validPort < INT_0 || validPort > INT_65535) {
-		return { valid: false, error: "Invalid port: must be an integer between 0 and 65535." };
+		return { valid: false, error: MSG_INVALID_PORT };
 	}
 	return { valid: true, port: validPort };
 }
@@ -41,7 +50,7 @@ export function validatePort(port) {
 export function validateIP(ip) {
 	const validIP = isValidIP(ip);
 	if (!validIP) {
-		return { valid: false, error: "Invalid IP: must be a valid IPv4 or IPv6 address." };
+		return { valid: false, error: MSG_INVALID_IP };
 	}
 	return { valid: true, ip };
 }

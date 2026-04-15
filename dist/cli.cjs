@@ -46,6 +46,8 @@ const STRING = "string";
 const LOCALHOST = "127.0.0.1";
 const EXTENSIONS = "extensions";
 const INFO = "info";
+const MSG_INVALID_IP = "Invalid IP: must be a valid IPv4 or IPv6 address.";
+const MSG_INVALID_PORT = "Invalid port: must be an integer between 0 and 65535.";
 const NO_CACHE = "no-cache";
 const EN_US = "en-US";
 const SHORT = "short";
@@ -208,11 +210,11 @@ function parseArgs(args) {
  */
 function validatePort(port) {
 	if (port === EMPTY || (typeof port === STRING && port.trim() === EMPTY)) {
-		return { valid: false, error: "Invalid port: must be an integer between 0 and 65535." };
+		return { valid: false, error: MSG_INVALID_PORT };
 	}
 	const validPort = Number(port);
 	if (!Number.isInteger(validPort) || validPort < INT_0 || validPort > INT_65535) {
-		return { valid: false, error: "Invalid port: must be an integer between 0 and 65535." };
+		return { valid: false, error: MSG_INVALID_PORT };
 	}
 	return { valid: true, port: validPort };
 }
@@ -225,7 +227,7 @@ function validatePort(port) {
 function validateIP(ip) {
 	const validIP = isValidIP(ip);
 	if (!validIP) {
-		return { valid: false, error: "Invalid IP: must be a valid IPv4 or IPv6 address." };
+		return { valid: false, error: MSG_INVALID_IP };
 	}
 	return { valid: true, ip };
 }
@@ -266,16 +268,13 @@ function main(args = process.argv) {
 	app.files();
 	const server = node_http.createServer(app.route);
 	server.listen(portValidation.port, ip);
-	/* node:coverage ignore next 10 */
+	/* node:coverage ignore next 6 */
 	server.on("listening", () => {
 		const actualPort = server.address().port;
 		app.logger.log(
 			`id=woodland, hostname=${process.env.HOSTNAME ?? "localhost"}, ip=${ip}, port=${actualPort}`,
 			INFO,
 		);
-	});
-	server.on("error", (err) => {
-		console.error(`Server error: ${err.message}`);
 	});
 
 	return server;
