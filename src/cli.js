@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 
 import { createServer } from "node:http";
-import { fileURLToPath } from "node:url";
-import { resolve, basename } from "node:path";
+import { basename } from "node:path";
 import { coerce } from "tiny-coerce";
 import { woodland } from "woodland";
 import { isValidIP } from "./request.js";
