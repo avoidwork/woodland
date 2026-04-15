@@ -2032,7 +2032,7 @@ class Woodland extends node_events.EventEmitter {
 	always(...args) {
 		const argsLength = args.length;
 
-		for (let i = 0; i < argsLength; i++) {
+		for (let i = INT_0; i < argsLength; i++) {
 			this.#middleware.ignore(args[i]);
 		}
 
@@ -2096,7 +2096,7 @@ class Woodland extends node_events.EventEmitter {
 
 		const defaultHeaders = this.#defaultHeaders;
 		const headerCount = defaultHeaders.length;
-		for (let i = 0; i < headerCount; i++) {
+		for (let i = INT_0; i < headerCount; i++) {
 			const [key, value] = defaultHeaders[i];
 			if (
 				typeof key === STRING &&
@@ -2482,7 +2482,7 @@ class Woodland extends node_events.EventEmitter {
 	 */
 	use(rpath, ...fn) {
 		this.#middleware.register(rpath, ...fn);
-		this.#logger.logMiddleware(rpath, fn[fn.length - 1]);
+		this.#logger.logMiddleware(rpath, fn[fn.length - INT_1]);
 
 		return this;
 	}
