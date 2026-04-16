@@ -54,7 +54,7 @@ createServer(app.route).listen(3000, () => console.log("Server running at http:/
 - **Built-in security** - CORS, path traversal, XSS prevention (no additional packages)
 - **Secure by default** - CORS deny-all, path traversal blocked, HTML escaping automatic
 - **TypeScript first** - Full type definitions included
-- **No performance tradeoff** - Security features add ~0.09ms overhead per request
+- **No performance tradeoff** - Security features add minimal overhead
 - **Lightweight** - Minimal dependencies (6 packages)
 - **Dual module support** - CommonJS and ESM
 - **Production ready** - Event emitters for custom monitoring, examples for graceful shutdown
@@ -268,13 +268,13 @@ npm run lint          # Check linting
 
 ## Performance
 
-Woodland delivers **enterprise-grade security without sacrificing performance**. Security features add minimal overhead (~0.09ms per request).
+Woodland delivers **enterprise-grade security without sacrificing performance**. Security features add minimal overhead.
 
-| Framework | Security Approach | Mean Response Time |
-|-----------|------------------|-------------------|
-| Fastify | Requires plugins | 0.1491ms |
-| **Woodland** | **Built-in** | **0.1866ms** |
-| Express | Requires middleware | 0.1956ms |
+| Framework | Security Approach | Relative Performance |
+|-----------|------------------|---------------------|
+| Fastify | Requires plugins | Fastest |
+| **Woodland** | **Built-in** | **Comparable** |
+| Express | Requires middleware | Fast |
 
 ## Security
 
