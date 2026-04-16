@@ -27,6 +27,7 @@ Woodland is a high-performance HTTP framework for Node.js. This document provide
    - Interface Segregation: Prefer small, focused interfaces
    - Dependency Inversion: Depend on abstractions, not concretions
 4. **OWASP Compliance**: Follow OWASP Top 10 guidelines for web security
+5. **No Magic Values**: All numeric literals and string literals must use constants
 
 ### Performance Principles
 
@@ -170,6 +171,39 @@ All optional in constructor:
 - Follow existing patterns in tests
 - **Use constants instead of magic strings or numbers** - Define all string literals and numeric values as constants in `constants.js`
 
+### Constants Pattern
+
+All numeric literals and string literals must use constants from `constants.js`:
+
+**Numeric Constants:**
+- `INT_0`, `INT_1`, `INT_2`, `INT_3`, `INT_4`, `INT_5`, `INT_8`, `INT_10`
+- `INT_NEG_1` (for -1)
+- `INT_60`, `INT_255`, `INT_1e3`, `INT_1e4`, `INT_1e6`
+- `INT_8000`, `INT_65535`
+
+**String Constants:**
+- `EMPTY` (empty string)
+- `SLASH`, `BACKSLASH`, `DOUBLE_SLASH`, `SLASH_BACKSLASH`
+- `COLON`, `COMMA`, `HYPHEN`, `PERIOD`, `EQUAL`
+- `FUNCTION`, `STRING`, `OBJECT`, `ARRAY`, `NUMBER`, `BOOLEAN`
+
+**Examples:**
+```javascript
+// Good
+if (count === INT_0) { ... }
+for (let i = INT_0; i < length; i++) { ... }
+if (typeof fn === FUNCTION) { ... }
+const x = array[INT_0];
+
+// Bad
+if (count === 0) { ... }
+for (let i = 0; i < length; i++) { ... }
+if (typeof fn === "function") { ... }
+const x = array[0];
+```
+
+**Regex with 'g' modifier should NOT be constants** - they maintain state and can cause issues when reused.
+
 ## Running Tests
 
 ```bash
@@ -177,6 +211,12 @@ npm test              # Full test suite with lint (100% line coverage)
 npm run test:watch    # Watch mode
 npm run coverage      # Generate coverage report
 ```
+
+**Test Requirements:**
+- All 334 tests must pass
+- 100% line coverage required
+- Run `npm test` before committing
+- Run `npm run build` before pushing (generates dist files)
 
 ## Key Design Patterns
 
@@ -186,6 +226,7 @@ npm run coverage      # Generate coverage report
 4. **CORS Support**: Configurable origins with automatic header handling
 5. **ETag Caching**: Optional ETag generation for cacheable methods
 6. **File Serving**: Automatic MIME types, range requests, directory indexing
+7. **Constants-First**: All literals defined as constants for maintainability
 
 ## Events
 
