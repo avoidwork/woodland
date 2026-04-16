@@ -4,6 +4,7 @@ import {
 	EQUAL,
 	HYPHEN,
 	INT_0,
+	INT_1,
 	INT_65535,
 	MSG_INVALID_IP,
 	MSG_INVALID_PORT,
@@ -20,8 +21,8 @@ export function parseArgs(args) {
 	return args
 		.filter((i) => i.charAt(0) === HYPHEN && i.charAt(1) === HYPHEN)
 		.reduce((a, v) => {
-			const x = v.split(`${HYPHEN}${HYPHEN}`)[1].split(EQUAL);
-			a[x[0]] = coerce(x[1]);
+			const x = v.split(`${HYPHEN}${HYPHEN}`)[INT_1].split(EQUAL);
+			a[x[INT_0]] = coerce(x[INT_1]);
 			return a;
 		}, {});
 }

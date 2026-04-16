@@ -218,8 +218,8 @@ function parseArgs(args) {
 	return args
 		.filter((i) => i.charAt(0) === HYPHEN && i.charAt(1) === HYPHEN)
 		.reduce((a, v) => {
-			const x = v.split(`${HYPHEN}${HYPHEN}`)[1].split(EQUAL);
-			a[x[0]] = tinyCoerce.coerce(x[1]);
+			const x = v.split(`${HYPHEN}${HYPHEN}`)[INT_1].split(EQUAL);
+			a[x[INT_0]] = tinyCoerce.coerce(x[INT_1]);
 			return a;
 		}, {});
 }
