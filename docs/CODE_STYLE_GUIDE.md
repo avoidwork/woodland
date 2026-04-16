@@ -54,6 +54,26 @@ Conventions and standards for the Woodland HTTP framework codebase.
 - Use `app.logger.log()` for application logging
 - Lint rule: `no-console: error`
 
+### No Magic Values
+
+- **Forbidden**: Raw numeric literals (0, 1, -1, etc.)
+- **Forbidden**: Raw string literals ("function", "/", etc.)
+- **Required**: Use constants from `constants.js`
+- Example:
+  ```javascript
+  // Good
+  if (count === INT_0) { ... }
+  for (let i = INT_0; i < length; i++) { ... }
+  if (typeof fn === FUNCTION) { ... }
+  const x = array[INT_0];
+
+  // Bad
+  if (count === 0) { ... }
+  for (let i = 0; i < length; i++) { ... }
+  if (typeof fn === "function") { ... }
+  const x = array[0];
+  ```
+
 ### Unused Parameters
 
 - Prefix with underscore (`_`) when unused
@@ -84,6 +104,9 @@ Conventions and standards for the Woodland HTTP framework codebase.
 ### Constants
 
 - **UPPER_SNAKE_CASE**: `SLASH`, `EMPTY`, `INT_0`, `GET`, `STATUS_CODES`
+- **Numeric constants**: `INT_0`, `INT_1`, `INT_NEG_1`, `INT_65535`, etc.
+- **String constants**: `FUNCTION`, `STRING`, `DOUBLE_SLASH`, `SLASH_BACKSLASH`
+- **Array indices**: Use `INT_0`, `INT_1`, etc. instead of raw numbers
 
 ### Private Members
 
@@ -166,8 +189,8 @@ get(...args) {
 Prefer `for` loops in hot paths:
 
 ```javascript
-// Preferred
-for (let i = 0; i < array.length; i++) {
+// Preferred - with constants
+for (let i = INT_0; i < array.length; i++) {
   const item = array[i];
 }
 
@@ -299,6 +322,22 @@ export function woodland(config = {}) {
 }
 ```
 
+### Constants Documentation
+
+When adding new constants, document their purpose:
+
+```javascript
+// Numeric constants
+export const INT_0 = 0;
+export const INT_1 = 1;
+export const INT_NEG_1 = -1;
+
+// String constants
+export const FUNCTION = "function";
+export const DOUBLE_SLASH = "//";
+export const SLASH_BACKSLASH = "/\\";
+```
+
 ### Inline Comments
 
 Use sparingly, only for complex logic:
@@ -336,9 +375,10 @@ npm run coverage  # Verify 100% line coverage
 1. Make changes
 2. Run `npm run fix` (fixes lint + formatting)
 3. Run `npm run coverage` (verifies 100% line coverage)
-4. Commit only when explicitly requested
+4. Run `npm run build` (generates dist files)
+5. Commit only when explicitly requested
 
-**Pre-commit check**: `npm run fix && npm run coverage`
+**Pre-commit check**: `npm run fix && npm run coverage && npm run build`
 
 ---
 
