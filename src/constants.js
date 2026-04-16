@@ -191,7 +191,7 @@ export const LOG_V = "%v";
 // MESSAGES & RESPONSES
 // =============================================================================
 export const MSG_CONFIG_FIELD = "Config ";
-export const MSG_INVALID_IP = "Invalid IP: must be a valid IPv4 and IPv6 address.";
+export const MSG_INVALID_IP = "Invalid IP: must be a valid IPv4 or IPv6 address.";
 export const MSG_INVALID_PORT = "Invalid port: must be an integer between 0 and 65535.";
 export const MSG_INVALID_REDIRECT_URI = "Invalid redirect URI";
 export const MSG_INVALID_FILE_DESCRIPTOR = "Invalid file descriptor";
