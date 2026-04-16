@@ -328,4 +328,3 @@ Contributions are welcome!
 
 - **Issues**: [GitHub Issues](https://github.com/avoidwork/woodland/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/avoidwork/woodland/discussions)
-- **Email**: jason@mulligan.me
