@@ -53,6 +53,7 @@ const MSG_INVALID_PORT = "Invalid port: must be an integer between 0 and 65535."
 const NO_CACHE = "no-cache";
 const EN_US = "en-US";
 const SHORT = "short";
+const EVT_LISTENING = "listening";
 
 Object.freeze(
 	Array.from({ length: 12 }, (_, idx) => {
@@ -290,7 +291,7 @@ function main(args = process.argv) {
 	const server = node_http.createServer(app.route);
 	server.listen(portValidation.port, ip);
 	/* node:coverage ignore next 6 */
-	server.on("listening", () => {
+	server.on(EVT_LISTENING, () => {
 		const actualPort = server.address().port;
 		app.logger.log(
 			`id=woodland, hostname=${process.env.HOSTNAME ?? "localhost"}, ip=${ip}, port=${actualPort}`,

@@ -7,6 +7,7 @@ import {
 	CACHE_CONTROL,
 	CHAR_SET,
 	CONTENT_TYPE,
+	EVT_LISTENING,
 	INFO,
 	INT_8000,
 	LOCALHOST,
@@ -51,7 +52,7 @@ export function main(args = process.argv) {
 	const server = createServer(app.route);
 	server.listen(portValidation.port, ip);
 	/* node:coverage ignore next 6 */
-	server.on("listening", () => {
+	server.on(EVT_LISTENING, () => {
 		const actualPort = server.address().port;
 		app.logger.log(
 			`id=woodland, hostname=${process.env.HOSTNAME ?? "localhost"}, ip=${ip}, port=${actualPort}`,
