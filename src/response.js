@@ -372,7 +372,7 @@ export function send(
 
 				[headers] = partialHeaders(req, res, byteLength, status, headers);
 				if (req.range !== void 0) {
-					const rangeBuffer = buffered.slice(req.range.start, req.range.end + 1);
+					const rangeBuffer = buffered.slice(req.range.start, req.range.end + INT_1);
 					onDone(req, res, rangeBuffer.toString(), headers);
 				} else {
 					res.error(INT_416);
