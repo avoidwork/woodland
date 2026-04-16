@@ -270,11 +270,11 @@ npm run lint          # Check linting
 
 Woodland delivers **enterprise-grade security without sacrificing performance**. Security features add minimal overhead.
 
-| Framework | Security Approach | Relative Performance |
-|-----------|------------------|---------------------|
-| Fastify | Requires plugins | Fastest |
-| **Woodland** | **Built-in** | **Comparable** |
-| Express | Requires middleware | Fast |
+| Framework | Security Approach | Mean Response Time |
+|-----------|------------------|-------------------|
+| Fastify | Requires plugins | 0.1491ms |
+| **Woodland** | **Built-in** | **0.1866ms** |
+| Express | Requires middleware | 0.1956ms |
 
 ## Security
 
