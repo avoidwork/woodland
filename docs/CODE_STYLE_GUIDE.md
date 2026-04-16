@@ -199,6 +199,25 @@ for (const item of array) {
 }
 ```
 
+### Caching .length Values
+
+Cache `.length` lookups in loop conditions for better performance:
+
+```javascript
+// Good - cached length
+const entryCount = entries.length;
+for (let i = INT_0; i < entryCount; i++) {
+  const [key, value] = entries[i];
+}
+
+// Bad - length accessed on every iteration
+for (let i = INT_0; i < entries.length; i++) {
+  const [key, value] = entries[i];
+}
+```
+
+**Why**: Accessing `.length` on each iteration adds unnecessary property lookups. Cache it once before the loop.
+
 ---
 
 ## Security Patterns
