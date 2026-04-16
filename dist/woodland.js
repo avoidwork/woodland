@@ -1803,7 +1803,7 @@ function createFileServer(config) {
 	return Object.freeze({
 		register: (root, folder, useMiddleware) => {
 			const fn = useMiddleware ?? config.use;
-			if (typeof fn !== "function") {
+			if (typeof fn !== FUNCTION) {
 				throw new TypeError(MSG_USE_MIDDLEWARE_REQUIRED);
 			}
 			register(config, root, folder, fn);
