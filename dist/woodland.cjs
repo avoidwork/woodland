@@ -2017,7 +2017,7 @@ class Woodland extends node_events.EventEmitter {
 	#buildAllowedList(methodSet, isCorsRequest = false) {
 		const list = [...methodSet];
 
-		if (list.length > 0) {
+		if (list.length > INT_0) {
 			if (methodSet.has(GET) && !methodSet.has(HEAD)) {
 				list.push(HEAD);
 			}
