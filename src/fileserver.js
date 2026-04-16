@@ -4,26 +4,54 @@ import { join, resolve, sep } from "node:path";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
+	BACKSLASH,
 	COLLECTION,
 	CONTENT_TYPE,
+	CURRENT_DIR,
 	EMPTY,
+	FUNCTION,
+	INDEX_HTML_FILE,
+	INT_0,
+	INT_1,
+	INT_3,
 	INT_400,
 	ITEM,
 	INT_403,
 	INT_404,
 	MSG_ROUTING_FILE,
 	MSG_SERVE_PATH_OUTSIDE,
+	MSG_USE_MIDDLEWARE_REQUIRED,
+	NEWLINE,
+	PARENT_DIR,
 	SLASH,
 	TEXT_HTML,
-	TOKEN_TITLE,
+	TPL_DIR,
 	UTF8,
+	COLON,
+	ROUTE_PATTERN,
 } from "./constants.js";
 import { escapeHtml } from "./response.js";
 
-const __dirname = fileURLToPath(new URL(".", import.meta.url));
-const html = readFileSync(join(__dirname, "..", "tpl", "index.html"), {
+const __dirname = fileURLToPath(new URL(CURRENT_DIR, import.meta.url));
+const html = readFileSync(join(__dirname, PARENT_DIR, TPL_DIR, INDEX_HTML_FILE), {
 	encoding: UTF8,
 });
+
+/**
+ * Generates HTML list item for a file entry
+ * @param {Object} file - File object from fs.readdir
+ * @returns {string} HTML list item
+ */
+function renderFileItem(file) {
+	const fileName = file.name;
+	const safeName = escapeHtml(fileName);
+	const safeHref = encodeURIComponent(fileName);
+	const isDir = file.isDirectory();
+
+	return isDir
+		? `    <li><a href="${safeHref}/" rel="${COLLECTION}">${safeName}/</a></li>`
+		: `    <li><a href="${safeHref}" rel="${ITEM}">${safeName}</a></li>`;
+}
 
 /**
  * Generates an HTML index page for directory listings
@@ -33,36 +61,12 @@ const html = readFileSync(join(__dirname, "..", "tpl", "index.html"), {
  */
 export function autoIndex(title = EMPTY, files = []) {
 	const safeTitle = escapeHtml(title);
+	const parentDirItem = `    <li><a href="${PARENT_DIR}" rel="${COLLECTION}">${PARENT_DIR}/</a></li>`;
 
-	if (files.length === 0) {
-		return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) => {
-			return key === TOKEN_TITLE
-				? safeTitle
-				: `    <li><a href=".." rel="${COLLECTION}">../</a></li>`;
-		});
-	}
+	const fileItems = files.map((file) => renderFileItem(file));
+	const safeFiles = [parentDirItem, ...fileItems].join(NEWLINE);
 
-	const listItems = Array.from({ length: files.length + 1 });
-	listItems[0] = `    <li><a href=".." rel="${COLLECTION}">../</a></li>`;
-
-	const fileCount = files.length;
-	for (let i = 0; i < fileCount; i++) {
-		const file = files[i];
-		const fileName = file.name;
-		const safeName = escapeHtml(fileName);
-		const safeHref = encodeURIComponent(fileName);
-		const isDir = file.isDirectory();
-
-		listItems[i + 1] = isDir
-			? `    <li><a href="${safeHref}/" rel="${COLLECTION}">${safeName}/</a></li>`
-			: `    <li><a href="${safeHref}" rel="${ITEM}">${safeName}</a></li>`;
-	}
-
-	const safeFiles = listItems.join("\n");
-
-	return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) =>
-		key === TOKEN_TITLE ? safeTitle : safeFiles,
-	);
+	return html.replace(/\$\{\s*FILES\s*\}/g, safeFiles).replace(/\$\{\s*TITLE\s*\}/g, safeTitle);
 }
 
 /**
@@ -82,7 +86,7 @@ export async function serve(config, req, res, arg, folder = process.cwd()) {
 
 	const isRoot =
 		realFolder === sep ||
-		(realFolder.length === 3 && realFolder[1] === ":" && realFolder.endsWith("\\"));
+		(realFolder.length === INT_3 && realFolder[INT_1] === COLON && realFolder.endsWith(BACKSLASH));
 	const isWithin = isRoot
 		? realFp.startsWith(realFolder)
 		: realFp === realFolder || (realFp.startsWith(realFolder) && realFp[realFolder.length] === sep);
@@ -115,7 +119,7 @@ export async function serve(config, req, res, arg, folder = process.cwd()) {
 			stats: stats,
 		});
 	} else if (!req.parsed.pathname.endsWith(SLASH)) {
-		res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
+		res.redirect(`${req.parsed.pathname}${SLASH}${req.parsed.search}`);
 	} else {
 		let files;
 		/* node:coverage ignore next 7 */
@@ -127,8 +131,9 @@ export async function serve(config, req, res, arg, folder = process.cwd()) {
 		}
 
 		let result = EMPTY;
+		const fileCount = files.length;
 
-		for (let i = 0; i < files.length; i++) {
+		for (let i = INT_0; i < fileCount; i++) {
 			const file = files[i];
 			if (config.indexes.includes(file.name)) {
 				result = join(realFp, file.name);
@@ -178,7 +183,8 @@ export async function serve(config, req, res, arg, folder = process.cwd()) {
 export function register(config, root, folder, useMiddleware) {
 	const normalizedRoot = root.replace(/\/$/, EMPTY) || SLASH;
 	// Match mount root and any path beneath it: /static, /static/, /static/foo
-	const rootPattern = normalizedRoot === SLASH ? "(/.*)?" : `${normalizedRoot}(/.*)?`;
+	const rootPattern =
+		normalizedRoot === SLASH ? ROUTE_PATTERN : `${normalizedRoot}${ROUTE_PATTERN}`;
 
 	useMiddleware(rootPattern, (req, res) => {
 		const pathname = decodeURIComponent(req.parsed.pathname);
@@ -188,8 +194,8 @@ export function register(config, root, folder, useMiddleware) {
 			pathname === normalizedRoot
 				? EMPTY
 				: normalizedRoot === SLASH
-					? pathname.slice(1)
-					: pathname.slice(normalizedRoot.length + 1);
+					? pathname.slice(INT_1)
+					: pathname.slice(normalizedRoot.length + INT_1);
 		return serve(config, req, res, relativePath, folder);
 	});
 }
@@ -203,8 +209,8 @@ export function createFileServer(config) {
 	return Object.freeze({
 		register: (root, folder, useMiddleware) => {
 			const fn = useMiddleware ?? config.use;
-			if (typeof fn !== "function") {
-				throw new TypeError("useMiddleware is required or config.use must be a function");
+			if (typeof fn !== FUNCTION) {
+				throw new TypeError(MSG_USE_MIDDLEWARE_REQUIRED);
 			}
 			register(config, root, folder, fn);
 		},

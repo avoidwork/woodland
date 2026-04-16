@@ -72,16 +72,17 @@ Creates a new Woodland instance with optional configuration.
 
 All route methods accept middleware functions and optionally a method type as the last argument. All return `Woodland` instance for chaining.
 
-#### `always(rpath, ...fn)`
+#### `always(...fn)`
 
-Registers wildcard middleware for all HTTP methods.
+Registers wildcard middleware for all HTTP methods. Adds all arguments to ignored set before registering.
 
 | Parameter | Type | Optional | Description |
 |-----------|------|----------|-------------|
-| `rpath` | `string` | **Yes** | Route path (optional, defaults to wildcard) |
 | `...fn` | `Function` | No | Middleware function(s) |
 
 **Returns:** `Woodland` - Returns self for chaining
+
+**Implementation:** Calls `ignore()` on each argument, then registers with `WILDCARD` method.
 
 #### `connect(rpath, ...fn)`
 
@@ -185,22 +186,22 @@ Adds a middleware function to the ignored set. Ignored functions are excluded fr
 
 **Returns:** `Woodland` - Returns self for chaining
 
-#### `use(rpath, ...fn, method)`
+#### `use(rpath, ...fn)`
 
 Registers middleware for a route.
 
 | Parameter | Type | Default | Optional | Description |
 |-----------|------|---------|----------|-------------|
 | `rpath` | `string\|Function` | No | No | Route path or middleware function |
-| `...fn` | `Function` | No | No | Middleware function(s) |
-| `method` | `string` | `'GET'` | **Yes** | HTTP method |
+| `...fn` | `Function` | No | No | Middleware function(s), last argument can be HTTP method string |
 
 **Returns:** `Woodland` - Returns self for chaining
 
 **Notes:**
-- If `rpath` is a function, it is treated as middleware without a specific path (defaults to `/. *`)
-- The last argument can be a string specifying the HTTP method
+- If `rpath` is a function, it is treated as middleware without a specific path
+- The last argument in `fn` array is used as the HTTP method (defaults to `'GET'` in middleware registry)
 - Middleware can be chained for multiple handlers on the same route
+- Logs middleware registration with function name
 
 ---
 
@@ -232,13 +233,13 @@ Serves a file from disk directly.
 
 #### `stream(req, res, file)`
 
-Streams a file to the response with proper headers and range support.
+Streams a file to the response with proper headers and range support. Emits `stream` event.
 
 | Parameter | Type | Default | Optional | Description |
 |-----------|------|---------|----------|-------------|
 | `req` | `Object` | No | No | HTTP request object |
 | `res` | `Object` | No | No | HTTP response object |
-| `file` | `Object` | `{ charset: '', etag: '', path: '', stats: { mtime: Date, size: 0 } }` | **Yes** | File descriptor object |
+| `file` | `Object` | `{ charset: '', etag: '', path: '', stats: { mtime: new Date(), size: 0 } }` | **Yes** | File descriptor object |
 
 **File Object Properties:**
 
@@ -257,7 +258,7 @@ Streams a file to the response with proper headers and range support.
 
 #### `etag(method, ...args)`
 
-Generates an ETag for response caching based on method and values.
+Generates an ETag for response caching based on method and values with prototype pollution protection.
 
 | Parameter | Type | Optional | Description |
 |-----------|------|----------|-------------|
@@ -265,6 +266,8 @@ Generates an ETag for response caching based on method and values.
 | `...args` | `*` | No | Values to hash into the ETag |
 
 **Returns:** `string` - ETag string or empty string if method is not hashable or ETags are disabled
+
+**Implementation:** Non-string arguments are converted to strings using `JSON.stringify()` with surrounding quotes removed, then joined with hyphens
 
 #### `list(method, type)`
 
@@ -294,6 +297,8 @@ Gets route information for a specific URI and method.
 - `visible`: Count of visible middleware
 - `exit`: Exit index
 
+**Security:** Validates `getParams` exists before parameter extraction
+
 #### `route(req, res)`
 
 Routes an HTTP request to the appropriate middleware. This is the main request handler.
@@ -304,7 +309,9 @@ Routes an HTTP request to the appropriate middleware. This is the main request h
 | `res` | `Object` | No | HTTP response object |
 
 **Notes:**
-- Decorates request and response objects with framework utilities
+- Converts HEAD requests to GET internally before processing
+- Decorates request and response objects with framework utilities and security validation
+- Validates CORS requests with simplified security logic
 - Emits `connect` event if listeners are registered
 - Emits `finish` event when response completes
 - Logs routing information
@@ -350,11 +357,11 @@ Returns the logger instance with methods: `log`, `clf`, `logRoute`, `logMiddlewa
 
 ## Request Object Decorations
 
-The `route()` method decorates request objects with the following properties:
+The `route()` method decorates request objects with the following properties including security validations:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `req.corsHost` | `boolean` | True if CORS host differs from request host |
+| `req.corsHost` | `boolean` | True if origin header exists and differs from host header |
 | `req.cors` | `boolean` | True if CORS is allowed for this request |
 | `req.parsed` | `URL` | Parsed URL object |
 | `req.allow` | `string` | Comma-separated list of allowed methods |
@@ -364,21 +371,20 @@ The `route()` method decorates request objects with the following properties:
 | `req.params` | `Object` | URL parameters (populated if route has params) |
 | `req.valid` | `boolean` | Request validity status |
 | `req.precise` | `Object` | Timing object (if `time` config is enabled) |
-| `req.range` | `Object` | Range options (if range request is valid) |
 
 ---
 
 ## Response Object Decorations
 
-The `route()` method decorates response objects with the following methods:
+The `route()` method decorates response objects with the following methods including security header validation:
 
 | Method | Description |
 |--------|-------------|
-| `res.error(status, body)` | Error response handler |
+| `res.error(status, body)` | Error response handler with security validation |
 | `res.header(name, value)` | Set response header (alias for `setHeader`) |
 | `res.json(arg, status, headers)` | Send JSON response |
-| `res.redirect(uri, perm)` | Redirect response |
-| `res.send(body, status, headers)` | Send response body |
-| `res.set(arg)` | Set multiple headers |
+| `res.redirect(uri, perm)` | Redirect response with URI validation and security checks |
+| `res.send(body, status, headers)` | Send response body with security headers |
+| `res.set(arg)` | Set multiple headers with type validation |
 | `res.status(arg)` | Set HTTP status code |
 | `res.locals` | `Object` - Local variables for the request |

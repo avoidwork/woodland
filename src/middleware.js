@@ -1,15 +1,21 @@
 import {
 	ARRAY,
 	DELIMITER,
+	ERROR_HANDLER_LENGTH,
 	FUNCTION,
 	GET,
 	HEAD,
 	INT_0,
+	INT_NEG_1,
 	LEFT_PAREN,
 	NODE_METHODS,
+	QUANTIFIER_PATTERN,
 	SLASH,
 	STRING,
 	WILDCARD,
+	MSG_CANNOT_SET_HEAD_ROUTE,
+	MSG_INVALID_HTTP_METHOD,
+	MSG_REDOS_VULNERABILITY,
 } from "./constants.js";
 import { getStatus, getStatusText } from "./response.js";
 import { extractPath } from "./request.js";
@@ -30,18 +36,18 @@ export function reduce(uri, map = new Map(), arg = {}) {
 	const values = Array.from(map.values());
 	const len = values.length;
 
-	for (let i = 0; i < len; i++) {
+	for (let i = INT_0; i < len; i++) {
 		const middleware = values[i];
-		middleware.regex.lastIndex = 0;
+		middleware.regex.lastIndex = INT_0;
 
 		if (middleware.regex.test(uri)) {
 			const handlers = middleware.handlers;
 			const handlerLen = handlers.length;
 
 			if (handlerLen === 1) {
-				middlewareArray.push(handlers[0]);
+				middlewareArray.push(handlers[INT_0]);
 			} else {
-				for (let j = 0; j < handlerLen; j++) {
+				for (let j = INT_0; j < handlerLen; j++) {
 					middlewareArray.push(handlers[j]);
 				}
 			}
@@ -54,8 +60,6 @@ export function reduce(uri, map = new Map(), arg = {}) {
 		}
 	}
 }
-
-const ERROR_HANDLER_LENGTH = 4;
 
 /**
  * Creates a next function for middleware processing with error handling
@@ -74,11 +78,11 @@ export function next(req, res, middleware, immediate = false) {
 	const handleError = (err, nextFn) => {
 		let obj = middleware.next();
 
-		while (obj.done === false && obj.value && obj.value.length !== ERROR_HANDLER_LENGTH) {
+		while (!obj.done && obj.value && obj.value.length !== ERROR_HANDLER_LENGTH) {
 			obj = middleware.next();
 		}
 
-		if (obj.done === false && obj.value) {
+		if (!obj.done && obj.value) {
 			obj.value(err, req, res, nextFn);
 		} else {
 			const newStatus = getStatus(req, res);
@@ -93,7 +97,7 @@ export function next(req, res, middleware, immediate = false) {
 	const handleMiddleware = (nextFn) => {
 		const obj = middleware.next();
 
-		if (obj.done === false) {
+		if (!obj.done) {
 			const value = obj.value;
 			if (typeof value === FUNCTION) {
 				value(req, res, nextFn);
@@ -133,13 +137,13 @@ export function next(req, res, middleware, immediate = false) {
  */
 export function computeRoutes(middleware, ignored, uri, method, cache, override = false) {
 	const key = `${method}${DELIMITER}${uri}`;
-	const cached = override === false ? cache.get(key) : void 0;
+	const cached = !override ? cache.get(key) : void 0;
 	let result;
 
 	if (cached !== void 0) {
 		result = cached;
 	} else {
-		result = { getParams: null, middleware: [], params: false, visible: 0, exit: -1 };
+		result = { getParams: null, middleware: [], params: false, visible: INT_0, exit: INT_NEG_1 };
 		reduce(uri, middleware.get(WILDCARD) ?? new Map(), result);
 
 		if (method !== WILDCARD) {
@@ -147,8 +151,9 @@ export function computeRoutes(middleware, ignored, uri, method, cache, override 
 			reduce(uri, middleware.get(method) ?? new Map(), result);
 		}
 
-		let visible = 0;
-		for (let i = 0; i < result.middleware.length; i++) {
+		let visible = INT_0;
+		const middlewareLength = result.middleware.length;
+		for (let i = INT_0; i < middlewareLength; i++) {
 			if (!ignored.has(result.middleware[i])) {
 				visible++;
 			}
@@ -182,7 +187,7 @@ export function listRoutes(middleware, method = GET.toLowerCase(), type = ARRAY)
 	const entries = Array.from(methodMap.entries());
 	const entryCount = entries.length;
 
-	for (let i = 0; i < entryCount; i++) {
+	for (let i = INT_0; i < entryCount; i++) {
 		const [key, value] = entries[i];
 		result[key] = value;
 	}
@@ -214,7 +219,7 @@ export function createMiddlewareRegistry(methods, cache) {
 	const middleware = new Map();
 	const ignored = new Set();
 
-	return {
+	return Object.freeze({
 		ignore: (f) => {
 			ignored.add(f);
 		},
@@ -222,7 +227,34 @@ export function createMiddlewareRegistry(methods, cache) {
 		routes: (u, m, o) => computeRoutes(middleware, ignored, u, m, cache, o),
 		register: (p, ...fns) => registerMiddleware(middleware, ignored, methods, p, ...fns),
 		list: (m, t) => listRoutes(middleware, m, t),
-	};
+	});
+}
+
+/**
+ * Validates HTTP method for middleware registration
+ * @param {string} method - HTTP method to validate
+ * @throws {TypeError} If method is invalid or HEAD
+ */
+function validateMethod(method) {
+	if (method !== WILDCARD && !NODE_METHODS.includes(method)) {
+		throw new TypeError(MSG_INVALID_HTTP_METHOD);
+	}
+
+	if (method === HEAD) {
+		throw new TypeError(MSG_CANNOT_SET_HEAD_ROUTE);
+	}
+}
+
+/**
+ * Validates route pattern for security issues
+ * @param {string} path - Route path to validate
+ * @throws {TypeError} If pattern has potential ReDoS vulnerability
+ */
+function validateRoutePattern(path) {
+	/* node:coverage ignore next 3 */
+	if (QUANTIFIER_PATTERN.test(path)) {
+		throw new TypeError(MSG_REDOS_VULNERABILITY);
+	}
 }
 
 /**
@@ -245,15 +277,9 @@ export function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 
 	const method = typeof fn[fn.length - 1] === STRING ? fn.pop().toUpperCase() : GET;
 
-	if (method !== WILDCARD && NODE_METHODS.includes(method) === false) {
-		throw new TypeError("Invalid HTTP method");
-	}
+	validateMethod(method);
 
-	if (method === HEAD) {
-		throw new TypeError("Cannot set HEAD route, use GET");
-	}
-
-	if (middleware.has(method) === false) {
+	if (!middleware.has(method)) {
 		if (method !== WILDCARD) {
 			methods.add(method);
 		}
@@ -265,20 +291,14 @@ export function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 	let lrpath = rpath,
 		lparams = false;
 
-	if (lrpath.includes(`${SLASH}${LEFT_PAREN}`) === false && lrpath.includes(`${SLASH}:`)) {
+	if (!lrpath.includes(`${SLASH}${LEFT_PAREN}`) && lrpath.includes(`${SLASH}:`)) {
 		lparams = true;
 		lrpath = extractPath(lrpath);
 	}
 
+	validateRoutePattern(lrpath);
+
 	const current = mmethod.get(lrpath) ?? { handlers: [] };
-
-	// Validate route pattern before mutating handlers
-	const quantifierPattern = /([.*+?^${}()|[\]\\])\1{3,}/;
-	/* node:coverage ignore next 3 */
-	if (quantifierPattern.test(lrpath)) {
-		throw new TypeError("Invalid route pattern: potential ReDoS vulnerability");
-	}
-
 	current.handlers.push(...fn);
 	mmethod.set(lrpath, {
 		handlers: current.handlers,

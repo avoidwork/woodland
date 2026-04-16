@@ -94,6 +94,7 @@ export const INT_1e4 = 1e4;
 export const INT_1e6 = 1e6;
 export const INT_8000 = 8000;
 export const INT_65535 = 65535;
+export const INT_NEG_1 = -1;
 
 // =============================================================================
 // STRING & CHARACTER CONSTANTS
@@ -124,6 +125,7 @@ export const NUMBER = "number";
 export const OBJECT = "object";
 export const STRING = "string";
 export const TYPE = "type";
+export const ERROR_HANDLER_LENGTH = 4;
 
 // =============================================================================
 // SERVER & SYSTEM INFO
@@ -141,6 +143,18 @@ export const INDEX_HTML = "index.html";
 export const FILES = "files";
 export const EXTENSIONS = "extensions";
 export const PARAMS_GROUP = "/(?<$1>[^/]+)";
+export const PARENT_DIR = "..";
+export const CURRENT_DIR = ".";
+export const BACKSLASH = "\\";
+export const DOUBLE_SLASH = "//";
+export const SLASH_BACKSLASH = "/\\";
+export const NEWLINE = "\n";
+export const ROUTE_PATTERN = "(/.*)?";
+export const MSG_USE_MIDDLEWARE_REQUIRED =
+	"useMiddleware is required or config.use must be a function";
+export const EXTRACT_PATH_REPLACE = "(?<$1>[^/]+)";
+export const TPL_DIR = "tpl";
+export const INDEX_HTML_FILE = "index.html";
 
 // =============================================================================
 // LOGGING & DEBUGGING
@@ -177,10 +191,23 @@ export const LOG_V = "%v";
 // MESSAGES & RESPONSES
 // =============================================================================
 export const MSG_CONFIG_FIELD = "Config ";
+export const MSG_INVALID_IP = "Invalid IP: must be a valid IPv4 or IPv6 address.";
+export const MSG_INVALID_PORT = "Invalid port: must be an integer between 0 and 65535.";
+export const MSG_INVALID_REDIRECT_URI = "Invalid redirect URI";
+export const MSG_INVALID_FILE_DESCRIPTOR = "Invalid file descriptor";
+export const MSG_INVALID_HTTP_METHOD = "Invalid HTTP method";
+export const MSG_CANNOT_SET_HEAD_ROUTE = "Cannot set HEAD route, use GET";
+export const MSG_REDOS_VULNERABILITY = "Invalid route pattern: potential ReDoS vulnerability";
+export const MSG_PATH_TRAVERSAL_BLOCKED = "Path outside allowed directory";
+export const MSG_FILE_NOT_FOUND = "File not found";
+export const MSG_REDIRECT_TRAILING_SLASH = "Redirect to add trailing slash";
 export const MSG_ROUTING = "Routing request";
 export const MSG_ROUTING_FILE = "Routing request to file system";
 export const MSG_SERVE_PATH_OUTSIDE = "Path outside allowed directory";
 export const MSG_VALIDATION_FAILED = "Configuration validation failed: ";
+export const MSG_MUST_BE_TYPE = "is not of a type(s)";
+export const MSG_MUST_BE_GREATER_THAN = "must be greater than or equal to";
+export const MSG_MUST_BE_LESS_THAN = "must be less than or equal to";
 export const SEMICOLON_SPACE = "; ";
 export const OPTIONS_BODY = "Make a GET request to retrieve the file";
 
@@ -189,6 +216,7 @@ export const OPTIONS_BODY = "Make a GET request to retrieve the file";
 // =============================================================================
 export const KEY_BYTES = "bytes=";
 export const NO_CACHE = "no-cache";
+export const BYTES_SPACE = "bytes ";
 
 // =============================================================================
 // EVENT & STREAM CONSTANTS
@@ -222,6 +250,7 @@ export const TOKEN_TITLE = "TITLE";
 export const TRUE = "true";
 export const WARN = "warn";
 export const ALERT = "alert";
+export const EVT_LISTENING = "listening";
 
 export const MONTHS = Object.freeze(
 	Array.from({ length: 12 }, (_, idx) => {
@@ -233,6 +262,17 @@ export const MONTHS = Object.freeze(
 );
 
 export const VALID_LOG_LEVELS = new Set([DEBUG, INFO, WARN, ERROR, CRITICAL, ALERT, EMERG, NOTICE]);
+
+// =============================================================================
+// REGULAR EXPRESSION PATTERNS
+// =============================================================================
+export const HTTP_PROTOCOL_PATTERN = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
+export const CONTROL_CHAR_PATTERN = /[\r\n\t]/;
+export const QUANTIFIER_PATTERN = /([.*+?^${}()|[\\]])\1{3,}/;
+export const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+export const IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/;
+export const IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i;
+export const HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
 
 // =============================================================================
 // HTML ESCAPE MAPPING

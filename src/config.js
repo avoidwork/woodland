@@ -8,6 +8,7 @@ import {
 	INFO,
 	INDEX_HTM,
 	INDEX_HTML,
+	INT_0,
 	INT_1,
 	INT_10,
 	INT_1e3,
@@ -15,14 +16,17 @@ import {
 	INT_3,
 	LOG_FORMAT,
 	MSG_CONFIG_FIELD,
+	MSG_MUST_BE_GREATER_THAN,
+	MSG_MUST_BE_LESS_THAN,
+	MSG_MUST_BE_TYPE,
 	MSG_VALIDATION_FAILED,
 	NUMBER,
 	OBJECT,
 	PERIOD,
 	SEMICOLON_SPACE,
 	STRING,
-	TYPE,
 	TRUE,
+	TYPE,
 	UTF_8,
 	VALID_LOG_LEVELS,
 	WILDCARD,
@@ -83,16 +87,16 @@ export function validateConfig(config = {}) {
 				: String(err.path).replace(/^\./, EMPTY);
 			let msg = err.message;
 
-			if (msg.includes("is not of a type(s)")) {
+			if (msg.includes(MSG_MUST_BE_TYPE)) {
 				const types = msg.match(/type\(s\) ([a-z, ]+)/i);
-				const type = types ? types[1].split(COMMA)[0].trim() : TYPE;
+				const type = types ? types[INT_1].split(COMMA)[INT_0].trim() : TYPE;
 				msg = `must be ${type}`;
-			} else if (msg.includes("must be greater than or equal to")) {
+			} else if (msg.includes(MSG_MUST_BE_GREATER_THAN)) {
 				const val = msg.match(/greater than or equal to (\d+)/);
-				msg = val ? `must be >= ${val[1]}` : msg;
-			} else if (msg.includes("must be less than or equal to")) {
+				msg = val ? `must be >= ${val[INT_1]}` : msg;
+			} else if (msg.includes(MSG_MUST_BE_LESS_THAN)) {
 				const val = msg.match(/less than or equal to (\d+)/);
-				msg = val ? `must be <= ${val[1]}` : msg;
+				msg = val ? `must be <= ${val[INT_1]}` : msg;
 			}
 
 			return `${MSG_CONFIG_FIELD}"${field}" ${msg}`;

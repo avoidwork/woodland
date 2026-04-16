@@ -93,6 +93,7 @@ const INT_255 = 255;
 const INT_1e3 = 1e3;
 const INT_1e4 = 1e4;
 const INT_8000 = 8000;
+const INT_NEG_1 = -1;
 
 // =============================================================================
 // STRING & CHARACTER CONSTANTS
@@ -121,6 +122,7 @@ const NUMBER = "number";
 const OBJECT = "object";
 const STRING = "string";
 const TYPE = "type";
+const ERROR_HANDLER_LENGTH = 4;
 
 // =============================================================================
 // SERVER & SYSTEM INFO
@@ -136,6 +138,18 @@ const HTTP_PREFIX = "http://";
 const INDEX_HTM = "index.htm";
 const INDEX_HTML = "index.html";
 const EXTENSIONS = "extensions";
+const PARENT_DIR = "..";
+const CURRENT_DIR = ".";
+const BACKSLASH = "\\";
+const DOUBLE_SLASH = "//";
+const SLASH_BACKSLASH = "/\\";
+const NEWLINE = "\n";
+const ROUTE_PATTERN = "(/.*)?";
+const MSG_USE_MIDDLEWARE_REQUIRED =
+	"useMiddleware is required or config.use must be a function";
+const EXTRACT_PATH_REPLACE = "(?<$1>[^/]+)";
+const TPL_DIR = "tpl";
+const INDEX_HTML_FILE = "index.html";
 
 // =============================================================================
 // LOGGING & DEBUGGING
@@ -172,9 +186,17 @@ const LOG_V = "%v";
 // MESSAGES & RESPONSES
 // =============================================================================
 const MSG_CONFIG_FIELD = "Config ";
+const MSG_INVALID_REDIRECT_URI = "Invalid redirect URI";
+const MSG_INVALID_FILE_DESCRIPTOR = "Invalid file descriptor";
+const MSG_INVALID_HTTP_METHOD = "Invalid HTTP method";
+const MSG_CANNOT_SET_HEAD_ROUTE = "Cannot set HEAD route, use GET";
+const MSG_REDOS_VULNERABILITY = "Invalid route pattern: potential ReDoS vulnerability";
 const MSG_ROUTING_FILE = "Routing request to file system";
 const MSG_SERVE_PATH_OUTSIDE = "Path outside allowed directory";
 const MSG_VALIDATION_FAILED = "Configuration validation failed: ";
+const MSG_MUST_BE_TYPE = "is not of a type(s)";
+const MSG_MUST_BE_GREATER_THAN = "must be greater than or equal to";
+const MSG_MUST_BE_LESS_THAN = "must be less than or equal to";
 const SEMICOLON_SPACE = "; ";
 const OPTIONS_BODY = "Make a GET request to retrieve the file";
 
@@ -182,6 +204,7 @@ const OPTIONS_BODY = "Make a GET request to retrieve the file";
 // HTTP RANGE & CACHING
 // =============================================================================
 const KEY_BYTES = "bytes=";
+const BYTES_SPACE = "bytes ";
 
 // =============================================================================
 // EVENT & STREAM CONSTANTS
@@ -207,7 +230,6 @@ const ITEM = "item";
 const NOTICE = "notice";
 const SHORT = "short";
 const TO_STRING = "toString";
-const TOKEN_TITLE = "TITLE";
 const TRUE = "true";
 const WARN = "warn";
 const ALERT = "alert";
@@ -224,6 +246,17 @@ const MONTHS = Object.freeze(
 const VALID_LOG_LEVELS = new Set([DEBUG, INFO, WARN, ERROR, CRITICAL, ALERT, EMERG, NOTICE]);
 
 // =============================================================================
+// REGULAR EXPRESSION PATTERNS
+// =============================================================================
+const HTTP_PROTOCOL_PATTERN = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
+const CONTROL_CHAR_PATTERN = /[\r\n\t]/;
+const QUANTIFIER_PATTERN = /([.*+?^${}()|[\\]])\1{3,}/;
+const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+const IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/;
+const IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i;
+const HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
+
+// =============================================================================
 // HTML ESCAPE MAPPING
 // =============================================================================
 const HTML_ESCAPES = Object.freeze({
@@ -232,15 +265,75 @@ const HTML_ESCAPES = Object.freeze({
 	">": "&gt;",
 	'"': "&quot;",
 	"'": "&#39;",
-});const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
+});const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[INT_1]),
 	mimeExtensions = valid.reduce((a, v) => {
-		const result = Object.assign({ type: v[0] }, v[1]);
+		const result = Object.assign({ type: v[INT_0] }, v[INT_1]);
 		const extCount = result.extensions.length;
-		for (let i = 0; i < extCount; i++) {
+		for (let i = INT_0; i < extCount; i++) {
 			a[`.${result.extensions[i]}`] = result;
 		}
 		return a;
 	}, {});
+
+/**
+ * Parses range header value into start and end positions
+ * @param {string} rangeHeader - Range header value
+ * @param {number} size - Total size
+ * @returns {Object|null} Range object with start/end or null if invalid
+ */
+function parseRangeHeader(rangeHeader, size) {
+	if (!rangeHeader || !rangeHeader.startsWith(KEY_BYTES)) {
+		return null;
+	}
+
+	const rangePart = rangeHeader.substring(KEY_BYTES.length);
+	const commaIndex = rangePart.indexOf(COMMA);
+	const rangeSpec = commaIndex === INT_NEG_1 ? rangePart : rangePart.substring(INT_0, commaIndex);
+	const hyphenIndex = rangeSpec.indexOf(HYPHEN);
+	if (hyphenIndex === INT_NEG_1) {
+		return null;
+	}
+
+	const startStr = rangeSpec.substring(INT_0, hyphenIndex);
+	const endStr = rangeSpec.substring(hyphenIndex + 1);
+	let start, end;
+
+	if (startStr === EMPTY) {
+		if (endStr === EMPTY) {
+			return null;
+		}
+		end = parseInt(endStr, INT_10);
+		if (isNaN(end)) {
+			return null;
+		}
+		start = size - end;
+		end = size - INT_1;
+	} else {
+		start = parseInt(startStr, INT_10);
+		if (isNaN(start)) {
+			return null;
+		}
+
+		if (endStr !== EMPTY) {
+			end = parseInt(endStr, INT_10);
+			if (isNaN(end)) {
+				return null;
+			}
+		} else {
+			end = size - INT_1;
+		}
+	}
+
+	const startValid = !isNaN(start) && start >= INT_0;
+	const endValid = !isNaN(end) && end < size;
+	const rangeOrderValid = start <= end;
+
+	if (startValid && endValid && rangeOrderValid) {
+		return { start, end };
+	}
+
+	return null;
+}
 
 /**
  * Handles partial content headers for HTTP range requests
@@ -254,75 +347,28 @@ const HTML_ESCAPES = Object.freeze({
  */
 function partialHeaders(req, res, size, status, headers = {}, options = {}) {
 	const rangeHeader = req.headers.range;
-	if (!rangeHeader || !rangeHeader.startsWith(KEY_BYTES)) {
-		return [headers, options];
-	}
-
-	const rangePart = rangeHeader.substring(KEY_BYTES.length);
-	const commaIndex = rangePart.indexOf(COMMA);
-	const rangeSpec = commaIndex === -1 ? rangePart : rangePart.substring(0, commaIndex);
-	const hyphenIndex = rangeSpec.indexOf(HYPHEN);
-	if (hyphenIndex === -1) {
-		return [headers, options];
-	}
-
-	const startStr = rangeSpec.substring(0, hyphenIndex);
-	const endStr = rangeSpec.substring(hyphenIndex + 1);
-	let start, end;
-
-	if (startStr === EMPTY) {
-		if (endStr === EMPTY) {
-			return [headers, options];
-		}
-		end = parseInt(endStr, INT_10);
-		if (isNaN(end)) {
-			return [headers, options];
-		}
-		start = size - end;
-		end = size - 1;
-	} else {
-		start = parseInt(startStr, INT_10);
-		if (isNaN(start)) {
-			return [headers, options];
-		}
-
-		if (endStr !== EMPTY) {
-			end = parseInt(endStr, INT_10);
-			if (isNaN(end)) {
-				return [headers, options];
-			}
-		} else {
-			end = size - 1;
-		}
-	}
-
-	// Check if range is valid
-	const startValid = !isNaN(start) && start >= 0;
-	const endValid = !isNaN(end) && end < size;
-	const rangeOrderValid = start <= end;
-	const rangeValid = startValid && endValid && rangeOrderValid;
+	const range = parseRangeHeader(rangeHeader, size);
 
 	res.removeHeader(CONTENT_RANGE);
 	res.removeHeader(CONTENT_LENGTH);
 	res.removeHeader(ETAG);
 	delete headers.etag;
 
-	if (rangeValid) {
-		const rangeOptions = { start, end };
-		req.range = rangeOptions;
-		const contentLength = end - start + 1;
+	if (range) {
+		const contentLength = range.end - range.start + 1;
 
-		headers[CONTENT_RANGE] = `bytes ${start}-${end}/${size}`;
+		headers[CONTENT_RANGE] = BYTES_SPACE + `${range.start}-${range.end}/${size}`;
 		headers[CONTENT_LENGTH] = contentLength;
 
 		res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
 		res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
 		res.statusCode = INT_206;
 
-		return [headers, rangeOptions];
+		req.range = range;
+		return [headers, range];
 	}
 
-	headers[CONTENT_RANGE] = `bytes */${size}`;
+	headers[CONTENT_RANGE] = BYTES_SPACE + `*/${size}`;
 	res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
 
 	return [headers, options];
@@ -365,13 +411,13 @@ function mime(arg = EMPTY) {
  * @returns {number} The appropriate HTTP status code
  */
 function getStatus(req, res) {
-	if (req.allow.length === 0) {
+	if (req.allow.length === INT_0) {
 		return INT_404;
 	}
 	if (req.method !== GET) {
 		return INT_405;
 	}
-	if (req.allow.includes(GET) === false) {
+	if (!req.allow.includes(GET)) {
 		return INT_404;
 	}
 	return res.statusCode > INT_500 ? res.statusCode : INT_500;
@@ -388,9 +434,9 @@ function getStatusText(status) {
  * @param {number} [status=res.statusCode] - HTTP status code (coerces to 500 if < 400)
  */
 function error(req, res, status = res.statusCode) {
-	if (res.headersSent === false) {
+	if (!res.headersSent) {
 		if (status < INT_400) {
-			status = 500;
+			status = INT_500;
 		}
 
 		res.removeHeader(CONTENT_LENGTH);
@@ -414,8 +460,8 @@ function json(
 	res.send(JSON.stringify(arg), status, headers);
 }
 
-const PROTOCOL_PATTERN = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
-const CONTROL_CHAR_PATTERN = /[\r\n\t]/;
+const PROTOCOL_PATTERN = HTTP_PROTOCOL_PATTERN;
+const CONTROL_CHAR_PATTERN_LOCAL = CONTROL_CHAR_PATTERN;
 
 /**
  * Validates if a URI is safe for redirection (relative only)
@@ -424,18 +470,18 @@ const CONTROL_CHAR_PATTERN = /[\r\n\t]/;
  */
 function isSafeRedirectUri(uri) {
 	/* node:coverage ignore next 10 */
-	if (!uri || typeof uri !== "string") {
+	if (!uri || typeof uri !== STRING) {
 		return false;
 	}
 
 	const trimmed = uri.trim();
 
-	if (trimmed.length === 0) {
+	if (trimmed.length === INT_0) {
 		return false;
 	}
 
 	// Block control characters that could cause header injection
-	if (CONTROL_CHAR_PATTERN.test(trimmed)) {
+	if (CONTROL_CHAR_PATTERN_LOCAL.test(trimmed)) {
 		return false;
 	}
 
@@ -446,12 +492,12 @@ function isSafeRedirectUri(uri) {
 	// Block protocol-relative URLs including percent-encoded variants
 	const decoded = decodeURIComponent(trimmed);
 	if (
-		trimmed.startsWith("//") ||
-		trimmed.startsWith("\\") ||
-		trimmed.startsWith("/\\") ||
-		decoded.startsWith("//") ||
-		decoded.startsWith("\\") ||
-		decoded.startsWith("/\\")
+		trimmed.startsWith(DOUBLE_SLASH) ||
+		trimmed.startsWith(BACKSLASH) ||
+		trimmed.startsWith(SLASH_BACKSLASH) ||
+		decoded.startsWith(DOUBLE_SLASH) ||
+		decoded.startsWith(BACKSLASH) ||
+		decoded.startsWith(SLASH_BACKSLASH)
 	) {
 		return false;
 	}
@@ -467,7 +513,7 @@ function isSafeRedirectUri(uri) {
  */
 function redirect(res, uri, perm = true) {
 	if (!isSafeRedirectUri(uri)) {
-		res.error(INT_400, new Error("Invalid redirect URI"));
+		res.error(INT_400, new Error(MSG_INVALID_REDIRECT_URI));
 		return;
 	}
 
@@ -494,7 +540,7 @@ function send(
 	onReady,
 	onDone,
 ) {
-	if (res.headersSent === false) {
+	if (!res.headersSent) {
 		[body, status, headers] = onReady(req, res, body, status, headers);
 
 		const method = req.method;
@@ -509,7 +555,7 @@ function send(
 				writeHead(res, headers);
 				body
 					.on(ERROR, (_err) => {
-						if (res.headersSent === false) {
+						if (!res.headersSent) {
 							res.error(INT_500);
 						} else {
 							// Headers already sent, destroy stream and end response
@@ -521,7 +567,7 @@ function send(
 					})
 					.pipe(res);
 			} else {
-				if (res.headersSent === false) {
+				if (!res.headersSent) {
 					res.error(INT_416);
 				} else {
 					body.destroy();
@@ -531,7 +577,7 @@ function send(
 				}
 			}
 		} else {
-			if (body !== null && typeof body !== STRING && typeof body[TO_STRING] === "function") {
+			if (body !== null && typeof body !== STRING && typeof body[TO_STRING] === FUNCTION) {
 				body = body.toString();
 			}
 
@@ -541,7 +587,7 @@ function send(
 
 				[headers] = partialHeaders(req, res, byteLength, status, headers);
 				if (req.range !== void 0) {
-					const rangeBuffer = buffered.slice(req.range.start, req.range.end + 1);
+					const rangeBuffer = buffered.slice(req.range.start, req.range.end + INT_1);
 					onDone(req, res, rangeBuffer.toString(), headers);
 				} else {
 					res.error(INT_416);
@@ -565,7 +611,7 @@ function set(res, arg = {}) {
 	const entries = Array.from(headers);
 	const entryCount = entries.length;
 
-	for (let i = 0; i < entryCount; i++) {
+	for (let i = INT_0; i < entryCount; i++) {
 		const [key, value] = entries[i];
 		res.setHeader(key, value);
 	}
@@ -595,18 +641,18 @@ function status(res, arg = INT_200) {
  * @param {boolean} etags - ETag support enabled
  */
 function stream(req, res, file, emitStream, createReadStream, etags) {
-	if (file.path === EMPTY || file.stats.size === 0) {
-		throw new TypeError("Invalid file descriptor");
+	if (file.path === EMPTY || file.stats.size === INT_0) {
+		throw new TypeError(MSG_INVALID_FILE_DESCRIPTOR);
 	}
 
 	res.header(CONTENT_LENGTH, file.stats.size);
 	res.header(
 		CONTENT_TYPE,
-		file.charset.length > 0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path),
+		file.charset.length > INT_0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path),
 	);
 	res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
 
-	if (etags && file.etag.length > 0) {
+	if (etags && file.etag.length > INT_0) {
 		res.header(ETAG, file.etag);
 		res.removeHeader(CACHE_CONTROL);
 	}
@@ -619,7 +665,7 @@ function stream(req, res, file, emitStream, createReadStream, etags) {
 		if (RANGE in req.headers) {
 			[headers, options] = partialHeaders(req, res, file.stats.size);
 
-			if (Object.keys(options).length > 0) {
+			if (Object.keys(options).length > INT_0) {
 				res.removeHeader(CONTENT_LENGTH);
 				res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
 
@@ -632,7 +678,7 @@ function stream(req, res, file, emitStream, createReadStream, etags) {
 		}
 
 		res.send(
-			createReadStream(file.path, Object.keys(options).length > 0 ? options : undefined),
+			createReadStream(file.path, Object.keys(options).length > INT_0 ? options : undefined),
 			status,
 		);
 	} else if (req.method === HEAD) {
@@ -669,7 +715,7 @@ function createErrorHandler(req, res, emitter) {
 		if (req.headers) {
 			delete req.headers.range;
 		}
-		res.send(err.message);
+		res.send(err.message || getStatusText(res.statusCode));
 	};
 }
 
@@ -731,7 +777,7 @@ function createStatusHandler(res) {
  * @returns {boolean} True if CORS is allowed
  */
 function cors(req, origins) {
-	if (origins.size === 0) {
+	if (origins.size === INT_0) {
 		return false;
 	}
 
@@ -777,8 +823,9 @@ function extractIP(req) {
 	}
 
 	const forwardedIPs = forwardedHeader.split(COMMA);
+	const ipCount = forwardedIPs.length;
 
-	for (let i = INT_0; i < forwardedIPs.length; i++) {
+	for (let i = INT_0; i < ipCount; i++) {
 		const ip = forwardedIPs[i].trim();
 		if (isValidIP(ip)) {
 			return ip;
@@ -807,7 +854,7 @@ function params(req, getParams) {
 	const keys = Object.keys(groups);
 	const keyCount = keys.length;
 
-	for (let i = 0; i < keyCount; i++) {
+	for (let i = INT_0; i < keyCount; i++) {
 		const key = keys[i];
 		const value = groups[key];
 
@@ -815,7 +862,7 @@ function params(req, getParams) {
 			processedParams[key] = coerce(null);
 		} else {
 			let decoded;
-			if (value.indexOf(PERCENT) === -1) {
+			if (value.indexOf(PERCENT) === INT_NEG_1) {
 				decoded = value;
 			} else {
 				try {
@@ -858,13 +905,123 @@ function parse(arg) {
  * @returns {string} Regex pattern string
  */
 function extractPath(path) {
-	return path.replace(/:([a-zA-Z_]\w*)/g, "(?<$1>[^/]+)");
+	return path.replace(/:([a-zA-Z_]\w*)/g, EXTRACT_PATH_REPLACE);
 }
 
-const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/,
-	IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/,
-	IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i,
-	HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
+/**
+ * Validates IPv4 address format
+ * @param {string} ip - IPv4 address to validate
+ * @returns {boolean} True if valid IPv4
+ */
+function isValidIPv4(ip) {
+	const match = IPV4_PATTERN.exec(ip);
+	if (!match) {
+		return false;
+	}
+
+	for (let i = INT_1; i < INT_5; i++) {
+		const num = parseInt(match[i], INT_10);
+		if (num > INT_255) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+/**
+ * Validates IPv6 address format
+ * @param {string} ip - IPv6 address to validate
+ * @returns {boolean} True if valid IPv6
+ */
+function isValidIPv6(ip) {
+	if (!IPV6_CHAR_PATTERN.test(ip)) {
+		return false;
+	}
+
+	const ipv4MappedMatch = IPV4_MAPPED_PATTERN.exec(ip);
+	if (ipv4MappedMatch) {
+		return isValidIPv4(ipv4MappedMatch[INT_1]);
+	}
+
+	if (ip === DOUBLE_COLON) {
+		return true;
+	}
+
+	const doubleColonIndex = ip.indexOf(DOUBLE_COLON);
+	const isCompressed = doubleColonIndex !== INT_NEG_1;
+
+	if (isCompressed) {
+		return validateCompressedIPv6(ip, doubleColonIndex);
+	}
+
+	return validateUncompressedIPv6(ip);
+}
+
+/**
+ * Validates compressed IPv6 address (with ::)
+ * @param {string} ip - IPv6 address
+ * @param {number} doubleColonIndex - Position of ::
+ * @returns {boolean} True if valid
+ */
+function validateCompressedIPv6(ip, doubleColonIndex) {
+	if (ip.indexOf(DOUBLE_COLON, doubleColonIndex + INT_2) !== INT_NEG_1) {
+		return false;
+	}
+
+	if (
+		(doubleColonIndex > INT_0 && ip.charAt(doubleColonIndex - INT_1) === COLON) ||
+		(doubleColonIndex + INT_2 < ip.length && ip.charAt(doubleColonIndex + INT_2) === COLON)
+	) {
+		return false;
+	}
+
+	const beforeDoubleColon = ip.substring(INT_0, doubleColonIndex);
+	const afterDoubleColon = ip.substring(doubleColonIndex + INT_2);
+
+	const leftGroups = beforeDoubleColon ? beforeDoubleColon.split(COLON) : [];
+	const rightGroups = afterDoubleColon ? afterDoubleColon.split(COLON) : [];
+
+	const totalGroups =
+		leftGroups.filter((g) => g !== EMPTY).length + rightGroups.filter((g) => g !== EMPTY).length;
+
+	if (totalGroups >= INT_8) {
+		return false;
+	}
+
+	return validateHexGroups(leftGroups) && validateHexGroups(rightGroups);
+}
+
+/**
+ * Validates uncompressed IPv6 address
+ * @param {string} ip - IPv6 address
+ * @returns {boolean} True if valid
+ */
+function validateUncompressedIPv6(ip) {
+	const groups = ip.split(COLON);
+	if (groups.length !== INT_8) {
+		return false;
+	}
+
+	return validateHexGroups(groups);
+}
+
+/**
+ * Validates hex groups in IPv6 address
+ * @param {Array} groups - Array of hex group strings
+ * @returns {boolean} True if all groups are valid
+ */
+function validateHexGroups(groups) {
+	const groupCount = groups.length;
+
+	for (let i = INT_0; i < groupCount; i++) {
+		/* node:coverage ignore next 3 */
+		if (!groups[i] || !HEX_GROUP_PATTERN.test(groups[i])) {
+			return false;
+		}
+	}
+	return true;
+}
 
 /**
  * Validates if an IP address is properly formatted
@@ -876,106 +1033,11 @@ function isValidIP(ip) {
 		return false;
 	}
 
-	if (ip.indexOf(COLON) === -1) {
-		const match = IPV4_PATTERN.exec(ip);
-
-		if (!match) {
-			return false;
-		}
-
-		for (let i = 1; i < INT_5; i++) {
-			const num = parseInt(match[i], INT_10);
-			if (num > INT_255) {
-				return false;
-			}
-		}
-
-		return true;
+	if (ip.indexOf(COLON) === INT_NEG_1) {
+		return isValidIPv4(ip);
 	}
 
-	if (!IPV6_CHAR_PATTERN.test(ip)) {
-		return false;
-	}
-
-	const ipv4MappedMatch = IPV4_MAPPED_PATTERN.exec(ip);
-	if (ipv4MappedMatch) {
-		return isValidIP(ipv4MappedMatch[1]);
-	}
-
-	if (ip === DOUBLE_COLON) {
-		return true;
-	}
-
-	const doubleColonIndex = ip.indexOf(DOUBLE_COLON);
-	const isCompressed = doubleColonIndex !== -1;
-
-	if (isCompressed) {
-		if (ip.indexOf(DOUBLE_COLON, doubleColonIndex + INT_2) !== -1) {
-			return false;
-		}
-
-		if (
-			(doubleColonIndex > INT_0 && ip.charAt(doubleColonIndex - INT_1) === COLON) ||
-			(doubleColonIndex + INT_2 < ip.length && ip.charAt(doubleColonIndex + INT_2) === COLON)
-		) {
-			return false;
-		}
-
-		const beforeDoubleColon = ip.substring(INT_0, doubleColonIndex);
-		const afterDoubleColon = ip.substring(doubleColonIndex + INT_2);
-
-		let leftGroups;
-		if (beforeDoubleColon) {
-			leftGroups = beforeDoubleColon.split(COLON);
-		} else {
-			leftGroups = [];
-		}
-
-		let rightGroups;
-		if (afterDoubleColon) {
-			rightGroups = afterDoubleColon.split(COLON);
-		} else {
-			rightGroups = [];
-		}
-
-		const nonEmptyLeft = leftGroups.filter((g) => g !== EMPTY);
-		const nonEmptyRight = rightGroups.filter((g) => g !== EMPTY);
-		const totalGroups = nonEmptyLeft.length + nonEmptyRight.length;
-
-		if (totalGroups >= INT_8) {
-			return false;
-		}
-
-		/* node:coverage ignore next 5 */
-		for (let i = INT_0; i < nonEmptyLeft.length; i++) {
-			if (!HEX_GROUP_PATTERN.test(nonEmptyLeft[i])) {
-				return false;
-			}
-		}
-
-		/* node:coverage ignore next 5 */
-		for (let i = INT_0; i < nonEmptyRight.length; i++) {
-			if (!HEX_GROUP_PATTERN.test(nonEmptyRight[i])) {
-				return false;
-			}
-		}
-
-		return true;
-	} else {
-		const groups = ip.split(COLON);
-		if (groups.length !== INT_8) {
-			return false;
-		}
-
-		/* node:coverage ignore next 5 */
-		for (let i = INT_0; i < INT_8; i++) {
-			if (!groups[i] || !HEX_GROUP_PATTERN.test(groups[i])) {
-				return false;
-			}
-		}
-
-		return true;
-	}
+	return isValidIPv6(ip);
 }/**
  * Processes middleware map for a given URI and populates middleware array
  * @param {string} uri - The URI to match against
@@ -992,18 +1054,18 @@ function reduce(uri, map = new Map(), arg = {}) {
 	const values = Array.from(map.values());
 	const len = values.length;
 
-	for (let i = 0; i < len; i++) {
+	for (let i = INT_0; i < len; i++) {
 		const middleware = values[i];
-		middleware.regex.lastIndex = 0;
+		middleware.regex.lastIndex = INT_0;
 
 		if (middleware.regex.test(uri)) {
 			const handlers = middleware.handlers;
 			const handlerLen = handlers.length;
 
 			if (handlerLen === 1) {
-				middlewareArray.push(handlers[0]);
+				middlewareArray.push(handlers[INT_0]);
 			} else {
-				for (let j = 0; j < handlerLen; j++) {
+				for (let j = INT_0; j < handlerLen; j++) {
 					middlewareArray.push(handlers[j]);
 				}
 			}
@@ -1016,8 +1078,6 @@ function reduce(uri, map = new Map(), arg = {}) {
 		}
 	}
 }
-
-const ERROR_HANDLER_LENGTH = 4;
 
 /**
  * Creates a next function for middleware processing with error handling
@@ -1036,11 +1096,11 @@ function next(req, res, middleware, immediate = false) {
 	const handleError = (err, nextFn) => {
 		let obj = middleware.next();
 
-		while (obj.done === false && obj.value && obj.value.length !== ERROR_HANDLER_LENGTH) {
+		while (!obj.done && obj.value && obj.value.length !== ERROR_HANDLER_LENGTH) {
 			obj = middleware.next();
 		}
 
-		if (obj.done === false && obj.value) {
+		if (!obj.done && obj.value) {
 			obj.value(err, req, res, nextFn);
 		} else {
 			const newStatus = getStatus(req, res);
@@ -1055,7 +1115,7 @@ function next(req, res, middleware, immediate = false) {
 	const handleMiddleware = (nextFn) => {
 		const obj = middleware.next();
 
-		if (obj.done === false) {
+		if (!obj.done) {
 			const value = obj.value;
 			if (typeof value === FUNCTION) {
 				value(req, res, nextFn);
@@ -1095,13 +1155,13 @@ function next(req, res, middleware, immediate = false) {
  */
 function computeRoutes(middleware, ignored, uri, method, cache, override = false) {
 	const key = `${method}${DELIMITER}${uri}`;
-	const cached = override === false ? cache.get(key) : void 0;
+	const cached = !override ? cache.get(key) : void 0;
 	let result;
 
 	if (cached !== void 0) {
 		result = cached;
 	} else {
-		result = { getParams: null, middleware: [], params: false, visible: 0, exit: -1 };
+		result = { getParams: null, middleware: [], params: false, visible: INT_0, exit: INT_NEG_1 };
 		reduce(uri, middleware.get(WILDCARD) ?? new Map(), result);
 
 		if (method !== WILDCARD) {
@@ -1109,8 +1169,9 @@ function computeRoutes(middleware, ignored, uri, method, cache, override = false
 			reduce(uri, middleware.get(method) ?? new Map(), result);
 		}
 
-		let visible = 0;
-		for (let i = 0; i < result.middleware.length; i++) {
+		let visible = INT_0;
+		const middlewareLength = result.middleware.length;
+		for (let i = INT_0; i < middlewareLength; i++) {
 			if (!ignored.has(result.middleware[i])) {
 				visible++;
 			}
@@ -1144,7 +1205,7 @@ function listRoutes(middleware, method = GET.toLowerCase(), type = ARRAY) {
 	const entries = Array.from(methodMap.entries());
 	const entryCount = entries.length;
 
-	for (let i = 0; i < entryCount; i++) {
+	for (let i = INT_0; i < entryCount; i++) {
 		const [key, value] = entries[i];
 		result[key] = value;
 	}
@@ -1176,7 +1237,7 @@ function createMiddlewareRegistry(methods, cache) {
 	const middleware = new Map();
 	const ignored = new Set();
 
-	return {
+	return Object.freeze({
 		ignore: (f) => {
 			ignored.add(f);
 		},
@@ -1184,7 +1245,34 @@ function createMiddlewareRegistry(methods, cache) {
 		routes: (u, m, o) => computeRoutes(middleware, ignored, u, m, cache, o),
 		register: (p, ...fns) => registerMiddleware(middleware, ignored, methods, p, ...fns),
 		list: (m, t) => listRoutes(middleware, m, t),
-	};
+	});
+}
+
+/**
+ * Validates HTTP method for middleware registration
+ * @param {string} method - HTTP method to validate
+ * @throws {TypeError} If method is invalid or HEAD
+ */
+function validateMethod(method) {
+	if (method !== WILDCARD && !NODE_METHODS.includes(method)) {
+		throw new TypeError(MSG_INVALID_HTTP_METHOD);
+	}
+
+	if (method === HEAD) {
+		throw new TypeError(MSG_CANNOT_SET_HEAD_ROUTE);
+	}
+}
+
+/**
+ * Validates route pattern for security issues
+ * @param {string} path - Route path to validate
+ * @throws {TypeError} If pattern has potential ReDoS vulnerability
+ */
+function validateRoutePattern(path) {
+	/* node:coverage ignore next 3 */
+	if (QUANTIFIER_PATTERN.test(path)) {
+		throw new TypeError(MSG_REDOS_VULNERABILITY);
+	}
 }
 
 /**
@@ -1207,15 +1295,9 @@ function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 
 	const method = typeof fn[fn.length - 1] === STRING ? fn.pop().toUpperCase() : GET;
 
-	if (method !== WILDCARD && NODE_METHODS.includes(method) === false) {
-		throw new TypeError("Invalid HTTP method");
-	}
+	validateMethod(method);
 
-	if (method === HEAD) {
-		throw new TypeError("Cannot set HEAD route, use GET");
-	}
-
-	if (middleware.has(method) === false) {
+	if (!middleware.has(method)) {
 		if (method !== WILDCARD) {
 			methods.add(method);
 		}
@@ -1227,20 +1309,14 @@ function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 	let lrpath = rpath,
 		lparams = false;
 
-	if (lrpath.includes(`${SLASH}${LEFT_PAREN}`) === false && lrpath.includes(`${SLASH}:`)) {
+	if (!lrpath.includes(`${SLASH}${LEFT_PAREN}`) && lrpath.includes(`${SLASH}:`)) {
 		lparams = true;
 		lrpath = extractPath(lrpath);
 	}
 
+	validateRoutePattern(lrpath);
+
 	const current = mmethod.get(lrpath) ?? { handlers: [] };
-
-	// Validate route pattern before mutating handlers
-	const quantifierPattern = /([.*+?^${}()|[\]\\])\1{3,}/;
-	/* node:coverage ignore next 3 */
-	if (quantifierPattern.test(lrpath)) {
-		throw new TypeError("Invalid route pattern: potential ReDoS vulnerability");
-	}
-
 	current.handlers.push(...fn);
 	mmethod.set(lrpath, {
 		handlers: current.handlers,
@@ -1302,16 +1378,16 @@ function validateConfig(config = {}) {
 				: String(err.path).replace(/^\./, EMPTY);
 			let msg = err.message;
 
-			if (msg.includes("is not of a type(s)")) {
+			if (msg.includes(MSG_MUST_BE_TYPE)) {
 				const types = msg.match(/type\(s\) ([a-z, ]+)/i);
-				const type = types ? types[1].split(COMMA)[0].trim() : TYPE;
+				const type = types ? types[INT_1].split(COMMA)[INT_0].trim() : TYPE;
 				msg = `must be ${type}`;
-			} else if (msg.includes("must be greater than or equal to")) {
+			} else if (msg.includes(MSG_MUST_BE_GREATER_THAN)) {
 				const val = msg.match(/greater than or equal to (\d+)/);
-				msg = val ? `must be >= ${val[1]}` : msg;
-			} else if (msg.includes("must be less than or equal to")) {
+				msg = val ? `must be >= ${val[INT_1]}` : msg;
+			} else if (msg.includes(MSG_MUST_BE_LESS_THAN)) {
 				const val = msg.match(/less than or equal to (\d+)/);
-				msg = val ? `must be <= ${val[1]}` : msg;
+				msg = val ? `must be <= ${val[INT_1]}` : msg;
 			}
 
 			return `${MSG_CONFIG_FIELD}"${field}" ${msg}`;
@@ -1550,10 +1626,26 @@ function timeOffset(arg = INT_0) {
 	const minutesStr = String(minutes).padStart(INT_2, STRING_0);
 
 	return `${sign}${hoursStr}${minutesStr}`;
-}const __dirname$1 = fileURLToPath(new URL(".", import.meta.url));
-const html = readFileSync(join(__dirname$1, "..", "tpl", "index.html"), {
+}const __dirname$1 = fileURLToPath(new URL(CURRENT_DIR, import.meta.url));
+const html = readFileSync(join(__dirname$1, PARENT_DIR, TPL_DIR, INDEX_HTML_FILE), {
 	encoding: UTF8,
 });
+
+/**
+ * Generates HTML list item for a file entry
+ * @param {Object} file - File object from fs.readdir
+ * @returns {string} HTML list item
+ */
+function renderFileItem(file) {
+	const fileName = file.name;
+	const safeName = escapeHtml(fileName);
+	const safeHref = encodeURIComponent(fileName);
+	const isDir = file.isDirectory();
+
+	return isDir
+		? `    <li><a href="${safeHref}/" rel="${COLLECTION}">${safeName}/</a></li>`
+		: `    <li><a href="${safeHref}" rel="${ITEM}">${safeName}</a></li>`;
+}
 
 /**
  * Generates an HTML index page for directory listings
@@ -1563,36 +1655,12 @@ const html = readFileSync(join(__dirname$1, "..", "tpl", "index.html"), {
  */
 function autoIndex(title = EMPTY, files = []) {
 	const safeTitle = escapeHtml(title);
+	const parentDirItem = `    <li><a href="${PARENT_DIR}" rel="${COLLECTION}">${PARENT_DIR}/</a></li>`;
 
-	if (files.length === 0) {
-		return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) => {
-			return key === TOKEN_TITLE
-				? safeTitle
-				: `    <li><a href=".." rel="${COLLECTION}">../</a></li>`;
-		});
-	}
+	const fileItems = files.map((file) => renderFileItem(file));
+	const safeFiles = [parentDirItem, ...fileItems].join(NEWLINE);
 
-	const listItems = Array.from({ length: files.length + 1 });
-	listItems[0] = `    <li><a href=".." rel="${COLLECTION}">../</a></li>`;
-
-	const fileCount = files.length;
-	for (let i = 0; i < fileCount; i++) {
-		const file = files[i];
-		const fileName = file.name;
-		const safeName = escapeHtml(fileName);
-		const safeHref = encodeURIComponent(fileName);
-		const isDir = file.isDirectory();
-
-		listItems[i + 1] = isDir
-			? `    <li><a href="${safeHref}/" rel="${COLLECTION}">${safeName}/</a></li>`
-			: `    <li><a href="${safeHref}" rel="${ITEM}">${safeName}</a></li>`;
-	}
-
-	const safeFiles = listItems.join("\n");
-
-	return html.replace(/\$\{\s*(TITLE|FILES)\s*\}/g, (match, key) =>
-		key === TOKEN_TITLE ? safeTitle : safeFiles,
-	);
+	return html.replace(/\$\{\s*FILES\s*\}/g, safeFiles).replace(/\$\{\s*TITLE\s*\}/g, safeTitle);
 }
 
 /**
@@ -1612,7 +1680,7 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
 
 	const isRoot =
 		realFolder === sep ||
-		(realFolder.length === 3 && realFolder[1] === ":" && realFolder.endsWith("\\"));
+		(realFolder.length === INT_3 && realFolder[INT_1] === COLON && realFolder.endsWith(BACKSLASH));
 	const isWithin = isRoot
 		? realFp.startsWith(realFolder)
 		: realFp === realFolder || (realFp.startsWith(realFolder) && realFp[realFolder.length] === sep);
@@ -1645,7 +1713,7 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
 			stats: stats,
 		});
 	} else if (!req.parsed.pathname.endsWith(SLASH)) {
-		res.redirect(`${req.parsed.pathname}/${req.parsed.search}`);
+		res.redirect(`${req.parsed.pathname}${SLASH}${req.parsed.search}`);
 	} else {
 		let files;
 		/* node:coverage ignore next 7 */
@@ -1657,8 +1725,9 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
 		}
 
 		let result = EMPTY;
+		const fileCount = files.length;
 
-		for (let i = 0; i < files.length; i++) {
+		for (let i = INT_0; i < fileCount; i++) {
 			const file = files[i];
 			if (config.indexes.includes(file.name)) {
 				result = join(realFp, file.name);
@@ -1708,7 +1777,8 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
 function register(config, root, folder, useMiddleware) {
 	const normalizedRoot = root.replace(/\/$/, EMPTY) || SLASH;
 	// Match mount root and any path beneath it: /static, /static/, /static/foo
-	const rootPattern = normalizedRoot === SLASH ? "(/.*)?" : `${normalizedRoot}(/.*)?`;
+	const rootPattern =
+		normalizedRoot === SLASH ? ROUTE_PATTERN : `${normalizedRoot}${ROUTE_PATTERN}`;
 
 	useMiddleware(rootPattern, (req, res) => {
 		const pathname = decodeURIComponent(req.parsed.pathname);
@@ -1718,8 +1788,8 @@ function register(config, root, folder, useMiddleware) {
 			pathname === normalizedRoot
 				? EMPTY
 				: normalizedRoot === SLASH
-					? pathname.slice(1)
-					: pathname.slice(normalizedRoot.length + 1);
+					? pathname.slice(INT_1)
+					: pathname.slice(normalizedRoot.length + INT_1);
 		return serve(config, req, res, relativePath, folder);
 	});
 }
@@ -1733,8 +1803,8 @@ function createFileServer(config) {
 	return Object.freeze({
 		register: (root, folder, useMiddleware) => {
 			const fn = useMiddleware ?? config.use;
-			if (typeof fn !== "function") {
-				throw new TypeError("useMiddleware is required or config.use must be a function");
+			if (typeof fn !== FUNCTION) {
+				throw new TypeError(MSG_USE_MIDDLEWARE_REQUIRED);
 			}
 			register(config, root, folder, fn);
 		},
@@ -1783,49 +1853,67 @@ class Woodland extends EventEmitter {
 		super();
 
 		const validated = validateConfig(config);
-		const {
-			autoIndex,
-			cacheSize,
-			cacheTTL,
-			charset,
-			corsExpose,
-			defaultHeaders,
-			digit,
-			etags,
-			indexes,
-			logging,
-			origins,
-			time,
-		} = validated;
 
+		this.#autoIndex = validated.autoIndex;
+		this.#charset = validated.charset;
+		this.#corsExpose = validated.corsExpose;
+		this.#defaultHeaders = this.#buildFinalHeaders(validated.defaultHeaders, validated.silent);
+		this.#digit = validated.digit;
+		this.#etags = validated.etags
+			? Object.freeze(etag({ cacheSize: validated.cacheSize, cacheTTL: validated.cacheTTL }))
+			: null;
+		this.#indexes = [...validated.indexes];
+		this.#logging = Object.freeze(validateLogging(validated.logging));
+		this.#origins = new Set(validated.origins);
+		this.#time = validated.time;
+		this.#cache = lru(validated.cacheSize, validated.cacheTTL);
+		this.#methods = new Set();
+		this.#logger = this.#createLogger();
+		this.#fileServer = this.#createFileServer();
+		this.#middleware = createMiddlewareRegistry(this.#methods, this.#cache);
+
+		this.#setupMiddleware();
+		this.#setupErrorHandling();
+	}
+
+	/**
+	 * Builds final headers object from defaults
+	 * @param {Object} defaultHeaders - Default headers from config
+	 * @param {boolean} silent - Silent mode flag
+	 * @returns {Array} Array of [key, value] pairs
+	 */
+	#buildFinalHeaders(defaultHeaders, silent) {
 		const finalHeaders = { ...defaultHeaders };
-		if (!validated.silent) {
+		if (!silent) {
 			if (!(SERVER in finalHeaders)) {
 				finalHeaders[SERVER] = SERVER_VALUE;
 			}
 			finalHeaders[X_POWERED_BY] = X_POWERED_BY_VALUE;
 		}
 
-		this.#autoIndex = autoIndex;
-		this.#charset = charset;
-		this.#corsExpose = corsExpose;
-		this.#defaultHeaders = Reflect.ownKeys(finalHeaders)
+		return Reflect.ownKeys(finalHeaders)
 			.filter((key) => typeof key === STRING)
 			.map((key) => [key.toLowerCase(), finalHeaders[key]]);
-		this.#digit = digit;
-		this.#etags = etags ? Object.freeze(etag({ cacheSize, cacheTTL })) : null;
-		this.#indexes = [...indexes];
-		this.#logging = Object.freeze(validateLogging(logging));
-		this.#origins = new Set(origins);
-		this.#time = time;
-		this.#cache = lru(cacheSize, cacheTTL);
-		this.#methods = new Set();
-		this.#logger = createLogger({
+	}
+
+	/**
+	 * Creates logger instance
+	 * @returns {Object} Logger instance
+	 */
+	#createLogger() {
+		return createLogger({
 			enabled: this.#logging.enabled,
 			format: this.#logging.format,
 			level: this.#logging.level,
 		});
-		this.#fileServer = createFileServer({
+	}
+
+	/**
+	 * Creates file server instance
+	 * @returns {Object} File server instance
+	 */
+	#createFileServer() {
+		return createFileServer({
 			autoIndex: this.#autoIndex,
 			charset: this.#charset,
 			indexes: this.#indexes,
@@ -1833,8 +1921,12 @@ class Woodland extends EventEmitter {
 			stream: this.stream.bind(this),
 			etag: this.etag.bind(this),
 		});
-		this.#middleware = createMiddlewareRegistry(this.#methods, this.#cache);
+	}
 
+	/**
+	 * Sets up middleware and CORS handling
+	 */
+	#setupMiddleware() {
 		if (this.#etags !== null) {
 			this.get(this.#etags.middleware).ignore(this.#etags.middleware);
 		}
@@ -1843,7 +1935,12 @@ class Woodland extends EventEmitter {
 			const fnCorsRequest = corsRequest();
 			this.options(fnCorsRequest).ignore(fnCorsRequest);
 		}
+	}
 
+	/**
+	 * Sets up error handling event listener
+	 */
+	#setupErrorHandling() {
 		this.on(ERROR, (req, _res, _error) =>
 			this.#logger.logError(req.parsed.pathname, req.method, req.ip),
 		);
@@ -1857,8 +1954,8 @@ class Woodland extends EventEmitter {
 	 * @returns {string} Comma-separated list of allowed methods
 	 */
 	#allows(uri, override = false, isCorsRequest = false) {
-		const key = `perm${DELIMITER}${uri}${DELIMITER}${isCorsRequest ? "1" : "0"}`;
-		let result = override === false ? this.#cache.get(key) : void 0;
+		const key = `perm${DELIMITER}${uri}${DELIMITER}${isCorsRequest ? INT_1 : INT_0}`;
+		let result = !override ? this.#cache.get(key) : void 0;
 
 		if (override || result === void 0) {
 			const methodSet = new Set();
@@ -1889,13 +1986,13 @@ class Woodland extends EventEmitter {
 	#buildAllowedList(methodSet, isCorsRequest = false) {
 		const list = [...methodSet];
 
-		if (list.length > 0) {
+		if (list.length > INT_0) {
 			if (methodSet.has(GET) && !methodSet.has(HEAD)) {
 				list.push(HEAD);
 			}
 
+			/* node:coverage ignore next 3 */
 			if (!methodSet.has(OPTIONS) && isCorsRequest) {
-				/* node:coverage ignore next 2 */
 				list.push(OPTIONS);
 			}
 		}
@@ -1909,7 +2006,9 @@ class Woodland extends EventEmitter {
 	 * @returns {Woodland} Returns self for chaining
 	 */
 	always(...args) {
-		for (let i = 0; i < args.length; i++) {
+		const argsLength = args.length;
+
+		for (let i = INT_0; i < argsLength; i++) {
 			this.#middleware.ignore(args[i]);
 		}
 
@@ -1934,27 +2033,19 @@ class Woodland extends EventEmitter {
 		const timing = this.#time ? precise().start() : null;
 		const parsed = parse(req);
 		const clientIP = extractIP(req);
+
 		req.corsHost = corsHost(req);
 		req.cors = cors(req, this.#origins);
-		const allowString = this.#allows(parsed.pathname, false, req.cors);
-		const headersBatch = Object.create(null);
-		headersBatch[ALLOW] = allowString;
-		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
-
-		const defaultHeaders = this.#defaultHeaders;
-		const headerCount = defaultHeaders.length;
-		for (let i = 0; i < headerCount; i++) {
-			const [key, value] = defaultHeaders[i];
-			headersBatch[key] = value;
-		}
-
 		req.parsed = parsed;
-		req.allow = allowString;
 		req.ip = clientIP;
 		req.body = EMPTY;
 		req.host = parsed.hostname;
 		req.params = {};
 		req.valid = true;
+
+		const allowString = this.#allows(parsed.pathname, false, req.cors);
+		const headersBatch = this.#buildDefaultHeaders(allowString);
+		req.allow = allowString;
 
 		if (timing) {
 			req.precise = timing;
@@ -1964,6 +2055,41 @@ class Woodland extends EventEmitter {
 			this.#addCorsHeaders(req, headersBatch);
 		}
 
+		this.#decorateResponse(res, req, headersBatch);
+		this.#logger.log(
+			`type=decorate, uri=${parsed.pathname}, method=${req.method}, ip=${clientIP}, message="Decorated request from ${clientIP}"`,
+		);
+	}
+
+	/**
+	 * Builds default headers batch
+	 * @param {string} allowString - Allow header value
+	 * @returns {Object} Headers batch object
+	 */
+	#buildDefaultHeaders(allowString) {
+		const headersBatch = Object.create(null);
+		headersBatch[ALLOW] = allowString;
+		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
+
+		const defaultHeaders = this.#defaultHeaders;
+		const headerCount = defaultHeaders.length;
+		for (let i = INT_0; i < headerCount; i++) {
+			const [key, value] = defaultHeaders[i];
+			if (typeof key === STRING && (typeof value === STRING || typeof value === NUMBER)) {
+				headersBatch[key] = value;
+			}
+		}
+
+		return headersBatch;
+	}
+
+	/**
+	 * Decorates response object with methods and event handlers
+	 * @param {Object} res - HTTP response object
+	 * @param {Object} req - HTTP request object
+	 * @param {Object} headersBatch - Headers batch to set
+	 */
+	#decorateResponse(res, req, headersBatch) {
 		res.locals = {};
 		res.error = createErrorHandler(req, res, this);
 		res.header = res.setHeader;
@@ -1975,9 +2101,6 @@ class Woodland extends EventEmitter {
 
 		res.set(headersBatch);
 		res.on(EVT_CLOSE, () => this.#logger.log(this.#logger.clf(req, res), INFO));
-		this.#logger.log(
-			`type=decorate, uri=${parsed.pathname}, method=${req.method}, ip=${clientIP}, message="Decorated request from ${clientIP}"`,
-		);
 	}
 
 	/**
@@ -1991,7 +2114,7 @@ class Woodland extends EventEmitter {
 		const originAllowed = this.#origins.has(origin);
 		const hasWildcard = this.#origins.has(WILDCARD);
 
-		/* node:coverage ignore next 11 */
+		/* node:coverage ignore next 9 */
 		if (originAllowed) {
 			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
 			headersBatch[TIMING_ALLOW_ORIGIN] = origin;
@@ -2162,7 +2285,7 @@ class Woodland extends EventEmitter {
 	 * @returns {Array} Response array
 	 */
 	#onSend(req, res, body, status, headers) {
-		if (status === 404) {
+		if (status === INT_404) {
 			delete headers[ALLOW];
 			delete headers[ACCESS_CONTROL_ALLOW_METHODS];
 			res.removeHeader(ALLOW);
@@ -2228,16 +2351,7 @@ class Woodland extends EventEmitter {
 
 		this.#logger.logRoute(req.parsed.pathname, req.method, req.ip);
 
-		const hasOriginHeader = ORIGIN in req.headers;
-		const origin = hasOriginHeader ? req.headers.origin : EMPTY;
-		const isOriginAllowed = hasOriginHeader && this.#origins.has(origin);
-
-		// Check if CORS request is disallowed
-		const isCorsRequest = req.corsHost;
-		const isCorsDisallowed =
-			req.cors === false && hasOriginHeader && isCorsRequest && !isOriginAllowed;
-
-		if (isCorsDisallowed) {
+		if (!req.cors && req.corsHost) {
 			req.valid = false;
 			res.error(INT_403, new Error(STATUS_CODES[INT_403]));
 		} else if (req.allow.includes(method)) {
@@ -2342,7 +2456,7 @@ class Woodland extends EventEmitter {
 	 */
 	use(rpath, ...fn) {
 		this.#middleware.register(rpath, ...fn);
-		this.#logger.logMiddleware(rpath, fn[fn.length - 1]);
+		this.#logger.logMiddleware(rpath, fn[fn.length - INT_1]);
 
 		return this;
 	}

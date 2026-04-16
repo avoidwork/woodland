@@ -9,12 +9,12 @@
 'use strict';
 
 var node_http = require('node:http');
-var node_url = require('node:url');
-var node_path = require('node:path');
-var tinyCoerce = require('tiny-coerce');
 var woodland = require('woodland');
 var node_module = require('node:module');
+var node_path = require('node:path');
+var node_url = require('node:url');
 var mimeDb = require('mime-db');
+var tinyCoerce = require('tiny-coerce');
 
 var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
 const __dirname$1 = node_url.fileURLToPath(new node_url.URL(".", (typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('cli.cjs', document.baseURI).href))));
@@ -37,20 +37,23 @@ const INT_10 = 10;
 const INT_255 = 255;
 const INT_8000 = 8000;
 const INT_65535 = 65535;
+const INT_NEG_1 = -1;
 const COLON = ":";
 const DOUBLE_COLON = "::";
 const EMPTY = "";
 const EQUAL = "=";
 const HYPHEN = "-";
-const WOODLAND = "woodland";
 const STRING = "string";
 `nodejs/${process.version}, ${process.platform}/${process.arch}`;
 const LOCALHOST = "127.0.0.1";
 const EXTENSIONS = "extensions";
 const INFO = "info";
+const MSG_INVALID_IP = "Invalid IP: must be a valid IPv4 or IPv6 address.";
+const MSG_INVALID_PORT = "Invalid port: must be an integer between 0 and 65535.";
 const NO_CACHE = "no-cache";
 const EN_US = "en-US";
 const SHORT = "short";
+const EVT_LISTENING = "listening";
 
 Object.freeze(
 	Array.from({ length: 12 }, (_, idx) => {
@@ -60,21 +63,135 @@ Object.freeze(
 		return Object.freeze(d.toLocaleString(EN_US, { month: SHORT }));
 	}),
 );
+const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+const IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/;
+const IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i;
+const HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
 
-const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]);
+const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[INT_1]);
 	valid.reduce((a, v) => {
-		const result = Object.assign({ type: v[0] }, v[1]);
+		const result = Object.assign({ type: v[INT_0] }, v[INT_1]);
 		const extCount = result.extensions.length;
-		for (let i = 0; i < extCount; i++) {
+		for (let i = INT_0; i < extCount; i++) {
 			a[`.${result.extensions[i]}`] = result;
 		}
 		return a;
 	}, {});
 
-const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/,
-	IPV6_CHAR_PATTERN = /^[0-9a-fA-F:.]+$/,
-	IPV4_MAPPED_PATTERN = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i,
-	HEX_GROUP_PATTERN = /^[0-9a-fA-F]{1,4}$/;
+/**
+ * Validates IPv4 address format
+ * @param {string} ip - IPv4 address to validate
+ * @returns {boolean} True if valid IPv4
+ */
+function isValidIPv4(ip) {
+	const match = IPV4_PATTERN.exec(ip);
+	if (!match) {
+		return false;
+	}
+
+	for (let i = INT_1; i < INT_5; i++) {
+		const num = parseInt(match[i], INT_10);
+		if (num > INT_255) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+/**
+ * Validates IPv6 address format
+ * @param {string} ip - IPv6 address to validate
+ * @returns {boolean} True if valid IPv6
+ */
+function isValidIPv6(ip) {
+	if (!IPV6_CHAR_PATTERN.test(ip)) {
+		return false;
+	}
+
+	const ipv4MappedMatch = IPV4_MAPPED_PATTERN.exec(ip);
+	if (ipv4MappedMatch) {
+		return isValidIPv4(ipv4MappedMatch[INT_1]);
+	}
+
+	if (ip === DOUBLE_COLON) {
+		return true;
+	}
+
+	const doubleColonIndex = ip.indexOf(DOUBLE_COLON);
+	const isCompressed = doubleColonIndex !== INT_NEG_1;
+
+	if (isCompressed) {
+		return validateCompressedIPv6(ip, doubleColonIndex);
+	}
+
+	return validateUncompressedIPv6(ip);
+}
+
+/**
+ * Validates compressed IPv6 address (with ::)
+ * @param {string} ip - IPv6 address
+ * @param {number} doubleColonIndex - Position of ::
+ * @returns {boolean} True if valid
+ */
+function validateCompressedIPv6(ip, doubleColonIndex) {
+	if (ip.indexOf(DOUBLE_COLON, doubleColonIndex + INT_2) !== INT_NEG_1) {
+		return false;
+	}
+
+	if (
+		(doubleColonIndex > INT_0 && ip.charAt(doubleColonIndex - INT_1) === COLON) ||
+		(doubleColonIndex + INT_2 < ip.length && ip.charAt(doubleColonIndex + INT_2) === COLON)
+	) {
+		return false;
+	}
+
+	const beforeDoubleColon = ip.substring(INT_0, doubleColonIndex);
+	const afterDoubleColon = ip.substring(doubleColonIndex + INT_2);
+
+	const leftGroups = beforeDoubleColon ? beforeDoubleColon.split(COLON) : [];
+	const rightGroups = afterDoubleColon ? afterDoubleColon.split(COLON) : [];
+
+	const totalGroups =
+		leftGroups.filter((g) => g !== EMPTY).length + rightGroups.filter((g) => g !== EMPTY).length;
+
+	if (totalGroups >= INT_8) {
+		return false;
+	}
+
+	return validateHexGroups(leftGroups) && validateHexGroups(rightGroups);
+}
+
+/**
+ * Validates uncompressed IPv6 address
+ * @param {string} ip - IPv6 address
+ * @returns {boolean} True if valid
+ */
+function validateUncompressedIPv6(ip) {
+	const groups = ip.split(COLON);
+	if (groups.length !== INT_8) {
+		return false;
+	}
+
+	return validateHexGroups(groups);
+}
+
+/**
+ * Validates hex groups in IPv6 address
+ * @param {Array} groups - Array of hex group strings
+ * @returns {boolean} True if all groups are valid
+ */
+function validateHexGroups(groups) {
+	const groupCount = groups.length;
+
+	for (let i = INT_0; i < groupCount; i++) {
+		/* node:coverage ignore next 3 */
+		if (!groups[i] || !HEX_GROUP_PATTERN.test(groups[i])) {
+			return false;
+		}
+	}
+	return true;
+}
 
 /**
  * Validates if an IP address is properly formatted
@@ -86,106 +203,11 @@ function isValidIP(ip) {
 		return false;
 	}
 
-	if (ip.indexOf(COLON) === -1) {
-		const match = IPV4_PATTERN.exec(ip);
-
-		if (!match) {
-			return false;
-		}
-
-		for (let i = 1; i < INT_5; i++) {
-			const num = parseInt(match[i], INT_10);
-			if (num > INT_255) {
-				return false;
-			}
-		}
-
-		return true;
+	if (ip.indexOf(COLON) === INT_NEG_1) {
+		return isValidIPv4(ip);
 	}
 
-	if (!IPV6_CHAR_PATTERN.test(ip)) {
-		return false;
-	}
-
-	const ipv4MappedMatch = IPV4_MAPPED_PATTERN.exec(ip);
-	if (ipv4MappedMatch) {
-		return isValidIP(ipv4MappedMatch[1]);
-	}
-
-	if (ip === DOUBLE_COLON) {
-		return true;
-	}
-
-	const doubleColonIndex = ip.indexOf(DOUBLE_COLON);
-	const isCompressed = doubleColonIndex !== -1;
-
-	if (isCompressed) {
-		if (ip.indexOf(DOUBLE_COLON, doubleColonIndex + INT_2) !== -1) {
-			return false;
-		}
-
-		if (
-			(doubleColonIndex > INT_0 && ip.charAt(doubleColonIndex - INT_1) === COLON) ||
-			(doubleColonIndex + INT_2 < ip.length && ip.charAt(doubleColonIndex + INT_2) === COLON)
-		) {
-			return false;
-		}
-
-		const beforeDoubleColon = ip.substring(INT_0, doubleColonIndex);
-		const afterDoubleColon = ip.substring(doubleColonIndex + INT_2);
-
-		let leftGroups;
-		if (beforeDoubleColon) {
-			leftGroups = beforeDoubleColon.split(COLON);
-		} else {
-			leftGroups = [];
-		}
-
-		let rightGroups;
-		if (afterDoubleColon) {
-			rightGroups = afterDoubleColon.split(COLON);
-		} else {
-			rightGroups = [];
-		}
-
-		const nonEmptyLeft = leftGroups.filter((g) => g !== EMPTY);
-		const nonEmptyRight = rightGroups.filter((g) => g !== EMPTY);
-		const totalGroups = nonEmptyLeft.length + nonEmptyRight.length;
-
-		if (totalGroups >= INT_8) {
-			return false;
-		}
-
-		/* node:coverage ignore next 5 */
-		for (let i = INT_0; i < nonEmptyLeft.length; i++) {
-			if (!HEX_GROUP_PATTERN.test(nonEmptyLeft[i])) {
-				return false;
-			}
-		}
-
-		/* node:coverage ignore next 5 */
-		for (let i = INT_0; i < nonEmptyRight.length; i++) {
-			if (!HEX_GROUP_PATTERN.test(nonEmptyRight[i])) {
-				return false;
-			}
-		}
-
-		return true;
-	} else {
-		const groups = ip.split(COLON);
-		if (groups.length !== INT_8) {
-			return false;
-		}
-
-		/* node:coverage ignore next 5 */
-		for (let i = INT_0; i < INT_8; i++) {
-			if (!groups[i] || !HEX_GROUP_PATTERN.test(groups[i])) {
-				return false;
-			}
-		}
-
-		return true;
-	}
+	return isValidIPv6(ip);
 }
 
 /**
@@ -195,10 +217,10 @@ function isValidIP(ip) {
  */
 function parseArgs(args) {
 	return args
-		.filter((i) => i.charAt(0) === HYPHEN && i.charAt(1) === HYPHEN)
+		.filter((i) => i.charAt(INT_0) === HYPHEN && i.charAt(INT_1) === HYPHEN)
 		.reduce((a, v) => {
-			const x = v.split(`${HYPHEN}${HYPHEN}`)[1].split(EQUAL);
-			a[x[0]] = tinyCoerce.coerce(x[1]);
+			const x = v.split(`${HYPHEN}${HYPHEN}`)[INT_1].split(EQUAL);
+			a[x[INT_0]] = tinyCoerce.coerce(x[INT_1]);
 			return a;
 		}, {});
 }
@@ -209,13 +231,12 @@ function parseArgs(args) {
  * @returns {Object} Validation result with valid flag and error message
  */
 function validatePort(port) {
-	// Reject empty strings and whitespace-only values
 	if (port === EMPTY || (typeof port === STRING && port.trim() === EMPTY)) {
-		return { valid: false, error: "Invalid port: must be an integer between 0 and 65535." };
+		return { valid: false, error: MSG_INVALID_PORT };
 	}
 	const validPort = Number(port);
 	if (!Number.isInteger(validPort) || validPort < INT_0 || validPort > INT_65535) {
-		return { valid: false, error: "Invalid port: must be an integer between 0 and 65535." };
+		return { valid: false, error: MSG_INVALID_PORT };
 	}
 	return { valid: true, port: validPort };
 }
@@ -228,7 +249,7 @@ function validatePort(port) {
 function validateIP(ip) {
 	const validIP = isValidIP(ip);
 	if (!validIP) {
-		return { valid: false, error: "Invalid IP: must be a valid IPv4 or IPv6 address." };
+		return { valid: false, error: MSG_INVALID_IP };
 	}
 	return { valid: true, ip };
 }
@@ -270,7 +291,7 @@ function main(args = process.argv) {
 	const server = node_http.createServer(app.route);
 	server.listen(portValidation.port, ip);
 	/* node:coverage ignore next 6 */
-	server.on("listening", () => {
+	server.on(EVT_LISTENING, () => {
 		const actualPort = server.address().port;
 		app.logger.log(
 			`id=woodland, hostname=${process.env.HOSTNAME ?? "localhost"}, ip=${ip}, port=${actualPort}`,
@@ -281,17 +302,8 @@ function main(args = process.argv) {
 	return server;
 }
 
-// CLI entry point - only run when executed directly
-const __filename$1 = node_url.fileURLToPath((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('cli.cjs', document.baseURI).href)));
-/* node:coverage ignore next 6 */
-if (process.argv[1]) {
-	const scriptPath = node_path.resolve(process.argv[1]);
-	if (scriptPath === __filename$1 || node_path.basename(scriptPath) === WOODLAND) {
-		main();
-	}
-}
+// CLI entry point - always run main
+/* node:coverage ignore next */
+main();
 
 exports.main = main;
-exports.parseArgs = parseArgs;
-exports.validateIP = validateIP;
-exports.validatePort = validatePort;

@@ -4,11 +4,15 @@ import mimeDb from "mime-db";
 import {
 	APPLICATION_JSON,
 	APPLICATION_OCTET_STREAM,
+	BACKSLASH,
+	BYTES_SPACE,
 	CACHE_CONTROL,
 	CONTENT_LENGTH,
 	CONTENT_RANGE,
 	CONTENT_TYPE,
 	COMMA,
+	CONTROL_CHAR_PATTERN,
+	DOUBLE_SLASH,
 	EMPTY,
 	ETAG,
 	ERROR,
@@ -17,9 +21,13 @@ import {
 	FUNCTION,
 	GET,
 	HEAD,
+	HTTP_PROTOCOL_PATTERN,
 	HYPHEN,
 	HTML_ESCAPES,
+	INT_0,
+	INT_1,
 	INT_10,
+	INT_NEG_1,
 	INT_200,
 	INT_206,
 	INT_307,
@@ -32,22 +40,85 @@ import {
 	KEY_BYTES,
 	LAST_MODIFIED,
 	LOCATION,
+	MSG_INVALID_FILE_DESCRIPTOR,
+	MSG_INVALID_REDIRECT_URI,
 	OPTIONS,
 	OPTIONS_BODY,
 	RANGE,
+	SLASH_BACKSLASH,
 	STRING,
 	TO_STRING,
 } from "./constants.js";
 
-const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
+const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[INT_1]),
 	mimeExtensions = valid.reduce((a, v) => {
-		const result = Object.assign({ type: v[0] }, v[1]);
+		const result = Object.assign({ type: v[INT_0] }, v[INT_1]);
 		const extCount = result.extensions.length;
-		for (let i = 0; i < extCount; i++) {
+		for (let i = INT_0; i < extCount; i++) {
 			a[`.${result.extensions[i]}`] = result;
 		}
 		return a;
 	}, {});
+
+/**
+ * Parses range header value into start and end positions
+ * @param {string} rangeHeader - Range header value
+ * @param {number} size - Total size
+ * @returns {Object|null} Range object with start/end or null if invalid
+ */
+function parseRangeHeader(rangeHeader, size) {
+	if (!rangeHeader || !rangeHeader.startsWith(KEY_BYTES)) {
+		return null;
+	}
+
+	const rangePart = rangeHeader.substring(KEY_BYTES.length);
+	const commaIndex = rangePart.indexOf(COMMA);
+	const rangeSpec = commaIndex === INT_NEG_1 ? rangePart : rangePart.substring(INT_0, commaIndex);
+	const hyphenIndex = rangeSpec.indexOf(HYPHEN);
+	if (hyphenIndex === INT_NEG_1) {
+		return null;
+	}
+
+	const startStr = rangeSpec.substring(INT_0, hyphenIndex);
+	const endStr = rangeSpec.substring(hyphenIndex + 1);
+	let start, end;
+
+	if (startStr === EMPTY) {
+		if (endStr === EMPTY) {
+			return null;
+		}
+		end = parseInt(endStr, INT_10);
+		if (isNaN(end)) {
+			return null;
+		}
+		start = size - end;
+		end = size - INT_1;
+	} else {
+		start = parseInt(startStr, INT_10);
+		if (isNaN(start)) {
+			return null;
+		}
+
+		if (endStr !== EMPTY) {
+			end = parseInt(endStr, INT_10);
+			if (isNaN(end)) {
+				return null;
+			}
+		} else {
+			end = size - INT_1;
+		}
+	}
+
+	const startValid = !isNaN(start) && start >= INT_0;
+	const endValid = !isNaN(end) && end < size;
+	const rangeOrderValid = start <= end;
+
+	if (startValid && endValid && rangeOrderValid) {
+		return { start, end };
+	}
+
+	return null;
+}
 
 /**
  * Handles partial content headers for HTTP range requests
@@ -61,75 +132,28 @@ const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[1]),
  */
 export function partialHeaders(req, res, size, status, headers = {}, options = {}) {
 	const rangeHeader = req.headers.range;
-	if (!rangeHeader || !rangeHeader.startsWith(KEY_BYTES)) {
-		return [headers, options];
-	}
-
-	const rangePart = rangeHeader.substring(KEY_BYTES.length);
-	const commaIndex = rangePart.indexOf(COMMA);
-	const rangeSpec = commaIndex === -1 ? rangePart : rangePart.substring(0, commaIndex);
-	const hyphenIndex = rangeSpec.indexOf(HYPHEN);
-	if (hyphenIndex === -1) {
-		return [headers, options];
-	}
-
-	const startStr = rangeSpec.substring(0, hyphenIndex);
-	const endStr = rangeSpec.substring(hyphenIndex + 1);
-	let start, end;
-
-	if (startStr === EMPTY) {
-		if (endStr === EMPTY) {
-			return [headers, options];
-		}
-		end = parseInt(endStr, INT_10);
-		if (isNaN(end)) {
-			return [headers, options];
-		}
-		start = size - end;
-		end = size - 1;
-	} else {
-		start = parseInt(startStr, INT_10);
-		if (isNaN(start)) {
-			return [headers, options];
-		}
-
-		if (endStr !== EMPTY) {
-			end = parseInt(endStr, INT_10);
-			if (isNaN(end)) {
-				return [headers, options];
-			}
-		} else {
-			end = size - 1;
-		}
-	}
-
-	// Check if range is valid
-	const startValid = !isNaN(start) && start >= 0;
-	const endValid = !isNaN(end) && end < size;
-	const rangeOrderValid = start <= end;
-	const rangeValid = startValid && endValid && rangeOrderValid;
+	const range = parseRangeHeader(rangeHeader, size);
 
 	res.removeHeader(CONTENT_RANGE);
 	res.removeHeader(CONTENT_LENGTH);
 	res.removeHeader(ETAG);
 	delete headers.etag;
 
-	if (rangeValid) {
-		const rangeOptions = { start, end };
-		req.range = rangeOptions;
-		const contentLength = end - start + 1;
+	if (range) {
+		const contentLength = range.end - range.start + 1;
 
-		headers[CONTENT_RANGE] = `bytes ${start}-${end}/${size}`;
+		headers[CONTENT_RANGE] = BYTES_SPACE + `${range.start}-${range.end}/${size}`;
 		headers[CONTENT_LENGTH] = contentLength;
 
 		res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
 		res.header(CONTENT_LENGTH, headers[CONTENT_LENGTH]);
 		res.statusCode = INT_206;
 
-		return [headers, rangeOptions];
+		req.range = range;
+		return [headers, range];
 	}
 
-	headers[CONTENT_RANGE] = `bytes */${size}`;
+	headers[CONTENT_RANGE] = BYTES_SPACE + `*/${size}`;
 	res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
 
 	return [headers, options];
@@ -172,13 +196,13 @@ export function mime(arg = EMPTY) {
  * @returns {number} The appropriate HTTP status code
  */
 export function getStatus(req, res) {
-	if (req.allow.length === 0) {
+	if (req.allow.length === INT_0) {
 		return INT_404;
 	}
 	if (req.method !== GET) {
 		return INT_405;
 	}
-	if (req.allow.includes(GET) === false) {
+	if (!req.allow.includes(GET)) {
 		return INT_404;
 	}
 	return res.statusCode > INT_500 ? res.statusCode : INT_500;
@@ -195,9 +219,9 @@ export function getStatusText(status) {
  * @param {number} [status=res.statusCode] - HTTP status code (coerces to 500 if < 400)
  */
 export function error(req, res, status = res.statusCode) {
-	if (res.headersSent === false) {
+	if (!res.headersSent) {
 		if (status < INT_400) {
-			status = 500;
+			status = INT_500;
 		}
 
 		res.removeHeader(CONTENT_LENGTH);
@@ -221,8 +245,8 @@ export function json(
 	res.send(JSON.stringify(arg), status, headers);
 }
 
-const PROTOCOL_PATTERN = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
-const CONTROL_CHAR_PATTERN = /[\r\n\t]/;
+const PROTOCOL_PATTERN = HTTP_PROTOCOL_PATTERN;
+const CONTROL_CHAR_PATTERN_LOCAL = CONTROL_CHAR_PATTERN;
 
 /**
  * Validates if a URI is safe for redirection (relative only)
@@ -231,18 +255,18 @@ const CONTROL_CHAR_PATTERN = /[\r\n\t]/;
  */
 function isSafeRedirectUri(uri) {
 	/* node:coverage ignore next 10 */
-	if (!uri || typeof uri !== "string") {
+	if (!uri || typeof uri !== STRING) {
 		return false;
 	}
 
 	const trimmed = uri.trim();
 
-	if (trimmed.length === 0) {
+	if (trimmed.length === INT_0) {
 		return false;
 	}
 
 	// Block control characters that could cause header injection
-	if (CONTROL_CHAR_PATTERN.test(trimmed)) {
+	if (CONTROL_CHAR_PATTERN_LOCAL.test(trimmed)) {
 		return false;
 	}
 
@@ -253,12 +277,12 @@ function isSafeRedirectUri(uri) {
 	// Block protocol-relative URLs including percent-encoded variants
 	const decoded = decodeURIComponent(trimmed);
 	if (
-		trimmed.startsWith("//") ||
-		trimmed.startsWith("\\") ||
-		trimmed.startsWith("/\\") ||
-		decoded.startsWith("//") ||
-		decoded.startsWith("\\") ||
-		decoded.startsWith("/\\")
+		trimmed.startsWith(DOUBLE_SLASH) ||
+		trimmed.startsWith(BACKSLASH) ||
+		trimmed.startsWith(SLASH_BACKSLASH) ||
+		decoded.startsWith(DOUBLE_SLASH) ||
+		decoded.startsWith(BACKSLASH) ||
+		decoded.startsWith(SLASH_BACKSLASH)
 	) {
 		return false;
 	}
@@ -274,7 +298,7 @@ function isSafeRedirectUri(uri) {
  */
 export function redirect(res, uri, perm = true) {
 	if (!isSafeRedirectUri(uri)) {
-		res.error(INT_400, new Error("Invalid redirect URI"));
+		res.error(INT_400, new Error(MSG_INVALID_REDIRECT_URI));
 		return;
 	}
 
@@ -301,7 +325,7 @@ export function send(
 	onReady,
 	onDone,
 ) {
-	if (res.headersSent === false) {
+	if (!res.headersSent) {
 		[body, status, headers] = onReady(req, res, body, status, headers);
 
 		const method = req.method;
@@ -316,7 +340,7 @@ export function send(
 				writeHead(res, headers);
 				body
 					.on(ERROR, (_err) => {
-						if (res.headersSent === false) {
+						if (!res.headersSent) {
 							res.error(INT_500);
 						} else {
 							// Headers already sent, destroy stream and end response
@@ -328,7 +352,7 @@ export function send(
 					})
 					.pipe(res);
 			} else {
-				if (res.headersSent === false) {
+				if (!res.headersSent) {
 					res.error(INT_416);
 				} else {
 					body.destroy();
@@ -338,7 +362,7 @@ export function send(
 				}
 			}
 		} else {
-			if (body !== null && typeof body !== STRING && typeof body[TO_STRING] === "function") {
+			if (body !== null && typeof body !== STRING && typeof body[TO_STRING] === FUNCTION) {
 				body = body.toString();
 			}
 
@@ -348,7 +372,7 @@ export function send(
 
 				[headers] = partialHeaders(req, res, byteLength, status, headers);
 				if (req.range !== void 0) {
-					const rangeBuffer = buffered.slice(req.range.start, req.range.end + 1);
+					const rangeBuffer = buffered.slice(req.range.start, req.range.end + INT_1);
 					onDone(req, res, rangeBuffer.toString(), headers);
 				} else {
 					res.error(INT_416);
@@ -372,7 +396,7 @@ export function set(res, arg = {}) {
 	const entries = Array.from(headers);
 	const entryCount = entries.length;
 
-	for (let i = 0; i < entryCount; i++) {
+	for (let i = INT_0; i < entryCount; i++) {
 		const [key, value] = entries[i];
 		res.setHeader(key, value);
 	}
@@ -402,18 +426,18 @@ export function status(res, arg = INT_200) {
  * @param {boolean} etags - ETag support enabled
  */
 export function stream(req, res, file, emitStream, createReadStream, etags) {
-	if (file.path === EMPTY || file.stats.size === 0) {
-		throw new TypeError("Invalid file descriptor");
+	if (file.path === EMPTY || file.stats.size === INT_0) {
+		throw new TypeError(MSG_INVALID_FILE_DESCRIPTOR);
 	}
 
 	res.header(CONTENT_LENGTH, file.stats.size);
 	res.header(
 		CONTENT_TYPE,
-		file.charset.length > 0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path),
+		file.charset.length > INT_0 ? `${mime(file.path)}; charset=${file.charset}` : mime(file.path),
 	);
 	res.header(LAST_MODIFIED, file.stats.mtime.toUTCString());
 
-	if (etags && file.etag.length > 0) {
+	if (etags && file.etag.length > INT_0) {
 		res.header(ETAG, file.etag);
 		res.removeHeader(CACHE_CONTROL);
 	}
@@ -426,7 +450,7 @@ export function stream(req, res, file, emitStream, createReadStream, etags) {
 		if (RANGE in req.headers) {
 			[headers, options] = partialHeaders(req, res, file.stats.size, status);
 
-			if (Object.keys(options).length > 0) {
+			if (Object.keys(options).length > INT_0) {
 				res.removeHeader(CONTENT_LENGTH);
 				res.header(CONTENT_RANGE, headers[CONTENT_RANGE]);
 
@@ -439,7 +463,7 @@ export function stream(req, res, file, emitStream, createReadStream, etags) {
 		}
 
 		res.send(
-			createReadStream(file.path, Object.keys(options).length > 0 ? options : undefined),
+			createReadStream(file.path, Object.keys(options).length > INT_0 ? options : undefined),
 			status,
 		);
 	} else if (req.method === HEAD) {
@@ -476,7 +500,7 @@ export function createErrorHandler(req, res, emitter) {
 		if (req.headers) {
 			delete req.headers.range;
 		}
-		res.send(err.message);
+		res.send(err.message || getStatusText(res.statusCode));
 	};
 }
 
