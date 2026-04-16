@@ -41,11 +41,13 @@ Conventions and standards for the Woodland HTTP framework codebase.
 
 - **Double quotes** (`"`) for imports
 - **Single quotes** (`'`) for strings in code
+- **Template literals** for string interpolation
 - Example:
   ```javascript
   import { woodland } from "woodland";
 
   const message = 'Hello World';
+  const greeting = `Welcome, ${name}!`;
   ```
 
 ### No Console
@@ -62,16 +64,34 @@ Conventions and standards for the Woodland HTTP framework codebase.
 - Example:
   ```javascript
   // Good
-  if (count === INT_0) { ... }
-  for (let i = INT_0; i < length; i++) { ... }
-  if (typeof fn === FUNCTION) { ... }
-  const x = array[INT_0];
+  if (count === INT_0) {
+    return EMPTY;
+  }
+
+  for (let i = INT_0; i < length; i++) {
+    process(items[i]);
+  }
+
+  if (typeof fn === FUNCTION) {
+    fn();
+  }
+
+  const first = array[INT_0];
 
   // Bad
-  if (count === 0) { ... }
-  for (let i = 0; i < length; i++) { ... }
-  if (typeof fn === "function") { ... }
-  const x = array[0];
+  if (count === 0) {
+    return "";
+  }
+
+  for (let i = 0; i < length; i++) {
+    process(items[i]);
+  }
+
+  if (typeof fn === "function") {
+    fn();
+  }
+
+  const first = array[0];
   ```
 
 ### Unused Parameters
@@ -107,6 +127,7 @@ Conventions and standards for the Woodland HTTP framework codebase.
 - **Numeric constants**: `INT_0`, `INT_1`, `INT_NEG_1`, `INT_65535`, etc.
 - **String constants**: `FUNCTION`, `STRING`, `DOUBLE_SLASH`, `SLASH_BACKSLASH`
 - **Array indices**: Use `INT_0`, `INT_1`, etc. instead of raw numbers
+- See [No Magic Values](#no-magic-values) for usage examples
 
 ### Private Members
 
@@ -189,8 +210,9 @@ get(...args) {
 Prefer `for` loops in hot paths:
 
 ```javascript
-// Preferred - with constants
-for (let i = INT_0; i < array.length; i++) {
+// Preferred - with constants and cached length
+const itemCount = array.length;
+for (let i = INT_0; i < itemCount; i++) {
   const item = array[i];
 }
 
@@ -218,6 +240,36 @@ for (let i = INT_0; i < entries.length; i++) {
 
 **Why**: Accessing `.length` on each iteration adds unnecessary property lookups. Cache it once before the loop.
 
+### Destructuring
+
+Use destructuring for cleaner code:
+
+```javascript
+// Good
+const [key, value] = entries[i];
+const { name, size } = file;
+
+// Bad
+const key = entry[0];
+const value = entry[1];
+const name = file.name;
+const size = file.size;
+```
+
+### Optional Chaining and Nullish Coalescing
+
+Use modern JavaScript features for safer access:
+
+```javascript
+// Good
+const port = config?.port ?? INT_8000;
+const host = options?.host ?? LOCALHOST;
+
+// Bad
+const port = options && options.port ? options.port : INT_8000;
+const host = options && options.host ? options.host : LOCALHOST;
+```
+
 ---
 
 ## Security Patterns
@@ -233,7 +285,7 @@ const isWithin =
   (fp.startsWith(resolvedFolder) && fp[resolvedFolder.length] === sep);
 
 if (!isWithin) {
-  res.error(403);
+  res.error(INT_403);
   return;
 }
 ```
@@ -242,6 +294,7 @@ if (!isWithin) {
 - Use `path.sep` for cross-platform compatibility
 - Check boundary character, not just `startsWith`
 - Handle exact matches (`fp === resolvedFolder`)
+- Use constants for status codes (`INT_403` not `403`)
 
 ### XSS Prevention
 
@@ -259,7 +312,7 @@ params[key] = coerce(escapeHtml(decoded));
 Empty origins array = deny all:
 
 ```javascript
-if (origins.size === 0) {
+if (origins.size === INT_0) {
   return false; // Deny CORS
 }
 ```
@@ -312,7 +365,7 @@ For HTTP tests, mock responses must include:
 
 - **100% line coverage** (required)
 - **100% function coverage** (required)
-- **96%+ branch coverage** (current: 96.43%)
+- **100% branch coverage** (current: 100%)
 
 ### Test Edge Cases
 
@@ -341,6 +394,19 @@ export function woodland(config = {}) {
 }
 ```
 
+### JSDoc Type Annotations
+
+Use proper type annotations for complex types:
+
+```javascript
+/**
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @param {Object} [headers={}] - Response headers
+ * @returns {Object} Response object
+ */
+```
+
 ### Constants Documentation
 
 When adding new constants, document their purpose:
@@ -350,12 +416,15 @@ When adding new constants, document their purpose:
 export const INT_0 = 0;
 export const INT_1 = 1;
 export const INT_NEG_1 = -1;
+export const INT_65535 = 65535;
 
 // String constants
 export const FUNCTION = "function";
 export const DOUBLE_SLASH = "//";
 export const SLASH_BACKSLASH = "/\\";
 ```
+
+See [constants.js](../src/constants.js) for the complete list of available constants.
 
 ### Inline Comments
 
@@ -368,6 +437,8 @@ const isWithin =
   fp === resolvedFolder ||
   (fp.startsWith(resolvedFolder) && fp[resolvedFolder.length] === sep);
 ```
+
+**Note**: Don't duplicate code in comments - let the code speak for itself when possible.
 
 ---
 
@@ -401,4 +472,4 @@ npm run coverage  # Verify 100% line coverage
 
 ---
 
-*Last updated: March 2026*
+*Last updated: April 2026*
