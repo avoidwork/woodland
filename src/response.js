@@ -12,6 +12,7 @@ import {
 	CONTENT_TYPE,
 	COMMA,
 	CONTROL_CHAR_PATTERN,
+	DOUBLE_SLASH,
 	EMPTY,
 	ETAG,
 	ERROR,
@@ -44,6 +45,7 @@ import {
 	OPTIONS,
 	OPTIONS_BODY,
 	RANGE,
+	SLASH_BACKSLASH,
 	STRING,
 	TO_STRING,
 } from "./constants.js";
@@ -275,12 +277,12 @@ function isSafeRedirectUri(uri) {
 	// Block protocol-relative URLs including percent-encoded variants
 	const decoded = decodeURIComponent(trimmed);
 	if (
-		trimmed.startsWith("//") ||
+		trimmed.startsWith(DOUBLE_SLASH) ||
 		trimmed.startsWith(BACKSLASH) ||
-		trimmed.startsWith("/" + BACKSLASH) ||
-		decoded.startsWith("//") ||
+		trimmed.startsWith(SLASH_BACKSLASH) ||
+		decoded.startsWith(DOUBLE_SLASH) ||
 		decoded.startsWith(BACKSLASH) ||
-		decoded.startsWith("/" + BACKSLASH)
+		decoded.startsWith(SLASH_BACKSLASH)
 	) {
 		return false;
 	}

@@ -141,6 +141,8 @@ const EXTENSIONS = "extensions";
 const PARENT_DIR = "..";
 const CURRENT_DIR = ".";
 const BACKSLASH = "\\";
+const DOUBLE_SLASH = "//";
+const SLASH_BACKSLASH = "/\\";
 const NEWLINE = "\n";
 const ROUTE_PATTERN = "(/.*)?";
 const MSG_USE_MIDDLEWARE_REQUIRED =
@@ -490,12 +492,12 @@ function isSafeRedirectUri(uri) {
 	// Block protocol-relative URLs including percent-encoded variants
 	const decoded = decodeURIComponent(trimmed);
 	if (
-		trimmed.startsWith("//") ||
+		trimmed.startsWith(DOUBLE_SLASH) ||
 		trimmed.startsWith(BACKSLASH) ||
-		trimmed.startsWith("/" + BACKSLASH) ||
-		decoded.startsWith("//") ||
+		trimmed.startsWith(SLASH_BACKSLASH) ||
+		decoded.startsWith(DOUBLE_SLASH) ||
 		decoded.startsWith(BACKSLASH) ||
-		decoded.startsWith("/" + BACKSLASH)
+		decoded.startsWith(SLASH_BACKSLASH)
 	) {
 		return false;
 	}
