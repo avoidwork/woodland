@@ -286,7 +286,7 @@ const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[INT_1]),
 	mimeExtensions = valid.reduce((a, v) => {
 		const result = Object.assign({ type: v[INT_0] }, v[INT_1]);
 		const extCount = result.extensions.length;
-		for (let i = 0; i < extCount; i++) {
+		for (let i = INT_0; i < extCount; i++) {
 			a[`.${result.extensions[i]}`] = result;
 		}
 		return a;
@@ -305,13 +305,13 @@ function parseRangeHeader(rangeHeader, size) {
 
 	const rangePart = rangeHeader.substring(KEY_BYTES.length);
 	const commaIndex = rangePart.indexOf(COMMA);
-	const rangeSpec = commaIndex === INT_NEG_1 ? rangePart : rangePart.substring(0, commaIndex);
+	const rangeSpec = commaIndex === INT_NEG_1 ? rangePart : rangePart.substring(INT_0, commaIndex);
 	const hyphenIndex = rangeSpec.indexOf(HYPHEN);
 	if (hyphenIndex === INT_NEG_1) {
 		return null;
 	}
 
-	const startStr = rangeSpec.substring(0, hyphenIndex);
+	const startStr = rangeSpec.substring(INT_0, hyphenIndex);
 	const endStr = rangeSpec.substring(hyphenIndex + 1);
 	let start, end;
 
@@ -428,7 +428,7 @@ function mime(arg = EMPTY) {
  * @returns {number} The appropriate HTTP status code
  */
 function getStatus(req, res) {
-	if (req.allow.length === 0) {
+	if (req.allow.length === INT_0) {
 		return INT_404;
 	}
 	if (req.method !== GET) {
@@ -594,7 +594,7 @@ function send(
 				}
 			}
 		} else {
-			if (body !== null && typeof body !== STRING && typeof body[TO_STRING] === "function") {
+			if (body !== null && typeof body !== STRING && typeof body[TO_STRING] === FUNCTION) {
 				body = body.toString();
 			}
 
@@ -628,7 +628,7 @@ function set(res, arg = {}) {
 	const entries = Array.from(headers);
 	const entryCount = entries.length;
 
-	for (let i = 0; i < entryCount; i++) {
+	for (let i = INT_0; i < entryCount; i++) {
 		const [key, value] = entries[i];
 		res.setHeader(key, value);
 	}

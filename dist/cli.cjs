@@ -71,7 +71,7 @@ const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[INT_1]);
 	valid.reduce((a, v) => {
 		const result = Object.assign({ type: v[INT_0] }, v[INT_1]);
 		const extCount = result.extensions.length;
-		for (let i = 0; i < extCount; i++) {
+		for (let i = INT_0; i < extCount; i++) {
 			a[`.${result.extensions[i]}`] = result;
 		}
 		return a;
