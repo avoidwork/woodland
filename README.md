@@ -8,7 +8,7 @@ Secure HTTP framework for Node.js. Express-compatible with built-in security, no
 [![npm version](https://badge.fury.io/js/woodland.svg)](https://badge.fury.io/js/woodland)
 [![Node.js Version](https://img.shields.io/badge/node.js-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
-[![Test Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](https://github.com/avoidwork/woodland)
+[![Test Coverage](https://img.shields.io/badge/coverage-100%25%20line-brightgreen.svg)](https://github.com/avoidwork/woodland)
 
 </div>
 
@@ -54,7 +54,7 @@ createServer(app.route).listen(3000, () => console.log("Server running at http:/
 - **Built-in security** - CORS, path traversal, XSS prevention (no additional packages)
 - **Secure by default** - CORS deny-all, path traversal blocked, HTML escaping automatic
 - **TypeScript first** - Full type definitions included
-- **No performance tradeoff** - Security features add ~0.02ms overhead per request
+- **No performance tradeoff** - Security features add ~0.09ms overhead per request
 - **Lightweight** - Minimal dependencies (6 packages)
 - **Dual module support** - CommonJS and ESM
 - **Production ready** - Event emitters for custom monitoring, examples for graceful shutdown
@@ -253,7 +253,7 @@ npx woodland --ip=0.0.0.0
 ## Testing
 
 ```bash
-npm test              # Run tests (334 tests, 100% line coverage)
+npm test              # Run tests (334 tests, 100% line, 99.37% function, 95.90% branch coverage)
 npm run coverage      # Generate coverage report
 npm run benchmark     # Performance benchmarks
 npm run lint          # Check linting
@@ -268,7 +268,7 @@ npm run lint          # Check linting
 
 ## Performance
 
-Woodland delivers **enterprise-grade security without sacrificing performance**. Security features add minimal overhead (~0.02ms per request).
+Woodland delivers **enterprise-grade security without sacrificing performance**. Security features add minimal overhead (~0.09ms per request).
 
 | Framework | Security Approach | Mean Response Time |
 |-----------|------------------|-------------------|
@@ -297,8 +297,8 @@ import rateLimit from "express-rate-limit";
 app.always(helmet());
 app.always(
 	rateLimit({
-		windowMs: 15 * 60 * 1000,
-		max: 100,
+		windowMs: 15 * 60 * 1000,  // 15 minutes
+		max: 100,                   // Limit each IP to 100 requests
 		standardHeaders: true,
 		legacyHeaders: false,
 	}),
