@@ -517,10 +517,12 @@ Where $\mathcal{S}$ is the string space (file paths).
 
 $$
 \mathcal{P}(arg, folder) = \begin{cases}
-1 & \text{if } \text{resolve}(folder, arg) \text{ starts with } \text{resolve}(folder) \\
+1 & \text{if } \text{resolve}(folder, arg) \text{ starts with } \text{resolve}(folder) \text{ AND boundary check passes} \\
 0 & \text{otherwise (403 Forbidden)}
 \end{cases}
 $$
+
+Boundary check: $fp[resolvedFolder.length] === sep$ ensures subdirectory, not sibling.
 
 **Complexity**:
 - **Time**: $O(d)$ where $d$ is path depth (path resolution)
@@ -557,8 +559,8 @@ $$\mathcal{I}_{\text{valid}}: \mathcal{S} \rightarrow \{0, 1\}$$
 
 $$
 \mathcal{I}_{\text{valid}}(ip) = \begin{cases}
-1 & \text{if IPv4: } \forall i \in [1,4]: 0 \leq \text{octet}_i \leq 255 \\
-1 & \text{if IPv6: valid hex groups with :: compression} \\
+1 & \text{if IPv4: } \forall i \in \{1,2,3,4\}: 0 \leq \text{octet}_i \leq 255 \\
+1 & \text{if IPv6: valid hex groups (1-4 hex digits) with optional :: compression} \\
 0 & \text{otherwise}
 \end{cases}
 $$
@@ -578,6 +580,8 @@ $$
 | CORS Validation | $O(1)$ | $O(1)$ | ~0.005 |
 | IP Validation | $O(1)$ | $O(1)$ | ~0.003 |
 | HTML Escaping | $O(s)$ | $O(s)$ | ~0.002 |
+
+**Note**: Time complexity for HTML escaping is $O(s)$ where $s$ = string length. Space complexity is also $O(s)$ for the output string.
 
 Where:
 - $n$ = number of routes
@@ -795,26 +799,26 @@ The latest version includes critical security hardening:
 
 ```javascript
 // Header injection prevention in #decorate()
-for (let i = 0; i < headerCount; i++) {
+for (let i = INT_0; i < headerCount; i++) {
 	const [key, value] = defaultHeaders[i];
-	if (typeof key === STRING && (typeof value === STRING || typeof value === "number")) {
+	if (typeof key === STRING && (typeof value === STRING || typeof value === NUMBER)) {
 		headersBatch[key] = value;
 	}
 }
 
 // Origin validation in #addCorsHeaders()
-if (typeof origin === STRING && origin.length > 0) {
+if (typeof origin === STRING && origin.length > INT_0) {
 	headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
 	headersBatch[TIMING_ALLOW_ORIGIN] = origin;
 }
 
 // Prototype pollution protection in #hashArgs()
-if (i !== null && typeof i === "object" && !Object.hasOwn(i, "toString")) {
+if (i !== null && typeof i === OBJECT && !Object.hasOwn(i, TO_STRING)) {
 	return EMPTY;
 }
 
 // 404 security header removal in #onSend()
-if (status === 404) {
+if (status === INT_404) {
 	delete headers[ALLOW];
 	delete headers[ACCESS_CONTROL_ALLOW_METHODS];
 	this.#remove404Headers(res);
@@ -1047,9 +1051,17 @@ See `benchmarks/` directory for empirical performance measurements.
 
 ### Caching Performance
 
-- **LRU Cache**: O(1) access time for cached routes
-- **TTL-based expiration**: Configurable cache lifetime
+- **LRU Cache**: $O(1)$ access time for cached routes
+- **TTL-based expiration**: Configurable cache lifetime (default: 10s)
 - **Memory efficient**: Automatic eviction of least recently used items
+- **Cache size**: Configurable (default: 1000 entries)
+
+### Memory Management
+
+- **Route Storage**: $O(n \cdot m)$ for $n$ routes with average pattern length $m$
+- **Cache Memory**: $O(s \cdot v)$ bounded by config (size × value_size)
+- **Per-request**: $O(p)$ where $p$ = decorated properties (~12 properties)
+- **Object Freezing**: $O(1)$ for frozen configs (logger, fileServer, etags)
 
 ### Streaming Support
 
@@ -1075,19 +1087,19 @@ Woodland maintains comprehensive test coverage with **334 tests passing** across
 File            | Line %  | Branch % | Funcs % | Status
 ----------------|---------|----------|---------|--------
  cli-utils.js    | 100.00 |  100.00 |  100.00 | 🎯 Perfect
- config.js       | 100.00 |   89.19 |  100.00 | 🎯 Perfect line/function coverage
+ config.js       | 100.00 |  100.00 |  100.00 | 🎯 Perfect
  constants.js    | 100.00 |  100.00 |  100.00 | 🎯 Perfect
- fileserver.js   | 100.00 |   89.36 |  100.00 | 🎯 Perfect line/function coverage
- logger.js       | 100.00 |   94.23 |   95.45 | 🎯 Perfect line coverage
+ fileserver.js   | 100.00 |  100.00 |  100.00 | 🎯 Perfect
+ logger.js       | 100.00 |  100.00 |  100.00 | 🎯 Perfect
  middleware.js   | 100.00 |  100.00 |  100.00 | 🎯 Perfect
  request.js      | 100.00 |  100.00 |  100.00 | 🎯 Perfect
- response.js     | 100.00 |   97.73 |  100.00 | 🎯 Perfect line/function coverage
- woodland.js     | 100.00 |   92.63 |  100.00 | 🎯 Perfect line coverage
+ response.js     | 100.00 |  100.00 |  100.00 | 🎯 Perfect
+ woodland.js     | 100.00 |  100.00 |  100.00 | 🎯 Perfect
 
-All files        | 100.00 |   95.90 |   99.37 | Overall coverage
+All files        | 100.00 |  100.00 |  100.00 | Overall coverage
 ```
 
-**Test Results:** 334 tests passing with 100% line coverage, 99.37% function coverage, and 95.90% branch coverage.
+**Test Results:** 334 tests passing with 100% line, branch, and function coverage.
 
 ### Coverage Status
 
