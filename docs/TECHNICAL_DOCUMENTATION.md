@@ -1087,19 +1087,19 @@ Woodland maintains comprehensive test coverage with **334 tests passing** across
 File            | Line %  | Branch % | Funcs % | Status
 ----------------|---------|----------|---------|--------
  cli-utils.js    | 100.00 |  100.00 |  100.00 | 🎯 Perfect
- config.js       | 100.00 |  100.00 |  100.00 | 🎯 Perfect
+ config.js       | 100.00 |   89.19 |  100.00 | 🎯 Perfect line/function coverage
  constants.js    | 100.00 |  100.00 |  100.00 | 🎯 Perfect
- fileserver.js   | 100.00 |  100.00 |  100.00 | 🎯 Perfect
- logger.js       | 100.00 |  100.00 |  100.00 | 🎯 Perfect
+ fileserver.js   | 100.00 |   89.36 |  100.00 | 🎯 Perfect line/function coverage
+ logger.js       | 100.00 |   94.23 |   95.45 | 🎯 Perfect line coverage
  middleware.js   | 100.00 |  100.00 |  100.00 | 🎯 Perfect
  request.js      | 100.00 |  100.00 |  100.00 | 🎯 Perfect
- response.js     | 100.00 |  100.00 |  100.00 | 🎯 Perfect
- woodland.js     | 100.00 |  100.00 |  100.00 | 🎯 Perfect
+ response.js     | 100.00 |   97.73 |  100.00 | 🎯 Perfect line/function coverage
+ woodland.js     | 100.00 |   92.63 |  100.00 | 🎯 Perfect line coverage
 
-All files        | 100.00 |  100.00 |  100.00 | Overall coverage
+All files        | 100.00 |   95.90 |   99.37 | Overall coverage
 ```
 
-**Test Results:** 334 tests passing with 100% line, branch, and function coverage.
+**Test Results:** 334 tests passing with 100% line coverage, 99.37% function coverage, and 95.90% branch coverage.
 
 ### Coverage Status
 
