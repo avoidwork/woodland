@@ -329,7 +329,3 @@ Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTIN
 - **Issues**: [GitHub Issues](https://github.com/avoidwork/woodland/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/avoidwork/woodland/discussions)
 - **Email**: jason@mulligan.me
-
-## Code of Conduct
-
-Please note that this project is released with a [Contributor Code of Conduct](CODE_OF_CONDUCT.md). By participating in this project you agree to abide by its terms.
