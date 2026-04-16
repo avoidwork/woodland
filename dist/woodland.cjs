@@ -2106,10 +2106,7 @@ class Woodland extends node_events.EventEmitter {
 		const headerCount = defaultHeaders.length;
 		for (let i = INT_0; i < headerCount; i++) {
 			const [key, value] = defaultHeaders[i];
-			if (
-				typeof key === STRING &&
-				(typeof value === STRING || typeof value === NUMBER || Array.isArray(value))
-			) {
+			if (typeof key === STRING && (typeof value === STRING || typeof value === NUMBER)) {
 				headersBatch[key] = value;
 			}
 		}
