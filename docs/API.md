@@ -74,13 +74,15 @@ All route methods accept middleware functions and optionally a method type as th
 
 #### `always(...fn)`
 
-Registers wildcard middleware for all HTTP methods.
+Registers wildcard middleware for all HTTP methods. Adds all arguments to ignored set before registering.
 
 | Parameter | Type | Optional | Description |
 |-----------|------|----------|-------------|
 | `...fn` | `Function` | No | Middleware function(s) |
 
 **Returns:** `Woodland` - Returns self for chaining
+
+**Implementation:** Calls `ignore()` on each argument, then registers with `WILDCARD` method.
 
 #### `connect(rpath, ...fn)`
 
@@ -197,8 +199,9 @@ Registers middleware for a route.
 
 **Notes:**
 - If `rpath` is a function, it is treated as middleware without a specific path
-- The last argument in `fn` array can be a string specifying the HTTP method (defaults to 'GET')
+- The last argument in `fn` array is used as the HTTP method (defaults to `'GET'` in middleware registry)
 - Middleware can be chained for multiple handlers on the same route
+- Logs middleware registration with function name
 
 ---
 
@@ -230,13 +233,13 @@ Serves a file from disk directly.
 
 #### `stream(req, res, file)`
 
-Streams a file to the response with proper headers and range support.
+Streams a file to the response with proper headers and range support. Emits `stream` event.
 
 | Parameter | Type | Default | Optional | Description |
 |-----------|------|---------|----------|-------------|
 | `req` | `Object` | No | No | HTTP request object |
 | `res` | `Object` | No | No | HTTP response object |
-| `file` | `Object` | `{ charset: '', etag: '', path: '', stats: { mtime: Date, size: 0 } }` | **Yes** | File descriptor object |
+| `file` | `Object` | `{ charset: '', etag: '', path: '', stats: { mtime: new Date(), size: 0 } }` | **Yes** | File descriptor object |
 
 **File Object Properties:**
 
@@ -306,6 +309,7 @@ Routes an HTTP request to the appropriate middleware. This is the main request h
 | `res` | `Object` | No | HTTP response object |
 
 **Notes:**
+- Converts HEAD requests to GET internally before processing
 - Decorates request and response objects with framework utilities and security validation
 - Validates CORS requests with simplified security logic
 - Emits `connect` event if listeners are registered
