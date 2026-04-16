@@ -19,7 +19,7 @@ import { coerce } from "tiny-coerce";
  */
 export function parseArgs(args) {
 	return args
-		.filter((i) => i.charAt(0) === HYPHEN && i.charAt(1) === HYPHEN)
+		.filter((i) => i.charAt(INT_0) === HYPHEN && i.charAt(INT_1) === HYPHEN)
 		.reduce((a, v) => {
 			const x = v.split(`${HYPHEN}${HYPHEN}`)[INT_1].split(EQUAL);
 			a[x[INT_0]] = coerce(x[INT_1]);
