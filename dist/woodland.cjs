@@ -2064,18 +2064,19 @@ class Woodland extends node_events.EventEmitter {
 		const timing = this.#time ? precise.precise().start() : null;
 		const parsed = parse(req);
 		const clientIP = extractIP(req);
-		const allowString = this.#allows(parsed.pathname, false, req.cors);
-		const headersBatch = this.#buildDefaultHeaders(allowString);
 
 		req.corsHost = corsHost(req);
 		req.cors = cors(req, this.#origins);
 		req.parsed = parsed;
-		req.allow = allowString;
 		req.ip = clientIP;
 		req.body = EMPTY;
 		req.host = parsed.hostname;
 		req.params = {};
 		req.valid = true;
+
+		const allowString = this.#allows(parsed.pathname, false, req.cors);
+		const headersBatch = this.#buildDefaultHeaders(allowString);
+		req.allow = allowString;
 
 		if (timing) {
 			req.precise = timing;
