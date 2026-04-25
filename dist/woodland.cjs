@@ -2190,9 +2190,7 @@ class Woodland extends node_events.EventEmitter {
 			headersBatch[TIMING_ALLOW_ORIGIN] = origin;
 			headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
 			headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = req.allow;
-		}
-
-		if (hasWildcard) {
+		} else if (hasWildcard) {
 			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = WILDCARD;
 			headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = req.allow;
 		}
