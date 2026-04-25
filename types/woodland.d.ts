@@ -2,13 +2,16 @@ import { EventEmitter } from "node:events";
 
 export interface WoodlandConfig {
 	autoIndex?: boolean;
+	bodyLimit?: number;
 	cacheSize?: number;
 	cacheTTL?: number;
 	charset?: string;
 	corsExpose?: string;
 	defaultHeaders?: Record<string, string>;
 	digit?: number;
+	disableTrace?: boolean;
 	etags?: boolean;
+	exposeErrorMessages?: boolean;
 	indexes?: string[];
 	logging?: object;
 	origins?: string[];
