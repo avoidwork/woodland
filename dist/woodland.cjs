@@ -2017,8 +2017,7 @@ class Woodland extends node_events.EventEmitter {
 			});
 			next();
 		};
-		this.#middleware.register("/", handler);
-		this.#middleware.ignore(handler);
+		this.always(handler);
 	}
 
 	/**

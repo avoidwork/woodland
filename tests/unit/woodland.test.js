@@ -182,7 +182,8 @@ describe("woodland", () => {
 
 				assert.strictEqual(result, app);
 				const routes = app.routes("/test", "TRACE");
-				assert.strictEqual(routes.middleware.length, INT_0);
+				// always() already ignores the body limit handler, so visible is 0 and no TRACE handler exists
+				assert.strictEqual(routes.visible, INT_0);
 			});
 
 			it("should return app instance for chaining", () => {

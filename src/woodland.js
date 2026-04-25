@@ -236,8 +236,7 @@ export class Woodland extends EventEmitter {
 			});
 			next();
 		};
-		this.#middleware.register("/", handler);
-		this.#middleware.ignore(handler);
+		this.always(handler);
 	}
 
 	/**
