@@ -2210,6 +2210,9 @@ class Woodland extends node_events.EventEmitter {
 		if (!origin || typeof origin !== STRING) {
 			return false;
 		}
+		if (origin.length > INT_255) {
+			return false;
+		}
 		if (CONTROL_CHAR_PATTERN.test(origin)) {
 			return false;
 		}

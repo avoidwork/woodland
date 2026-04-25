@@ -24,6 +24,7 @@ import {
 	INFO,
 	INT_0,
 	INT_1,
+	INT_255,
 	INT_204,
 	INT_304,
 	INT_403,
@@ -425,6 +426,9 @@ export class Woodland extends EventEmitter {
 	 */
 	#isSafeOrigin(origin) {
 		if (!origin || typeof origin !== STRING) {
+			return false;
+		}
+		if (origin.length > INT_255) {
 			return false;
 		}
 		if (CONTROL_CHAR_PATTERN.test(origin)) {
