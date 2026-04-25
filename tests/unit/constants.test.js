@@ -112,7 +112,6 @@ describe("Constants", () => {
 		it("should export file system related constants", () => {
 			assert.strictEqual(constants.FILES, "files");
 			assert.strictEqual(constants.EXTENSIONS, "extensions");
-			assert.strictEqual(constants.PARAMS_GROUP, "/(?<$1>[^/]+)");
 		});
 	});
 

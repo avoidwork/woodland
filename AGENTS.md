@@ -15,6 +15,10 @@ Woodland is a high-performance HTTP framework for Node.js. This document provide
 5. **Header Injection Prevention**: Type-check header values (string or number only)
 6. **Prototype Pollution Protection**: Use `Object.hasOwn()` before accessing object properties
 7. **Open Redirect Prevention**: Block protocol schemes and control characters in redirects
+8. **Origin Sanitization**: Use `#isSafeOrigin()` to validate Origin headers before using in CORS responses (block control chars, enforce scheme, limit length)
+9. **Error Message Containment**: By default, error responses only send HTTP status text, not internal messages or stack traces
+10. **Body Size Limiting**: Middleware rejects requests exceeding `bodyLimit` with 413 to prevent DoS
+11. **TRACE Disabled by Default**: TRACE method disabled by default (`disableTrace: true`) to prevent XST attacks — enable with `disableTrace: false` in config
 
 ### Code Quality Principles
 
@@ -101,7 +105,7 @@ const app = woodland(config);
 - `patch(rpath, ...fn)` - PATCH route
 - `options(rpath, ...fn)` - OPTIONS route
 - `connect(rpath, ...fn)` - CONNECT route
-- `trace(rpath, ...fn)` - TRACE route
+- `trace(rpath, ...fn)` - TRACE route (disabled by default, requires `disableTrace: false`)
 - `always(rpath, ...fn)` - All methods (wildcard)
 
 #### Middleware Methods
@@ -130,13 +134,16 @@ All optional in constructor:
 ```typescript
 {
   autoIndex?: boolean;      // Enable directory indexing (default: false)
+  bodyLimit?: number;       // Max request body size in bytes (default: 10000000 = 10MB)
   cacheSize?: number;       // Cache size (default: 1000)
   cacheTTL?: number;        // Cache TTL in ms (default: 10000)
   charset?: string;         // Default charset (default: 'utf-8')
   corsExpose?: string;      // CORS expose headers (default: '')
   defaultHeaders?: Record<string, string>; // Default headers
+  disableTrace?: boolean;   // Disable TRACE method (default: true, prevents XST)
   digit?: number;           // Timing precision (default: 3)
   etags?: boolean;          // Enable ETags (default: true)
+  exposeErrorMessages?: boolean; // Expose internal error messages (default: false)
   indexes?: string[];       // Index files (default: ['index.htm','index.html'])
   logging?: object;         // Logging config
   origins?: string[];       // Allowed CORS origins (default: [])
@@ -149,8 +156,8 @@ All optional in constructor:
 
 ### Private Fields (using #)
 
-- `#autoIndex`, `#charset`, `#corsExpose`, `#defaultHeaders`
-- `#digit`, `#etags`, `#indexes`, `#logging`
+- `#autoIndex`, `#bodyLimit`, `#charset`, `#corsExpose`, `#defaultHeaders`
+- `#disableTrace`, `#digit`, `#etags`, `#exposeErrorMessages`, `#indexes`, `#logging`
 - `#origins`, `#time`, `#cache`
 - `#methods`, `#logger`, `#fileServer`, `#middleware`
 
@@ -158,9 +165,11 @@ All optional in constructor:
 
 - `#allows()`, `#buildAllowedList()`
 - `#decorate()`, `#addCorsHeaders()`
-- `#isHashableMethod()`, `#etagsEnabled()`, `#hashArgs()`
+- `#isSafeOrigin()`, `#setCorsAllowAndExposeHeaders()`
 - `#onDone()`, `#onReady()`, `#onSend()`
 - `#handleAllowedRoute()`
+- `#registerMethod()` - Register middleware for a given HTTP method
+- `#setupBodyLimit()` - Body size limit middleware
 
 ## Code Style
 
@@ -213,7 +222,7 @@ npm run coverage      # Generate coverage report
 ```
 
 **Test Requirements:**
-- All 334 tests must pass
+- All 335 tests must pass
 - 100% line coverage required
 - Run `npm test` before committing
 - Run `npm run build` before pushing (generates dist files)

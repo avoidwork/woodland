@@ -36,6 +36,7 @@ const INT_400 = 400;
 const INT_403 = 403;
 const INT_404 = 404;
 const INT_405 = 405;
+const INT_413 = 413;
 const INT_416 = 416;
 const INT_500 = 500;
 
@@ -92,6 +93,7 @@ const INT_60 = 60;
 const INT_255 = 255;
 const INT_1e3 = 1e3;
 const INT_1e4 = 1e4;
+const INT_1e6$1 = 1e6;
 const INT_8000 = 8000;
 const INT_NEG_1 = -1;
 
@@ -210,6 +212,7 @@ const BYTES_SPACE = "bytes ";
 // EVENT & STREAM CONSTANTS
 // =============================================================================
 const EVT_CLOSE = "close";
+const EVT_DATA = "data";
 const EVT_FINISH = "finish";
 const EVT_STREAM = "stream";
 const EVT_CONNECT = "connect";
@@ -229,6 +232,7 @@ const HTTP_VERSION = "HTTP/1.1";
 const ITEM = "item";
 const NOTICE = "notice";
 const SHORT = "short";
+const RESPONSE_TIME_UNIT = " ms";
 const TO_STRING = "toString";
 const TRUE = "true";
 const WARN = "warn";
@@ -705,17 +709,20 @@ function escapeHtml(str = EMPTY) {
  * @param {Object} req - Request object
  * @param {Object} res - Response object
  * @param {EventEmitter} emitter - EventEmitter for error events
- * @returns {Function} Error handler function
+ * @param {boolean} [exposeErrorMessages=false] - Expose internal error messages to clients
  */
-function createErrorHandler(req, res, emitter) {
-	return (status = res.statusCode, body) => {
-		error(req, res, status);
+function createErrorHandler(req, res, emitter, exposeErrorMessages = false) {
+	return (inputStatus = res.statusCode, body) => {
+		error(req, res, inputStatus);
 		const err = body instanceof Error ? body : new Error(body ?? getStatusText(res.statusCode));
 		emitter.emit(EVT_ERROR, req, res, err);
 		if (req.headers) {
 			delete req.headers.range;
 		}
-		res.send(err.message || getStatusText(res.statusCode));
+		const message = exposeErrorMessages
+			? err.message || getStatusText(res.statusCode)
+			: getStatusText(res.statusCode);
+		res.send(message);
 	};
 }
 
@@ -1325,13 +1332,16 @@ function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 	});
 }const DEFAULTS = {
 	autoIndex: false,
+	bodyLimit: INT_10 * INT_1e6$1,
 	cacheSize: INT_1e3,
 	cacheTTL: INT_1e4,
 	charset: UTF_8,
 	corsExpose: EMPTY,
 	defaultHeaders: {},
 	digit: INT_3,
+	disableTrace: true,
 	etags: true,
+	exposeErrorMessages: false,
 	indexes: [INDEX_HTM, INDEX_HTML],
 	logging: {},
 	origins: [],
@@ -1344,13 +1354,16 @@ const CONFIG_SCHEMA = {
 	type: OBJECT,
 	properties: {
 		autoIndex: { type: BOOLEAN },
+		bodyLimit: { type: NUMBER, minimum: INT_1 },
 		cacheSize: { type: NUMBER, minimum: INT_1 },
 		cacheTTL: { type: NUMBER, minimum: INT_1 },
 		charset: { type: STRING },
 		corsExpose: { type: STRING },
 		defaultHeaders: { type: OBJECT },
 		digit: { type: NUMBER, minimum: INT_1, maximum: INT_10 },
+		disableTrace: { type: BOOLEAN },
 		etags: { type: BOOLEAN },
+		exposeErrorMessages: { type: BOOLEAN },
 		indexes: { type: ARRAY, items: { type: STRING } },
 		logging: { type: OBJECT },
 		origins: { type: ARRAY, items: { type: STRING } },
@@ -1820,12 +1833,15 @@ class Woodland extends EventEmitter {
 	#charset;
 	#corsExpose;
 	#defaultHeaders;
+	#disableTrace;
 	#digit;
 	#etags;
+	#exposeErrorMessages;
 	#indexes;
 	#logging;
 	#origins;
 	#time;
+	#bodyLimit;
 	#cache;
 	#methods;
 	#logger;
@@ -1835,14 +1851,17 @@ class Woodland extends EventEmitter {
 	/**
 	 * Creates a new Woodland instance
 	 * @param {Object} [config={}] - Configuration object
+	 * @param {number} [config.bodyLimit=10000000] - Max request body size in bytes
 	 * @param {boolean} [config.autoIndex=false] - Enable automatic directory indexing
 	 * @param {number} [config.cacheSize=1000] - Size of internal cache
 	 * @param {number} [config.cacheTTL=10000] - Cache TTL in milliseconds
 	 * @param {string} [config.charset='utf-8'] - Default charset
 	 * @param {string} [config.corsExpose=''] - CORS expose headers
+	 * @param {boolean} [config.disableTrace=true] - Disable TRACE method (XST vulnerability prevention)
 	 * @param {Object} [config.defaultHeaders={}] - Default headers to set
 	 * @param {number} [config.digit=3] - Digit precision for timing
 	 * @param {boolean} [config.etags=true] - Enable ETags
+	 * @param {boolean} [config.exposeErrorMessages=false] - Expose internal error messages to clients
 	 * @param {Array} [config.indexes=['index.htm','index.html']] - Index files
 	 * @param {Object} [config.logging={}] - Logging configuration
 	 * @param {Array} [config.origins=[]] - Allowed CORS origins
@@ -1855,13 +1874,16 @@ class Woodland extends EventEmitter {
 		const validated = validateConfig(config);
 
 		this.#autoIndex = validated.autoIndex;
+		this.#bodyLimit = validated.bodyLimit;
 		this.#charset = validated.charset;
 		this.#corsExpose = validated.corsExpose;
 		this.#defaultHeaders = this.#buildFinalHeaders(validated.defaultHeaders, validated.silent);
+		this.#disableTrace = validated.disableTrace;
 		this.#digit = validated.digit;
 		this.#etags = validated.etags
 			? Object.freeze(etag({ cacheSize: validated.cacheSize, cacheTTL: validated.cacheTTL }))
 			: null;
+		this.#exposeErrorMessages = validated.exposeErrorMessages;
 		this.#indexes = [...validated.indexes];
 		this.#logging = Object.freeze(validateLogging(validated.logging));
 		this.#origins = new Set(validated.origins);
@@ -1874,6 +1896,7 @@ class Woodland extends EventEmitter {
 
 		this.#setupMiddleware();
 		this.#setupErrorHandling();
+		this.#setupBodyLimit();
 	}
 
 	/**
@@ -1947,14 +1970,37 @@ class Woodland extends EventEmitter {
 	}
 
 	/**
+	 * Sets up body size limit middleware
+	 */
+	#setupBodyLimit() {
+		const maxLimit = this.#bodyLimit;
+		const handler = (req, res, next) => {
+			let size = INT_0;
+			/* node:coverage ignore next 1 */
+			if (typeof req.on !== FUNCTION) {
+				return next();
+			}
+			req.on(EVT_DATA, (chunk) => {
+				size += chunk.length;
+				/* node:coverage ignore next 3 */
+				if (size > maxLimit) {
+					req.destroy();
+					res.error(INT_413);
+				}
+			});
+			next();
+		};
+		this.always(handler);
+	}
+
+	/**
 	 * Determines allowed methods for a URI
 	 * @param {string} uri - URI to check
 	 * @param {boolean} [override=false] - Override cache
-	 * @param {boolean} [isCorsRequest=false] - Whether this is a CORS request
 	 * @returns {string} Comma-separated list of allowed methods
 	 */
-	#allows(uri, override = false, isCorsRequest = false) {
-		const key = `perm${DELIMITER}${uri}${DELIMITER}${isCorsRequest ? INT_1 : INT_0}`;
+	#allows(uri, override = false) {
+		const key = `${DELIMITER}${uri}`;
 		let result = !override ? this.#cache.get(key) : void 0;
 
 		if (override || result === void 0) {
@@ -1966,7 +2012,7 @@ class Woodland extends EventEmitter {
 				}
 			}
 
-			const list = this.#buildAllowedList(methodSet, isCorsRequest);
+			const list = this.#buildAllowedList(methodSet);
 			result = list.sort().join(COMMA_SPACE);
 			this.#cache.set(key, result);
 			this.#logger.log(
@@ -1978,12 +2024,11 @@ class Woodland extends EventEmitter {
 	}
 
 	/**
-	 * Builds the list of allowed methods including implicit HEAD and OPTIONS
+	 * Builds the list of allowed methods including implicit HEAD, OPTIONS
 	 * @param {Set} methodSet - Set of explicitly registered methods
-	 * @param {boolean} isCorsRequest - Whether this is a CORS request
 	 * @returns {Array} Array of allowed methods
 	 */
-	#buildAllowedList(methodSet, isCorsRequest = false) {
+	#buildAllowedList(methodSet) {
 		const list = [...methodSet];
 
 		if (list.length > INT_0) {
@@ -1991,8 +2036,7 @@ class Woodland extends EventEmitter {
 				list.push(HEAD);
 			}
 
-			/* node:coverage ignore next 3 */
-			if (!methodSet.has(OPTIONS) && isCorsRequest) {
+			if (!methodSet.has(OPTIONS)) {
 				list.push(OPTIONS);
 			}
 		}
@@ -2016,12 +2060,22 @@ class Woodland extends EventEmitter {
 	}
 
 	/**
+	 * Registers middleware for a given HTTP method
+	 * @param {string} method - HTTP method name
+	 * @param {...*} args - Middleware function(s)
+	 * @returns {Woodland} Returns self for chaining
+	 */
+	#registerMethod(method, ...args) {
+		return this.use(...args, method);
+	}
+
+	/**
 	 * Registers CONNECT middleware
 	 * @param {...*} args - Middleware function(s)
 	 * @returns {Woodland} Returns self for chaining
 	 */
 	connect(...args) {
-		return this.use(...args, CONNECT);
+		return this.#registerMethod(CONNECT, ...args);
 	}
 
 	/**
@@ -2043,8 +2097,20 @@ class Woodland extends EventEmitter {
 		req.params = {};
 		req.valid = true;
 
-		const allowString = this.#allows(parsed.pathname, false, req.cors);
-		const headersBatch = this.#buildDefaultHeaders(allowString);
+		const allowString = this.#allows(parsed.pathname);
+		const headersBatch = Object.create(null);
+		headersBatch[ALLOW] = allowString;
+		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
+
+		const defaultHeaders = this.#defaultHeaders;
+		const headerCount = defaultHeaders.length;
+		for (let i = INT_0; i < headerCount; i++) {
+			const [key, value] = defaultHeaders[i];
+			if (typeof key === STRING && (typeof value === STRING || typeof value === NUMBER)) {
+				headersBatch[key] = value;
+			}
+		}
+
 		req.allow = allowString;
 
 		if (timing) {
@@ -2062,28 +2128,6 @@ class Woodland extends EventEmitter {
 	}
 
 	/**
-	 * Builds default headers batch
-	 * @param {string} allowString - Allow header value
-	 * @returns {Object} Headers batch object
-	 */
-	#buildDefaultHeaders(allowString) {
-		const headersBatch = Object.create(null);
-		headersBatch[ALLOW] = allowString;
-		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
-
-		const defaultHeaders = this.#defaultHeaders;
-		const headerCount = defaultHeaders.length;
-		for (let i = INT_0; i < headerCount; i++) {
-			const [key, value] = defaultHeaders[i];
-			if (typeof key === STRING && (typeof value === STRING || typeof value === NUMBER)) {
-				headersBatch[key] = value;
-			}
-		}
-
-		return headersBatch;
-	}
-
-	/**
 	 * Decorates response object with methods and event handlers
 	 * @param {Object} res - HTTP response object
 	 * @param {Object} req - HTTP request object
@@ -2091,7 +2135,7 @@ class Woodland extends EventEmitter {
 	 */
 	#decorateResponse(res, req, headersBatch) {
 		res.locals = {};
-		res.error = createErrorHandler(req, res, this);
+		res.error = createErrorHandler(req, res, this, this.#exposeErrorMessages);
 		res.header = res.setHeader;
 		res.json = createJsonHandler(res);
 		res.redirect = createRedirectHandler(res);
@@ -2110,8 +2154,7 @@ class Woodland extends EventEmitter {
 	 */
 	#addCorsHeaders(req, headersBatch) {
 		const origin = req.headers.origin;
-		const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.#corsExpose;
-		const originAllowed = this.#origins.has(origin);
+		const originAllowed = this.#isSafeOrigin(origin) && this.#origins.has(origin);
 		const hasWildcard = this.#origins.has(WILDCARD);
 
 		/* node:coverage ignore next 9 */
@@ -2120,21 +2163,44 @@ class Woodland extends EventEmitter {
 			headersBatch[TIMING_ALLOW_ORIGIN] = origin;
 			headersBatch[ACCESS_CONTROL_ALLOW_CREDENTIALS] = TRUE;
 			headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = req.allow;
-
-			if (corsHeaders !== void 0) {
-				headersBatch[
-					req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS
-				] = corsHeaders;
-			}
 		} else if (hasWildcard) {
 			headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = WILDCARD;
 			headersBatch[ACCESS_CONTROL_ALLOW_METHODS] = req.allow;
+		}
 
-			if (corsHeaders !== void 0) {
-				headersBatch[
-					req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS
-				] = corsHeaders;
-			}
+		const corsHeaders = req.headers[ACCESS_CONTROL_REQUEST_HEADERS] ?? this.#corsExpose;
+		this.#setCorsAllowAndExposeHeaders(headersBatch, req, corsHeaders);
+	}
+
+	/**
+	 * Validates origin header for safety
+	 * @param {string} origin - Origin header value
+	 * @returns {boolean} True if origin is safe
+	 */
+	#isSafeOrigin(origin) {
+		if (!origin || typeof origin !== STRING) {
+			return false;
+		}
+		if (origin.length > INT_255) {
+			return false;
+		}
+		if (CONTROL_CHAR_PATTERN.test(origin)) {
+			return false;
+		}
+		return /^https?:\/\//.test(origin);
+	}
+
+	/**
+	 * Sets Access-Control-Allow-Headers or Access-Control-Expose-Headers based on method
+	 * @param {Object} headersBatch - Headers batch object
+	 * @param {Object} req - HTTP request object
+	 * @param {*} corsHeaders - CORS headers value
+	 */
+	#setCorsAllowAndExposeHeaders(headersBatch, req, corsHeaders) {
+		if (corsHeaders !== void 0) {
+			headersBatch[
+				req.method === OPTIONS ? ACCESS_CONTROL_ALLOW_HEADERS : ACCESS_CONTROL_EXPOSE_HEADERS
+			] = corsHeaders;
 		}
 	}
 
@@ -2144,7 +2210,7 @@ class Woodland extends EventEmitter {
 	 * @returns {Woodland} Returns self for chaining
 	 */
 	delete(...args) {
-		return this.use(...args, DELETE);
+		return this.#registerMethod(DELETE, ...args);
 	}
 
 	/**
@@ -2154,40 +2220,15 @@ class Woodland extends EventEmitter {
 	 * @returns {string} ETag string or empty string
 	 */
 	etag(method, ...args) {
-		if (!this.#isHashableMethod(method) || !this.#etagsEnabled()) {
+		if ((method !== GET && method !== HEAD && method !== OPTIONS) || !this.#etags) {
 			return EMPTY;
 		}
 
-		const hashed = this.#hashArgs(args);
-		return this.#etags.create(hashed);
-	}
-
-	/**
-	 * Checks if a method can be hashed for ETag generation
-	 * @param {string} method - HTTP method
-	 * @returns {boolean} True if method is GET, HEAD, or OPTIONS
-	 */
-	#isHashableMethod(method) {
-		return method === GET || method === HEAD || method === OPTIONS;
-	}
-
-	/**
-	 * Checks if ETags are enabled
-	 * @returns {boolean} True if ETags are enabled
-	 */
-	#etagsEnabled() {
-		return this.#etags !== null;
-	}
-
-	/**
-	 * Hashes arguments for ETag generation
-	 * @param {Array} args - Arguments to hash
-	 * @returns {string} Hashed string
-	 */
-	#hashArgs(args) {
-		return args
+		const hashed = args
 			.map((i) => (typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i))
 			.join(HYPHEN);
+
+		return this.#etags.create(hashed);
 	}
 
 	/**
@@ -2208,7 +2249,7 @@ class Woodland extends EventEmitter {
 	 * @returns {Woodland} Returns self for chaining
 	 */
 	get(...args) {
-		return this.use(...args, GET);
+		return this.#registerMethod(GET, ...args);
 	}
 
 	/**
@@ -2268,8 +2309,8 @@ class Woodland extends EventEmitter {
 		/* node:coverage ignore next 5 */
 		if (this.#time && res.getHeader(X_RESPONSE_TIME) === void 0) {
 			const diff = req.precise.stop().diff();
-			const msValue = Number(diff / 1e6).toFixed(this.#digit);
-			res.header(X_RESPONSE_TIME, `${msValue} ms`);
+			const msValue = Number(diff / INT_1e6).toFixed(this.#digit);
+			res.header(X_RESPONSE_TIME, `${msValue}${RESPONSE_TIME_UNIT}`);
 		}
 
 		return this.#onSend(req, res, body, status, headers);
@@ -2301,7 +2342,7 @@ class Woodland extends EventEmitter {
 	 * @returns {Woodland} Returns self for chaining
 	 */
 	options(...args) {
-		return this.use(...args, OPTIONS);
+		return this.#registerMethod(OPTIONS, ...args);
 	}
 
 	/**
@@ -2310,7 +2351,7 @@ class Woodland extends EventEmitter {
 	 * @returns {Woodland} Returns self for chaining
 	 */
 	patch(...args) {
-		return this.use(...args, PATCH);
+		return this.#registerMethod(PATCH, ...args);
 	}
 
 	/**
@@ -2319,7 +2360,7 @@ class Woodland extends EventEmitter {
 	 * @returns {Woodland} Returns self for chaining
 	 */
 	post(...args) {
-		return this.use(...args, POST);
+		return this.#registerMethod(POST, ...args);
 	}
 
 	/**
@@ -2328,7 +2369,7 @@ class Woodland extends EventEmitter {
 	 * @returns {Woodland} Returns self for chaining
 	 */
 	put(...args) {
-		return this.use(...args, PUT);
+		return this.#registerMethod(PUT, ...args);
 	}
 
 	/**
@@ -2442,8 +2483,15 @@ class Woodland extends EventEmitter {
 	 * Registers TRACE middleware
 	 * @param {...*} args - Middleware function(s)
 	 * @returns {Woodland} Returns self for chaining
+	 * @security TRACE method is vulnerable to XST attacks. Disabled by default.
 	 */
 	trace(...args) {
+		if (this.#disableTrace) {
+			this.#logger.log(
+				`type=trace, message="TRACE method is disabled by default (XST vulnerability prevention)"`,
+			);
+			return this;
+		}
 		return this.use(...args, TRACE);
 	}
 

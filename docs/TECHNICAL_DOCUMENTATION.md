@@ -272,32 +272,38 @@ The main class extending EventEmitter that orchestrates all operations:
 
 ```javascript
 class Woodland extends EventEmitter {
-  #autoIndex;      // Private: autoIndex config
-  #charset;        // Private: charset config
-  #corsExpose;     // Private: CORS expose config
-  #defaultHeaders; // Private: processed default headers
-  #digit;          // Private: timing precision
-  #etags;          // Private: etag function or null
-  #indexes;        // Private: index files array
-  #logging;        // Private: logging config (frozen)
-  #origins;        // Private: CORS origins Set
-  #time;           // Private: timing enabled
-  #cache;          // Private: LRU cache (routes and permissions)
-  #methods;        // Private: registered methods array
-  #logger;         // Private: logger instance (frozen)
-  #fileServer;     // Private: file server instance (frozen, wrapped by files/serve/stream)
-  #middleware;     // Private: middleware registry
+  #autoIndex;       // Private: autoIndex config
+  #bodyLimit;       // Private: request body size limit
+  #charset;         // Private: charset config
+  #corsExpose;      // Private: CORS expose config
+  #defaultHeaders;  // Private: processed default headers
+  #disableTrace;    // Private: TRACE method disabled flag
+  #digit;           // Private: timing precision
+  #etags;           // Private: etag function or null
+  #exposeErrorMessages; // Private: error message exposure flag
+  #indexes;         // Private: index files array
+  #logging;         // Private: logging config (frozen)
+  #origins;         // Private: CORS origins Set
+  #time;            // Private: timing enabled
+  #cache;           // Private: LRU cache (routes and permissions)
+  #methods;         // Private: registered methods array
+  #logger;          // Private: logger instance (frozen)
+  #fileServer;      // Private: file server instance (frozen, wrapped by files/serve/stream)
+  #middleware;      // Private: middleware registry
 
   constructor(config = {}) {
     // Configuration options:
     // - autoIndex: Enable directory listing (default: false)
+    // - bodyLimit: Max request body size in bytes (default: 10000000)
     // - cacheSize: LRU cache size (default: 1000)
     // - cacheTTL: Cache TTL in ms (default: 10000)
     // - charset: Default charset (default: 'utf-8')
     // - corsExpose: CORS headers to expose to client (default: '')
     // - defaultHeaders: Default HTTP headers (default: {})
     // - digit: Timing precision digits (default: 3)
+    // - disableTrace: Disable TRACE method (default: true)
     // - etags: Enable ETag generation (default: true)
+    // - exposeErrorMessages: Expose internal error messages (default: false)
     // - indexes: Index file names (default: ['index.htm', 'index.html'])
     // - logging: Logging configuration (default: {})
     // - origins: CORS allowed origins (default: [])
@@ -308,17 +314,18 @@ class Woodland extends EventEmitter {
 ```
 
 **Private Methods:**
-- `#allows(uri, override, isCorsRequest)` - Determine allowed methods for URI
-- `#buildAllowedList(methodSet, isCorsRequest)` - Build allowed methods list with HEAD/OPTIONS
-- `#decorate(req, res)` - Decorate request/response objects
+- `#allows(uri, override)` - Determine allowed methods for URI (simplified cache key)
+- `#buildAllowedList(methodSet)` - Build allowed methods list with HEAD/OPTIONS
+- `#decorate(req, res)` - Decorate request/response objects with utilities
+- `#isSafeOrigin(origin)` - Validate Origin header for safety
 - `#addCorsHeaders(req, headersBatch)` - Add CORS headers to batch
+- `#setCorsAllowAndExposeHeaders(headersBatch, req, corsHeaders)` - Set CORS header values
 - `#handleAllowedRoute(req, res, method)` - Handle routing for allowed methods
 - `#onDone(req, res, body, headers)` - Handle response done event
 - `#onReady(req, res, body, status, headers)` - Handle response ready event
 - `#onSend(req, res, body, status, headers)` - Handle response send event
-- `#isHashableMethod(method)` - Check if method can be hashed for ETags
-- `#etagsEnabled()` - Check if ETags are enabled
-- `#hashArgs(args)` - Hash arguments for ETag generation
+- `#registerMethod(method, args)` - Register middleware for a given HTTP method
+- `#setupBodyLimit()` - Setup body size limit middleware
 
 ### Security Architecture
 
@@ -492,7 +499,7 @@ v & \text{if } t - t_{\text{insert}} < \text{TTL} \\
 \end{cases}
 $$
 
-Cache key generation: $\mathcal{K}_{\text{key}}(method, uri) = method \parallel \text{DELIMITER} \parallel uri$ (where DELIMITER is defined in constants.js)
+Cache key generation: $\mathcal{K}_{\text{key}}(uri) = uri$ (simplified per-URI storage)
 
 **Complexity**:
 - **Lookup**: $O(1)$ (LRU hash table)
@@ -691,10 +698,15 @@ When you configure `origins` in the constructor, Woodland automatically:
 
 1. **Registers Global Preflight Handler**: Adds a single OPTIONS handler (without path) that applies globally using `this.options(fnCorsRequest).ignore(fnCorsRequest)`
 2. **Sets CORS Headers**: Dynamically adds all required CORS headers during request decoration
-3. **Validates Origins**: Checks request origin against configured allowlist with security enforcement
+3. **Validates Origins**: Checks request origin against configured allowlist with security enforcement via `#isSafeOrigin()`
 4. **Manages Credentials**: Sets `Access-Control-Allow-Credentials: true` for valid origins
 5. **Exposes Headers**: Configures `Access-Control-Expose-Headers` based on `corsExpose` setting
 6. **Method Detection**: `Access-Control-Allow-Methods` reflects actual registered routes via `req.allow`
+
+Origin validation (`#isSafeOrigin`) ensures:
+- Origin contains no control characters (\r, \n, \t)
+- Origin is ≤ 255 characters
+- Origin starts with `http://` or `https://`
 
 #### Technical Implementation Flow
 
@@ -793,12 +805,16 @@ Woodland demonstrates **excellent adherence to OWASP security guidelines** with 
 
 #### 🛡️ Security Features Implementation
 
-##### Security Enhancements (v22.0.4)
+##### Security Enhancements (v22.0.4 - v22.0.6)
 
-The latest version includes critical security hardening:
+The latest versions include critical security hardening and architectural improvements:
 
 ```javascript
-// Header injection prevention in #decorate()
+// Origin validation in #addCorsHeaders() with #isSafeOrigin()
+// Validates: control chars blocked, length < 255, must start with http/https
+const originAllowed = this.#isSafeOrigin(origin) && this.#origins.has(origin);
+
+// Header injection prevention in #decorate() type validation
 for (let i = INT_0; i < headerCount; i++) {
 	const [key, value] = defaultHeaders[i];
 	if (typeof key === STRING && (typeof value === STRING || typeof value === NUMBER)) {
@@ -806,22 +822,25 @@ for (let i = INT_0; i < headerCount; i++) {
 	}
 }
 
-// Origin validation in #addCorsHeaders()
-if (typeof origin === STRING && origin.length > INT_0) {
-	headersBatch[ACCESS_CONTROL_ALLOW_ORIGIN] = origin;
-	headersBatch[TIMING_ALLOW_ORIGIN] = origin;
-}
+// Error message containment (exposeErrorMessages: false by default)
+// res.error() only sends HTTP status text, never internal message or stack trace
+res.send(exposeErrorMessages ? err.message : getStatusText(initialStatus));
 
-// Prototype pollution protection in #hashArgs()
-if (i !== null && typeof i === OBJECT && !Object.hasOwn(i, TO_STRING)) {
-	return EMPTY;
-}
+// Body size limit middleware (bodyLimit default: 10MB)
+req.on("data", (chunk) => {
+	size += chunk.length;
+	if (size > maxLimit) {
+		req.destroy();
+		res.error(INT_413);
+	}
+});
 
 // 404 security header removal in #onSend()
 if (status === INT_404) {
 	delete headers[ALLOW];
 	delete headers[ACCESS_CONTROL_ALLOW_METHODS];
-	this.#remove404Headers(res);
+	res.removeHeader(ALLOW);
+	res.removeHeader(ACCESS_CONTROL_ALLOW_METHODS);
 }
 ```
 
@@ -1079,7 +1098,7 @@ See `benchmarks/` directory for empirical performance measurements.
 
 ## Test Coverage
 
-Woodland maintains comprehensive test coverage with **334 tests passing** across 9 source modules. The framework achieves **99.89% line coverage** and **99.37% function coverage**.
+Woodland maintains comprehensive test coverage with **335 tests passing** across 9 source modules. The framework achieves **100% line coverage** and **99.37% function coverage**.
 
 ### Coverage Metrics
 
@@ -1099,12 +1118,12 @@ File            | Line %  | Branch % | Funcs % | Status
 All files        | 100.00 |   95.90 |   99.37 | Overall coverage
 ```
 
-**Test Results:** 334 tests passing with 100% line coverage, 99.37% function coverage, and 95.90% branch coverage.
+**Test Results:** 335 tests passing with 100% line coverage, 99.37% function coverage, and 95.90% branch coverage.
 
 ### Coverage Status
 
 **Achieved:**
-- ✅ 334 passing tests
+- ✅ 335 passing tests
 - ✅ 100% line coverage across all source files
 - ✅ 99.37% function coverage across all source files
 - ✅ 95.90% branch coverage

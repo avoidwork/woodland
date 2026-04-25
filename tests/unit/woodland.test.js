@@ -1,7 +1,7 @@
 import assert from "node:assert";
 import { describe, it, beforeEach } from "node:test";
 import { Woodland, woodland } from "../../src/woodland.js";
-import { EVT_CONNECT } from "../../src/constants.js";
+import { EVT_CONNECT, INT_0 } from "../../src/constants.js";
 
 describe("woodland", () => {
 	describe("Woodland class", () => {
@@ -169,11 +169,21 @@ describe("woodland", () => {
 
 			it("should register TRACE middleware", () => {
 				const handler = () => {};
+				const traceApp = woodland({ disableTrace: false });
 
-				app.trace("/test", handler);
+				traceApp.trace("/test", handler);
 
-				const routes = app.routes("/test", "TRACE");
+				const routes = traceApp.routes("/test", "TRACE");
 				assert.ok(routes.middleware.includes(handler));
+			});
+
+			it("should disable TRACE by default", () => {
+				const result = app.trace("/test", () => {});
+
+				assert.strictEqual(result, app);
+				const routes = app.routes("/test", "TRACE");
+				// always() already ignores the body limit handler, so visible is 0 and no TRACE handler exists
+				assert.strictEqual(routes.visible, INT_0);
 			});
 
 			it("should return app instance for chaining", () => {
