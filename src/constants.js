@@ -33,6 +33,7 @@ export const INT_400 = 400;
 export const INT_403 = 403;
 export const INT_404 = 404;
 export const INT_405 = 405;
+export const INT_413 = 413;
 export const INT_416 = 416;
 export const INT_500 = 500;
 
@@ -201,6 +202,7 @@ export const MSG_REDOS_VULNERABILITY = "Invalid route pattern: potential ReDoS v
 export const MSG_PATH_TRAVERSAL_BLOCKED = "Path outside allowed directory";
 export const MSG_FILE_NOT_FOUND = "File not found";
 export const MSG_REDIRECT_TRAILING_SLASH = "Redirect to add trailing slash";
+export const MSG_BODY_LIMIT_EXCEEDED = "Payload Too Large";
 export const MSG_ROUTING = "Routing request";
 export const MSG_ROUTING_FILE = "Routing request to file system";
 export const MSG_SERVE_PATH_OUTSIDE = "Path outside allowed directory";

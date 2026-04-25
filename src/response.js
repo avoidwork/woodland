@@ -490,9 +490,10 @@ export function escapeHtml(str = EMPTY) {
  * @param {Object} req - Request object
  * @param {Object} res - Response object
  * @param {EventEmitter} emitter - EventEmitter for error events
- * @returns {Function} Error handler function
+ * @param {boolean} [exposeErrorMessages=false] - Expose internal error messages to clients
  */
-export function createErrorHandler(req, res, emitter) {
+export function createErrorHandler(req, res, emitter, exposeErrorMessages = false) {
+	const initialStatus = res.statusCode;
 	return (status = res.statusCode, body) => {
 		error(req, res, status);
 		const err = body instanceof Error ? body : new Error(body ?? getStatusText(res.statusCode));
@@ -500,7 +501,8 @@ export function createErrorHandler(req, res, emitter) {
 		if (req.headers) {
 			delete req.headers.range;
 		}
-		res.send(err.message || getStatusText(res.statusCode));
+		const message = exposeErrorMessages ? err.message : getStatusText(initialStatus);
+		res.send(message);
 	};
 }
 
