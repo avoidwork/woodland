@@ -717,7 +717,9 @@ function createErrorHandler(req, res, emitter, exposeErrorMessages = false) {
 		if (req.headers) {
 			delete req.headers.range;
 		}
-		const message = exposeErrorMessages ? err.message : getStatusText(res.statusCode);
+		const message = exposeErrorMessages
+			? err.message || getStatusText(res.statusCode)
+			: getStatusText(res.statusCode);
 		res.send(message);
 	};
 }
