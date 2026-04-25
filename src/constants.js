@@ -224,6 +224,7 @@ export const BYTES_SPACE = "bytes ";
 // EVENT & STREAM CONSTANTS
 // =============================================================================
 export const EVT_CLOSE = "close";
+export const EVT_DATA = "data";
 export const EVT_FINISH = "finish";
 export const EVT_STREAM = "stream";
 export const EVT_CONNECT = "connect";
@@ -243,6 +244,7 @@ export const HTTP_VERSION = "HTTP/1.1";
 export const ITEM = "item";
 export const NOTICE = "notice";
 export const SHORT = "short";
+export const RESPONSE_TIME_UNIT = " ms";
 export const TIME_MS = "%N ms";
 export const TITLE = "title";
 export const TO_STRING = "toString";

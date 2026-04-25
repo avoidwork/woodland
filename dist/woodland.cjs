@@ -110,7 +110,7 @@ const INT_60 = 60;
 const INT_255 = 255;
 const INT_1e3 = 1e3;
 const INT_1e4 = 1e4;
-const INT_1e6 = 1e6;
+const INT_1e6$1 = 1e6;
 const INT_8000 = 8000;
 const INT_NEG_1 = -1;
 
@@ -229,6 +229,7 @@ const BYTES_SPACE = "bytes ";
 // EVENT & STREAM CONSTANTS
 // =============================================================================
 const EVT_CLOSE = "close";
+const EVT_DATA = "data";
 const EVT_FINISH = "finish";
 const EVT_STREAM = "stream";
 const EVT_CONNECT = "connect";
@@ -248,6 +249,7 @@ const HTTP_VERSION = "HTTP/1.1";
 const ITEM = "item";
 const NOTICE = "notice";
 const SHORT = "short";
+const RESPONSE_TIME_UNIT = " ms";
 const TO_STRING = "toString";
 const TRUE = "true";
 const WARN = "warn";
@@ -1355,7 +1357,7 @@ function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 
 const DEFAULTS = {
 	autoIndex: false,
-	bodyLimit: INT_10 * INT_1e6,
+	bodyLimit: INT_10 * INT_1e6$1,
 	cacheSize: INT_1e3,
 	cacheTTL: INT_1e4,
 	charset: UTF_8,
@@ -2009,7 +2011,7 @@ class Woodland extends node_events.EventEmitter {
 			if (typeof req.on !== FUNCTION) {
 				return next();
 			}
-			req.on("data", (chunk) => {
+			req.on(EVT_DATA, (chunk) => {
 				size += chunk.length;
 				/* node:coverage ignore next 3 */
 				if (size > maxLimit) {
@@ -2338,8 +2340,8 @@ class Woodland extends node_events.EventEmitter {
 		/* node:coverage ignore next 5 */
 		if (this.#time && res.getHeader(X_RESPONSE_TIME) === void 0) {
 			const diff = req.precise.stop().diff();
-			const msValue = Number(diff / 1e6).toFixed(this.#digit);
-			res.header(X_RESPONSE_TIME, `${msValue} ms`);
+			const msValue = Number(diff / INT_1e6).toFixed(this.#digit);
+			res.header(X_RESPONSE_TIME, `${msValue}${RESPONSE_TIME_UNIT}`);
 		}
 
 		return this.#onSend(req, res, body, status, headers);

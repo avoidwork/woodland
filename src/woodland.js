@@ -17,6 +17,7 @@ import {
 	CONTROL_CHAR_PATTERN,
 	DELETE,
 	DELIMITER,
+	EVT_DATA,
 	EMPTY,
 	ERROR,
 	FUNCTION,
@@ -49,6 +50,7 @@ import {
 	X_POWERED_BY,
 	X_POWERED_BY_VALUE,
 	X_RESPONSE_TIME,
+	RESPONSE_TIME_UNIT,
 	HYPHEN,
 	COMMA_SPACE,
 	EVT_CONNECT,
@@ -228,7 +230,7 @@ export class Woodland extends EventEmitter {
 			if (typeof req.on !== FUNCTION) {
 				return next();
 			}
-			req.on("data", (chunk) => {
+			req.on(EVT_DATA, (chunk) => {
 				size += chunk.length;
 				/* node:coverage ignore next 3 */
 				if (size > maxLimit) {
@@ -557,8 +559,8 @@ export class Woodland extends EventEmitter {
 		/* node:coverage ignore next 5 */
 		if (this.#time && res.getHeader(X_RESPONSE_TIME) === void 0) {
 			const diff = req.precise.stop().diff();
-			const msValue = Number(diff / 1e6).toFixed(this.#digit);
-			res.header(X_RESPONSE_TIME, `${msValue} ms`);
+			const msValue = Number(diff / INT_1e6).toFixed(this.#digit);
+			res.header(X_RESPONSE_TIME, `${msValue}${RESPONSE_TIME_UNIT}`);
 		}
 
 		return this.#onSend(req, res, body, status, headers);
