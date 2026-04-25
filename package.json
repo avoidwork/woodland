@@ -1,6 +1,6 @@
 {
   "name": "woodland",
-  "version": "22.0.6",
+  "version": "22.1.0",
   "description": "Secure HTTP framework for Node.js. Express-compatible with built-in security, no performance tradeoff.",
   "keywords": [
     "api",
