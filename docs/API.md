@@ -53,18 +53,26 @@ Creates a new Woodland instance with optional configuration.
 | Option | Type | Default | Optional | Description |
 |--------|------|---------|----------|-------------|
 | `autoIndex` | `boolean` | `false` | **Yes** | Enable automatic directory indexing |
+| `bodyLimit` | `number` | `10000000` | **Yes** | Maximum request body size in bytes (prevents DoS) |
 | `cacheSize` | `number` | `1000` | **Yes** | Size of internal cache |
 | `cacheTTL` | `number` | `10000` | **Yes** | Cache TTL in milliseconds |
 | `charset` | `string` | `'utf-8'` | **Yes** | Default charset |
 | `corsExpose` | `string` | `''` | **Yes** | CORS expose headers |
 | `defaultHeaders` | `Object` | `{}` | **Yes** | Default headers to set |
 | `digit` | `number` | `3` | **Yes** | Digit precision for timing |
+| `disableTrace` | `boolean` | `true` | **Yes** | Disable TRACE method (prevents XST attacks) |
 | `etags` | `boolean` | `true` | **Yes** | Enable ETags |
+| `exposeErrorMessages` | `boolean` | `false` | **Yes** | Expose internal error messages to clients |
 | `indexes` | `Array<string>` | `['index.htm','index.html']` | **Yes** | Index files to look for |
 | `logging` | `Object` | `{}` | **Yes** | Logging configuration |
 | `origins` | `Array<string>` | `[]` | **Yes** | Allowed CORS origins |
 | `silent` | `boolean` | `false` | **Yes** | Silent mode (disables server headers) |
 | `time` | `boolean` | `false` | **Yes** | Enable response time tracking |
+
+**Security Notes:**
+- `bodyLimit` defaults to 10MB to prevent denial-of-service via oversized request bodies
+- `disableTrace` defaults to `true` to prevent Cross-Site Tracing (XST) attacks
+- `exposeErrorMessages` defaults to `false` to prevent internal error message leakage
 
 ---
 
@@ -163,14 +171,16 @@ Registers PUT method middleware.
 
 #### `trace(rpath, ...fn)`
 
-Registers TRACE method middleware.
+Registers TRACE method middleware. **Disabled by default** due to XST (Cross-Site Tracing) vulnerability.
 
 | Parameter | Type | Optional | Description |
 |-----------|------|----------|-------------|
 | `rpath` | `string` | **Yes** | Route path |
 | `...fn` | `Function` | No | Middleware function(s) |
 
-**Returns:** `Woodland` - Returns self for chaining
+**Returns:** `Woodland` - Returns self for chaining (no-op when disabled)
+
+**Security:** Requires `disableTrace: false` in config to enable. TRACE method is vulnerable to XST attacks.
 
 ---
 
