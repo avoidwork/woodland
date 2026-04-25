@@ -493,15 +493,14 @@ export function escapeHtml(str = EMPTY) {
  * @param {boolean} [exposeErrorMessages=false] - Expose internal error messages to clients
  */
 export function createErrorHandler(req, res, emitter, exposeErrorMessages = false) {
-	const initialStatus = res.statusCode;
-	return (status = res.statusCode, body) => {
-		error(req, res, status);
+	return (inputStatus = res.statusCode, body) => {
+		error(req, res, inputStatus);
 		const err = body instanceof Error ? body : new Error(body ?? getStatusText(res.statusCode));
 		emitter.emit(EVT_ERROR, req, res, err);
 		if (req.headers) {
 			delete req.headers.range;
 		}
-		const message = exposeErrorMessages ? err.message : getStatusText(initialStatus);
+		const message = exposeErrorMessages ? err.message : getStatusText(res.statusCode);
 		res.send(message);
 	};
 }
