@@ -2006,7 +2006,7 @@ class Woodland extends node_events.EventEmitter {
 		const handler = (req, res, next) => {
 			let size = INT_0;
 			/* node:coverage ignore next 1 */
-			if (typeof req.on !== "function") {
+			if (typeof req.on !== FUNCTION) {
 				return next();
 			}
 			req.on("data", (chunk) => {
