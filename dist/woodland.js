@@ -1995,11 +1995,10 @@ class Woodland extends EventEmitter {
 	 * Determines allowed methods for a URI
 	 * @param {string} uri - URI to check
 	 * @param {boolean} [override=false] - Override cache
-	 * @param {boolean} [isCorsRequest=false] - Whether this is a CORS request
 	 * @returns {string} Comma-separated list of allowed methods
 	 */
-	#allows(uri, override = false, isCorsRequest = false) {
-		const key = `perm${DELIMITER}${uri}${DELIMITER}${isCorsRequest ? INT_1 : INT_0}`;
+	#allows(uri, override = false) {
+		const key = `${DELIMITER}${uri}`;
 		let result = !override ? this.#cache.get(key) : void 0;
 
 		if (override || result === void 0) {
@@ -2011,7 +2010,7 @@ class Woodland extends EventEmitter {
 				}
 			}
 
-			const list = this.#buildAllowedList(methodSet, isCorsRequest);
+			const list = this.#buildAllowedList(methodSet);
 			result = list.sort().join(COMMA_SPACE);
 			this.#cache.set(key, result);
 			this.#logger.log(
@@ -2023,12 +2022,11 @@ class Woodland extends EventEmitter {
 	}
 
 	/**
-	 * Builds the list of allowed methods including implicit HEAD and OPTIONS
+	 * Builds the list of allowed methods including implicit HEAD, OPTIONS
 	 * @param {Set} methodSet - Set of explicitly registered methods
-	 * @param {boolean} isCorsRequest - Whether this is a CORS request
 	 * @returns {Array} Array of allowed methods
 	 */
-	#buildAllowedList(methodSet, isCorsRequest = false) {
+	#buildAllowedList(methodSet) {
 		const list = [...methodSet];
 
 		if (list.length > INT_0) {
@@ -2036,8 +2034,7 @@ class Woodland extends EventEmitter {
 				list.push(HEAD);
 			}
 
-			/* node:coverage ignore next 3 */
-			if (!methodSet.has(OPTIONS) && isCorsRequest) {
+			if (!methodSet.has(OPTIONS)) {
 				list.push(OPTIONS);
 			}
 		}
@@ -2098,8 +2095,20 @@ class Woodland extends EventEmitter {
 		req.params = {};
 		req.valid = true;
 
-		const allowString = this.#allows(parsed.pathname, false, req.cors);
-		const headersBatch = this.#buildDefaultHeaders(allowString);
+		const allowString = this.#allows(parsed.pathname);
+		const headersBatch = Object.create(null);
+		headersBatch[ALLOW] = allowString;
+		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
+
+		const defaultHeaders = this.#defaultHeaders;
+		const headerCount = defaultHeaders.length;
+		for (let i = INT_0; i < headerCount; i++) {
+			const [key, value] = defaultHeaders[i];
+			if (typeof key === STRING && (typeof value === STRING || typeof value === NUMBER)) {
+				headersBatch[key] = value;
+			}
+		}
+
 		req.allow = allowString;
 
 		if (timing) {
@@ -2114,28 +2123,6 @@ class Woodland extends EventEmitter {
 		this.#logger.log(
 			`type=decorate, uri=${parsed.pathname}, method=${req.method}, ip=${clientIP}, message="Decorated request from ${clientIP}"`,
 		);
-	}
-
-	/**
-	 * Builds default headers batch
-	 * @param {string} allowString - Allow header value
-	 * @returns {Object} Headers batch object
-	 */
-	#buildDefaultHeaders(allowString) {
-		const headersBatch = Object.create(null);
-		headersBatch[ALLOW] = allowString;
-		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
-
-		const defaultHeaders = this.#defaultHeaders;
-		const headerCount = defaultHeaders.length;
-		for (let i = INT_0; i < headerCount; i++) {
-			const [key, value] = defaultHeaders[i];
-			if (typeof key === STRING && (typeof value === STRING || typeof value === NUMBER)) {
-				headersBatch[key] = value;
-			}
-		}
-
-		return headersBatch;
 	}
 
 	/**
@@ -2230,40 +2217,15 @@ class Woodland extends EventEmitter {
 	 * @returns {string} ETag string or empty string
 	 */
 	etag(method, ...args) {
-		if (!this.#isHashableMethod(method) || !this.#etagsEnabled()) {
+		if ((method !== GET && method !== HEAD && method !== OPTIONS) || !this.#etags) {
 			return EMPTY;
 		}
 
-		const hashed = this.#hashArgs(args);
-		return this.#etags.create(hashed);
-	}
-
-	/**
-	 * Checks if a method can be hashed for ETag generation
-	 * @param {string} method - HTTP method
-	 * @returns {boolean} True if method is GET, HEAD, or OPTIONS
-	 */
-	#isHashableMethod(method) {
-		return method === GET || method === HEAD || method === OPTIONS;
-	}
-
-	/**
-	 * Checks if ETags are enabled
-	 * @returns {boolean} True if ETags are enabled
-	 */
-	#etagsEnabled() {
-		return this.#etags !== null;
-	}
-
-	/**
-	 * Hashes arguments for ETag generation
-	 * @param {Array} args - Arguments to hash
-	 * @returns {string} Hashed string
-	 */
-	#hashArgs(args) {
-		return args
+		const hashed = args
 			.map((i) => (typeof i !== STRING ? JSON.stringify(i).replace(/^"|"$/g, EMPTY) : i))
 			.join(HYPHEN);
+
+		return this.#etags.create(hashed);
 	}
 
 	/**
