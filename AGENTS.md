@@ -222,7 +222,7 @@ npm run coverage      # Generate coverage report
 ```
 
 **Test Requirements:**
-- All 334 tests must pass
+- All 335 tests must pass
 - 100% line coverage required
 - Run `npm test` before committing
 - Run `npm run build` before pushing (generates dist files)
