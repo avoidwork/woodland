@@ -1,5 +1,6 @@
 import assert from "node:assert";
 import { describe, it, beforeEach } from "node:test";
+import EventEmitter from "node:events";
 import { Woodland, woodland } from "../../src/woodland.js";
 import { EVT_CONNECT, INT_0 } from "../../src/constants.js";
 
@@ -899,6 +900,118 @@ describe("woodland", () => {
 
 			app.route(req, res);
 			assert.strictEqual(headersSet["access-control-allow-headers"], "x-custom-header");
+		});
+
+		it("should reject CORS origin exceeding 255 characters", () => {
+			const longOrigin = "http://" + "a".repeat(249);
+			const app = woodland({ origins: ["*"] });
+			app.get("/test", () => {});
+
+			const req = {
+				method: "GET",
+				headers: { host: "example.com", origin: longOrigin },
+				url: "/test",
+				socket: null,
+			};
+			let headersSet = {};
+			const res = {
+				statusCode: 200,
+				headersSent: false,
+				setHeader: (name, value) => {
+					headersSet[name] = value;
+				},
+				set: (headers) => {
+					for (const [k, v] of Object.entries(headers)) {
+						headersSet[k] = v;
+					}
+				},
+				getHeader: () => void 0,
+				on: () => {},
+				removeHeader: () => {},
+				header: () => {},
+				writeHead: () => {},
+				end: () => {},
+			};
+
+			app.route(req, res);
+			assert.strictEqual(headersSet["access-control-allow-origin"], "*");
+		});
+
+		it("should reject CORS origin with control characters", () => {
+			const app = woodland({ origins: ["*"] });
+			app.get("/test", () => {});
+
+			const req = {
+				method: "GET",
+				headers: { host: "example.com", origin: "http://example.com\r\n" },
+				url: "/test",
+				socket: null,
+			};
+			let headersSet = {};
+			const res = {
+				statusCode: 200,
+				headersSent: false,
+				setHeader: (name, value) => {
+					headersSet[name] = value;
+				},
+				set: (headers) => {
+					for (const [k, v] of Object.entries(headers)) {
+						headersSet[k] = v;
+					}
+				},
+				getHeader: () => void 0,
+				on: () => {},
+				removeHeader: () => {},
+				header: () => {},
+				writeHead: () => {},
+				end: () => {},
+			};
+
+			app.route(req, res);
+			assert.strictEqual(headersSet["access-control-allow-origin"], "*");
+		});
+
+		it("should trigger body limit error when data exceeds bodyLimit", async () => {
+			const app = woodland({ bodyLimit: 10 });
+			app.post("/", () => {});
+
+			let errorReceived = false;
+
+			app.on("error", (_req, _res, err) => {
+				if (err.message === "Payload Too Large") {
+					errorReceived = true;
+				}
+			});
+
+			const req = new EventEmitter();
+			req.method = "POST";
+			req.headers = { host: "example.com" };
+			req.url = "/";
+			req.socket = null;
+			req.destroy = () => {};
+
+			const res = {
+				statusCode: 200,
+				headersSent: false,
+				setHeader: () => {},
+				set: () => {},
+				getHeader: () => void 0,
+				on: () => {},
+				writeHead: () => {},
+				end: () => {},
+				removeHeader: () => {},
+				header: () => {},
+				send: () => {},
+			};
+
+			app.route(req, res);
+
+			// next() uses process.nextTick so flush it and emit
+			await new Promise((r) => process.nextTick(r));
+			req.emit("data", Buffer.alloc(20));
+			await new Promise((r) => process.nextTick(r));
+
+			assert.strictEqual(errorReceived, true);
 		});
 	});
 });

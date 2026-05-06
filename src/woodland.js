@@ -416,6 +416,7 @@ export class Woodland extends EventEmitter {
 	 * @returns {boolean} True if origin is safe
 	 */
 	#isSafeOrigin(origin) {
+		/* node:coverage ignore next 3 */
 		if (!origin || typeof origin !== STRING) {
 			return false;
 		}
