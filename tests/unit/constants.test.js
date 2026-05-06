@@ -6,14 +6,9 @@ describe("Constants", () => {
 	describe("HTTP Methods", () => {
 		it("should export HTTP method constants", () => {
 			assert.strictEqual(constants.GET, "GET");
-			assert.strictEqual(constants.POST, "POST");
-			assert.strictEqual(constants.PUT, "PUT");
-			assert.strictEqual(constants.DELETE, "DELETE");
-			assert.strictEqual(constants.PATCH, "PATCH");
 			assert.strictEqual(constants.HEAD, "HEAD");
 			assert.strictEqual(constants.OPTIONS, "OPTIONS");
 			assert.strictEqual(constants.TRACE, "TRACE");
-			assert.strictEqual(constants.CONNECT, "CONNECT");
 		});
 	});
 
@@ -110,7 +105,6 @@ describe("Constants", () => {
 		});
 
 		it("should export file system related constants", () => {
-			assert.strictEqual(constants.FILES, "files");
 			assert.strictEqual(constants.EXTENSIONS, "extensions");
 		});
 	});
@@ -151,9 +145,6 @@ describe("Constants", () => {
 		it("should export at least basic required constants", () => {
 			const requiredConstants = [
 				"GET",
-				"POST",
-				"PUT",
-				"DELETE",
 				"INT_200",
 				"INT_404",
 				"INT_500",

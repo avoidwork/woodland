@@ -12,16 +12,21 @@ const { name, version } = require$1(join(__dirname$2, "..", "package.json"));
 // =============================================================================
 // HTTP METHODS
 // =============================================================================
-const CONNECT = "CONNECT";
-const DELETE = "DELETE";
 const GET = "GET";
 const HEAD = "HEAD";
 const OPTIONS = "OPTIONS";
-const PATCH = "PATCH";
-const POST = "POST";
-const PUT = "PUT";
 const TRACE = "TRACE";
-const NODE_METHODS = [CONNECT, DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT, TRACE];
+const NODE_METHODS = [
+	"CONNECT",
+	"DELETE",
+	"GET",
+	"HEAD",
+	"OPTIONS",
+	"PATCH",
+	"POST",
+	"PUT",
+	"TRACE",
+];
 
 // =============================================================================
 // HTTP STATUS CODES
@@ -231,7 +236,6 @@ const FALSE = "false";
 const HTTP_VERSION = "HTTP/1.1";
 const ITEM = "item";
 const NOTICE = "notice";
-const SHORT = "short";
 const RESPONSE_TIME_UNIT = " ms";
 const TO_STRING = "toString";
 const TRUE = "true";
@@ -243,7 +247,7 @@ const MONTHS = Object.freeze(
 		const d = new Date();
 		d.setMonth(idx);
 
-		return Object.freeze(d.toLocaleString(EN_US, { month: SHORT }));
+		return Object.freeze(d.toLocaleString(EN_US, { month: "short" }));
 	}),
 );
 

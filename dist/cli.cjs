@@ -52,7 +52,6 @@ const MSG_INVALID_IP = "Invalid IP: must be a valid IPv4 or IPv6 address.";
 const MSG_INVALID_PORT = "Invalid port: must be an integer between 0 and 65535.";
 const NO_CACHE = "no-cache";
 const EN_US = "en-US";
-const SHORT = "short";
 const EVT_LISTENING = "listening";
 
 Object.freeze(
@@ -60,7 +59,7 @@ Object.freeze(
 		const d = new Date();
 		d.setMonth(idx);
 
-		return Object.freeze(d.toLocaleString(EN_US, { month: SHORT }));
+		return Object.freeze(d.toLocaleString(EN_US, { month: "short" }));
 	}),
 );
 const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;

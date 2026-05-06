@@ -9,16 +9,21 @@ const { name, version } = require(join(__dirname, "..", "package.json"));
 // =============================================================================
 // HTTP METHODS
 // =============================================================================
-export const CONNECT = "CONNECT";
-export const DELETE = "DELETE";
 export const GET = "GET";
 export const HEAD = "HEAD";
 export const OPTIONS = "OPTIONS";
-export const PATCH = "PATCH";
-export const POST = "POST";
-export const PUT = "PUT";
 export const TRACE = "TRACE";
-export const NODE_METHODS = [CONNECT, DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT, TRACE];
+export const NODE_METHODS = [
+	"CONNECT",
+	"DELETE",
+	"GET",
+	"HEAD",
+	"OPTIONS",
+	"PATCH",
+	"POST",
+	"PUT",
+	"TRACE",
+];
 
 // =============================================================================
 // HTTP STATUS CODES
@@ -114,7 +119,6 @@ export const PERIOD = ".";
 export const SLASH = "/";
 export const STRING_0 = "0";
 export const WILDCARD = "*";
-export const WOODLAND = "woodland";
 
 // =============================================================================
 // DATA TYPES
@@ -141,7 +145,6 @@ export const HTTP_PREFIX = "http://";
 // =============================================================================
 export const INDEX_HTM = "index.htm";
 export const INDEX_HTML = "index.html";
-export const FILES = "files";
 export const EXTENSIONS = "extensions";
 export const PARENT_DIR = "..";
 export const CURRENT_DIR = ".";
@@ -198,11 +201,6 @@ export const MSG_INVALID_FILE_DESCRIPTOR = "Invalid file descriptor";
 export const MSG_INVALID_HTTP_METHOD = "Invalid HTTP method";
 export const MSG_CANNOT_SET_HEAD_ROUTE = "Cannot set HEAD route, use GET";
 export const MSG_REDOS_VULNERABILITY = "Invalid route pattern: potential ReDoS vulnerability";
-export const MSG_PATH_TRAVERSAL_BLOCKED = "Path outside allowed directory";
-export const MSG_FILE_NOT_FOUND = "File not found";
-export const MSG_REDIRECT_TRAILING_SLASH = "Redirect to add trailing slash";
-export const MSG_BODY_LIMIT_EXCEEDED = "Payload Too Large";
-export const MSG_ROUTING = "Routing request";
 export const MSG_ROUTING_FILE = "Routing request to file system";
 export const MSG_SERVE_PATH_OUTSIDE = "Path outside allowed directory";
 export const MSG_VALIDATION_FAILED = "Configuration validation failed: ";
@@ -235,22 +233,20 @@ export const EVT_ERROR = "error";
 export const CONSOLE_ERROR = "error";
 export const CONSOLE_LOG = "log";
 export const COLLECTION = "collection";
-export const CRITICAL = "critical";
-export const EMERG = "emerg";
+const CRITICAL = "critical";
+const EMERG = "emerg";
 export const EN_US = "en-US";
 export const FALSE = "false";
 export const HTTP_VERSION = "HTTP/1.1";
 export const ITEM = "item";
-export const NOTICE = "notice";
-export const SHORT = "short";
+const NOTICE = "notice";
 export const RESPONSE_TIME_UNIT = " ms";
 export const TIME_MS = "%N ms";
-export const TITLE = "title";
 export const TO_STRING = "toString";
 export const TOKEN_N = "%N";
 export const TRUE = "true";
-export const WARN = "warn";
-export const ALERT = "alert";
+const WARN = "warn";
+const ALERT = "alert";
 export const EVT_LISTENING = "listening";
 
 export const MONTHS = Object.freeze(
@@ -258,7 +254,7 @@ export const MONTHS = Object.freeze(
 		const d = new Date();
 		d.setMonth(idx);
 
-		return Object.freeze(d.toLocaleString(EN_US, { month: SHORT }));
+		return Object.freeze(d.toLocaleString(EN_US, { month: "short" }));
 	}),
 );
 
