@@ -12,10 +12,8 @@ import {
 	ACCESS_CONTROL_REQUEST_HEADERS,
 	ACCESS_CONTROL_ALLOW_ORIGIN,
 	ALLOW,
-	CONNECT,
 	CONTENT_LENGTH,
 	CONTROL_CHAR_PATTERN,
-	DELETE,
 	DELIMITER,
 	EVT_DATA,
 	EMPTY,
@@ -34,9 +32,6 @@ import {
 	INT_413,
 	NO_SNIFF,
 	OPTIONS,
-	PATCH,
-	POST,
-	PUT,
 	STRING,
 	SERVER,
 	SERVER_VALUE,
@@ -57,6 +52,7 @@ import {
 	EVT_FINISH,
 	EVT_STREAM,
 	EVT_CLOSE,
+	NODE_METHODS,
 } from "./constants.js";
 import { createMiddlewareRegistry, next } from "./middleware.js";
 import { stream as responseStream, getStatus, writeHead } from "./response.js";
@@ -117,8 +113,12 @@ export class Woodland extends EventEmitter {
 	 * @param {Array} [config.origins=[]] - Allowed CORS origins
 	 * @param {boolean} [config.silent=false] - Silent mode
 	 * @param {boolean} [config.time=false] - Enable timing
+	 * @param {Object} [dependencies={}] - Optional dependency injection for testing
+	 * @param {Object} [dependencies.logger] - Logger instance
+	 * @param {Object} [dependencies.fileServer] - File server instance
+	 * @param {Object} [dependencies.middleware] - Middleware registry
 	 */
-	constructor(config = {}) {
+	constructor(config = {}, dependencies = {}) {
 		super();
 
 		const validated = validateConfig(config);
@@ -140,10 +140,12 @@ export class Woodland extends EventEmitter {
 		this.#time = validated.time;
 		this.#cache = lru(validated.cacheSize, validated.cacheTTL);
 		this.#methods = new Set();
-		this.#logger = this.#createLogger();
-		this.#fileServer = this.#createFileServer();
-		this.#middleware = createMiddlewareRegistry(this.#methods, this.#cache);
+		this.#logger = dependencies.logger ?? this.#createLogger();
+		this.#fileServer = dependencies.fileServer ?? this.#createFileServer();
+		this.#middleware =
+			dependencies.middleware ?? createMiddlewareRegistry(this.#methods, this.#cache);
 
+		this.#registerMethods();
 		this.#setupMiddleware();
 		this.#setupErrorHandling();
 		this.#setupBodyLimit();
@@ -244,6 +246,16 @@ export class Woodland extends EventEmitter {
 	}
 
 	/**
+	 * Dynamically registers HTTP method handlers on the instance
+	 */
+	#registerMethods() {
+		for (const method of NODE_METHODS) {
+			if (method === TRACE || method === HEAD) continue;
+			this[method.toLowerCase()] = (...args) => this.#registerMethod(method, ...args);
+		}
+	}
+
+	/**
 	 * Determines allowed methods for a URI
 	 * @param {string} uri - URI to check
 	 * @param {boolean} [override=false] - Override cache
@@ -254,15 +266,24 @@ export class Woodland extends EventEmitter {
 		let result = !override ? this.#cache.get(key) : void 0;
 
 		if (override || result === void 0) {
-			const methodSet = new Set();
+			const list = [];
 
 			for (const method of this.#methods) {
 				if (this.#middleware.allowed(method, uri, override)) {
-					methodSet.add(method);
+					list.push(method);
 				}
 			}
 
-			const list = this.#buildAllowedList(methodSet);
+			if (list.length > INT_0) {
+				if (list.includes(GET) && !list.includes(HEAD)) {
+					list.push(HEAD);
+				}
+
+				if (!list.includes(OPTIONS)) {
+					list.push(OPTIONS);
+				}
+			}
+
 			result = list.sort().join(COMMA_SPACE);
 			this.#cache.set(key, result);
 			this.#logger.log(
@@ -271,27 +292,6 @@ export class Woodland extends EventEmitter {
 		}
 
 		return result ?? EMPTY;
-	}
-
-	/**
-	 * Builds the list of allowed methods including implicit HEAD, OPTIONS
-	 * @param {Set} methodSet - Set of explicitly registered methods
-	 * @returns {Array} Array of allowed methods
-	 */
-	#buildAllowedList(methodSet) {
-		const list = [...methodSet];
-
-		if (list.length > INT_0) {
-			if (methodSet.has(GET) && !methodSet.has(HEAD)) {
-				list.push(HEAD);
-			}
-
-			if (!methodSet.has(OPTIONS)) {
-				list.push(OPTIONS);
-			}
-		}
-
-		return list;
 	}
 
 	/**
@@ -320,20 +320,10 @@ export class Woodland extends EventEmitter {
 	}
 
 	/**
-	 * Registers CONNECT middleware
-	 * @param {...*} args - Middleware function(s)
-	 * @returns {Woodland} Returns self for chaining
-	 */
-	connect(...args) {
-		return this.#registerMethod(CONNECT, ...args);
-	}
-
-	/**
-	 * Decorates request and response objects with framework utilities
+	 * Decorates request object with properties and framework utilities
 	 * @param {Object} req - HTTP request object
-	 * @param {Object} res - HTTP response object
 	 */
-	#decorate(req, res) {
+	#decorateRequest(req) {
 		const timing = this.#time ? precise().start() : null;
 		const parsed = parse(req);
 		const clientIP = extractIP(req);
@@ -348,8 +338,25 @@ export class Woodland extends EventEmitter {
 		req.valid = true;
 
 		const allowString = this.#allows(parsed.pathname);
+		req.allow = allowString;
+
+		if (timing) {
+			req.precise = timing;
+		}
+
+		this.#logger.log(
+			`type=decorate, uri=${parsed.pathname}, method=${req.method}, ip=${clientIP}, message="Decorated request from ${clientIP}"`,
+		);
+	}
+
+	/**
+	 * Decorates response object with methods and event handlers
+	 * @param {Object} res - HTTP response object
+	 * @param {Object} req - HTTP request object
+	 */
+	#decorateResponse(res, req) {
 		const headersBatch = Object.create(null);
-		headersBatch[ALLOW] = allowString;
+		headersBatch[ALLOW] = req.allow;
 		headersBatch[X_CONTENT_TYPE_OPTIONS] = NO_SNIFF;
 
 		const defaultHeaders = this.#defaultHeaders;
@@ -361,29 +368,10 @@ export class Woodland extends EventEmitter {
 			}
 		}
 
-		req.allow = allowString;
-
-		if (timing) {
-			req.precise = timing;
-		}
-
 		if (req.cors) {
 			this.#addCorsHeaders(req, headersBatch);
 		}
 
-		this.#decorateResponse(res, req, headersBatch);
-		this.#logger.log(
-			`type=decorate, uri=${parsed.pathname}, method=${req.method}, ip=${clientIP}, message="Decorated request from ${clientIP}"`,
-		);
-	}
-
-	/**
-	 * Decorates response object with methods and event handlers
-	 * @param {Object} res - HTTP response object
-	 * @param {Object} req - HTTP request object
-	 * @param {Object} headersBatch - Headers batch to set
-	 */
-	#decorateResponse(res, req, headersBatch) {
 		res.locals = {};
 		res.error = createErrorHandler(req, res, this, this.#exposeErrorMessages);
 		res.header = res.setHeader;
@@ -455,15 +443,6 @@ export class Woodland extends EventEmitter {
 	}
 
 	/**
-	 * Registers DELETE middleware
-	 * @param {...*} args - Middleware function(s)
-	 * @returns {Woodland} Returns self for chaining
-	 */
-	delete(...args) {
-		return this.#registerMethod(DELETE, ...args);
-	}
-
-	/**
 	 * Generates ETag for response caching
 	 * @param {string} method - HTTP method
 	 * @param {...*} args - Values to hash
@@ -491,15 +470,6 @@ export class Woodland extends EventEmitter {
 		this.#fileServer.register(root, folder, this.use.bind(this));
 
 		return this;
-	}
-
-	/**
-	 * Registers GET middleware
-	 * @param {...*} args - Middleware function(s)
-	 * @returns {Woodland} Returns self for chaining
-	 */
-	get(...args) {
-		return this.#registerMethod(GET, ...args);
 	}
 
 	/**
@@ -587,42 +557,6 @@ export class Woodland extends EventEmitter {
 	}
 
 	/**
-	 * Registers OPTIONS middleware
-	 * @param {...*} args - Middleware function(s)
-	 * @returns {Woodland} Returns self for chaining
-	 */
-	options(...args) {
-		return this.#registerMethod(OPTIONS, ...args);
-	}
-
-	/**
-	 * Registers PATCH middleware
-	 * @param {...*} args - Middleware function(s)
-	 * @returns {Woodland} Returns self for chaining
-	 */
-	patch(...args) {
-		return this.#registerMethod(PATCH, ...args);
-	}
-
-	/**
-	 * Registers POST middleware
-	 * @param {...*} args - Middleware function(s)
-	 * @returns {Woodland} Returns self for chaining
-	 */
-	post(...args) {
-		return this.#registerMethod(POST, ...args);
-	}
-
-	/**
-	 * Registers PUT middleware
-	 * @param {...*} args - Middleware function(s)
-	 * @returns {Woodland} Returns self for chaining
-	 */
-	put(...args) {
-		return this.#registerMethod(PUT, ...args);
-	}
-
-	/**
 	 * Routes request to middleware
 	 * @param {Object} req - HTTP request object
 	 * @param {Object} res - HTTP response object
@@ -630,7 +564,9 @@ export class Woodland extends EventEmitter {
 	route(req, res) {
 		const method = req.method === HEAD ? GET : req.method;
 
-		this.#decorate(req, res);
+		this.#decorateRequest(req);
+
+		this.#decorateResponse(res, req);
 
 		if (this.listenerCount(EVT_CONNECT) > INT_0) {
 			this.emit(EVT_CONNECT, req, res);
