@@ -38,7 +38,7 @@ jspm_packages
 
 .idea
 .nyc_output
-dist
+
 tests/test-files/temp*
 
 sensitive.txt
