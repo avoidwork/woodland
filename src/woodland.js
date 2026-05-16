@@ -346,6 +346,7 @@ export class Woodland extends EventEmitter {
 		req.host = parsed.hostname;
 		req.params = {};
 		req.valid = true;
+		req.app = { get: (key) => (key === "trust proxy" ? false : undefined) };
 
 		const allowString = this.#allows(parsed.pathname);
 		const headersBatch = Object.create(null);
