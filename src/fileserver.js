@@ -111,6 +111,7 @@ export async function serve(config, req, res, arg, folder = process.cwd()) {
 
 	if (!valid) {
 		res.error(INT_404, new Error(STATUS_CODES[INT_404]));
+		return;
 	} else if (!stats.isDirectory()) {
 		config.stream(req, res, {
 			charset: config.charset,
@@ -118,8 +119,10 @@ export async function serve(config, req, res, arg, folder = process.cwd()) {
 			path: realFp,
 			stats: stats,
 		});
+		return;
 	} else if (!req.parsed.pathname.endsWith(SLASH)) {
 		res.redirect(`${req.parsed.pathname}${SLASH}${req.parsed.search}`);
+		return;
 	} else {
 		let files;
 		/* node:coverage ignore next 7 */
@@ -144,13 +147,16 @@ export async function serve(config, req, res, arg, folder = process.cwd()) {
 		if (!result.length) {
 			if (!config.autoIndex) {
 				res.error(INT_404, new Error(STATUS_CODES[INT_404]));
+				return;
 			} else {
 				try {
 					const body = autoIndex(decodeURIComponent(req.parsed.pathname), files);
 					res.header(CONTENT_TYPE, `${TEXT_HTML}; charset=${config.charset}`);
 					res.send(body);
+					return;
 				} catch {
 					res.error(INT_400, new Error(STATUS_CODES[INT_400]));
+					return;
 				}
 			}
 		} else {
@@ -169,6 +175,7 @@ export async function serve(config, req, res, arg, folder = process.cwd()) {
 				path: result,
 				stats: rstats,
 			});
+			return;
 		}
 	}
 }
