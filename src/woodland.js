@@ -560,7 +560,7 @@ export class Woodland extends EventEmitter {
 		/* node:coverage ignore next 5 */
 		if (this.#time && res.getHeader(X_RESPONSE_TIME) === void 0) {
 			const diff = req.precise.stop().diff();
-			const msValue = Number(diff / INT_1e6).toFixed(this.#digit);
+			const msValue = Number(diff / 1e6).toFixed(this.#digit);
 			res.header(X_RESPONSE_TIME, `${msValue}${RESPONSE_TIME_UNIT}`);
 		}
 

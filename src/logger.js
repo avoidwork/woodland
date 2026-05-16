@@ -10,7 +10,6 @@ import {
 	INT_3,
 	INT_4,
 	INT_60,
-	INT_1e6,
 	INT_500,
 	LEVELS,
 	REFERER,
@@ -210,7 +209,7 @@ export function createLogger(config = {}) {
  * @returns {string} Formatted time string with "ms" suffix
  */
 export function ms(arg = INT_0, digits = INT_3) {
-	return TIME_MS.replace(TOKEN_N, Number(arg / INT_1e6).toFixed(digits));
+	return TIME_MS.replace(TOKEN_N, Number(arg / 1e6).toFixed(digits));
 }
 
 /**
