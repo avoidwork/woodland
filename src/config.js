@@ -13,7 +13,6 @@ import {
 	INT_10,
 	INT_1e3,
 	INT_1e4,
-	INT_1e6,
 	INT_3,
 	LOG_FORMAT,
 	MSG_CONFIG_FIELD,
@@ -35,7 +34,7 @@ import {
 
 const DEFAULTS = {
 	autoIndex: false,
-	bodyLimit: INT_10 * INT_1e6,
+	bodyLimit: INT_10 * 1e6,
 	cacheSize: INT_1e3,
 	cacheTTL: INT_1e4,
 	charset: UTF_8,

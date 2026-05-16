@@ -110,7 +110,6 @@ const INT_60 = 60;
 const INT_255 = 255;
 const INT_1e3 = 1e3;
 const INT_1e4 = 1e4;
-const INT_1e6$1 = 1e6;
 const INT_8000 = 8000;
 const INT_NEG_1 = -1;
 
@@ -1357,7 +1356,7 @@ function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 
 const DEFAULTS = {
 	autoIndex: false,
-	bodyLimit: INT_10 * INT_1e6$1,
+	bodyLimit: INT_10 * 1e6,
 	cacheSize: INT_1e3,
 	cacheTTL: INT_1e4,
 	charset: UTF_8,
@@ -2127,6 +2126,7 @@ class Woodland extends node_events.EventEmitter {
 		req.host = parsed.hostname;
 		req.params = {};
 		req.valid = true;
+		req.app = { get: (key) => (key === "trust proxy" ? false : undefined) };
 
 		const allowString = this.#allows(parsed.pathname);
 		const headersBatch = Object.create(null);
@@ -2340,7 +2340,7 @@ class Woodland extends node_events.EventEmitter {
 		/* node:coverage ignore next 5 */
 		if (this.#time && res.getHeader(X_RESPONSE_TIME) === void 0) {
 			const diff = req.precise.stop().diff();
-			const msValue = Number(diff / INT_1e6).toFixed(this.#digit);
+			const msValue = Number(diff / 1e6).toFixed(this.#digit);
 			res.header(X_RESPONSE_TIME, `${msValue}${RESPONSE_TIME_UNIT}`);
 		}
 
