@@ -1804,15 +1804,15 @@ async function serve(config, req, res, arg, folder = process.cwd()) {
 				return;
 			}
 
-		config.stream(req, res, {
-			charset: config.charset,
-			etag: config.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
-			path: result,
-			stats: rstats,
-		});
-		return;
+			config.stream(req, res, {
+				charset: config.charset,
+				etag: config.etag(req.method, rstats.ino, rstats.size, rstats.mtimeMs),
+				path: result,
+				stats: rstats,
+			});
+			return;
+		}
 	}
-}
 }
 
 /**
