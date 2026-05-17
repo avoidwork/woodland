@@ -774,7 +774,7 @@ export class Woodland extends EventEmitter {
 	/**
 	 * Global error handler property
 	 * @param {Function} [fn] - Error handler function
-	 * @returns {Function|undefined} Current error handler or undefined
+	 * @returns {Function|null} Current error handler or null
 	 */
 	get error() {
 		return this.#error;
