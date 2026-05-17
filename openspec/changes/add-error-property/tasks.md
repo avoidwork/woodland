@@ -28,10 +28,10 @@ description: Implementation tasks for adding the 'error' property to Woodland
     const execute = (err) => {
         if (err !== void 0) {
             if (typeof req.app?.error === FUNCTION) {
-                req.app.error(err, req, res, execute);
-            } else {
-                handleError(err, execute);
+                req.app.error(err, req, res);
+                return;
             }
+            handleError(err, execute);
         } else {
             handleMiddleware(execute);
         }
@@ -40,7 +40,7 @@ description: Implementation tasks for adding the 'error' property to Woodland
 
 ## 4. Update TypeScript definitions
 
-- [ ] 4.1 In `types/woodland.d.ts`, add the `error` property to the Woodland class interface with type `((err: Error, req: import("./woodland").Request, res: import("./woodland").Response, next: Function) => void) | undefined`
+- [ ] 4.1 In `types/woodland.d.ts`, add the `error` property to the Woodland class interface with type `((err: Error, req: import("./woodland").Request, res: import("./woodland").Response) => void) | undefined`
 
 ## 5. Update existing tests and add new tests
 

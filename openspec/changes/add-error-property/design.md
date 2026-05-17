@@ -25,14 +25,18 @@ Initialize it in the constructor:
 this.#error = null;
 ```
 
-Add a getter-only property:
+Add a getter/setter property:
 ```javascript
 get error() {
     return this.#error;
 }
+
+set error(fn) {
+    this.#error = typeof fn === FUNCTION ? fn : null;
+}
 ```
 
-The property will accept either `null` or a function. Since this is a getter/setter pattern, users can assign a function to `app.error`.
+The property accepts either `null` or a function. Users can assign a function to `app.error`.
 
 ### 2. Update `#decorate` to set `req.app = this`
 
@@ -49,24 +53,23 @@ This makes the full Woodland instance accessible via `req.app`, including the `e
 
 ### 3. Update `execute` in `middleware.js` to call `req.app.error`
 
-In the `next` function, when an error occurs (the `execute` function is called with an error, or `handleError` is called), check if `req.app.error` exists and is a function before handling the error. If it exists, call it with the error and request/response context:
+In the `next` function, when an error occurs, check if `req.app.error` exists and is a function before handling the error. If it exists, call it with `(err, req, res)` — only 3 parameters. The error handler is responsible for terminating the request. If the handler is not set, fall back to the existing error middleware chain:
 
 ```javascript
 const execute = (err) => {
     if (err !== void 0) {
-        // Check for global error handler on the app instance
         if (typeof req.app?.error === FUNCTION) {
-            req.app.error(err, req, res, execute);
-        } else {
-            handleError(err, execute);
+            req.app.error(err, req, res);
+            return;
         }
+        handleError(err, execute);
     } else {
         handleMiddleware(execute);
     }
 };
 ```
 
-This checks `req.app.error` before falling back to the existing error middleware chain (`handleError`).
+The `return` after calling `req.app.error` ensures the error middleware chain is skipped — the global handler has full responsibility for terminating the request.
 
 ## Design Decisions
 
@@ -74,7 +77,7 @@ This checks `req.app.error` before falling back to the existing error middleware
 
 2. **`req.app = this`**: Giving full access to the Woodland instance via `req.app` is the cleanest approach since it provides the `error` reference without additional indirection. This aligns with Express's `req.app` convention.
 
-3. **Error handler signature**: The global error handler uses the same signature as error middleware: `(err, req, res, next)`, making it consistent with the framework's error handling model.
+3. **Error handler signature**: The global error handler uses a 3-argument signature: `(err, req, res)`. No `next` argument is provided — the handler must terminate the request itself (e.g., by calling `res.error()`, `res.send()`, etc.).
 
 4. **Priority**: The global `req.app.error` is checked before the error middleware chain, giving users a single override point for all unhandled errors.
 
