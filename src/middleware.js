@@ -116,6 +116,10 @@ export function next(req, res, middleware, immediate = false) {
 	 */
 	const execute = (err) => {
 		if (err !== void 0) {
+			if (typeof req.app?.error === FUNCTION) {
+				req.app.error(err, req, res);
+				return;
+			}
 			handleError(err, execute);
 		} else {
 			handleMiddleware(execute);

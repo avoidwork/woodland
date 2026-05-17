@@ -57,6 +57,7 @@ import {
 	EVT_FINISH,
 	EVT_STREAM,
 	EVT_CLOSE,
+	MSG_MIDDLEWARE_REQUIRED,
 } from "./constants.js";
 import { createMiddlewareRegistry, next } from "./middleware.js";
 import { stream as responseStream, getStatus, writeHead } from "./response.js";
@@ -97,6 +98,7 @@ export class Woodland extends EventEmitter {
 	#logger;
 	#fileServer;
 	#middleware;
+	#error;
 
 	/**
 	 * Creates a new Woodland instance
@@ -143,6 +145,7 @@ export class Woodland extends EventEmitter {
 		this.#logger = this.#createLogger();
 		this.#fileServer = this.#createFileServer();
 		this.#middleware = createMiddlewareRegistry(this.#methods, this.#cache);
+		this.#error = null;
 
 		this.#setupMiddleware();
 		this.#setupErrorHandling();
@@ -316,6 +319,10 @@ export class Woodland extends EventEmitter {
 	 * @returns {Woodland} Returns self for chaining
 	 */
 	#registerMethod(method, ...args) {
+		if (args.length === INT_1 && typeof args[INT_0] === STRING) {
+			throw new TypeError(MSG_MIDDLEWARE_REQUIRED);
+		}
+
 		return this.use(...args, method);
 	}
 
@@ -346,7 +353,7 @@ export class Woodland extends EventEmitter {
 		req.host = parsed.hostname;
 		req.params = {};
 		req.valid = true;
-		req.app = { get: (key) => (key === "trust proxy" ? false : undefined) };
+		req.app = this;
 
 		const allowString = this.#allows(parsed.pathname);
 		const headersBatch = Object.create(null);
@@ -762,6 +769,19 @@ export class Woodland extends EventEmitter {
 
 	get logger() {
 		return this.#logger;
+	}
+
+	/**
+	 * Global error handler property
+	 * @param {Function} [fn] - Error handler function
+	 * @returns {Function|null} Current error handler or null
+	 */
+	get error() {
+		return this.#error;
+	}
+
+	set error(fn) {
+		this.#error = typeof fn === FUNCTION ? fn : null;
 	}
 }
 

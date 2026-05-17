@@ -365,6 +365,44 @@ Returns the logger instance with methods: `log`, `clf`, `logRoute`, `logMiddlewa
 
 ---
 
+#### `error`
+
+**Type:** `(err: Error, req: Request, res: Response) => void | null`
+
+Global error handler property. When set, the handler is called with `(err, req, res)` before the error middleware chain executes. The handler is responsible for terminating the request (e.g., by calling `res.send()`, `res.error()`, etc.). Defaults to `null`.
+
+| Parameter | Type | Optional | Description |
+|-----------|------|----------|-------------|
+| `fn` | `Function` | **Yes** | Error handler function or `null` |
+
+**Returns:** `Function | null` - Current error handler or `null` if not set.
+
+**Notes:**
+- Only functions are accepted; non-function values are rejected and set to `null`
+- The handler receives only 3 arguments: `(err, req, res)` — no `next` parameter
+- Handler is called **before** the error middleware chain; the chain is skipped when handler is set
+
+**Example:**
+
+```javascript
+const app = woodland();
+
+app.error = (err, _req, res) => {
+  console.error("Global error:", err);
+  res.status(500).send("Something went wrong");
+};
+```
+
+---
+
+#### `req.app`
+
+**Type:** `Woodland`
+
+The Woodland application instance. Set via `req.app = this` in `#decorate()`, providing access to `app.error` and all other Woodland properties from middleware and route handlers.
+
+---
+
 ## Request Object Decorations
 
 The `route()` method decorates request objects with the following properties including security validations:
@@ -376,6 +414,7 @@ The `route()` method decorates request objects with the following properties inc
 | `req.parsed` | `URL` | Parsed URL object |
 | `req.allow` | `string` | Comma-separated list of allowed methods |
 | `req.ip` | `string` | Client IP address |
+| `req.app` | `Woodland` | The Woodland application instance (provides access to `app.error`) |
 | `req.body` | `string` | Request body (initialized as empty string) |
 | `req.host` | `string` | Request hostname |
 | `req.params` | `Object` | URL parameters (populated if route has params) |

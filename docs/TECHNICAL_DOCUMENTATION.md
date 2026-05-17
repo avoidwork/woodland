@@ -123,7 +123,7 @@ graph TB
 
 1. **`woodland()` factory** creates `Woodland` instance (extends `EventEmitter`)
 2. **`app.route(req, res)`** is the HTTP request handler
-3. **`decorate(req, res)`** adds framework utilities (ip, parsed, allow, cors, params, etc.)
+3. **`decorate(req, res)`** adds framework utilities (`ip`, `parsed`, `allow`, `cors`, `params`, `req.app`) — sets `req.app` to the Woodland instance
 4. **`allows(uri)`** checks permission cache, determines allowed methods
 5. **CORS validation** rejects disallowed origins with 403
 6. **Route matching** via `middleware.routes()` with cached results
@@ -290,6 +290,7 @@ class Woodland extends EventEmitter {
   #logger;          // Private: logger instance (frozen)
   #fileServer;      // Private: file server instance (frozen, wrapped by files/serve/stream)
   #middleware;      // Private: middleware registry
+  #error;           // Private: global error handler
 
   constructor(config = {}) {
     // Configuration options:
@@ -309,6 +310,9 @@ class Woodland extends EventEmitter {
     // - origins: CORS allowed origins (default: [])
     // - silent: Disable default headers (default: false)
     // - time: Enable response time tracking (default: false)
+    //
+    // Public Properties:
+    // - error: Global error handler (null | function(err, req, res))
   }
 }
 ```

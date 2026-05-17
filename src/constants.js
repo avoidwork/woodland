@@ -152,6 +152,7 @@ export const NEWLINE = "\n";
 export const ROUTE_PATTERN = "(/.*)?";
 export const MSG_USE_MIDDLEWARE_REQUIRED =
 	"useMiddleware is required or config.use must be a function";
+export const MSG_MIDDLEWARE_REQUIRED = "Expected a function in the parameters";
 export const EXTRACT_PATH_REPLACE = "(?<$1>[^/]+)";
 export const TPL_DIR = "tpl";
 export const INDEX_HTML_FILE = "index.html";

@@ -29,6 +29,36 @@ describe("woodland", () => {
 			assert.ok(app.serve);
 			assert.ok(app.stream);
 		});
+
+		it("should have error property defaulting to null", () => {
+			const app = new Woodland();
+
+			assert.strictEqual(app.error, null);
+		});
+
+		it("should allow setting error property to a function", () => {
+			const app = new Woodland();
+			const errorHandler = () => {};
+
+			app.error = errorHandler;
+
+			assert.strictEqual(app.error, errorHandler);
+		});
+
+		it("should reject non-function values for error property", () => {
+			const app = new Woodland();
+
+			app.error = "not a function";
+			assert.strictEqual(app.error, null);
+
+			app.error = 42;
+			assert.strictEqual(app.error, null);
+
+			const errorHandler = () => {};
+			app.error = errorHandler;
+			app.error = null;
+			assert.strictEqual(app.error, null);
+		});
 	});
 
 	describe("Woodland methods", () => {

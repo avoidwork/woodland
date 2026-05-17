@@ -155,6 +155,22 @@ app.use((error, req, res, next) => {
 });
 ```
 
+### Global Error Handling
+
+Set `app.error` to intercept all unhandled errors before the error middleware chain:
+
+```javascript
+const app = woodland();
+
+app.error = (err, _req, res) => {
+  console.error("Unhandled error:", err);
+  res.status(500).send("Internal server error");
+};
+```
+
+The handler receives 3 arguments `(err, req, res)` and must terminate the request itself. When set, the error middleware chain is skipped.
+
+
 ## Configuration
 
 ```javascript
@@ -196,6 +212,7 @@ req.cors;       // CORS enabled
 req.body;       // Request body
 req.host;       // Hostname
 req.valid;      // Request validity
+req.app;        // Woodland application instance (provides access to app.error)
 ```
 
 ## Event Handlers
