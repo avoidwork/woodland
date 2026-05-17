@@ -57,6 +57,7 @@ import {
 	EVT_FINISH,
 	EVT_STREAM,
 	EVT_CLOSE,
+	MSG_MIDDLEWARE_REQUIRED,
 } from "./constants.js";
 import { createMiddlewareRegistry, next } from "./middleware.js";
 import { stream as responseStream, getStatus, writeHead } from "./response.js";
@@ -318,6 +319,10 @@ export class Woodland extends EventEmitter {
 	 * @returns {Woodland} Returns self for chaining
 	 */
 	#registerMethod(method, ...args) {
+		if (args.length === INT_1 && typeof args[INT_0] === STRING) {
+			throw new TypeError(MSG_MIDDLEWARE_REQUIRED);
+		}
+
 		return this.use(...args, method);
 	}
 
