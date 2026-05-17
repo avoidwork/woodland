@@ -49,7 +49,8 @@ export class Woodland extends EventEmitter {
 		clf: (...args: any[]) => string;
 	}>;
 
-	error((err: Error, req: import("./woodland").Request, res: import("./woodland").Response) => void) | undefined;
+	// Public error handler property (getter/setter)
+	error: ((err: Error, req: any, res: any) => void) | null;
 
 	constructor(config?: WoodlandConfig);
 
