@@ -5,9 +5,17 @@ on:
   pull_request:
     branches:
       - master
+  push:
+    branches:
+      - master
+
+permissions:
+  checks-write: write
+  contents: write
+  pull-requests: write
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
 
     strategy:
@@ -15,30 +23,31 @@ jobs:
         node-version: [20.x, 22.x, 24.x]
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout
         uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
 
-      - name: Setup Node ${{ matrix.node-version }}
+      - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v6
         with:
-          always-auth: false
           node-version: ${{ matrix.node-version }}
 
-      - name: Install dependencies
+      - name: Install
         run: npm install
 
-      - name: Build & Run Tests
+      - name: Test
+        run: npm test
+
+      - name: Build
         run: npm run build
 
   automerge:
-    needs: build
+    needs: test
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-      contents: write
+    if: github.actor == 'dependabot[bot]'
     steps:
-      - uses: fastify/github-action-merge-dependabot@v3
+      - name: Merge dependabot PR
+        uses: fastify/github-action-merge-dependabot@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          target: minor
+          merge-method: squash
