@@ -165,6 +165,7 @@ const NEWLINE = "\n";
 const ROUTE_PATTERN = "(/.*)?";
 const MSG_USE_MIDDLEWARE_REQUIRED =
 	"useMiddleware is required or config.use must be a function";
+const MSG_MIDDLEWARE_REQUIRED = "Expected a function in the parameters";
 const EXTRACT_PATH_REPLACE = "(?<$1>[^/]+)";
 const TPL_DIR = "tpl";
 const INDEX_HTML_FILE = "index.html";
@@ -2109,6 +2110,10 @@ class Woodland extends node_events.EventEmitter {
 	 * @returns {Woodland} Returns self for chaining
 	 */
 	#registerMethod(method, ...args) {
+		if (args.length === INT_1 && typeof args[INT_0] === STRING) {
+			throw new TypeError(MSG_MIDDLEWARE_REQUIRED);
+		}
+
 		return this.use(...args, method);
 	}
 
@@ -2560,7 +2565,7 @@ class Woodland extends node_events.EventEmitter {
 	/**
 	 * Global error handler property
 	 * @param {Function} [fn] - Error handler function
-	 * @returns {Function|undefined} Current error handler or undefined
+	 * @returns {Function|null} Current error handler or null
 	 */
 	get error() {
 		return this.#error;
