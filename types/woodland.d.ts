@@ -49,6 +49,8 @@ export class Woodland extends EventEmitter {
 		clf: (...args: any[]) => string;
 	}>;
 
+	error((err: Error, req: import("./woodland").Request, res: import("./woodland").Response) => void) | undefined;
+
 	constructor(config?: WoodlandConfig);
 
 	// Public routing methods - with path

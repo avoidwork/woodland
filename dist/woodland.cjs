@@ -1163,6 +1163,10 @@ function next(req, res, middleware, immediate = false) {
 	 */
 	const execute = (err) => {
 		if (err !== void 0) {
+			if (typeof req.app?.error === FUNCTION) {
+				req.app.error(err, req, res);
+				return;
+			}
 			handleError(err, execute);
 		} else {
 			handleMiddleware(execute);
@@ -1884,6 +1888,7 @@ class Woodland extends node_events.EventEmitter {
 	#logger;
 	#fileServer;
 	#middleware;
+	#error;
 
 	/**
 	 * Creates a new Woodland instance
@@ -1930,6 +1935,7 @@ class Woodland extends node_events.EventEmitter {
 		this.#logger = this.#createLogger();
 		this.#fileServer = this.#createFileServer();
 		this.#middleware = createMiddlewareRegistry(this.#methods, this.#cache);
+		this.#error = null;
 
 		this.#setupMiddleware();
 		this.#setupErrorHandling();
@@ -2133,7 +2139,7 @@ class Woodland extends node_events.EventEmitter {
 		req.host = parsed.hostname;
 		req.params = {};
 		req.valid = true;
-		req.app = { get: (key) => (key === "trust proxy" ? false : undefined) };
+		req.app = this;
 
 		const allowString = this.#allows(parsed.pathname);
 		const headersBatch = Object.create(null);
@@ -2549,6 +2555,19 @@ class Woodland extends node_events.EventEmitter {
 
 	get logger() {
 		return this.#logger;
+	}
+
+	/**
+	 * Global error handler property
+	 * @param {Function} [fn] - Error handler function
+	 * @returns {Function|undefined} Current error handler or undefined
+	 */
+	get error() {
+		return this.#error;
+	}
+
+	set error(fn) {
+		this.#error = typeof fn === FUNCTION ? fn : null;
 	}
 }
 
