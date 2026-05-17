@@ -5,17 +5,9 @@ on:
   pull_request:
     branches:
       - master
-  push:
-    branches:
-      - master
-
-permissions:
-  checks-write: write
-  contents: write
-  pull-requests: write
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
 
     strategy:
@@ -41,8 +33,11 @@ jobs:
         run: npm run build
 
   automerge:
-    needs: test
+    needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
     if: github.actor == 'dependabot[bot]'
     steps:
       - name: Merge dependabot PR
