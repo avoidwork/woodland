@@ -12,7 +12,7 @@ woodland(config)
     ▼
 new Woodland(config) ───→ validateConfig() ─→ defaults + schema
     │
-    ├── validateLogging() ─→ env > config > default
+    ├── validateLogging() ─→ env(WOODLAND_LOG_*) > config > default
     │
     ├── #buildFinalHeaders() ─→ [{SERVER, X-Powered-By}]
     │
@@ -76,7 +76,7 @@ app.always(...args)
     │
     ├── for each arg: middleware.ignore(arg)
     │
-    └── use(arg, WILDCARD) → registerMiddleware(method="*")
+    └── use(...args, WILDCARD) → registerMiddleware(method="*")
 ```
 
 ### File serving middleware
@@ -91,7 +91,7 @@ app.files(root, folder)
             │
             └── useMiddleware(ROOT_PATTERN, (req, res) => {
                     pathname = decodeURIComponent(req.parsed.pathname)
-                    relativePath = extract from pathname
+                    relativePath = extract from pathname (strip mount root)
                     serve(config, req, res, relativePath, folder)
                 })
 ```
@@ -128,14 +128,14 @@ app.route(req, res)  ──← called by Node.js http.Server
     ├── req.allow = allowString
     ├── req.precise = timing (if timing enabled)
     │
-    ├── #addCorsHeaders(req, headersBatch)
+    ├── if (req.cors) ─→ #addCorsHeaders(req, headersBatch)
     │   ├── validateOrigin → #isSafeOrigin()
     │   ├── set Access-Control-Allow-Origin
     │   └── #setCorsAllowAndExposeHeaders()
     │
     └── #decorateResponse(res, req, headersBatch)
         ├── res.locals = {}
-        ├── res.error = createErrorHandler() ─→ error(), emit("error")
+        ├── res.error = createErrorHandler(req, res, this, exposeErrorMessages) ─→ error(), emit("error")
         ├── res.header = res.setHeader
         ├── res.json = createJsonHandler() ─→ json(), res.send()
         ├── res.redirect = createRedirectHandler() ─→ redirect(),
@@ -197,7 +197,7 @@ next(req, res, middleware[Symbol.iterator]())()
 next() function ───→ execute() ─→ handles middleware chain
     │
     ├── on error:
-    │   ├── req.app.error() (global handler)
+    │   ├── if req.app.error is function → call global handler
     │   ├── skip non-error handlers in chain
     │   └── find error handler (length === 4) → call with (err)
     │       └── no handler → res.error(500)
@@ -222,7 +222,7 @@ immediate=false → process.nextTick(() => execute(err))
 
 ```
 ├── onReady(req, res, body, status, headers)
-│   ├── timing: #onReady → set X-Response-Time header
+│   ├── timing: #onReady → set X-Response-Time header (if enabled)
 │   └── return [body, status, headers]
 │
 └── onSend(req, res, body, status, headers)
@@ -232,17 +232,20 @@ immediate=false → process.nextTick(() => execute(err))
 
 ```
 ├── isPipeable (has .on method, not HEAD) ?
-│   ├── req.range === void 0 → writeHead + body.pipe(res)
+│   ├── rangeHeader === void 0 || req.range !== void 0 → writeHead + body.pipe(res)
 │   │   └── error on 'error' event → res.error(500) or end()
-│   └── range header set → res.error(416)
+│   └── rangeHeader set && !req.range → res.error(416)
 │
 └── not pipeable:
     ├── has range header
     │   ├── partialHeaders() → Content-Range header
     │   │   ├── parseRangeHeader(rangeHeader, size)
     │   │   │   ├── bytes=start-end
-    │   │   │   │   └── start = size - end (no start)
-    │   │   │   └── validates: start >= 0, end < size
+    │   │   │   │   ├── start empty, end empty → null (invalid)
+    │   │   │   │   ├── start empty, end present → start = size - end, end = size - 1
+    │   │   │   │   ├── start present, end empty → end = size - 1
+    │   │   │   │   └── both present → parse start, end
+    │   │   │   └── validates: start >= 0, end < size, start <= end
     │   │   └── req.range set → onDone(rangeBuffer)
     │   │       └── else → res.error(416)
     │
@@ -267,12 +270,13 @@ immediate=false → process.nextTick(() => execute(err))
 ### Error response
 
 ```
-res.error(inputStatus, body) ─→ createErrorHandler()
+res.error(inputStatus, body) ─→ createErrorHandler(req, res, emitter, exposeErrorMessages)
     ├── error(req, res, status) → res.statusCode = status
     ├── emit("error", req, res, err)
     │   └→ logger.logError() → ERROR level console
-    ├── delete req.headers.range
+    ├── if (req.headers) delete req.headers.range
     └── send(message) → res.send(message)
+        └┬─ exposeErrorMessages ? err.message || STATUS_TEXT : STATUS_TEXT
 ```
 
 ---
@@ -303,8 +307,12 @@ serve(config, req, res, arg, folder)
     │   │   ├── GET → range handling → partialHeaders()
     │   │   │   ├── parseRangeHeader(rangeHeader, size)
     │   │   │   │   ├── bytes=start-end
-    │   │   │   │   └── validates: start >= 0, end < size
-    │   │   │   └── createReadStream(file.path, options)
+    │   │   │   │   ├── start empty, end empty → null (invalid)
+    │   │   │   │   ├── start empty, end present → start = size - end, end = size - 1
+    │   │   │   │   ├── start present, end empty → end = size - 1
+    │   │   │   │   └── both present → parse start, end
+    │   │   │   └── validates: start >= 0, end < size, start <= end
+    │   │   └── createReadStream(file.path, options)
     │   │   ├── HEAD → send("")
     │   │   └── OPTIONS → remove CL → send("")
     │   │
@@ -382,11 +390,12 @@ etag(method, ...args) ─→
 
 parse(req) →
     ├── URL(`${proto}${host}${url}`)
-    └── fallback: URL(`http://localhost + url`)
+    │   └── host = headers.host || socket._connectionKey.replace(/.*::/, EMPTY) || 8000
+    └── fallback: URL(`http://localhost${arg.url || "/"}`)
 
 extractIP(req) →
-    ├── X-Forwarded-For: first valid IP
-    └── fallback: req.connection.remoteAddress / req.socket
+    ├── X-Forwarded-For: first valid IP (IPv4/IPv6)
+    └── fallback: req.connection.remoteAddress / req.socket / localhost
 
 params(req, getParams) → regex.exec(pathname) → coerce + escapeHtml
 ```
@@ -401,10 +410,11 @@ validateConfig(config)
     └── fill defaults for missing keys
 
 validateLogging(logging)
-    ├── env LOG_ENABLED > config.enabled > TRUE
-    ├── env LOG_FORMAT > config.format > LOG_FORMAT
-    ├── env LOG_LEVEL > config.level > INFO
-    └── validate against VALID_LOG_LEVELS
+    ├── enabled = WOODLAND_LOG_ENABLED ?? config.enabled ?? true
+    │   └── truthy check: env !== "false" ? true : config !== false ? true : true
+    ├── format = WOODLAND_LOG_FORMAT ?? config.format ?? LOG_FORMAT constant
+    ├── level = WOODLAND_LOG_LEVEL ?? config.level ?? INFO
+    └── validate level against VALID_LOG_LEVELS (defaults to INFO if invalid)
 
 validateOrigins(origins)
     ├── WILDCARD always allowed
@@ -418,6 +428,7 @@ validateOrigins(origins)
 ```
 createLogger(config)
     ├── log(msg, level) → process.nextTick(console[method](msg))
+    │   └── consoleMethod = logLevel > ERROR ? console.log : console.error
     ├── clf(req, res) → Common Log Format string
     │   ├── [day/Mon/year:HH:MM:SS +HHMM]
     │   ├── GET /path?q=1 HTTP/1.1
