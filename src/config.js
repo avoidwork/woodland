@@ -149,10 +149,15 @@ export function validateLogging(logging = {}) {
 	const envLogFormat = process.env.WOODLAND_LOG_FORMAT;
 	const envLogLevel = process.env.WOODLAND_LOG_LEVEL;
 
-	const enabled = logging.enabled ?? (envLogEnabled ?? TRUE) !== FALSE;
+	const enabled =
+		envLogEnabled !== undefined
+			? envLogEnabled !== FALSE
+			: logging.enabled !== undefined
+				? logging.enabled !== false
+				: TRUE !== FALSE;
 
-	const format = resolveLoggingValue(logging.format, envLogFormat, LOG_FORMAT);
-	const level = resolveLoggingValue(logging.level, envLogLevel, INFO);
+	const format = resolveLoggingValue(envLogFormat, logging.format, LOG_FORMAT);
+	const level = resolveLoggingValue(envLogLevel, logging.level, INFO);
 
 	if (!VALID_LOG_LEVELS.has(level)) {
 		return Object.freeze({ enabled, format, level: INFO });
