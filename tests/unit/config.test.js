@@ -102,16 +102,16 @@ describe("config", () => {
 			delete process.env.WOODLAND_LOG_LEVEL;
 		});
 
-		it("should prioritize config over environment variables", () => {
+		it("should prioritize environment variables over config", () => {
 			process.env.WOODLAND_LOG_ENABLED = "false";
 			process.env.WOODLAND_LOG_FORMAT = "env-format";
 			process.env.WOODLAND_LOG_LEVEL = "warn";
 
 			const result = validateLogging({ enabled: true, format: "config", level: "error" });
 
-			assert.strictEqual(result.enabled, true);
-			assert.strictEqual(result.format, "config");
-			assert.strictEqual(result.level, "error");
+			assert.strictEqual(result.enabled, false);
+			assert.strictEqual(result.format, "env-format");
+			assert.strictEqual(result.level, "warn");
 
 			delete process.env.WOODLAND_LOG_ENABLED;
 			delete process.env.WOODLAND_LOG_FORMAT;
