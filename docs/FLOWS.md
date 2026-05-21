@@ -396,7 +396,7 @@ validateConfig(config)
     └── fill defaults for missing keys
 
 validateLogging(logging)
-    ├── env LOG_ENABLED ?? config.enabled ?? TRUE
+    ├── env LOG_ENABLED > config.enabled > TRUE
     ├── env LOG_FORMAT > config.format > LOG_FORMAT
     ├── env LOG_LEVEL > config.level > INFO
     └── validate against VALID_LOG_LEVELS
