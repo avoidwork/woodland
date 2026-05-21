@@ -21,8 +21,8 @@ new Woodland(config) ───→ validateConfig() ─→ defaults + schema
     ├── #createFileServer() ─→ serve(), register()
     │
     ├── #setupMiddleware()
-    │   ├── etag middleware registration (if enabled)
-    │   └── CORS preflight registration (if origins set)
+    │   ├── if etags enabled: this.get(etags.middleware).ignore(etags.middleware)
+    │   └── if origins set: this.options(corsRequest()).ignore(corsRequest())
     │
     ├── #setupErrorHandling() ─→ on('error') → logger.logError()
     │
@@ -49,21 +49,22 @@ app.get(path, ...fn) / app.post(path, ...fn)
     ▼
 #middleware.register(rpath, ...fn)
     │
-    ├── rpath is Function ─→ rpath = "/.*", fn = [rpath, ...fn]
+    ├── rpath is Function ─→ rpath = `/.+`, fn = [rpath, ...fn]
     │
-    ├── method = fn[last] (popped from fn)
+    ├── method = fn[last]?.toUpperCase() (popped if string) → defaults to GET
     │
-    ├── validateMethod(method) ─→ must be in NODE_METHODS
+    ├── validateMethod(method) ─→ must be in NODE_METHODS, not HEAD
     │
-    ├── rpath has :param ─→ extractPath() → regex capture groups
+    ├── rpath has /:param ─→ extractPath() → regex capture groups
+    │   └── else → no params flag
     │
-    ├── validateRoutePattern() ─→ ReDoS check
+    ├── validateRoutePattern() ─→ ReDoS check via quantifier scan
     │
     └── middleware.set(method, Map{
             rpath: {
-                handlers: [...fn],
-                params: true/false,
-                regex: RegExp("^" + path + "$")
+                handlers: [...existing, ...fn],  // deduplicated append
+                params: boolean,
+                regex: RegExp("^" + lrpath + "$")
             }
         })
 ```
@@ -71,7 +72,11 @@ app.get(path, ...fn) / app.post(path, ...fn)
 ### Always (wildcard) middleware
 
 ```
-app.always(...fn) ─→ middleware.ignore(fn) + use(*, fn)
+app.always(...args)
+    │
+    ├── for each arg: middleware.ignore(arg)
+    │
+    └── use(arg, WILDCARD) → registerMiddleware(method="*")
 ```
 
 ### File serving middleware
@@ -152,7 +157,7 @@ res.on('finish') → emit('finish') (if listeners)
 logger.logRoute()
 
 if (!req.cors && req.corsHost) ──→ req.valid = false
-    └── res.error(403, "Forbidden")
+    └── res.error(403, new Error(STATUS_CODES[403]))
 
 else if (req.allow.includes(method)) ─→ #handleAllowedRoute()
     │
