@@ -220,7 +220,26 @@ chore: update dependencies
 - Feature branches: `feat/<short-desc>` or `fix/<short-desc>`.
 - Never commit directly to `master`. Always create a feature branch first, then open a PR targeting `master`.
 
-### 5.3 Build Requirements
+### 5.2.1 Agent Workflow
+
+When auditing or modifying AGENTS.md (or any file):
+
+1. Create a feature branch: `git checkout -b docs/<short-desc>` (or `feat/`, `fix/`).
+2. Make changes and commit on the feature branch.
+3. Push the feature branch and open a PR with `gh pr create --base master`.
+4. Never commit or push directly to `master`.
+
+### 5.3 Code Review
+
+- All changes require at least one other reviewer (automated checks are mandatory but not sufficient).
+- No merging without passing CI (lint → test).
+- PR descriptions must reference related items from design documents.
+
+### 5.4 Pull Request Templates
+
+If a `.github/PULL_REQUEST_TEMPLATE.md` file exists, it MUST be used when creating PRs. Fill out every section — do not leave any section blank. If a section does not apply, write `N/A` rather than skipping it.
+
+### 5.5 Build Requirements
 
 - Run `npm test` before committing (all 335 tests must pass, 100% line coverage required).
 - Run `npm run build` before pushing (generates dist files).
@@ -228,6 +247,8 @@ chore: update dependencies
 ---
 
 ## 6. Operational Rules
+
+Session learnings — critical gotchas that affect how code must be written and tested.
 
 ### 6.1 Performance Principles
 
