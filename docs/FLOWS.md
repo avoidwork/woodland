@@ -295,7 +295,8 @@ serve(config, req, res, arg, folder)
     ├── realFolder = realpath(resolvedFolder)
     │
     ├── path traversal check:
-    │   isRoot OR (realFp startsWith realFolder)
+    │   isRoot OR (realFp === realFolder OR realFp startsWith realFolder + path-separator)
+    │       └── avoids prefix collisions (e.g. /var/www vs /var/www2)
     │       └── fails → res.error(403, "Path traverses outside")
     │
     ├── realFp is file?
