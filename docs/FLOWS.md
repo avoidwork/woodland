@@ -12,7 +12,7 @@ woodland(config)
     ▼
 new Woodland(config) ───→ validateConfig() ─→ defaults + schema
     │
-    ├── validateLogging() ─→ env > config > default
+    ├── validateLogging() ─→ config > env > default
     │
     ├── #buildFinalHeaders() ─→ [{SERVER, X-Powered-By}]
     │
@@ -396,9 +396,9 @@ validateConfig(config)
     └── fill defaults for missing keys
 
 validateLogging(logging)
-    ├── WOODLAND_LOG_ENABLED > config.enabled > TRUE
-    ├── WOODLAND_LOG_FORMAT > config.format > LOG_FORMAT
-    ├── WOODLAND_LOG_LEVEL > config.level > INFO
+    ├── config.enabled ?? (env LOG_ENABLED ?? TRUE)
+    ├── config.format > env LOG_FORMAT > LOG_FORMAT
+    ├── config.level > env LOG_LEVEL > INFO
     └── validate against VALID_LOG_LEVELS
 
 validateOrigins(origins)
