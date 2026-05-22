@@ -57,11 +57,20 @@ describe("config", () => {
 
 	describe("validateLogging", () => {
 		it("should return defaults for empty logging config", () => {
-			const result = validateLogging();
+			const prev = process.env.WOODLAND_LOG_ENABLED;
+			try {
+				delete process.env.WOODLAND_LOG_ENABLED;
 
-			assert.strictEqual(result.enabled, true);
-			assert.ok(result.format);
-			assert.strictEqual(result.level, "info");
+				const result = validateLogging();
+
+				assert.strictEqual(result.enabled, true);
+				assert.ok(result.format);
+				assert.strictEqual(result.level, "info");
+			} finally {
+				if (prev !== undefined) {
+					process.env.WOODLAND_LOG_ENABLED = prev;
+				}
+			}
 		});
 
 		it("should accept custom logging config", () => {
