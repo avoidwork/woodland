@@ -57,6 +57,15 @@ export function reduce(uri, map = new Map(), arg = {}) {
 				arg.getParams = middleware.regex;
 				paramsFound = true;
 			}
+
+			arg.routePath = middleware.key;
+			if (middleware.methods && middleware.methods.length > INT_0) {
+				for (let j = INT_0; j < middleware.methods.length; j++) {
+					if (!arg.routeMethods.includes(middleware.methods[j])) {
+						arg.routeMethods.push(middleware.methods[j]);
+					}
+				}
+			}
 		}
 	}
 }
@@ -76,12 +85,21 @@ export function next(req, res, middleware, immediate = false, _middlewareArray) 
 	 * @param {Function} nextFn - Next function for chain
 	 */
 	const handleError = (err, nextFn) => {
-		// Use array reference to iterate from the beginning, ensuring we find error handlers
-		const arr = _middlewareArray ? [..._middlewareArray] : [];
-		for (let i = INT_0; i < arr.length; i++) {
-			const item = arr[i];
-			if (item && item.length === ERROR_HANDLER_LENGTH) {
-				item(err, req, res, nextFn);
+		if (_middlewareArray && _middlewareArray.length > INT_0) {
+			for (let i = INT_0; i < _middlewareArray.length; i++) {
+				const item = _middlewareArray[i];
+				if (item && item.length === ERROR_HANDLER_LENGTH) {
+					item(err, req, res, nextFn);
+					return;
+				}
+			}
+		} else {
+			let obj = middleware.next();
+			while (!obj.done && obj.value && obj.value.length !== ERROR_HANDLER_LENGTH) {
+				obj = middleware.next();
+			}
+			if (!obj.done && obj.value && obj.value.length === ERROR_HANDLER_LENGTH) {
+				obj.value(err, req, res, nextFn);
 				return;
 			}
 		}
@@ -94,6 +112,10 @@ export function next(req, res, middleware, immediate = false, _middlewareArray) 
 	 * @param {Function} nextFn - Next function for chain
 	 */
 	const handleMiddleware = (nextFn) => {
+		if (res.headersSent) {
+			return;
+		}
+
 		const obj = middleware.next();
 
 		if (!obj.done) {
@@ -153,7 +175,15 @@ export function computeRoutes(middleware, ignored, uri, method, cache, override 
 	if (cached !== void 0) {
 		result = cached;
 	} else {
-		result = { getParams: null, middleware: [], params: false, visible: INT_0, exit: INT_NEG_1 };
+		result = {
+			getParams: null,
+			middleware: [],
+			params: false,
+			visible: INT_0,
+			exit: INT_NEG_1,
+			routePath: null,
+			routeMethods: [],
+		};
 		reduce(uri, middleware.get(WILDCARD) ?? new Map(), result);
 
 		if (method !== WILDCARD) {
@@ -300,6 +330,7 @@ export function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 	const mmethod = middleware.get(method);
 	let lrpath = rpath,
 		lparams = false;
+	const originalKey = lrpath;
 
 	if (!lrpath.includes(`${SLASH}${LEFT_PAREN}`) && lrpath.includes(`${SLASH}:`)) {
 		lparams = true;
@@ -308,11 +339,16 @@ export function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 
 	validateRoutePattern(lrpath);
 
-	const current = mmethod.get(lrpath) ?? { handlers: [] };
+	const current = mmethod.get(lrpath) ?? { handlers: [], methods: [] };
 	current.handlers.push(...fn);
+	if (!current.methods.includes(method)) {
+		current.methods.push(method);
+	}
 	mmethod.set(lrpath, {
+		key: originalKey,
 		handlers: current.handlers,
 		params: lparams,
 		regex: new RegExp(`^${lrpath}$`),
+		methods: current.methods,
 	});
 }
