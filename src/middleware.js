@@ -6,7 +6,6 @@ import {
 	GET,
 	HEAD,
 	INT_0,
-	INT_1,
 	INT_NEG_1,
 	LEFT_PAREN,
 	NODE_METHODS,
@@ -34,13 +33,11 @@ export function reduce(uri, map = new Map(), arg = {}) {
 
 	const middlewareArray = arg.middleware;
 	let paramsFound = arg.params;
-	const entries = Array.from(map.entries());
-	const len = entries.length;
+	const values = Array.from(map.values());
+	const len = values.length;
 
 	for (let i = INT_0; i < len; i++) {
-		const entry = entries[i];
-		const middleware = entry[INT_1];
-		const mwKey = entry[INT_0];
+		const middleware = values[i];
 		middleware.regex.lastIndex = INT_0;
 
 		if (middleware.regex.test(uri)) {
@@ -60,24 +57,6 @@ export function reduce(uri, map = new Map(), arg = {}) {
 				arg.getParams = middleware.regex;
 				paramsFound = true;
 			}
-
-			if (arg.routePath === null) {
-				const keyStr = String(mwKey);
-				if (keyStr !== ".*" && keyStr !== "/.*") {
-					const routePath = middleware.originalPath || keyStr;
-					arg.routePath = routePath;
-				}
-			}
-
-			const entryMethods = middleware.methods;
-			if (entryMethods && entryMethods.length > INT_0) {
-				const routeMethods = arg.routeMethods;
-				for (let j = INT_0; j < entryMethods.length; j++) {
-					if (!routeMethods.includes(entryMethods[j])) {
-						routeMethods.push(entryMethods[j]);
-					}
-				}
-			}
 		}
 	}
 }
@@ -90,25 +69,24 @@ export function reduce(uri, map = new Map(), arg = {}) {
  * @param {boolean} [immediate=false] - Whether to execute immediately or on next tick
  * @returns {Function} The next function for middleware chain
  */
-export function next(req, res, middleware, immediate = false) {
+export function next(req, res, middleware, immediate = false, _middlewareArray) {
 	/**
 	 * Handles errors by finding error handler middleware
 	 * @param {Error} err - The error to handle
 	 * @param {Function} nextFn - Next function for chain
 	 */
 	const handleError = (err, nextFn) => {
-		let obj = middleware.next();
-
-		while (!obj.done && obj.value && obj.value.length !== ERROR_HANDLER_LENGTH) {
-			obj = middleware.next();
+		// Use array reference to iterate from the beginning, ensuring we find error handlers
+		const arr = _middlewareArray ? [..._middlewareArray] : [];
+		for (let i = INT_0; i < arr.length; i++) {
+			const item = arr[i];
+			if (item && item.length === ERROR_HANDLER_LENGTH) {
+				item(err, req, res, nextFn);
+				return;
+			}
 		}
-
-		if (!obj.done && obj.value && obj.value.length === ERROR_HANDLER_LENGTH) {
-			obj.value(err, req, res, nextFn);
-		} else {
-			const newStatus = getStatus(req, res);
-			res.error(newStatus, new Error(getStatusText(newStatus)));
-		}
+		const newStatus = getStatus(req, res);
+		res.error(newStatus, new Error(getStatusText(newStatus)));
 	};
 
 	/**
@@ -116,19 +94,18 @@ export function next(req, res, middleware, immediate = false) {
 	 * @param {Function} nextFn - Next function for chain
 	 */
 	const handleMiddleware = (nextFn) => {
-		if (res.headersSent) {
-			return;
-		}
-
 		const obj = middleware.next();
 
 		if (!obj.done) {
 			const value = obj.value;
 			if (typeof value === FUNCTION) {
-				if (value.length === ERROR_HANDLER_LENGTH) {
-					res.send(value);
-				} else {
-					value(req, res, nextFn);
+				// Skip error handlers during normal middleware flow
+				if (value.length !== ERROR_HANDLER_LENGTH) {
+					try {
+						value(req, res, execute);
+					} catch (err) {
+						handleError(err, execute);
+					}
 				}
 			} else {
 				res.send(value);
@@ -176,15 +153,7 @@ export function computeRoutes(middleware, ignored, uri, method, cache, override 
 	if (cached !== void 0) {
 		result = cached;
 	} else {
-		result = {
-			getParams: null,
-			middleware: [],
-			params: false,
-			visible: INT_0,
-			exit: INT_NEG_1,
-			routePath: null,
-			routeMethods: [],
-		};
+		result = { getParams: null, middleware: [], params: false, visible: INT_0, exit: INT_NEG_1 };
 		reduce(uri, middleware.get(WILDCARD) ?? new Map(), result);
 
 		if (method !== WILDCARD) {
@@ -339,16 +308,11 @@ export function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 
 	validateRoutePattern(lrpath);
 
-	const current = mmethod.get(lrpath) ?? { handlers: [], methods: [], originalPath: rpath };
+	const current = mmethod.get(lrpath) ?? { handlers: [] };
 	current.handlers.push(...fn);
-	if (!current.methods.includes(method)) {
-		current.methods.push(method);
-	}
 	mmethod.set(lrpath, {
 		handlers: current.handlers,
-		methods: current.methods,
 		params: lparams,
 		regex: new RegExp(`^${lrpath}$`),
-		originalPath: rpath,
 	});
 }

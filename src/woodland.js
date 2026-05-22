@@ -689,7 +689,7 @@ export class Woodland extends EventEmitter {
 		const middleware = result.middleware;
 		const exitIndex = result.exit;
 		req.exit = next(req, res, middleware.slice(exitIndex)[Symbol.iterator](), true);
-		next(req, res, middleware[Symbol.iterator]())();
+		next(req, res, middleware[Symbol.iterator](), false, middleware)();
 	}
 
 	/**

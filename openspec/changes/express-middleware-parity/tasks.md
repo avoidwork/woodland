@@ -42,7 +42,7 @@
 
 ## 7. Integration Tests with Real Express Middleware
 
-- [ ] 7.1 Add `helmet`, `cors`, `morgan`, `cookie-parser` as devDependencies in `package.json`
+- [x] 7.1 Add `helmet`, `cors`, `morgan`, `cookie-parser` as devDependencies in `package.json`
 - [ ] 7.2 Write integration test: Helmet middleware sets security headers on Woodland responses
 - [ ] 7.3 Write integration test: cors middleware sets Access-Control-Allow-Origin and handles OPTIONS
 - [ ] 7.4 Write integration test: cookie-parser parses Cookie header and populates `req.cookies`
