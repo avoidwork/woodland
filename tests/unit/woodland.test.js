@@ -931,4 +931,260 @@ describe("woodland", () => {
 			assert.strictEqual(headersSet["access-control-allow-headers"], "x-custom-header");
 		});
 	});
+
+	describe("express middleware compatibility", () => {
+		it("should set req.locals on request", () => {
+			const app = woodland();
+			app.get("/test", (req, res) => {
+				assert.ok(typeof req.locals === "object");
+				assert.strictEqual(Object.getPrototypeOf(req.locals), null);
+				res.send("ok");
+			});
+
+			const req = {
+				method: "GET",
+				headers: { host: "example.com" },
+				url: "/test",
+				socket: null,
+			};
+			const res = {
+				statusCode: 200,
+				headersSent: false,
+				setHeader: () => {},
+				set: () => {},
+				getHeader: () => void 0,
+				on: () => {},
+				removeHeader: () => {},
+				header: () => {},
+				writeHead: () => {},
+				end: () => {},
+			};
+
+			app.route(req, res);
+		});
+
+		it("should set req.path on request", () => {
+			const app = woodland();
+			app.get("/test", (req, res) => {
+				assert.strictEqual(req.path, "/test");
+				res.send("ok");
+			});
+
+			const req = {
+				method: "GET",
+				headers: { host: "example.com" },
+				url: "/test",
+				socket: null,
+			};
+			const res = {
+				statusCode: 200,
+				headersSent: false,
+				setHeader: () => {},
+				set: () => {},
+				getHeader: () => void 0,
+				on: () => {},
+				removeHeader: () => {},
+				header: () => {},
+				writeHead: () => {},
+				end: () => {},
+			};
+
+			app.route(req, res);
+		});
+
+		it("should set req.route with path and methods", () => {
+			const app = woodland();
+			app.get("/users/:id", (req, res) => {
+				assert.ok(req.route);
+				assert.ok(req.route.path);
+				assert.ok(Array.isArray(req.route.methods));
+				res.send("ok");
+			});
+
+			const req = {
+				method: "GET",
+				headers: { host: "example.com" },
+				url: "/users/123",
+				socket: null,
+			};
+			const res = {
+				statusCode: 200,
+				headersSent: false,
+				setHeader: () => {},
+				set: () => {},
+				getHeader: () => void 0,
+				on: () => {},
+				removeHeader: () => {},
+				header: () => {},
+				writeHead: () => {},
+				end: () => {},
+			};
+
+			app.route(req, res);
+		});
+
+		it("should have res.status() return res for chaining", async () => {
+			const app = woodland();
+			app.get("/test", (req, res) => {
+				const result = res.status(404);
+				assert.strictEqual(result.statusCode, 404);
+				assert.strictEqual(result, res);
+				res.send("not found");
+			});
+
+			const req = {
+				method: "GET",
+				headers: { host: "example.com" },
+				url: "/test",
+				socket: null,
+			};
+			const res = {
+				statusCode: 200,
+				headersSent: false,
+				setHeader: () => {},
+				set: () => {},
+				getHeader: () => void 0,
+				on: () => {},
+				removeHeader: () => {},
+				header: () => {},
+				writeHead: () => {},
+				end: () => {},
+			};
+
+			app.route(req, res);
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			assert.strictEqual(res.statusCode, 404);
+		});
+
+		it("should have res.json() return res for chaining", async () => {
+			const app = woodland();
+			let jsonCalled = false;
+			app.get("/test", (req, res) => {
+				const result = res.json({ foo: "bar" });
+				assert.strictEqual(result, res);
+				jsonCalled = true;
+			});
+
+			const req = {
+				method: "GET",
+				headers: { host: "example.com" },
+				url: "/test",
+				socket: null,
+			};
+			const res = {
+				statusCode: 200,
+				headersSent: false,
+				setHeader: () => {},
+				set: () => {},
+				getHeader: () => void 0,
+				on: () => {},
+				removeHeader: () => {},
+				header: () => {},
+				writeHead: () => {},
+				end: () => {},
+			};
+
+			app.route(req, res);
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			assert.strictEqual(jsonCalled, true);
+		});
+
+		it("should have res.redirect() return res for chaining", async () => {
+			const app = woodland();
+			let redirectCalled = false;
+			app.get("/test", (req, res) => {
+				const result = res.redirect("/other");
+				assert.strictEqual(result, res);
+				redirectCalled = true;
+			});
+
+			const req = {
+				method: "GET",
+				headers: { host: "example.com" },
+				url: "/test",
+				socket: null,
+			};
+			const res = {
+				statusCode: 307,
+				headersSent: false,
+				setHeader: () => {},
+				set: () => {},
+				getHeader: () => void 0,
+				on: () => {},
+				removeHeader: () => {},
+				header: () => {},
+				writeHead: () => {},
+				end: () => {},
+			};
+
+			app.route(req, res);
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			assert.strictEqual(redirectCalled, true);
+		});
+
+		it("should support req.locals data sharing between middleware", () => {
+			const app = woodland();
+			app.use("/test", (req, res, next) => {
+				req.locals.user = { id: 1, name: "test" };
+				next();
+			});
+			app.get("/test", (req, res) => {
+				assert.deepStrictEqual(req.locals.user, { id: 1, name: "test" });
+				res.send("ok");
+			});
+
+			const req = {
+				method: "GET",
+				headers: { host: "example.com" },
+				url: "/test",
+				socket: null,
+			};
+			const res = {
+				statusCode: 200,
+				headersSent: false,
+				setHeader: () => {},
+				set: () => {},
+				getHeader: () => void 0,
+				on: () => {},
+				removeHeader: () => {},
+				header: () => {},
+				writeHead: () => {},
+				end: () => {},
+			};
+
+			app.route(req, res);
+		});
+
+		it("should set correct req.route.path from middleware entry", async () => {
+			let routePath = null;
+			const app = woodland();
+			app.get("/users/:id", (req, res) => {
+				routePath = req.route.path;
+				res.send("ok");
+			});
+
+			const req = {
+				method: "GET",
+				headers: { host: "example.com" },
+				url: "/users/42",
+				socket: null,
+			};
+			const res = {
+				statusCode: 200,
+				headersSent: false,
+				setHeader: () => {},
+				set: () => {},
+				getHeader: () => void 0,
+				on: () => {},
+				removeHeader: () => {},
+				header: () => {},
+				writeHead: () => {},
+				end: () => {},
+			};
+
+			app.route(req, res);
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			assert.strictEqual(routePath, "/users/:id");
+		});
+	});
 });

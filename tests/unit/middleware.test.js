@@ -653,5 +653,193 @@ describe("middleware", () => {
 			assert.strictEqual(result, void 0);
 			assert.strictEqual(middleware.size, 0);
 		});
+
+		it("should store methods array on route entry", () => {
+			registerMiddleware(middleware, ignored, methods, "/test", () => {}, "GET");
+
+			const routeData = middleware.get("GET").get("/test");
+			assert.ok(Array.isArray(routeData.methods));
+			assert.ok(routeData.methods.includes("GET"));
+		});
+
+		it("should accumulate methods for same route path", () => {
+			registerMiddleware(middleware, ignored, methods, "/test", () => {}, "GET");
+			registerMiddleware(middleware, ignored, methods, "/test", () => {}, "POST");
+
+			const getRoute = middleware.get("GET").get("/test");
+			const postRoute = middleware.get("POST").get("/test");
+			assert.strictEqual(getRoute.methods[0], "GET");
+			assert.strictEqual(postRoute.methods[0], "POST");
+		});
+	});
+
+	describe("express middleware compatibility", () => {
+		it("should invoke 3-argument middleware with (req, res, next)", async () => {
+			let invokedWith = null;
+
+			const req = { allow: ["GET"], method: "GET" };
+			const res = { statusCode: 200, error: () => {}, send: () => {} };
+
+			let callCount = 0;
+			const middleware = {
+				next: () => {
+					callCount++;
+					if (callCount === 1) {
+						return {
+							done: false,
+							value: (r, s, n) => {
+								invokedWith = [r, s, n];
+								n();
+							},
+						};
+					}
+					return { done: true };
+				},
+			};
+
+			const fn = next(req, res, middleware, true);
+			fn();
+
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			assert.ok(invokedWith);
+			assert.strictEqual(invokedWith[0], req);
+			assert.strictEqual(invokedWith[1], res);
+			assert.strictEqual(typeof invokedWith[2], "function");
+		});
+
+		it("should invoke 4-argument middleware as error handler when error passed", async () => {
+			let errorInvoked = false;
+			let receivedError = null;
+
+			const req = { allow: ["GET"], method: "GET" };
+			const res = { statusCode: 500, error: () => {}, send: () => {} };
+
+			const middleware = {
+				next: () => {
+					return {
+						done: false,
+						value: (err, r, s, n) => {
+							errorInvoked = true;
+							receivedError = err;
+							n();
+						},
+					};
+				},
+			};
+
+			const fn = next(req, res, middleware, true);
+			const testError = new Error("boom");
+			fn(testError);
+
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			assert.ok(errorInvoked);
+			assert.strictEqual(receivedError, testError);
+		});
+
+		it("should skip 4-arg handlers during regular flow", async () => {
+			let errorSkipped = false;
+
+			const req = { allow: ["GET"], method: "GET" };
+			const res = { statusCode: 500, error: () => {}, send: () => {} };
+
+			let callCount = 0;
+			const middleware = {
+				next: () => {
+					callCount++;
+					if (callCount === 1) {
+						return {
+							done: false,
+							// 4-arg function should be skipped as error handler
+							value: (_err, _r, _s, _n) => {
+								errorSkipped = true;
+							},
+						};
+					}
+					return { done: true };
+				},
+			};
+
+			const fn = next(req, res, middleware, true);
+			fn();
+
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			assert.strictEqual(errorSkipped, false);
+		});
+
+		it("should skip 3-arg handlers when searching for error handler", async () => {
+			let errorFound = false;
+
+			const req = { allow: ["GET"], method: "GET" };
+			const res = { statusCode: 500, error: () => {}, send: () => {} };
+
+			let callCount = 0;
+			const middleware = {
+				next: () => {
+					callCount++;
+					if (callCount === 1) {
+						// 3-arg regular handler - should be skipped
+						return {
+							done: false,
+							value: (_r, _s, _n) => {},
+						};
+					}
+					if (callCount === 2) {
+						// 4-arg error handler - should be found
+						return {
+							done: false,
+							value: (err, r, s, n) => {
+								errorFound = true;
+								n();
+							},
+						};
+					}
+					return { done: true };
+				},
+			};
+
+			const fn = next(req, res, middleware, true);
+			fn(new Error("skip past regular"));
+
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			assert.ok(errorFound);
+		});
+
+		it("should be no-op when headers already sent", async () => {
+			const req = { allow: ["GET"], method: "GET" };
+			const res = { statusCode: 200, error: () => {}, send: () => {}, headersSent: true };
+
+			let handlerCalled = false;
+			const middleware = {
+				next: () => {
+					handlerCalled = true;
+					return { done: true };
+				},
+			};
+
+			const fn = next(req, res, middleware, true);
+			fn();
+
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			assert.strictEqual(handlerCalled, false);
+		});
+
+		it("should reduce with correct routePath and routeMethods", () => {
+			const mw = new Map();
+			const arg = { middleware: [], params: false, routePath: null, routeMethods: [] };
+
+			mw.set("/users/:id", {
+				key: "/users/:id",
+				regex: /^\/([^/]+)$/,
+				handlers: [() => {}],
+				params: true,
+				methods: ["GET"],
+			});
+
+			reduce("/123", mw, arg);
+
+			assert.strictEqual(arg.middleware.length, 1);
+			assert.strictEqual(arg.routePath, "/users/:id");
+			assert.ok(arg.routeMethods.includes("GET"));
+		});
 	});
 });

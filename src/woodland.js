@@ -71,6 +71,7 @@ import {
 	createRedirectHandler,
 	createSendHandler,
 	createSetHandler,
+	createSendFileHandler,
 	createStatusHandler,
 } from "./response.js";
 
@@ -352,6 +353,8 @@ export class Woodland extends EventEmitter {
 		req.body = EMPTY;
 		req.host = parsed.hostname;
 		req.params = {};
+		req.locals = Object.create(null);
+		req.path = parsed.pathname;
 		req.valid = true;
 		req.app = this;
 
@@ -399,6 +402,7 @@ export class Woodland extends EventEmitter {
 		res.redirect = createRedirectHandler(res);
 		res.send = createSendHandler(req, res, this.#onReady.bind(this), this.#onDone.bind(this));
 		res.set = createSetHandler(res);
+		res.sendFile = createSendFileHandler(res, createReadStream, this.#etags);
 		res.status = createStatusHandler(res);
 
 		res.set(headersBatch);
@@ -673,6 +677,13 @@ export class Woodland extends EventEmitter {
 
 		if (result.params) {
 			params(req, result.getParams);
+		}
+
+		if (result.routePath) {
+			req.route = {
+				path: result.routePath,
+				methods: result.routeMethods.map((m) => m.toLowerCase()),
+			};
 		}
 
 		const middleware = result.middleware;

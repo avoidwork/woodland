@@ -13,6 +13,8 @@ var woodland = require('woodland');
 var node_module = require('node:module');
 var node_path = require('node:path');
 var node_url = require('node:url');
+var node_fs = require('node:fs');
+var node_util = require('node:util');
 var mimeDb = require('mime-db');
 var tinyCoerce = require('tiny-coerce');
 
@@ -77,6 +79,7 @@ const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[INT_1]);
 		}
 		return a;
 	}, {});
+node_util.promisify(node_fs.stat);
 
 /**
  * Validates IPv4 address format

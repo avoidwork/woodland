@@ -126,7 +126,9 @@ export const NUMBER = "number";
 export const OBJECT = "object";
 export const STRING = "string";
 export const TYPE = "type";
+export const COMPAT_HANDLER_LENGTH = 2;
 export const ERROR_HANDLER_LENGTH = 4;
+export const REGULAR_HANDLER_LENGTH = 3;
 
 // =============================================================================
 // SERVER & SYSTEM INFO

@@ -16,6 +16,7 @@ var precise = require('precise');
 var node_module = require('node:module');
 var node_path = require('node:path');
 var node_url = require('node:url');
+var node_util = require('node:util');
 var mimeDb = require('mime-db');
 var tinyCoerce = require('tiny-coerce');
 var jsonschema = require('jsonschema');
@@ -297,6 +298,7 @@ const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[INT_1]),
 		}
 		return a;
 	}, {});
+const statPromise = node_util.promisify(node_fs.stat);
 
 /**
  * Parses range header value into start and end positions
@@ -755,7 +757,10 @@ function createJsonHandler(res) {
 		arg,
 		status = res.statusCode,
 		headers = { [CONTENT_TYPE]: `${APPLICATION_JSON}; charset=utf-8` },
-	) => json(res, arg, status, headers);
+	) => {
+		json(res, arg, status, headers);
+		return res;
+	};
 }
 
 /**
@@ -764,7 +769,10 @@ function createJsonHandler(res) {
  * @returns {Function} Redirect handler function
  */
 function createRedirectHandler(res) {
-	return (uri, perm = true) => redirect(res, uri, perm);
+	return (uri, perm = true) => {
+		redirect(res, uri, perm);
+		return res;
+	};
 }
 
 /**
@@ -795,7 +803,49 @@ function createSetHandler(res) {
  * @returns {Function} Status handler function
  */
 function createStatusHandler(res) {
-	return (arg = INT_200) => status(res, arg);
+	return (arg = INT_200) => {
+		status(res, arg);
+		return res;
+	};
+}
+
+/**
+ * Creates send file response handler
+ * @param {Object} res - Response object
+ * @param {Function} createReadStream - Stream factory function
+ * @param {Object} etags - ETag generator
+ * @returns {Function} Send file handler
+ */
+function createSendFileHandler(res, createReadStream, etags) {
+	return async (file) => {
+		try {
+			const stats = await statPromise(file);
+			const fileStat = stats;
+
+			const ext = node_path.extname(file);
+			const mimeType = ext in mimeExtensions ? mimeExtensions[ext].type : APPLICATION_OCTET_STREAM;
+
+			res.header(CONTENT_TYPE, mimeType);
+			res.header(CONTENT_LENGTH, fileStat.size);
+			res.header(LAST_MODIFIED, fileStat.mtime.toUTCString());
+
+			if (etags && fileStat.size > INT_0) {
+				const fileEtag = etags.create(`${file}${fileStat.mtime.getTime()}`);
+				if (fileEtag) {
+					res.header(ETAG, fileEtag);
+				}
+			}
+
+			res.send(createReadStream(file));
+		} catch (err) {
+			if (err.code === "ENOENT") {
+				res.status(INT_404);
+			} else {
+				res.status(INT_500);
+			}
+			res.send(node_http.STATUS_CODES[404]);
+		}
+	};
 }
 
 /**
@@ -1081,11 +1131,13 @@ function reduce(uri, map = new Map(), arg = {}) {
 
 	const middlewareArray = arg.middleware;
 	let paramsFound = arg.params;
-	const values = Array.from(map.values());
-	const len = values.length;
+	const entries = Array.from(map.entries());
+	const len = entries.length;
 
 	for (let i = INT_0; i < len; i++) {
-		const middleware = values[i];
+		const entry = entries[i];
+		const middleware = entry[INT_1];
+		const mwKey = entry[INT_0];
 		middleware.regex.lastIndex = INT_0;
 
 		if (middleware.regex.test(uri)) {
@@ -1104,6 +1156,24 @@ function reduce(uri, map = new Map(), arg = {}) {
 				arg.params = true;
 				arg.getParams = middleware.regex;
 				paramsFound = true;
+			}
+
+			if (arg.routePath === null) {
+				const keyStr = String(mwKey);
+				if (keyStr !== ".*" && keyStr !== "/.*") {
+					const routePath = middleware.originalPath || keyStr;
+					arg.routePath = routePath;
+				}
+			}
+
+			const entryMethods = middleware.methods;
+			if (entryMethods && entryMethods.length > INT_0) {
+				const routeMethods = arg.routeMethods;
+				for (let j = INT_0; j < entryMethods.length; j++) {
+					if (!routeMethods.includes(entryMethods[j])) {
+						routeMethods.push(entryMethods[j]);
+					}
+				}
 			}
 		}
 	}
@@ -1130,7 +1200,7 @@ function next(req, res, middleware, immediate = false) {
 			obj = middleware.next();
 		}
 
-		if (!obj.done && obj.value) {
+		if (!obj.done && obj.value && obj.value.length === ERROR_HANDLER_LENGTH) {
 			obj.value(err, req, res, nextFn);
 		} else {
 			const newStatus = getStatus(req, res);
@@ -1143,12 +1213,20 @@ function next(req, res, middleware, immediate = false) {
 	 * @param {Function} nextFn - Next function for chain
 	 */
 	const handleMiddleware = (nextFn) => {
+		if (res.headersSent) {
+			return;
+		}
+
 		const obj = middleware.next();
 
 		if (!obj.done) {
 			const value = obj.value;
 			if (typeof value === FUNCTION) {
-				value(req, res, nextFn);
+				if (value.length === ERROR_HANDLER_LENGTH) {
+					res.send(value);
+				} else {
+					value(req, res, nextFn);
+				}
 			} else {
 				res.send(value);
 			}
@@ -1195,7 +1273,15 @@ function computeRoutes(middleware, ignored, uri, method, cache, override = false
 	if (cached !== void 0) {
 		result = cached;
 	} else {
-		result = { getParams: null, middleware: [], params: false, visible: INT_0, exit: INT_NEG_1 };
+		result = {
+			getParams: null,
+			middleware: [],
+			params: false,
+			visible: INT_0,
+			exit: INT_NEG_1,
+			routePath: null,
+			routeMethods: [],
+		};
 		reduce(uri, middleware.get(WILDCARD) ?? new Map(), result);
 
 		if (method !== WILDCARD) {
@@ -1350,12 +1436,17 @@ function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 
 	validateRoutePattern(lrpath);
 
-	const current = mmethod.get(lrpath) ?? { handlers: [] };
+	const current = mmethod.get(lrpath) ?? { handlers: [], methods: []};
 	current.handlers.push(...fn);
+	if (!current.methods.includes(method)) {
+		current.methods.push(method);
+	}
 	mmethod.set(lrpath, {
 		handlers: current.handlers,
+		methods: current.methods,
 		params: lparams,
 		regex: new RegExp(`^${lrpath}$`),
+		originalPath: rpath,
 	});
 }
 
@@ -2148,6 +2239,8 @@ class Woodland extends node_events.EventEmitter {
 		req.body = EMPTY;
 		req.host = parsed.hostname;
 		req.params = {};
+		req.locals = Object.create(null);
+		req.path = parsed.pathname;
 		req.valid = true;
 		req.app = this;
 
@@ -2195,6 +2288,7 @@ class Woodland extends node_events.EventEmitter {
 		res.redirect = createRedirectHandler(res);
 		res.send = createSendHandler(req, res, this.#onReady.bind(this), this.#onDone.bind(this));
 		res.set = createSetHandler(res);
+		res.sendFile = createSendFileHandler(res, node_fs.createReadStream, this.#etags);
 		res.status = createStatusHandler(res);
 
 		res.set(headersBatch);
@@ -2469,6 +2563,13 @@ class Woodland extends node_events.EventEmitter {
 
 		if (result.params) {
 			params(req, result.getParams);
+		}
+
+		if (result.routePath) {
+			req.route = {
+				path: result.routePath,
+				methods: result.routeMethods.map((m) => m.toLowerCase()),
+			};
 		}
 
 		const middleware = result.middleware;

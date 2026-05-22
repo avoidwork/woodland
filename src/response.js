@@ -1,5 +1,7 @@
 import { extname } from "node:path";
 import { STATUS_CODES } from "node:http";
+import { stat } from "node:fs";
+import { promisify } from "node:util";
 import mimeDb from "mime-db";
 import {
 	APPLICATION_JSON,
@@ -59,6 +61,7 @@ const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[INT_1]),
 		}
 		return a;
 	}, {});
+const statPromise = promisify(stat);
 
 /**
  * Parses range header value into start and end positions
@@ -517,7 +520,10 @@ export function createJsonHandler(res) {
 		arg,
 		status = res.statusCode,
 		headers = { [CONTENT_TYPE]: `${APPLICATION_JSON}; charset=utf-8` },
-	) => json(res, arg, status, headers);
+	) => {
+		json(res, arg, status, headers);
+		return res;
+	};
 }
 
 /**
@@ -526,7 +532,10 @@ export function createJsonHandler(res) {
  * @returns {Function} Redirect handler function
  */
 export function createRedirectHandler(res) {
-	return (uri, perm = true) => redirect(res, uri, perm);
+	return (uri, perm = true) => {
+		redirect(res, uri, perm);
+		return res;
+	};
 }
 
 /**
@@ -557,5 +566,47 @@ export function createSetHandler(res) {
  * @returns {Function} Status handler function
  */
 export function createStatusHandler(res) {
-	return (arg = INT_200) => status(res, arg);
+	return (arg = INT_200) => {
+		status(res, arg);
+		return res;
+	};
+}
+
+/**
+ * Creates send file response handler
+ * @param {Object} res - Response object
+ * @param {Function} createReadStream - Stream factory function
+ * @param {Object} etags - ETag generator
+ * @returns {Function} Send file handler
+ */
+export function createSendFileHandler(res, createReadStream, etags) {
+	return async (file) => {
+		try {
+			const stats = await statPromise(file);
+			const fileStat = stats;
+
+			const ext = extname(file);
+			const mimeType = ext in mimeExtensions ? mimeExtensions[ext].type : APPLICATION_OCTET_STREAM;
+
+			res.header(CONTENT_TYPE, mimeType);
+			res.header(CONTENT_LENGTH, fileStat.size);
+			res.header(LAST_MODIFIED, fileStat.mtime.toUTCString());
+
+			if (etags && fileStat.size > INT_0) {
+				const fileEtag = etags.create(`${file}${fileStat.mtime.getTime()}`);
+				if (fileEtag) {
+					res.header(ETAG, fileEtag);
+				}
+			}
+
+			res.send(createReadStream(file));
+		} catch (err) {
+			if (err.code === "ENOENT") {
+				res.status(INT_404);
+			} else {
+				res.status(INT_500);
+			}
+			res.send(STATUS_CODES[404]);
+		}
+	};
 }
