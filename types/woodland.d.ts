@@ -35,6 +35,43 @@ export interface RouteInfo {
 	middleware: Function[];
 	exit: number;
 	visible: number;
+	routePath?: string | null;
+	routeMethods?: string[];
+}
+
+export interface Route {
+	path: string;
+	methods: string[];
+}
+
+export interface WoodlandRequest {
+	corsHost: boolean;
+	cors: boolean;
+	parsed: URL;
+	ip: string;
+	body: string;
+	host: string;
+	params: Record<string, any>;
+	local: Record<string, any>;
+	path: string;
+	allow: string;
+	valid: boolean;
+	app: Woodland | null;
+	route?: Route;
+}
+
+export interface WoodlandResponse {
+	local: Record<string, any>;
+	error: (status?: number, body?: string | Error) => void;
+	header(name: string, value: string | number): void;
+	json<T>(arg: T, status?: number, headers?: Record<string, string>): this;
+	redirect(uri: string, perm?: boolean): this;
+	send(body?: string | Buffer | null, status?: number, headers?: Record<string, string>): void;
+	set(arg?: Record<string, string>): this;
+	status(code: number): this;
+	sendFile(path: string): void;
+	writeHead(statusCode: number, headers?: Record<string, string>): void;
+	end(chunk?: string): void;
 }
 
 export class Woodland extends EventEmitter {
