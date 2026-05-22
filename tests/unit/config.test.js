@@ -57,6 +57,8 @@ describe("config", () => {
 
 	describe("validateLogging", () => {
 		it("should return defaults for empty logging config", () => {
+			delete process.env.WOODLAND_LOG_ENABLED;
+
 			const result = validateLogging();
 
 			assert.strictEqual(result.enabled, true);
