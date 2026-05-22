@@ -1131,13 +1131,11 @@ function reduce(uri, map = new Map(), arg = {}) {
 
 	const middlewareArray = arg.middleware;
 	let paramsFound = arg.params;
-	const entries = Array.from(map.entries());
-	const len = entries.length;
+	const values = Array.from(map.values());
+	const len = values.length;
 
 	for (let i = INT_0; i < len; i++) {
-		const entry = entries[i];
-		const middleware = entry[INT_1];
-		const mwKey = entry[INT_0];
+		const middleware = values[i];
 		middleware.regex.lastIndex = INT_0;
 
 		if (middleware.regex.test(uri)) {
@@ -1158,20 +1156,11 @@ function reduce(uri, map = new Map(), arg = {}) {
 				paramsFound = true;
 			}
 
-			if (arg.routePath === null) {
-				const keyStr = String(mwKey);
-				if (keyStr !== ".*" && keyStr !== "/.*") {
-					const routePath = middleware.originalPath || keyStr;
-					arg.routePath = routePath;
-				}
-			}
-
-			const entryMethods = middleware.methods;
-			if (entryMethods && entryMethods.length > INT_0) {
-				const routeMethods = arg.routeMethods;
-				for (let j = INT_0; j < entryMethods.length; j++) {
-					if (!routeMethods.includes(entryMethods[j])) {
-						routeMethods.push(entryMethods[j]);
+			arg.routePath = middleware.key;
+			if (middleware.methods && middleware.methods.length > INT_0) {
+				for (let j = INT_0; j < middleware.methods.length; j++) {
+					if (!arg.routeMethods.includes(middleware.methods[j])) {
+						arg.routeMethods.push(middleware.methods[j]);
 					}
 				}
 			}
@@ -1187,33 +1176,45 @@ function reduce(uri, map = new Map(), arg = {}) {
  * @param {boolean} [immediate=false] - Whether to execute immediately or on next tick
  * @returns {Function} The next function for middleware chain
  */
-function next(req, res, middleware, immediate = false) {
+function next(req, res, middleware, immediate = false, _middlewareArray) {
 	/**
 	 * Handles errors by finding error handler middleware
 	 * @param {Error} err - The error to handle
 	 * @param {Function} nextFn - Next function for chain
 	 */
 	const handleError = (err, nextFn) => {
-		let obj = middleware.next();
-
-		while (!obj.done && obj.value && obj.value.length !== ERROR_HANDLER_LENGTH) {
-			obj = middleware.next();
-		}
-
-		if (!obj.done && obj.value && obj.value.length === ERROR_HANDLER_LENGTH) {
-			obj.value(err, req, res, nextFn);
+		if (_middlewareArray && _middlewareArray.length > INT_0) {
+			for (let i = INT_0; i < _middlewareArray.length; i++) {
+				const item = _middlewareArray[i];
+				if (item && item.length === ERROR_HANDLER_LENGTH) {
+					item(err, req, res, nextFn);
+					return;
+				}
+			}
 		} else {
-			const newStatus = getStatus(req, res);
-			res.error(newStatus, new Error(getStatusText(newStatus)));
+			let obj = middleware.next();
+			console.error("  iterator first obj: done=", obj.done, "len=", obj.value?.length);
+			while (!obj.done && obj.value && obj.value.length !== ERROR_HANDLER_LENGTH) {
+				console.error("  skipped handler len=", obj.value.length);
+				obj = middleware.next();
+			}
+			console.error("  after loop obj: done=", obj.done, "len=", obj.value?.length);
+			if (!obj.done && obj.value && obj.value.length === ERROR_HANDLER_LENGTH) {
+				console.error("  invoking error handler from iterator");
+				obj.value(err, req, res, nextFn);
+				return;
+			}
 		}
+		const newStatus = getStatus(req, res);
+		res.error(newStatus, new Error(getStatusText(newStatus)));
 	};
 
 	/**
 	 * Handles regular middleware execution
 	 * @param {Function} nextFn - Next function for chain
 	 */
-	const handleMiddleware = (nextFn) => {
-		if (res.headersSent) {
+	const handleMiddleware = (nextFn, _skipCount = INT_0) => {
+		if (res.headersSent || _skipCount > 5) {
 			return;
 		}
 
@@ -1222,10 +1223,17 @@ function next(req, res, middleware, immediate = false) {
 		if (!obj.done) {
 			const value = obj.value;
 			if (typeof value === FUNCTION) {
-				if (value.length === ERROR_HANDLER_LENGTH) {
-					res.send(value);
+				// Skip error handlers during normal middleware flow
+				if (value.length !== ERROR_HANDLER_LENGTH) {
+					try {
+						value(req, res, execute);
+					} catch (err) {
+						handleError(err, execute);
+					}
 				} else {
-					value(req, res, nextFn);
+					// Skip error handler and continue chain
+					handleMiddleware(execute, _skipCount + 1);
+					return;
 				}
 			} else {
 				res.send(value);
@@ -1248,7 +1256,7 @@ function next(req, res, middleware, immediate = false) {
 			}
 			handleError(err, execute);
 		} else {
-			handleMiddleware(execute);
+			handleMiddleware();
 		}
 	};
 
@@ -1428,6 +1436,7 @@ function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 	const mmethod = middleware.get(method);
 	let lrpath = rpath,
 		lparams = false;
+	const originalKey = lrpath;
 
 	if (!lrpath.includes(`${SLASH}${LEFT_PAREN}`) && lrpath.includes(`${SLASH}:`)) {
 		lparams = true;
@@ -1436,17 +1445,17 @@ function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 
 	validateRoutePattern(lrpath);
 
-	const current = mmethod.get(lrpath) ?? { handlers: [], methods: []};
+	const current = mmethod.get(lrpath) ?? { handlers: [], methods: [] };
 	current.handlers.push(...fn);
 	if (!current.methods.includes(method)) {
 		current.methods.push(method);
 	}
 	mmethod.set(lrpath, {
+		key: originalKey,
 		handlers: current.handlers,
-		methods: current.methods,
 		params: lparams,
 		regex: new RegExp(`^${lrpath}$`),
-		originalPath: rpath,
+		methods: current.methods,
 	});
 }
 
@@ -2575,7 +2584,7 @@ class Woodland extends node_events.EventEmitter {
 		const middleware = result.middleware;
 		const exitIndex = result.exit;
 		req.exit = next(req, res, middleware.slice(exitIndex)[Symbol.iterator](), true);
-		next(req, res, middleware[Symbol.iterator]())();
+		next(req, res, middleware[Symbol.iterator](), false, middleware)();
 	}
 
 	/**
