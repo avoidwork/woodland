@@ -52,12 +52,12 @@
 
 ## 8. Type Definitions Update
 
-- [ ] 8.1 Update `types/woodland.d.ts` to include `req.locals`, `req.route`, `req.path`, `req.cookies` properties
-- [ ] 8.2 Update `types/woodland.d.ts` to include `res.status()`, `res.json()`, `res.redirect()`, `res.sendFile()` method signatures
-- [ ] 8.3 Update `types/woodland.d.ts` to define middleware types with Express-compatible signatures
+- [x] 8.1 Update `types/woodland.d.ts` to include `req.locals`, `req.route`, `req.path`, `req.cookies` properties
+- [x] 8.2 Update `types/woodland.d.ts` to include `res.status()`, `res.json()`, `res.redirect()`, `res.sendFile()` method signatures
+- [x] 8.3 Update `types/woodland.d.ts` to define middleware types with Express-compatible signatures
 
 ## 9. Final Validation
 
-- [ ] 9.1 Run `npm test` and verify all 335+ tests pass with 100% line coverage maintained
-- [ ] 9.2 Run `npm run build` to verify dist files generate successfully
-- [ ] 9.3 Verify no regressions in existing Woodland middleware behavior (file server, CORS config, body parsing)
+- [x] 9.1 Run `npm test` and verify all 335+ tests pass with 100% line coverage maintained
+- [x] 9.2 Run `npm run build` to verify dist files generate successfully
+- [x] 9.3 Verify no regressions in existing Woodland middleware behavior (file server, CORS config, body parsing)
