@@ -1,35 +1,29 @@
 import assert from "node:assert";
 import { createServer } from "node:http";
-import { describe, it, after } from "node:test";
+import { describe, it, afterEach } from "node:test";
 import { woodland } from "../../src/woodland.js";
 
-let server;
-let baseUrl;
-
-const setupServer = (app) => {
-	return new Promise((resolve) => {
-		server = createServer(app.route);
-		server.listen(0, "127.0.0.1", () => {
-			const address = server.address();
-			baseUrl = `http://${address.address}:${address.port}`;
-			resolve();
-		});
-	});
-};
-
-const teardown = () => {
-	return new Promise((resolve) => {
-		if (server) {
-			server.close(resolve);
-		} else {
-			resolve();
-		}
-	});
-};
-
 describe("express middleware integration", () => {
-	after(async () => {
-		await teardown();
+	let server = null;
+	let baseUrl = null;
+
+	const setupServer = (app) => {
+		return new Promise((resolve) => {
+			server = createServer(app.route);
+			server.listen(0, "127.0.0.1", () => {
+				const address = server.address();
+				baseUrl = `http://${address.address}:${address.port}`;
+				resolve();
+			});
+		});
+	};
+
+	afterEach(async () => {
+		if (server) {
+			await new Promise((resolve) => server.close(resolve));
+			server = null;
+			baseUrl = null;
+		}
 	});
 
 	it("helmet middleware sets security headers on Woodland responses", async () => {
@@ -58,7 +52,8 @@ describe("express middleware integration", () => {
 			}
 		}
 
-		await teardown();
+		// Small wait for server connection to drain before cleanup
+		await new Promise((resolve) => setTimeout(resolve, 10));
 	});
 
 	it("cors middleware sets Access-Control-Allow-Origin and handles OPTIONS", { timeout: 5000 }, async () => {
@@ -74,6 +69,7 @@ describe("express middleware integration", () => {
 				Origin: "https://example.com",
 			},
 		});
+
 		assert.strictEqual(getResponse.status, 200);
 		// Woodland's built-in CORS middleware runs via always() — visible in response headers
 		// but excluded from route middleware since it's used for Allow header calculation
@@ -83,8 +79,6 @@ describe("express middleware integration", () => {
 				|| getResponse.headers.get("access-control-expose-headers"),
 			"CORS headers should be present",
 		);
-
-		await teardown();
 	});
 
 	it("cookie-parser parses Cookie header and populates req.cookies", async () => {
@@ -111,7 +105,8 @@ describe("express middleware integration", () => {
 		assert.strictEqual(parsed.session, "abc123");
 		assert.strictEqual(parsed.theme, "dark");
 
-		await teardown();
+		// Small wait for server connection to drain before cleanup
+		await new Promise((resolve) => setTimeout(resolve, 10));
 	});
 
 	it("morgan middleware logs request to console stream", { timeout: 5000 }, async () => {
@@ -144,7 +139,8 @@ describe("express middleware integration", () => {
 			"Log should contain method or path",
 		);
 
-		await teardown();
+		// Small wait for server connection to drain before cleanup
+		await new Promise((resolve) => setTimeout(resolve, 10));
 	});
 
 	it("Express middleware error throwing bubbles to 4-arg error handler", async () => {
@@ -170,7 +166,8 @@ describe("express middleware integration", () => {
 		assert.ok(body.includes("middleware throw test"), "Error message should be in response");
 		assert.strictEqual(errorHandled, true, "Error handler should have been called");
 
-		await teardown();
+		// Small wait for server connection to drain before cleanup
+		await new Promise((resolve) => setTimeout(resolve, 10));
 	});
 
 	it("Express middleware next(err) propagates error past non-error handlers", async () => {
@@ -199,6 +196,7 @@ describe("express middleware integration", () => {
 		assert.strictEqual(regularCalled, true, "Regular middleware should have been called");
 		assert.strictEqual(errorHandled, true, "Error handler should have been called");
 
-		await teardown();
+		// Small wait for server connection to drain before cleanup
+		await new Promise((resolve) => setTimeout(resolve, 10));
 	});
 });
