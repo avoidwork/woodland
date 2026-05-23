@@ -43,10 +43,11 @@ Conventions and standards for the Woodland HTTP framework codebase.
 - **Single quotes** (`'`) for strings in code
 - **Template literals** for string interpolation
 - Example:
+
   ```javascript
   import { woodland } from "woodland";
 
-  const message = 'Hello World';
+  const message = "Hello World";
   const greeting = `Welcome, ${name}!`;
   ```
 
@@ -62,33 +63,34 @@ Conventions and standards for the Woodland HTTP framework codebase.
 - **Forbidden**: Raw string literals ("function", "/", etc.)
 - **Required**: Use constants from `constants.js`
 - Example:
+
   ```javascript
   // Good
   if (count === INT_0) {
-    return EMPTY;
+  	return EMPTY;
   }
 
   for (let i = INT_0; i < length; i++) {
-    process(items[i]);
+  	process(items[i]);
   }
 
   if (typeof fn === FUNCTION) {
-    fn();
+  	fn();
   }
 
   const first = array[INT_0];
 
   // Bad
   if (count === 0) {
-    return "";
+  	return "";
   }
 
   for (let i = 0; i < length; i++) {
-    process(items[i]);
+  	process(items[i]);
   }
 
   if (typeof fn === "function") {
-    fn();
+  	fn();
   }
 
   const first = array[0];
@@ -100,7 +102,7 @@ Conventions and standards for the Woodland HTTP framework codebase.
 - Example:
   ```javascript
   app.get("/test", (req, res, _next) => {
-    res.json({ ok: true });
+  	res.json({ ok: true });
   });
   ```
 
@@ -149,15 +151,15 @@ All internal state uses ES2022 private fields:
 
 ```javascript
 class Woodland extends EventEmitter {
-  #cache;
-  #logger;
-  #middleware;
+	#cache;
+	#logger;
+	#middleware;
 
-  constructor(config) {
-    super();
-    this.#cache = lru(1000, 10000);
-    this.#logger = createLogger(config.logging);
-  }
+	constructor(config) {
+		super();
+		this.#cache = lru(1000, 10000);
+		this.#logger = createLogger(config.logging);
+	}
 }
 ```
 
@@ -167,16 +169,16 @@ Use factories for object creation:
 
 ```javascript
 export function createLogger(config) {
-  return Object.freeze({
-    log: (msg) => console.log(msg),
-  });
+	return Object.freeze({
+		log: (msg) => console.log(msg),
+	});
 }
 
 export function createMiddlewareRegistry(methods, cache) {
-  return {
-    register: (path, ...fn) => {},
-    allowed: (method, uri) => {},
-  };
+	return {
+		register: (path, ...fn) => {},
+		allowed: (method, uri) => {},
+	};
 }
 ```
 
@@ -213,7 +215,7 @@ Prefer `for` loops in hot paths:
 // Preferred - with constants and cached length
 const itemCount = array.length;
 for (let i = INT_0; i < itemCount; i++) {
-  const item = array[i];
+	const item = array[i];
 }
 
 // Avoid in hot paths
@@ -229,12 +231,12 @@ Cache `.length` lookups in loop conditions for better performance:
 // Good - cached length
 const entryCount = entries.length;
 for (let i = INT_0; i < entryCount; i++) {
-  const [key, value] = entries[i];
+	const [key, value] = entries[i];
 }
 
 // Bad - length accessed on every iteration
 for (let i = INT_0; i < entries.length; i++) {
-  const [key, value] = entries[i];
+	const [key, value] = entries[i];
 }
 ```
 
@@ -281,16 +283,16 @@ Always validate file paths with boundary checks:
 ```javascript
 const resolvedFolder = resolve(folder);
 const isWithin =
-  fp === resolvedFolder ||
-  (fp.startsWith(resolvedFolder) && fp[resolvedFolder.length] === sep);
+	fp === resolvedFolder || (fp.startsWith(resolvedFolder) && fp[resolvedFolder.length] === sep);
 
 if (!isWithin) {
-  res.error(INT_403);
-  return;
+	res.error(INT_403);
+	return;
 }
 ```
 
 **Key points**:
+
 - Use `path.sep` for cross-platform compatibility
 - Check boundary character, not just `startsWith`
 - Handle exact matches (`fp === resolvedFolder`)
@@ -313,7 +315,7 @@ Empty origins array = deny all:
 
 ```javascript
 if (origins.size === INT_0) {
-  return false; // Deny CORS
+	return false; // Deny CORS
 }
 ```
 
@@ -323,7 +325,7 @@ Validate IPs before use:
 
 ```javascript
 if (!isValidIP(ip)) {
-  return fallbackIP;
+	return fallbackIP;
 }
 ```
 
@@ -347,16 +349,17 @@ import { describe, it } from "node:test";
 import assert from "node:assert";
 
 describe("module", () => {
-  it("should do something", async () => {
-    const result = await someFunction();
-    assert.strictEqual(result, expected);
-  });
+	it("should do something", async () => {
+		const result = await someFunction();
+		assert.strictEqual(result, expected);
+	});
 });
 ```
 
 ### Mock Requirements
 
 For HTTP tests, mock responses must include:
+
 - `send()`, `json()`, `end()`, `pipe()`, `on()`, `emit()` methods
 - `socket.server._connectionKey` for CORS/IP extraction
 - Destroy file streams to prevent EMFILE errors
@@ -370,6 +373,7 @@ For HTTP tests, mock responses must include:
 ### Test Edge Cases
 
 Always test:
+
 - Path traversal: `../../../etc/passwd`
 - Sibling bypass: `../public2/file.txt`
 - Boundary conditions: exact matches vs. prefix matches
@@ -390,7 +394,7 @@ All public functions and classes:
  * @returns {Woodland} New Woodland instance
  */
 export function woodland(config = {}) {
-  return new Woodland(config);
+	return new Woodland(config);
 }
 ```
 
@@ -434,8 +438,7 @@ Use sparingly, only for complex logic:
 // Path traversal protection: ensure fp is within resolvedFolder
 // Must match exactly or be a subdirectory (not a sibling)
 const isWithin =
-  fp === resolvedFolder ||
-  (fp.startsWith(resolvedFolder) && fp[resolvedFolder.length] === sep);
+	fp === resolvedFolder || (fp.startsWith(resolvedFolder) && fp[resolvedFolder.length] === sep);
 ```
 
 **Note**: Don't duplicate code in comments - let the code speak for itself when possible.
@@ -472,4 +475,4 @@ npm run coverage  # Verify 100% line coverage
 
 ---
 
-*Last updated: April 2026*
+_Last updated: April 2026_

@@ -124,7 +124,7 @@ app.get("/health", (req, res) => {
 
 ```javascript
 const app = woodland({
-  origins: ["https://myapp.com", "http://localhost:3000"],
+	origins: ["https://myapp.com", "http://localhost:3000"],
 });
 // Woodland handles preflight OPTIONS automatically
 ```
@@ -163,13 +163,12 @@ Set `app.error` to intercept all unhandled errors before the error middleware ch
 const app = woodland();
 
 app.error = (err, _req, res) => {
-  console.error("Unhandled error:", err);
-  res.status(500).send("Internal server error");
+	console.error("Unhandled error:", err);
+	res.status(500).send("Internal server error");
 };
 ```
 
 The handler receives 3 arguments `(err, req, res)` and must terminate the request itself. When set, the error middleware chain is skipped.
-
 
 ## Configuration
 
@@ -206,15 +205,15 @@ res.clearCookie("session");
 ## Request Properties
 
 ```javascript
-req.ip;         // Client IP address
-req.params;     // URL parameters { id: "123" }
-req.parsed;     // URL object
-req.allow;      // Allowed methods
-req.cors;       // CORS enabled
-req.body;       // Request body
-req.host;       // Hostname
-req.valid;      // Request validity
-req.app;        // Woodland application instance (provides access to app.error)
+req.ip; // Client IP address
+req.params; // URL parameters { id: "123" }
+req.parsed; // URL object
+req.allow; // Allowed methods
+req.cors; // CORS enabled
+req.body; // Request body
+req.host; // Hostname
+req.valid; // Request validity
+req.app; // Woodland application instance (provides access to app.error)
 ```
 
 ## Event Handlers
@@ -289,11 +288,11 @@ npm run lint          # Check linting
 
 Woodland delivers **enterprise-grade security without sacrificing performance**. Security features add minimal overhead.
 
-| Framework | Security Approach | Mean Response Time |
-|-----------|------------------|-------------------|
-| Fastify | Requires plugins | 0.1491ms |
-| **Woodland** | **Built-in** | **0.1866ms** |
-| Express | Requires middleware | 0.1956ms |
+| Framework    | Security Approach   | Mean Response Time |
+| ------------ | ------------------- | ------------------ |
+| Fastify      | Requires plugins    | 0.1491ms           |
+| **Woodland** | **Built-in**        | **0.1866ms**       |
+| Express      | Requires middleware | 0.1956ms           |
 
 ## Security
 
@@ -316,8 +315,8 @@ import rateLimit from "express-rate-limit";
 app.always(helmet());
 app.always(
 	rateLimit({
-		windowMs: 15 * 60 * 1000,  // 15 minutes
-		max: 100,                   // Limit each IP to 100 requests
+		windowMs: 15 * 60 * 1000, // 15 minutes
+		max: 100, // Limit each IP to 100 requests
 		standardHeaders: true,
 		legacyHeaders: false,
 	}),
@@ -325,6 +324,7 @@ app.always(
 ```
 
 **Security Warning:**
+
 > ⚠️ **Production Deployment**: Always use a reverse proxy (nginx, Cloudflare) in production for SSL/TLS termination, DDoS protection, and additional security layers.
 
 ## License

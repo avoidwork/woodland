@@ -24,9 +24,9 @@ API documentation for `src/woodland.js` - the core HTTP server framework.
 
 Creates a new Woodland instance. Binds the `route` method to the instance.
 
-| Parameter | Type | Default | Optional | Description |
-|-----------|------|---------|----------|-------------|
-| `arg` | `Object` | `{}` | **Yes** | Configuration object |
+| Parameter | Type     | Default | Optional | Description          |
+| --------- | -------- | ------- | -------- | -------------------- |
+| `arg`     | `Object` | `{}`    | **Yes**  | Configuration object |
 
 **Returns:** `Woodland` - New Woodland instance
 
@@ -39,37 +39,38 @@ Extends `EventEmitter`. Main framework class for creating HTTP servers.
 ### Constructor
 
 ```javascript
-new Woodland(config = {})
+new Woodland((config = {}));
 ```
 
 Creates a new Woodland instance with optional configuration.
 
-| Parameter | Type | Default | Optional | Description |
-|-----------|------|---------|----------|-------------|
-| `config` | `Object` | `{}` | **Yes** | Configuration object |
+| Parameter | Type     | Default | Optional | Description          |
+| --------- | -------- | ------- | -------- | -------------------- |
+| `config`  | `Object` | `{}`    | **Yes**  | Configuration object |
 
 #### Config Options
 
-| Option | Type | Default | Optional | Description |
-|--------|------|---------|----------|-------------|
-| `autoIndex` | `boolean` | `false` | **Yes** | Enable automatic directory indexing |
-| `bodyLimit` | `number` | `10000000` | **Yes** | Maximum request body size in bytes (prevents DoS) |
-| `cacheSize` | `number` | `1000` | **Yes** | Size of internal cache |
-| `cacheTTL` | `number` | `10000` | **Yes** | Cache TTL in milliseconds |
-| `charset` | `string` | `'utf-8'` | **Yes** | Default charset |
-| `corsExpose` | `string` | `''` | **Yes** | CORS expose headers |
-| `defaultHeaders` | `Object` | `{}` | **Yes** | Default headers to set |
-| `digit` | `number` | `3` | **Yes** | Digit precision for timing |
-| `disableTrace` | `boolean` | `true` | **Yes** | Disable TRACE method (prevents XST attacks) |
-| `etags` | `boolean` | `true` | **Yes** | Enable ETags |
-| `exposeErrorMessages` | `boolean` | `false` | **Yes** | Expose internal error messages to clients |
-| `indexes` | `Array<string>` | `['index.htm','index.html']` | **Yes** | Index files to look for |
-| `logging` | `Object` | `{}` | **Yes** | Logging configuration |
-| `origins` | `Array<string>` | `[]` | **Yes** | Allowed CORS origins |
-| `silent` | `boolean` | `false` | **Yes** | Silent mode (disables server headers) |
-| `time` | `boolean` | `false` | **Yes** | Enable response time tracking |
+| Option                | Type            | Default                      | Optional | Description                                       |
+| --------------------- | --------------- | ---------------------------- | -------- | ------------------------------------------------- |
+| `autoIndex`           | `boolean`       | `false`                      | **Yes**  | Enable automatic directory indexing               |
+| `bodyLimit`           | `number`        | `10000000`                   | **Yes**  | Maximum request body size in bytes (prevents DoS) |
+| `cacheSize`           | `number`        | `1000`                       | **Yes**  | Size of internal cache                            |
+| `cacheTTL`            | `number`        | `10000`                      | **Yes**  | Cache TTL in milliseconds                         |
+| `charset`             | `string`        | `'utf-8'`                    | **Yes**  | Default charset                                   |
+| `corsExpose`          | `string`        | `''`                         | **Yes**  | CORS expose headers                               |
+| `defaultHeaders`      | `Object`        | `{}`                         | **Yes**  | Default headers to set                            |
+| `digit`               | `number`        | `3`                          | **Yes**  | Digit precision for timing                        |
+| `disableTrace`        | `boolean`       | `true`                       | **Yes**  | Disable TRACE method (prevents XST attacks)       |
+| `etags`               | `boolean`       | `true`                       | **Yes**  | Enable ETags                                      |
+| `exposeErrorMessages` | `boolean`       | `false`                      | **Yes**  | Expose internal error messages to clients         |
+| `indexes`             | `Array<string>` | `['index.htm','index.html']` | **Yes**  | Index files to look for                           |
+| `logging`             | `Object`        | `{}`                         | **Yes**  | Logging configuration                             |
+| `origins`             | `Array<string>` | `[]`                         | **Yes**  | Allowed CORS origins                              |
+| `silent`              | `boolean`       | `false`                      | **Yes**  | Silent mode (disables server headers)             |
+| `time`                | `boolean`       | `false`                      | **Yes**  | Enable response time tracking                     |
 
 **Security Notes:**
+
 - `bodyLimit` defaults to 10MB to prevent denial-of-service via oversized request bodies
 - `disableTrace` defaults to `true` to prevent Cross-Site Tracing (XST) attacks
 - `exposeErrorMessages` defaults to `false` to prevent internal error message leakage
@@ -84,9 +85,9 @@ All route methods accept middleware functions and optionally a method type as th
 
 Registers wildcard middleware for all HTTP methods. Adds all arguments to ignored set before registering.
 
-| Parameter | Type | Optional | Description |
-|-----------|------|----------|-------------|
-| `...fn` | `Function` | No | Middleware function(s) |
+| Parameter | Type       | Optional | Description            |
+| --------- | ---------- | -------- | ---------------------- |
+| `...fn`   | `Function` | No       | Middleware function(s) |
 
 **Returns:** `Woodland` - Returns self for chaining
 
@@ -96,10 +97,10 @@ Registers wildcard middleware for all HTTP methods. Adds all arguments to ignore
 
 Registers CONNECT method middleware.
 
-| Parameter | Type | Optional | Description |
-|-----------|------|----------|-------------|
-| `rpath` | `string` | **Yes** | Route path |
-| `...fn` | `Function` | No | Middleware function(s) |
+| Parameter | Type       | Optional | Description            |
+| --------- | ---------- | -------- | ---------------------- |
+| `rpath`   | `string`   | **Yes**  | Route path             |
+| `...fn`   | `Function` | No       | Middleware function(s) |
 
 **Returns:** `Woodland` - Returns self for chaining
 
@@ -107,10 +108,10 @@ Registers CONNECT method middleware.
 
 Registers DELETE method middleware.
 
-| Parameter | Type | Optional | Description |
-|-----------|------|----------|-------------|
-| `rpath` | `string` | **Yes** | Route path |
-| `...fn` | `Function` | No | Middleware function(s) |
+| Parameter | Type       | Optional | Description            |
+| --------- | ---------- | -------- | ---------------------- |
+| `rpath`   | `string`   | **Yes**  | Route path             |
+| `...fn`   | `Function` | No       | Middleware function(s) |
 
 **Returns:** `Woodland` - Returns self for chaining
 
@@ -118,10 +119,10 @@ Registers DELETE method middleware.
 
 Registers GET method middleware.
 
-| Parameter | Type | Optional | Description |
-|-----------|------|----------|-------------|
-| `rpath` | `string` | **Yes** | Route path |
-| `...fn` | `Function` | No | Middleware function(s) |
+| Parameter | Type       | Optional | Description            |
+| --------- | ---------- | -------- | ---------------------- |
+| `rpath`   | `string`   | **Yes**  | Route path             |
+| `...fn`   | `Function` | No       | Middleware function(s) |
 
 **Returns:** `Woodland` - Returns self for chaining
 
@@ -129,10 +130,10 @@ Registers GET method middleware.
 
 Registers OPTIONS method middleware.
 
-| Parameter | Type | Optional | Description |
-|-----------|------|----------|-------------|
-| `rpath` | `string` | **Yes** | Route path |
-| `...fn` | `Function` | No | Middleware function(s) |
+| Parameter | Type       | Optional | Description            |
+| --------- | ---------- | -------- | ---------------------- |
+| `rpath`   | `string`   | **Yes**  | Route path             |
+| `...fn`   | `Function` | No       | Middleware function(s) |
 
 **Returns:** `Woodland` - Returns self for chaining
 
@@ -140,10 +141,10 @@ Registers OPTIONS method middleware.
 
 Registers PATCH method middleware.
 
-| Parameter | Type | Optional | Description |
-|-----------|------|----------|-------------|
-| `rpath` | `string` | **Yes** | Route path |
-| `...fn` | `Function` | No | Middleware function(s) |
+| Parameter | Type       | Optional | Description            |
+| --------- | ---------- | -------- | ---------------------- |
+| `rpath`   | `string`   | **Yes**  | Route path             |
+| `...fn`   | `Function` | No       | Middleware function(s) |
 
 **Returns:** `Woodland` - Returns self for chaining
 
@@ -151,10 +152,10 @@ Registers PATCH method middleware.
 
 Registers POST method middleware.
 
-| Parameter | Type | Optional | Description |
-|-----------|------|----------|-------------|
-| `rpath` | `string` | **Yes** | Route path |
-| `...fn` | `Function` | No | Middleware function(s) |
+| Parameter | Type       | Optional | Description            |
+| --------- | ---------- | -------- | ---------------------- |
+| `rpath`   | `string`   | **Yes**  | Route path             |
+| `...fn`   | `Function` | No       | Middleware function(s) |
 
 **Returns:** `Woodland` - Returns self for chaining
 
@@ -162,10 +163,10 @@ Registers POST method middleware.
 
 Registers PUT method middleware.
 
-| Parameter | Type | Optional | Description |
-|-----------|------|----------|-------------|
-| `rpath` | `string` | **Yes** | Route path |
-| `...fn` | `Function` | No | Middleware function(s) |
+| Parameter | Type       | Optional | Description            |
+| --------- | ---------- | -------- | ---------------------- |
+| `rpath`   | `string`   | **Yes**  | Route path             |
+| `...fn`   | `Function` | No       | Middleware function(s) |
 
 **Returns:** `Woodland` - Returns self for chaining
 
@@ -173,10 +174,10 @@ Registers PUT method middleware.
 
 Registers TRACE method middleware. **Disabled by default** due to XST (Cross-Site Tracing) vulnerability.
 
-| Parameter | Type | Optional | Description |
-|-----------|------|----------|-------------|
-| `rpath` | `string` | **Yes** | Route path |
-| `...fn` | `Function` | No | Middleware function(s) |
+| Parameter | Type       | Optional | Description            |
+| --------- | ---------- | -------- | ---------------------- |
+| `rpath`   | `string`   | **Yes**  | Route path             |
+| `...fn`   | `Function` | No       | Middleware function(s) |
 
 **Returns:** `Woodland` - Returns self for chaining (no-op when disabled)
 
@@ -190,9 +191,9 @@ Registers TRACE method middleware. **Disabled by default** due to XST (Cross-Sit
 
 Adds a middleware function to the ignored set. Ignored functions are excluded from route visibility counts.
 
-| Parameter | Type | Optional | Description |
-|-----------|------|----------|-------------|
-| `fn` | `Function` | No | Function to ignore |
+| Parameter | Type       | Optional | Description        |
+| --------- | ---------- | -------- | ------------------ |
+| `fn`      | `Function` | No       | Function to ignore |
 
 **Returns:** `Woodland` - Returns self for chaining
 
@@ -200,14 +201,15 @@ Adds a middleware function to the ignored set. Ignored functions are excluded fr
 
 Registers middleware for a route.
 
-| Parameter | Type | Default | Optional | Description |
-|-----------|------|---------|----------|-------------|
-| `rpath` | `string\|Function` | No | No | Route path or middleware function |
-| `...fn` | `Function` | No | No | Middleware function(s), last argument can be HTTP method string |
+| Parameter | Type               | Default | Optional | Description                                                     |
+| --------- | ------------------ | ------- | -------- | --------------------------------------------------------------- |
+| `rpath`   | `string\|Function` | No      | No       | Route path or middleware function                               |
+| `...fn`   | `Function`         | No      | No       | Middleware function(s), last argument can be HTTP method string |
 
 **Returns:** `Woodland` - Returns self for chaining
 
 **Notes:**
+
 - If `rpath` is a function, it is treated as middleware without a specific path
 - The last argument in `fn` array is used as the HTTP method (defaults to `'GET'` in middleware registry)
 - Middleware can be chained for multiple handlers on the same route
@@ -221,10 +223,10 @@ Registers middleware for a route.
 
 Registers file server middleware for serving static files.
 
-| Parameter | Type | Default | Optional | Description |
-|-----------|------|---------|----------|-------------|
-| `root` | `string` | `'/'` | **Yes** | Root path to mount the file server |
-| `folder` | `string` | `process.cwd()` | **Yes** | Folder to serve files from |
+| Parameter | Type     | Default         | Optional | Description                        |
+| --------- | -------- | --------------- | -------- | ---------------------------------- |
+| `root`    | `string` | `'/'`           | **Yes**  | Root path to mount the file server |
+| `folder`  | `string` | `process.cwd()` | **Yes**  | Folder to serve files from         |
 
 **Returns:** `Woodland` - Returns self for chaining
 
@@ -232,12 +234,12 @@ Registers file server middleware for serving static files.
 
 Serves a file from disk directly.
 
-| Parameter | Type | Default | Optional | Description |
-|-----------|------|---------|----------|-------------|
-| `req` | `Object` | No | No | HTTP request object |
-| `res` | `Object` | No | No | HTTP response object |
-| `arg` | `string` | No | No | File path to serve |
-| `folder` | `string` | `process.cwd()` | **Yes** | Folder to serve from |
+| Parameter | Type     | Default         | Optional | Description          |
+| --------- | -------- | --------------- | -------- | -------------------- |
+| `req`     | `Object` | No              | No       | HTTP request object  |
+| `res`     | `Object` | No              | No       | HTTP response object |
+| `arg`     | `string` | No              | No       | File path to serve   |
+| `folder`  | `string` | `process.cwd()` | **Yes**  | Folder to serve from |
 
 **Returns:** `Promise` - Promise that resolves when done
 
@@ -245,22 +247,22 @@ Serves a file from disk directly.
 
 Streams a file to the response with proper headers and range support. Emits `stream` event.
 
-| Parameter | Type | Default | Optional | Description |
-|-----------|------|---------|----------|-------------|
-| `req` | `Object` | No | No | HTTP request object |
-| `res` | `Object` | No | No | HTTP response object |
-| `file` | `Object` | `{ charset: '', etag: '', path: '', stats: { mtime: new Date(), size: 0 } }` | **Yes** | File descriptor object |
+| Parameter | Type     | Default                                                                      | Optional | Description            |
+| --------- | -------- | ---------------------------------------------------------------------------- | -------- | ---------------------- |
+| `req`     | `Object` | No                                                                           | No       | HTTP request object    |
+| `res`     | `Object` | No                                                                           | No       | HTTP response object   |
+| `file`    | `Object` | `{ charset: '', etag: '', path: '', stats: { mtime: new Date(), size: 0 } }` | **Yes**  | File descriptor object |
 
 **File Object Properties:**
 
-| Property | Type | Optional | Description |
-|----------|------|----------|-------------|
-| `file.path` | `string` | No | File path |
-| `file.etag` | `string` | No | File ETag |
-| `file.charset` | `string` | No | File charset |
-| `file.stats` | `Object` | No | File statistics |
-| `file.stats.size` | `number` | No | File size in bytes |
-| `file.stats.mtime` | `Date` | No | File modification time |
+| Property           | Type     | Optional | Description            |
+| ------------------ | -------- | -------- | ---------------------- |
+| `file.path`        | `string` | No       | File path              |
+| `file.etag`        | `string` | No       | File ETag              |
+| `file.charset`     | `string` | No       | File charset           |
+| `file.stats`       | `Object` | No       | File statistics        |
+| `file.stats.size`  | `number` | No       | File size in bytes     |
+| `file.stats.mtime` | `Date`   | No       | File modification time |
 
 ---
 
@@ -270,10 +272,10 @@ Streams a file to the response with proper headers and range support. Emits `str
 
 Generates an ETag for response caching based on method and values with prototype pollution protection.
 
-| Parameter | Type | Optional | Description |
-|-----------|------|----------|-------------|
-| `method` | `string` | No | HTTP method (must be GET, HEAD, or OPTIONS) |
-| `...args` | `*` | No | Values to hash into the ETag |
+| Parameter | Type     | Optional | Description                                 |
+| --------- | -------- | -------- | ------------------------------------------- |
+| `method`  | `string` | No       | HTTP method (must be GET, HEAD, or OPTIONS) |
+| `...args` | `*`      | No       | Values to hash into the ETag                |
 
 **Returns:** `string` - ETag string or empty string if method is not hashable or ETags are disabled
 
@@ -283,10 +285,10 @@ Generates an ETag for response caching based on method and values with prototype
 
 Lists registered middleware routes for a specific HTTP method.
 
-| Parameter | Type | Default | Optional | Description |
-|-----------|------|---------|----------|-------------|
-| `method` | `string` | `'get'` | **Yes** | HTTP method to list routes for |
-| `type` | `string` | `'array'` | **Yes** | Return type: `'array'` or `'object'` |
+| Parameter | Type     | Default   | Optional | Description                          |
+| --------- | -------- | --------- | -------- | ------------------------------------ |
+| `method`  | `string` | `'get'`   | **Yes**  | HTTP method to list routes for       |
+| `type`    | `string` | `'array'` | **Yes**  | Return type: `'array'` or `'object'` |
 
 **Returns:** `Array\|Object` - List of route paths (array of strings or object mapping paths to handlers)
 
@@ -294,13 +296,14 @@ Lists registered middleware routes for a specific HTTP method.
 
 Gets route information for a specific URI and method.
 
-| Parameter | Type | Default | Optional | Description |
-|-----------|------|---------|----------|-------------|
-| `uri` | `string` | No | No | URI to check |
-| `method` | `string` | No | No | HTTP method |
-| `override` | `boolean` | `false` | **Yes** | Override cached route information |
+| Parameter  | Type      | Default | Optional | Description                       |
+| ---------- | --------- | ------- | -------- | --------------------------------- |
+| `uri`      | `string`  | No      | No       | URI to check                      |
+| `method`   | `string`  | No      | No       | HTTP method                       |
+| `override` | `boolean` | `false` | **Yes**  | Override cached route information |
 
 **Returns:** `Object` - Route information object containing:
+
 - `middleware`: Array of middleware handlers
 - `params`: Boolean indicating if parameters were found
 - `getParams`: RegExp for extracting parameters
@@ -313,12 +316,13 @@ Gets route information for a specific URI and method.
 
 Routes an HTTP request to the appropriate middleware. This is the main request handler.
 
-| Parameter | Type | Optional | Description |
-|-----------|------|----------|-------------|
-| `req` | `Object` | No | HTTP request object |
-| `res` | `Object` | No | HTTP response object |
+| Parameter | Type     | Optional | Description          |
+| --------- | -------- | -------- | -------------------- |
+| `req`     | `Object` | No       | HTTP request object  |
+| `res`     | `Object` | No       | HTTP response object |
 
 **Notes:**
+
 - Converts HEAD requests to GET internally before processing
 - Decorates request and response objects with framework utilities and security validation
 - Validates CORS requests with simplified security logic
@@ -332,24 +336,24 @@ Routes an HTTP request to the appropriate middleware. This is the main request h
 
 As an `EventEmitter` subclass, Woodland supports all standard EventEmitter methods:
 
-| Method | Description |
-|--------|-------------|
-| `on(event, listener)` | Add event listener |
-| `once(event, listener)` | Add one-time event listener |
-| `off(event, listener)` | Remove event listener |
-| `removeAllListeners(event)` | Remove all listeners for event |
-| `emit(event, ...args)` | Emit event with arguments |
-| `listeners(event)` | Get listeners for event |
-| `listenerCount(event)` | Get count of listeners for event |
+| Method                      | Description                      |
+| --------------------------- | -------------------------------- |
+| `on(event, listener)`       | Add event listener               |
+| `once(event, listener)`     | Add one-time event listener      |
+| `off(event, listener)`      | Remove event listener            |
+| `removeAllListeners(event)` | Remove all listeners for event   |
+| `emit(event, ...args)`      | Emit event with arguments        |
+| `listeners(event)`          | Get listeners for event          |
+| `listenerCount(event)`      | Get count of listeners for event |
 
 **Supported Events:**
 
-| Event | Description | Listener Arguments |
-|-------|-------------|-------------------|
-| `error` | Error occurred | `(req, res, error)` |
-| `connect` | Request connected | `(req, res)` |
-| `finish` | Response finished | `(req, res)` |
-| `stream` | File streaming started | `(req, res)` |
+| Event     | Description            | Listener Arguments  |
+| --------- | ---------------------- | ------------------- |
+| `error`   | Error occurred         | `(req, res, error)` |
+| `connect` | Request connected      | `(req, res)`        |
+| `finish`  | Response finished      | `(req, res)`        |
+| `stream`  | File streaming started | `(req, res)`        |
 
 ---
 
@@ -371,13 +375,14 @@ Returns the logger instance with methods: `log`, `clf`, `logRoute`, `logMiddlewa
 
 Global error handler property. When set, the handler is called with `(err, req, res)` before the error middleware chain executes. The handler is responsible for terminating the request (e.g., by calling `res.send()`, `res.error()`, etc.). Defaults to `null`.
 
-| Parameter | Type | Optional | Description |
-|-----------|------|----------|-------------|
-| `fn` | `Function` | **Yes** | Error handler function or `null` |
+| Parameter | Type       | Optional | Description                      |
+| --------- | ---------- | -------- | -------------------------------- |
+| `fn`      | `Function` | **Yes**  | Error handler function or `null` |
 
 **Returns:** `Function | null` - Current error handler or `null` if not set.
 
 **Notes:**
+
 - Only functions are accepted; non-function values are rejected and set to `null`
 - The handler receives only 3 arguments: `(err, req, res)` — no `next` parameter
 - Handler is called **before** the error middleware chain; the chain is skipped when handler is set
@@ -388,8 +393,8 @@ Global error handler property. When set, the handler is called with `(err, req, 
 const app = woodland();
 
 app.error = (err, _req, res) => {
-  console.error("Global error:", err);
-  res.status(500).send("Something went wrong");
+	console.error("Global error:", err);
+	res.status(500).send("Something went wrong");
 };
 ```
 
@@ -407,19 +412,19 @@ The Woodland application instance. Set via `req.app = this` in `#decorate()`, pr
 
 The `route()` method decorates request objects with the following properties including security validations:
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `req.corsHost` | `boolean` | True if origin header exists and differs from host header |
-| `req.cors` | `boolean` | True if CORS is allowed for this request |
-| `req.parsed` | `URL` | Parsed URL object |
-| `req.allow` | `string` | Comma-separated list of allowed methods |
-| `req.ip` | `string` | Client IP address |
-| `req.app` | `Woodland` | The Woodland application instance (provides access to `app.error`) |
-| `req.body` | `string` | Request body (initialized as empty string) |
-| `req.host` | `string` | Request hostname |
-| `req.params` | `Object` | URL parameters (populated if route has params) |
-| `req.valid` | `boolean` | Request validity status |
-| `req.precise` | `Object` | Timing object (if `time` config is enabled) |
+| Property       | Type       | Description                                                        |
+| -------------- | ---------- | ------------------------------------------------------------------ |
+| `req.corsHost` | `boolean`  | True if origin header exists and differs from host header          |
+| `req.cors`     | `boolean`  | True if CORS is allowed for this request                           |
+| `req.parsed`   | `URL`      | Parsed URL object                                                  |
+| `req.allow`    | `string`   | Comma-separated list of allowed methods                            |
+| `req.ip`       | `string`   | Client IP address                                                  |
+| `req.app`      | `Woodland` | The Woodland application instance (provides access to `app.error`) |
+| `req.body`     | `string`   | Request body (initialized as empty string)                         |
+| `req.host`     | `string`   | Request hostname                                                   |
+| `req.params`   | `Object`   | URL parameters (populated if route has params)                     |
+| `req.valid`    | `boolean`  | Request validity status                                            |
+| `req.precise`  | `Object`   | Timing object (if `time` config is enabled)                        |
 
 ---
 
@@ -427,53 +432,53 @@ The `route()` method decorates request objects with the following properties inc
 
 The `route()` method decorates response objects with the following methods including security header validation:
 
-| Method | Description |
-|--------|-------------|
-| `res.error(status, body)` | Error response handler with security validation |
-| `res.header(name, value)` | Set response header (alias for `setHeader`) |
-| `res.json(arg, status, headers)` | Send JSON response |
-| `res.redirect(uri, perm)` | Redirect response with URI validation and security checks |
-| `res.send(body, status, headers)` | Send response body with security headers |
-| `res.set(arg)` | Set multiple headers with type validation |
-| `res.status(arg)` | Set HTTP status code |
-| `res.cookie(name, value, opts)` | Set a cookie with options (domain, path, maxAge, httpOnly, secure, sameSite, encode) |
-| `res.clearCookie(name, opts)` | Clear a cookie by setting it expired |
-| `res.locals` | `Object` - Local variables for the request |
+| Method                            | Description                                                                          |
+| --------------------------------- | ------------------------------------------------------------------------------------ |
+| `res.error(status, body)`         | Error response handler with security validation                                      |
+| `res.header(name, value)`         | Set response header (alias for `setHeader`)                                          |
+| `res.json(arg, status, headers)`  | Send JSON response                                                                   |
+| `res.redirect(uri, perm)`         | Redirect response with URI validation and security checks                            |
+| `res.send(body, status, headers)` | Send response body with security headers                                             |
+| `res.set(arg)`                    | Set multiple headers with type validation                                            |
+| `res.status(arg)`                 | Set HTTP status code                                                                 |
+| `res.cookie(name, value, opts)`   | Set a cookie with options (domain, path, maxAge, httpOnly, secure, sameSite, encode) |
+| `res.clearCookie(name, opts)`     | Clear a cookie by setting it expired                                                 |
+| `res.locals`                      | `Object` - Local variables for the request                                           |
 
 #### `res.cookie(name, value, opts)`
 
 Sets a cookie via the `set-cookie` response header with configurable options.
 
-| Parameter | Type | Default | Optional | Description |
-|-----------|------|---------|----------|-------------|
-| `name` | `string` | No | No | Cookie name |
-| `value` | `string` | No | No | Cookie value (URL-encoded by default) |
-| `opts` | `Object` | `{}` | Yes | Cookie options |
+| Parameter | Type     | Default | Optional | Description                           |
+| --------- | -------- | ------- | -------- | ------------------------------------- |
+| `name`    | `string` | No      | No       | Cookie name                           |
+| `value`   | `string` | No      | No       | Cookie value (URL-encoded by default) |
+| `opts`    | `Object` | `{}`    | Yes      | Cookie options                        |
 
 **Options Object:**
 
-| Option | Type | Default | Optional | Description |
-|--------|------|---------|----------|-------------|
-| `domain` | `string` | - | Yes | Cookie domain |
-| `path` | `string` | `'/'` | Yes | Cookie path |
-| `maxAge` | `number` | - | Yes | Max age in milliseconds |
-| `expires` | `Date` | - | Yes | Expiration date |
-| `httpOnly` | `boolean` | `false` | Yes | HttpOnly flag |
-| `secure` | `boolean` | `false` | Yes | Secure flag |
-| `sameSite` | `string` | - | Yes | SameSite attribute (`strict`, `lax`, `none`) |
-| `encode` | `boolean \| Function` | `encodeURIComponent` | Yes | Custom encoder or `false` to skip encoding |
+| Option     | Type                  | Default              | Optional | Description                                  |
+| ---------- | --------------------- | -------------------- | -------- | -------------------------------------------- |
+| `domain`   | `string`              | -                    | Yes      | Cookie domain                                |
+| `path`     | `string`              | `'/'`                | Yes      | Cookie path                                  |
+| `maxAge`   | `number`              | -                    | Yes      | Max age in milliseconds                      |
+| `expires`  | `Date`                | -                    | Yes      | Expiration date                              |
+| `httpOnly` | `boolean`             | `false`              | Yes      | HttpOnly flag                                |
+| `secure`   | `boolean`             | `false`              | Yes      | Secure flag                                  |
+| `sameSite` | `string`              | -                    | Yes      | SameSite attribute (`strict`, `lax`, `none`) |
+| `encode`   | `boolean \| Function` | `encodeURIComponent` | Yes      | Custom encoder or `false` to skip encoding   |
 
 **Example:**
 
 ```javascript
 app.get("/", (req, res) => {
-  res.cookie("session", "abc123", {
-    httpOnly: true,
-    secure: true,
-    sameSite: "strict",
-    maxAge: 3600000, // 1 hour
-  });
-  res.send("Hello");
+	res.cookie("session", "abc123", {
+		httpOnly: true,
+		secure: true,
+		sameSite: "strict",
+		maxAge: 3600000, // 1 hour
+	});
+	res.send("Hello");
 });
 ```
 
@@ -481,16 +486,16 @@ app.get("/", (req, res) => {
 
 Clears a cookie by setting it expired (`maxAge: 0`, `path=/`).
 
-| Parameter | Type | Default | Optional | Description |
-|-----------|------|---------|----------|-------------|
-| `name` | `string` | No | No | Cookie name to clear |
-| `opts` | `Object` | `{}` | Yes | Options (supports `domain`, `path`) |
+| Parameter | Type     | Default | Optional | Description                         |
+| --------- | -------- | ------- | -------- | ----------------------------------- |
+| `name`    | `string` | No      | No       | Cookie name to clear                |
+| `opts`    | `Object` | `{}`    | Yes      | Options (supports `domain`, `path`) |
 
 **Example:**
 
 ```javascript
 app.get("/logout", (req, res) => {
-  res.clearCookie("session", { path: "/" });
-  res.redirect("/");
+	res.clearCookie("session", { path: "/" });
+	res.redirect("/");
 });
 ```
