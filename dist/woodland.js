@@ -285,7 +285,14 @@ const HTML_ESCAPES = Object.freeze({
  * @returns {string} Set-Cookie header value
  */
 function serializeCookie(name, value, opts = {}) {
-	const encodeFn = opts.encode === false ? (v) => v : opts.encode || encodeURIComponent;
+	let encodeFn;
+	if (opts.encode === false) {
+		encodeFn = (v) => v;
+	} else if (typeof opts.encode === FUNCTION) {
+		encodeFn = opts.encode;
+	} else {
+		encodeFn = encodeURIComponent;
+	}
 	let cookieString = `${name}=${encodeFn(value)}`;
 	const cookieOpts = [];
 
@@ -300,9 +307,12 @@ function serializeCookie(name, value, opts = {}) {
 	}
 
 	if (opts.maxAge != null) {
-		const expires = new Date(Date.now() + opts.maxAge);
 		cookieOpts.push(`Max-Age=${Math.floor(opts.maxAge / INT_1e3)}`);
-		cookieOpts.push(`Expires=${expires.toUTCString()}`);
+		if (opts.expires) {
+			cookieOpts.push(`Expires=${opts.expires.toUTCString()}`);
+		} else {
+			cookieOpts.push(`Expires=${new Date(Date.now() + opts.maxAge).toUTCString()}`);
+		}
 	} else if (opts.expires) {
 		cookieOpts.push(`Expires=${opts.expires.toUTCString()}`);
 	}
@@ -871,8 +881,8 @@ function createClearCookieHandler(res) {
 	return (name, opts = {}) => {
 		const clearOpts = {
 			...opts,
+			maxAge: INT_0,
 			expires: new Date(0),
-			maxAge: INT_NEG_1,
 		};
 		const cookieValue = serializeCookie(name, EMPTY, clearOpts);
 		res.setHeader("set-cookie", cookieValue);
