@@ -470,9 +470,14 @@ function pipeable(method, arg) {
  * @param {Object} [headers] - Headers object to write (merged with existing)
  */
 function writeHead(res, headers) {
-	if (headers !== undefined) {
-		const existing = res.getHeaders();
-		res.writeHead(res.statusCode, STATUS_CODES[res.statusCode], { ...existing, ...headers });
+	const mergeable = headers !== null && typeof headers === OBJECT;
+	if (mergeable) {
+		const existing = res.getHeaders && typeof res.getHeaders === FUNCTION ? res.getHeaders() : {};
+		const merged =
+			existing && typeof existing === OBJECT ? { ...existing, ...headers } : { ...headers };
+		res.writeHead(res.statusCode, STATUS_CODES[res.statusCode], merged);
+	} else if (headers !== undefined) {
+		res.writeHead(res.statusCode, STATUS_CODES[res.statusCode], headers);
 	} else {
 		res.writeHead(res.statusCode);
 	}

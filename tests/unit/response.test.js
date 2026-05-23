@@ -1631,6 +1631,20 @@ describe("response", () => {
 
 			assert.deepStrictEqual(capturedArgs, [201, undefined, undefined]);
 		});
+
+		it("should pass null headers directly to writeHead", () => {
+			let capturedArgs = null;
+			const res = {
+				statusCode: 200,
+				writeHead: (status, text, headers) => {
+					capturedArgs = [status, text, headers];
+				},
+			};
+
+			writeHead(res, null);
+
+			assert.deepStrictEqual(capturedArgs, [200, "OK", null]);
+		});
 	});
 
 	describe("createErrorHandler", () => {
