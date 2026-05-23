@@ -474,12 +474,17 @@ function pipeable(method, arg) {
  * Writes HTTP response headers using writeHead method
  * Merges passed headers with existing response headers to preserve
  * headers set via res.setHeader/res.header/res.set prior to writing.
+ * Only passes the third parameter when headers is explicitly defined.
  * @param {Object} res - The HTTP response object
- * @param {Object} [headers={}] - Headers object to write (merged with existing)
+ * @param {Object} [headers] - Headers object to write (merged with existing)
  */
-function writeHead(res, headers = {}) {
-	const existing = res.getHeaders();
-	res.writeHead(res.statusCode, node_http.STATUS_CODES[res.statusCode], { ...existing, ...headers });
+function writeHead(res, headers) {
+	if (headers !== undefined) {
+		const existing = res.getHeaders();
+		res.writeHead(res.statusCode, node_http.STATUS_CODES[res.statusCode], { ...existing, ...headers });
+	} else {
+		res.writeHead(res.statusCode);
+	}
 }
 
 /**
