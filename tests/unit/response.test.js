@@ -1905,9 +1905,10 @@ describe("response", () => {
 			clearHandler("session");
 
 			assert.strictEqual(cookieValue.length, INT_1);
-			assert.ok(cookieValue[INT_0].includes("session="));
-			assert.ok(cookieValue[INT_0].includes("Max-Age="));
-			assert.ok(cookieValue[INT_0].includes("Path=/"));
+			assert.strictEqual(
+				cookieValue[INT_0],
+				"session=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+			);
 		});
 
 		it("should clear cookie with domain option", () => {
