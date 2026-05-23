@@ -221,6 +221,12 @@ describe("woodland", () => {
 
 				assert.strictEqual(result, app);
 			});
+
+			it("should throw TypeError when route has no handler", () => {
+				assert.throws(() => {
+					app.get("/nobody");
+				}, /Expected a function/);
+			});
 		});
 
 		describe("always", () => {
@@ -374,6 +380,7 @@ describe("woodland", () => {
 					send: () => {},
 					getHeader: () => void 0,
 					writeHead: () => {},
+					getHeaders: () => ({}),
 					end: () => {},
 					statusCode: 200,
 					headersSent: false,
@@ -412,6 +419,7 @@ describe("woodland", () => {
 					send: () => {},
 					getHeader: () => void 0,
 					writeHead: () => {},
+					getHeaders: () => ({}),
 					end: () => {},
 					statusCode: 405,
 					headersSent: false,
@@ -475,6 +483,7 @@ describe("woodland", () => {
 				set: () => {},
 				error: () => {},
 				writeHead: () => {},
+				getHeaders: () => ({}),
 				removeHeader: () => {},
 				getHeader: () => void 0,
 			};
@@ -521,6 +530,7 @@ describe("woodland", () => {
 				set: () => {},
 				error: () => {},
 				writeHead: () => {},
+				getHeaders: () => ({}),
 				removeHeader: () => {},
 				getHeader: () => void 0,
 			};
@@ -565,6 +575,7 @@ describe("woodland", () => {
 				setHeader: () => {},
 				getHeader: () => void 0,
 				writeHead: () => {},
+				getHeaders: () => ({}),
 				on: () => {},
 				end: () => {},
 				error: () => {},
@@ -597,6 +608,7 @@ describe("woodland", () => {
 				setHeader: () => {},
 				getHeader: () => void 0,
 				writeHead: () => {},
+				getHeaders: () => ({}),
 				on: () => {},
 				end: () => {},
 				error: () => {},
@@ -624,6 +636,7 @@ describe("woodland", () => {
 				setHeader: () => {},
 				getHeader: () => void 0,
 				writeHead: () => {},
+				getHeaders: () => ({}),
 				on: () => {},
 				end: () => {},
 				error: () => {},
@@ -692,6 +705,7 @@ describe("woodland", () => {
 				statusCode: 200,
 				setHeader: () => {},
 				writeHead: () => {},
+				getHeaders: () => ({}),
 				on: () => {},
 				end: () => {},
 				error: () => {},
@@ -724,6 +738,7 @@ describe("woodland", () => {
 				statusCode: 200,
 				setHeader: () => {},
 				writeHead: () => {},
+				getHeaders: () => ({}),
 				on: (event) => {
 					if (event === "finish") {
 						finishOnCalled = true;
@@ -774,6 +789,7 @@ describe("woodland", () => {
 				statusCode: 200,
 				setHeader: () => {},
 				writeHead: () => {},
+				getHeaders: () => ({}),
 				on: (event, callback) => {
 					if (event === "finish") {
 						finishOnCalled = true;
@@ -884,6 +900,7 @@ describe("woodland", () => {
 				removeHeader: () => {},
 				header: () => {},
 				writeHead: () => {},
+				getHeaders: () => ({}),
 				end: () => {},
 			};
 
@@ -924,6 +941,7 @@ describe("woodland", () => {
 				removeHeader: () => {},
 				header: () => {},
 				writeHead: () => {},
+				getHeaders: () => ({}),
 				end: () => {},
 			};
 

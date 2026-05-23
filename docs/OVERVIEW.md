@@ -29,6 +29,7 @@ Woodland is a **security-first HTTP server framework** for Node.js that extends 
 ### Key Features
 
 **Security Features:**
+
 - **CORS enforcement** - Default deny-all policy with explicit allowlist configuration
 - **Path traversal protection** - Resolved path validation prevents directory escape
 - **XSS prevention** - Automatic HTML escaping via `escapeHtml()`
@@ -36,10 +37,12 @@ Woodland is a **security-first HTTP server framework** for Node.js that extends 
 - **Secure error handling** - No sensitive data exposure in error responses
 - **X-Content-Type-Options** - Automatic `nosniff` header
 - **Header injection prevention** - Type validation for header values
+- **Cookie handling** - `res.cookie()` with secure options (httpOnly, secure, sameSite) and `res.clearCookie()`
 - **Prototype pollution protection** - Safe ETag generation with `Object.hasOwn()`
 - **404 security header removal** - Prevents information disclosure on 404 responses
 
 **Performance Features:**
+
 - **Middleware-based routing** with parameter extraction
 - **ETag generation** for efficient caching
 - **File serving** with auto-indexing capabilities
@@ -51,6 +54,7 @@ Woodland is a **security-first HTTP server framework** for Node.js that extends 
 ### Target Use Cases
 
 **Security-Critical Applications:**
+
 - **API servers** requiring strict CORS enforcement
 - **File serving** with path traversal protection
 - **Multi-tenant applications** with origin isolation
@@ -272,52 +276,53 @@ The main class extending EventEmitter that orchestrates all operations:
 
 ```javascript
 class Woodland extends EventEmitter {
-  #autoIndex;       // Private: autoIndex config
-  #bodyLimit;       // Private: request body size limit
-  #charset;         // Private: charset config
-  #corsExpose;      // Private: CORS expose config
-  #defaultHeaders;  // Private: processed default headers
-  #disableTrace;    // Private: TRACE method disabled flag
-  #digit;           // Private: timing precision
-  #etags;           // Private: etag function or null
-  #exposeErrorMessages; // Private: error message exposure flag
-  #indexes;         // Private: index files array
-  #logging;         // Private: logging config (frozen)
-  #origins;         // Private: CORS origins Set
-  #time;            // Private: timing enabled
-  #cache;           // Private: LRU cache (routes and permissions)
-  #methods;         // Private: registered methods array
-  #logger;          // Private: logger instance (frozen)
-  #fileServer;      // Private: file server instance (frozen, wrapped by files/serve/stream)
-  #middleware;      // Private: middleware registry
-  #error;           // Private: global error handler
+	#autoIndex; // Private: autoIndex config
+	#bodyLimit; // Private: request body size limit
+	#charset; // Private: charset config
+	#corsExpose; // Private: CORS expose config
+	#defaultHeaders; // Private: processed default headers
+	#disableTrace; // Private: TRACE method disabled flag
+	#digit; // Private: timing precision
+	#etags; // Private: etag function or null
+	#exposeErrorMessages; // Private: error message exposure flag
+	#indexes; // Private: index files array
+	#logging; // Private: logging config (frozen)
+	#origins; // Private: CORS origins Set
+	#time; // Private: timing enabled
+	#cache; // Private: LRU cache (routes and permissions)
+	#methods; // Private: registered methods array
+	#logger; // Private: logger instance (frozen)
+	#fileServer; // Private: file server instance (frozen, wrapped by files/serve/stream)
+	#middleware; // Private: middleware registry
+	#error; // Private: global error handler
 
-  constructor(config = {}) {
-    // Configuration options:
-    // - autoIndex: Enable directory listing (default: false)
-    // - bodyLimit: Max request body size in bytes (default: 10000000)
-    // - cacheSize: LRU cache size (default: 1000)
-    // - cacheTTL: Cache TTL in ms (default: 10000)
-    // - charset: Default charset (default: 'utf-8')
-    // - corsExpose: CORS headers to expose to client (default: '')
-    // - defaultHeaders: Default HTTP headers (default: {})
-    // - digit: Timing precision digits (default: 3)
-    // - disableTrace: Disable TRACE method (default: true)
-    // - etags: Enable ETag generation (default: true)
-    // - exposeErrorMessages: Expose internal error messages (default: false)
-    // - indexes: Index file names (default: ['index.htm', 'index.html'])
-    // - logging: Logging configuration (default: {})
-    // - origins: CORS allowed origins (default: [])
-    // - silent: Disable default headers (default: false)
-    // - time: Enable response time tracking (default: false)
-    //
-    // Public Properties:
-    // - error: Global error handler (null | function(err, req, res))
-  }
+	constructor(config = {}) {
+		// Configuration options:
+		// - autoIndex: Enable directory listing (default: false)
+		// - bodyLimit: Max request body size in bytes (default: 10000000)
+		// - cacheSize: LRU cache size (default: 1000)
+		// - cacheTTL: Cache TTL in ms (default: 10000)
+		// - charset: Default charset (default: 'utf-8')
+		// - corsExpose: CORS headers to expose to client (default: '')
+		// - defaultHeaders: Default HTTP headers (default: {})
+		// - digit: Timing precision digits (default: 3)
+		// - disableTrace: Disable TRACE method (default: true)
+		// - etags: Enable ETag generation (default: true)
+		// - exposeErrorMessages: Expose internal error messages (default: false)
+		// - indexes: Index file names (default: ['index.htm', 'index.html'])
+		// - logging: Logging configuration (default: {})
+		// - origins: CORS allowed origins (default: [])
+		// - silent: Disable default headers (default: false)
+		// - time: Enable response time tracking (default: false)
+		//
+		// Public Properties:
+		// - error: Global error handler (null | function(err, req, res))
+	}
 }
 ```
 
 **Private Methods:**
+
 - `#allows(uri, override)` - Determine allowed methods for URI (simplified cache key)
 - `#buildAllowedList(methodSet)` - Build allowed methods list with HEAD/OPTIONS
 - `#decorate(req, res)` - Decorate request/response objects with utilities
@@ -449,10 +454,12 @@ $$
 Where $\text{extract}(u, r) = r.exec(u).groups$ (named capture groups).
 
 Route registration complexity:
+
 - **Time**: $O(m)$ where $m$ is pattern length (regex compilation)
 - **Space**: $O(m)$ for compiled regex storage
 
 Route reduction in `reduce()`:
+
 - **Time**: $O(k \cdot r)$ where $k$ is number of patterns, $r$ is regex match cost
 - **Empirical**: ~0.02ms for 10 routes (benchmarked)
 
@@ -472,6 +479,7 @@ f_i(req, res, \text{next}(req, res, i+1)) & \text{if } i < n \\
 $$
 
 Event loop scheduling:
+
 $$
 \text{next}(req, res, i, \text{immediate}) = \begin{cases}
 \text{execute synchronously} & \text{if } \text{immediate} = 1 \\
@@ -480,6 +488,7 @@ $$
 $$
 
 **Complexity**:
+
 - **Time**: $O(n \cdot t_f)$ where $n$ is middleware count, $t_f$ is average handler time
 - **Space**: $O(1)$ per request (iterator state only)
 - **Empirical**: ~0.05ms per middleware (benchmarked)
@@ -491,11 +500,13 @@ LRU cache behavior modeled as:
 $$\mathcal{C}: \mathcal{K} \times \mathcal{V} \times \mathbb{T} \rightarrow \mathcal{V} \cup \{\text{null}\}$$
 
 Where:
+
 - $\mathcal{K}$ = Cache key space
 - $\mathcal{V}$ = Value space
 - $\mathbb{T}$ = Time domain
 
 Cache lookup with TTL:
+
 $$
 \mathcal{C}(k, v, t) = \begin{cases}
 v & \text{if } t - t_{\text{insert}} < \text{TTL} \\
@@ -506,11 +517,13 @@ $$
 Cache key generation: $\mathcal{K}_{\text{key}}(uri) = uri$ (simplified per-URI storage)
 
 **Complexity**:
+
 - **Lookup**: $O(1)$ (LRU hash table)
 - **Insert**: $O(1)$ amortized
 - **Eviction**: $O(1)$ (LRU list operations)
 
 Cache types:
+
 - **Route Cache**: LRU via `tiny-lru` (size=1000, TTL=10s)
 - **Permission Cache**: Map-based (unbounded, URI → allowed methods)
 - **ETag Cache**: External `tiny-etag` package
@@ -536,6 +549,7 @@ $$
 Boundary check: $fp[resolvedFolder.length] === sep$ ensures subdirectory, not sibling.
 
 **Complexity**:
+
 - **Time**: $O(d)$ where $d$ is path depth (path resolution)
 - **Empirical**: ~0.01ms per check (benchmarked)
 
@@ -546,6 +560,7 @@ CORS origin validation:
 $$\mathcal{O}: \mathcal{O}_{\text{space}} \times \mathcal{A} \times \mathcal{H} \rightarrow \{0, 1\}$$
 
 Where:
+
 - $\mathcal{O}_{\text{space}}$ = Origin space
 - $\mathcal{A}$ = Allowed origins set (Set data structure)
 - $\mathcal{H}$ = Request headers space
@@ -559,6 +574,7 @@ $$
 $$
 
 **Complexity**:
+
 - **Time**: $O(1)$ (Set lookup)
 - **Empirical**: ~0.005ms per validation (benchmarked)
 
@@ -577,24 +593,26 @@ $$
 $$
 
 **Complexity**:
+
 - **Time**: $O(1)$ (fixed regex patterns)
 - **Empirical**: ~0.003ms per validation (benchmarked)
 
 #### Performance Complexity Summary
 
-| Operation | Time Complexity | Space Complexity | Empirical (ms) |
-|-----------|----------------|------------------|----------------|
-| Route Resolution (cache hit) | $O(1)$ | $O(1)$ | ~0.001 |
-| Route Resolution (cache miss) | $O(n \cdot m)$ | $O(m)$ | ~0.02 |
-| Middleware Execution | $O(k \cdot t_f)$ | $O(1)$ | ~0.05/handler |
-| Path Traversal Check | $O(d)$ | $O(1)$ | ~0.01 |
-| CORS Validation | $O(1)$ | $O(1)$ | ~0.005 |
-| IP Validation | $O(1)$ | $O(1)$ | ~0.003 |
-| HTML Escaping | $O(s)$ | $O(s)$ | ~0.002 |
+| Operation                     | Time Complexity  | Space Complexity | Empirical (ms) |
+| ----------------------------- | ---------------- | ---------------- | -------------- |
+| Route Resolution (cache hit)  | $O(1)$           | $O(1)$           | ~0.001         |
+| Route Resolution (cache miss) | $O(n \cdot m)$   | $O(m)$           | ~0.02          |
+| Middleware Execution          | $O(k \cdot t_f)$ | $O(1)$           | ~0.05/handler  |
+| Path Traversal Check          | $O(d)$           | $O(1)$           | ~0.01          |
+| CORS Validation               | $O(1)$           | $O(1)$           | ~0.005         |
+| IP Validation                 | $O(1)$           | $O(1)$           | ~0.003         |
+| HTML Escaping                 | $O(s)$           | $O(s)$           | ~0.002         |
 
 **Note**: Time complexity for HTML escaping is $O(s)$ where $s$ = string length. Space complexity is also $O(s)$ for the output string.
 
 Where:
+
 - $n$ = number of routes
 - $m$ = average pattern length
 - $k$ = middleware count
@@ -643,6 +661,7 @@ Memory usage over time:
 $$\mathcal{M}(t) = \mathcal{M}_{\text{base}} + \mathcal{M}_{\text{middleware}}(t) + \mathcal{M}_{\text{cache}}(t) + \mathcal{M}_{\text{active}}(t) + \mathcal{M}_{\text{events}}(t)$$
 
 Where:
+
 - $\mathcal{M}_{\text{base}}$ = Base framework (EventEmitter, config)
 - $\mathcal{M}_{\text{middleware}}(t)$ = Middleware closures + compiled regex
 - $\mathcal{M}_{\text{cache}}(t)$ = LRU cache (bounded by size × value_size)
@@ -650,6 +669,7 @@ Where:
 - $\mathcal{M}_{\text{events}}(t)$ = Event listener storage
 
 **Memory bounds**:
+
 - **Route Storage**: $O(n \cdot m)$ for $n$ routes
 - **Cache Memory**: $O(s \cdot v)$ bounded by config
 - **Per-request**: $O(p)$ where $p$ = decorated properties (~12 properties)
@@ -708,6 +728,7 @@ When you configure `origins` in the constructor, Woodland automatically:
 6. **Method Detection**: `Access-Control-Allow-Methods` reflects actual registered routes via `req.allow`
 
 Origin validation (`#isSafeOrigin`) ensures:
+
 - Origin contains no control characters (\r, \n, \t)
 - Origin is ≤ 255 characters
 - Origin starts with `http://` or `https://`
@@ -760,11 +781,11 @@ graph TB
 
 ```javascript
 const app = woodland({
-  origins: [
-    "https://app.example.com", // Specific domains
-    "https://api.example.com",
-  ],
-  corsExpose: "x-custom-header,x-request-id", // Headers to expose
+	origins: [
+		"https://app.example.com", // Specific domains
+		"https://api.example.com",
+	],
+	corsExpose: "x-custom-header,x-request-id", // Headers to expose
 });
 
 // Results in automatic:
@@ -786,7 +807,7 @@ Woodland demonstrates **excellent adherence to OWASP security guidelines** with 
   ```javascript
   // Security validation in serve method
   if (!fp.startsWith(resolve(folder))) {
-    res.error(403); // Blocks path traversal attempts
+  	res.error(403); // Blocks path traversal attempts
   }
   ```
 - **HTML Escaping**: All user input is properly escaped to prevent XSS
@@ -853,20 +874,20 @@ if (status === INT_404) {
 ```javascript
 // HTML escaping function for XSS prevention
 function escapeHtml(str = "") {
-  const htmlEscapes = {
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-  };
-  return str.replace(/[&<>"']/g, (match) => htmlEscapes[match]);
+	const htmlEscapes = {
+		"&": "&amp;",
+		"<": "&lt;",
+		">": "&gt;",
+		'"': "&quot;",
+		"'": "&#39;",
+	};
+	return str.replace(/[&<>"']/g, (match) => htmlEscapes[match]);
 }
 
 // IP validation (see src/request.js for full implementation)
 // Supports IPv4, IPv6, IPv4-mapped IPv6, and :: compression
 export function isValidIP(ip) {
-  // Full implementation: 96 lines with optimized regex patterns
+	// Full implementation: 96 lines with optimized regex patterns
 }
 ```
 
@@ -898,21 +919,21 @@ const app = woodland();
 
 // Use helmet for production-ready security headers
 app.always(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'"],
-        imgSrc: ["'self'", "data:", "https:"],
-      },
-    },
-    hsts: {
-      maxAge: 31536000,
-      includeSubDomains: true,
-      preload: true,
-    },
-  }),
+	helmet({
+		contentSecurityPolicy: {
+			directives: {
+				defaultSrc: ["'self'"],
+				styleSrc: ["'self'", "'unsafe-inline'"],
+				scriptSrc: ["'self'"],
+				imgSrc: ["'self'", "data:", "https:"],
+			},
+		},
+		hsts: {
+			maxAge: 31536000,
+			includeSubDomains: true,
+			preload: true,
+		},
+	}),
 );
 ```
 
@@ -929,13 +950,13 @@ If you prefer manual configuration, Woodland supports custom headers:
 
 ```javascript
 const app = woodland({
-  defaultHeaders: {
-    "x-content-type-options": "nosniff",
-    "x-frame-options": "DENY",
-    "strict-transport-security": "max-age=31536000; includeSubDomains",
-    "content-security-policy": "default-src 'self'",
-    "referrer-policy": "strict-origin-when-cross-origin",
-  },
+	defaultHeaders: {
+		"x-content-type-options": "nosniff",
+		"x-frame-options": "DENY",
+		"strict-transport-security": "max-age=31536000; includeSubDomains",
+		"content-security-policy": "default-src 'self'",
+		"referrer-policy": "strict-origin-when-cross-origin",
+	},
 });
 ```
 
@@ -953,20 +974,20 @@ const app = woodland();
 
 // Basic rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: "Too many requests from this IP, please try again later.",
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+	windowMs: 15 * 60 * 1000, // 15 minutes
+	max: 100, // Limit each IP to 100 requests per windowMs
+	message: "Too many requests from this IP, please try again later.",
+	standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
 
 app.always(limiter);
 
 // Strict rate limiting for auth endpoints
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5, // Limit auth attempts
-  skipSuccessfulRequests: true,
+	windowMs: 15 * 60 * 1000,
+	max: 5, // Limit auth attempts
+	skipSuccessfulRequests: true,
 });
 
 app.always("/api/auth", authLimiter);
@@ -978,18 +999,18 @@ app.always("/api/auth", authLimiter);
 import { RateLimiterMemory } from "rate-limiter-flexible";
 
 const rateLimiter = new RateLimiterMemory({
-  keyGenerator: (req) => req.ip,
-  points: 100, // Number of requests
-  duration: 900, // Per 15 minutes (900 seconds)
+	keyGenerator: (req) => req.ip,
+	points: 100, // Number of requests
+	duration: 900, // Per 15 minutes (900 seconds)
 });
 
 app.always(async (req, res, next) => {
-  try {
-    await rateLimiter.consume(req.ip);
-    next();
-  } catch (rejRes) {
-    res.status(429).send("Too Many Requests");
-  }
+	try {
+		await rateLimiter.consume(req.ip);
+		next();
+	} catch (rejRes) {
+		res.status(429).send("Too Many Requests");
+	}
 });
 ```
 
@@ -1019,18 +1040,18 @@ Woodland includes comprehensive security tests covering:
 
 #### 📊 OWASP Top 10 Assessment Summary
 
-| OWASP Category                       | Compliance Level | Implementation Notes                         |
-| ------------------------------------ | ---------------- | -------------------------------------------- |
-| **A01: Broken Access Control**       | ✅ Excellent     | Strong CORS & file access controls           |
-| **A02: Cryptographic Failures**      | ✅ Good          | Secure error handling, no sensitive exposure |
+| OWASP Category                       | Compliance Level | Implementation Notes                                     |
+| ------------------------------------ | ---------------- | -------------------------------------------------------- |
+| **A01: Broken Access Control**       | ✅ Excellent     | Strong CORS & file access controls                       |
+| **A02: Cryptographic Failures**      | ✅ Good          | Secure error handling, no sensitive exposure             |
 | **A03: Injection**                   | ✅ Excellent     | Header injection prevention, input validation & escaping |
-| **A04: Insecure Design**             | ✅ Excellent     | Security-first architecture                  |
-| **A05: Security Misconfiguration**   | ✅ Good          | Secure defaults, configurable security       |
-| **A06: Vulnerable Components**       | ✅ Good          | Minimal dependencies, regular updates        |
-| **A07: Authentication Failures**     | ✅ N/A           | Framework provides hooks, not built-in auth  |
-| **A08: Software Integrity Failures** | ✅ Excellent     | Prototype pollution protection in ETag generation |
-| **A09: Security Logging Failures**   | ✅ Good          | Comprehensive logging with CLF support       |
-| **A10: Server-Side Request Forgery** | ✅ N/A           | No outbound request functionality            |
+| **A04: Insecure Design**             | ✅ Excellent     | Security-first architecture                              |
+| **A05: Security Misconfiguration**   | ✅ Good          | Secure defaults, configurable security                   |
+| **A06: Vulnerable Components**       | ✅ Good          | Minimal dependencies, regular updates                    |
+| **A07: Authentication Failures**     | ✅ N/A           | Framework provides hooks, not built-in auth              |
+| **A08: Software Integrity Failures** | ✅ Excellent     | Prototype pollution protection in ETag generation        |
+| **A09: Security Logging Failures**   | ✅ Good          | Comprehensive logging with CLF support                   |
+| **A10: Server-Side Request Forgery** | ✅ N/A           | No outbound request functionality                        |
 
 #### 🎯 Security Assessment Conclusion
 
@@ -1059,12 +1080,12 @@ While lightweight by design, Woodland provides the security foundation needed fo
 
 ### Security Feature Overhead
 
-| Security Feature | Overhead per Request |
-|-----------------|---------------------|
-| CORS Validation | O(1) (Set lookup) |
+| Security Feature     | Overhead per Request             |
+| -------------------- | -------------------------------- |
+| CORS Validation      | O(1) (Set lookup)                |
 | Path Traversal Check | O(d) (path.resolve + startsWith) |
-| IP Validation | O(1) (regex pattern match) |
-| HTML Escaping | O(s) (string replace) |
+| IP Validation        | O(1) (regex pattern match)       |
+| HTML Escaping        | O(s) (string replace)            |
 
 See `benchmarks/` directory for empirical performance measurements.
 
@@ -1102,7 +1123,7 @@ See `benchmarks/` directory for empirical performance measurements.
 
 ## Test Coverage
 
-Woodland maintains comprehensive test coverage with **335 tests passing** across 9 source modules. The framework achieves **100% line coverage** and **99.37% function coverage**.
+Woodland maintains comprehensive test coverage with **365 tests passing** across 9 source modules. The framework achieves **99.45% line coverage**, **95.30% branch coverage**, and **98.82% function coverage**.
 
 ### Coverage Metrics
 
@@ -1110,31 +1131,33 @@ Woodland maintains comprehensive test coverage with **335 tests passing** across
 File            | Line %  | Branch % | Funcs % | Status
 ----------------|---------|----------|---------|--------
  cli-utils.js    | 100.00 |  100.00 |  100.00 | 🎯 Perfect
- config.js       | 100.00 |   89.19 |  100.00 | 🎯 Perfect line/function coverage
+ config.js       | 100.00 |   89.47 |  100.00 | 🎯 Perfect line coverage
  constants.js    | 100.00 |  100.00 |  100.00 | 🎯 Perfect
- fileserver.js   | 100.00 |   89.36 |  100.00 | 🎯 Perfect line/function coverage
+ fileserver.js   | 100.00 |   89.36 |  100.00 | 🎯 Perfect line coverage
  logger.js       | 100.00 |   94.23 |   95.45 | 🎯 Perfect line coverage
  middleware.js   | 100.00 |  100.00 |  100.00 | 🎯 Perfect
  request.js      | 100.00 |  100.00 |  100.00 | 🎯 Perfect
- response.js     | 100.00 |   97.73 |  100.00 | 🎯 Perfect line/function coverage
- woodland.js     | 100.00 |   92.63 |  100.00 | 🎯 Perfect line coverage
+ response.js     |  99.12 |   95.71 |  100.00 | 🎯 near perfect
+ woodland.js     |  98.63 |   92.16 |   98.04 | 🎯 near perfect
 
-All files        | 100.00 |   95.90 |   99.37 | Overall coverage
+All files        |  99.45 |   95.30 |   98.82 | Overall coverage
 ```
 
-**Test Results:** 335 tests passing with 100% line coverage, 99.37% function coverage, and 95.90% branch coverage.
+**Test Results:** 365 tests passing with 99.45% line coverage, 95.30% branch coverage, and 98.82% function coverage.
 
 ### Coverage Status
 
 **Achieved:**
-- ✅ 335 passing tests
-- ✅ 100% line coverage across all source files
-- ✅ 99.37% function coverage across all source files
-- ✅ 95.90% branch coverage
-- ✅ CLI module: comprehensive coverage
+
+- ✅ 365 passing tests
+- ✅ 99.45% line coverage across all source files
+- ✅ 98.82% function coverage across all source files
+- ✅ 95.30% branch coverage
+- ✅ CLI module: 100% coverage
 - ✅ Security features: path traversal, CORS, input validation, XSS prevention
 
 **Coverage Strategy:**
+
 - Hard-to-test paths (async operations, error handlers) use `/* node:coverage ignore */` directives
 - All public APIs fully tested through unit and integration tests
 - Security-critical paths (path traversal, CORS validation) have dedicated test coverage
@@ -1193,17 +1216,17 @@ The CLI module represents a significant testing achievement with **100% code cov
 ```javascript
 // Example CLI test pattern
 describe("CLI server startup", () => {
-  it("should start server and serve HTTP requests", async () => {
-    const result = await spawnCliAndWaitForServer(["--port=8001"]);
+	it("should start server and serve HTTP requests", async () => {
+		const result = await spawnCliAndWaitForServer(["--port=8001"]);
 
-    // Verify startup logs
-    assert.match(result.stdout, /id=woodland/);
-    assert.match(result.stdout, /port=8001/);
+		// Verify startup logs
+		assert.match(result.stdout, /id=woodland/);
+		assert.match(result.stdout, /port=8001/);
 
-    // Actual HTTP request verification confirms server is functional
-    const response = await makeRequest(8001);
-    assert.ok(response.statusCode);
-  });
+		// Actual HTTP request verification confirms server is functional
+		const response = await makeRequest(8001);
+		assert.ok(response.statusCode);
+	});
 });
 ```
 
@@ -1254,9 +1277,9 @@ import { woodland, Woodland, WoodlandConfig } from "woodland";
 
 // Type-safe configuration
 const config: WoodlandConfig = {
-  origins: ["https://app.example.com"],
-  cacheSize: 2000,
-  time: true,
+	origins: ["https://app.example.com"],
+	cacheSize: 2000,
+	time: true,
 };
 
 // Type-safe app instance
@@ -1264,18 +1287,18 @@ const app: Woodland = woodland(config);
 
 // Type-safe route handlers
 app.get("/api/users/:id", (req, res) => {
-  const userId: string = req.params.id; // Type-safe parameter access
-  res.json({ id: userId, name: "User" });
+	const userId: string = req.params.id; // Type-safe parameter access
+	res.json({ id: userId, name: "User" });
 });
 
 // Type-safe response methods
 app.post("/api/data", async (req, res) => {
-  try {
-    const data: MyDataType = await processData(req.body);
-    res.status(201).json(data);
-  } catch (error) {
-    res.status(500).json({ error: "Processing failed" });
-  }
+	try {
+		const data: MyDataType = await processData(req.body);
+		res.status(201).json(data);
+	} catch (error) {
+		res.status(500).json({ error: "Processing failed" });
+	}
 });
 ```
 
@@ -1285,23 +1308,23 @@ Proper async error handling in middleware:
 
 ```typescript
 app.always("/api/*", async (req, res, next) => {
-  try {
-    await authenticate(req);
-    next();
-  } catch (error) {
-    res.status(401).json({ error: "Authentication failed" });
-  }
+	try {
+		await authenticate(req);
+		next();
+	} catch (error) {
+		res.status(401).json({ error: "Authentication failed" });
+	}
 });
 
 // Async route handlers
 app.get("/api/slow-operation", async (req, res) => {
-  try {
-    const result = await heavyComputation();
-    res.json(result);
-  } catch (error) {
-    // Framework error event will be emitted
-    res.error(500, error);
-  }
+	try {
+		const result = await heavyComputation();
+		res.json(result);
+	} catch (error) {
+		// Framework error event will be emitted
+		res.error(500, error);
+	}
 });
 ```
 
@@ -1315,40 +1338,40 @@ import winston from "winston";
 
 // Configure Winston for structured logging
 const logger = winston.createLogger({
-  format: winston.format.json(),
-  transports: [
-    new winston.transports.File({ filename: "error.log", level: "error" }),
-    new winston.transports.Http({
-      host: "logs.example.com",
-      path: "/ingest",
-    }),
-  ],
+	format: winston.format.json(),
+	transports: [
+		new winston.transports.File({ filename: "error.log", level: "error" }),
+		new winston.transports.Http({
+			host: "logs.example.com",
+			path: "/ingest",
+		}),
+	],
 });
 
 const app = woodland({
-  logging: {
-    enabled: true,
-    level: "info",
-  },
+	logging: {
+		enabled: true,
+		level: "info",
+	},
 });
 
 // Use event handlers for custom logging
 app.on("error", (req, res, error) => {
-  logger.error(error.message, {
-    path: req.parsed.pathname,
-    method: req.method,
-    ip: req.ip,
-    status: res.statusCode,
-  });
+	logger.error(error.message, {
+		path: req.parsed.pathname,
+		method: req.method,
+		ip: req.ip,
+		status: res.statusCode,
+	});
 });
 
 app.on("finish", (req, res) => {
-  logger.info(`Request completed`, {
-    path: req.parsed.pathname,
-    method: req.method,
-    ip: req.ip,
-    status: res.statusCode,
-  });
+	logger.info(`Request completed`, {
+		path: req.parsed.pathname,
+		method: req.method,
+		ip: req.ip,
+		status: res.statusCode,
+	});
 });
 ```
 
@@ -1362,28 +1385,26 @@ import client from "prom-client";
 
 const register = new client.Registry();
 const httpRequestDuration = new client.Histogram({
-  name: "http_request_duration_seconds",
-  help: "Duration of HTTP requests in seconds",
-  labelNames: ["method", "route", "status_code"],
-  registers: [register],
+	name: "http_request_duration_seconds",
+	help: "Duration of HTTP requests in seconds",
+	labelNames: ["method", "route", "status_code"],
+	registers: [register],
 });
 
 const app = woodland({ time: true });
 
 app.always((req, res, next) => {
-  const start = Date.now();
-  res.on("finish", () => {
-    const duration = (Date.now() - start) / 1000;
-    httpRequestDuration
-      .labels(req.method, req.parsed.pathname, res.statusCode)
-      .observe(duration);
-  });
-  next();
+	const start = Date.now();
+	res.on("finish", () => {
+		const duration = (Date.now() - start) / 1000;
+		httpRequestDuration.labels(req.method, req.parsed.pathname, res.statusCode).observe(duration);
+	});
+	next();
 });
 
 app.get("/metrics", async (req, res) => {
-  res.set("Content-Type", register.contentType);
-  res.end(await register.metrics());
+	res.set("Content-Type", register.contentType);
+	res.end(await register.metrics());
 });
 ```
 
@@ -1402,39 +1423,39 @@ let shutdown = false;
 
 // Reject new connections during shutdown
 server.on("request", (req, res) => {
-  if (shutdown) {
-    res.writeHead(503);
-    res.end("Server shutting down");
-    return;
-  }
-  app.route(req, res);
+	if (shutdown) {
+		res.writeHead(503);
+		res.end("Server shutting down");
+		return;
+	}
+	app.route(req, res);
 });
 
 // Graceful shutdown handler
 const gracefulShutdown = (signal) => {
-  console.log(`Received ${signal}, starting graceful shutdown`);
-  shutdown = true;
+	console.log(`Received ${signal}, starting graceful shutdown`);
+	shutdown = true;
 
-  setTimeout(() => {
-    console.error("Forced shutdown after timeout");
-    process.exit(1);
-  }, 30000); // 30 second timeout
+	setTimeout(() => {
+		console.error("Forced shutdown after timeout");
+		process.exit(1);
+	}, 30000); // 30 second timeout
 
-  server.close((err) => {
-    if (err) {
-      console.error("Shutdown error:", err);
-      process.exit(1);
-    }
-    console.log("Server closed gracefully");
-    process.exit(0);
-  });
+	server.close((err) => {
+		if (err) {
+			console.error("Shutdown error:", err);
+			process.exit(1);
+		}
+		console.log("Server closed gracefully");
+		process.exit(0);
+	});
 };
 
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
 server.listen(3000, () => {
-  console.log("Server running on port 3000");
+	console.log("Server running on port 3000");
 });
 ```
 
@@ -1445,20 +1466,20 @@ Best practices for memory management:
 ```javascript
 // Configure appropriate cache sizes based on expected load
 const app = woodland({
-  cacheSize: process.env.NODE_ENV === "production" ? 5000 : 1000,
-  cacheTTL: 30000, // 30 seconds TTL
+	cacheSize: process.env.NODE_ENV === "production" ? 5000 : 1000,
+	cacheTTL: 30000, // 30 seconds TTL
 });
 
 // Monitor memory usage
 if (process.env.NODE_ENV === "production") {
-  setInterval(() => {
-    const usage = process.memoryUsage();
-    console.log({
-      heapUsed: `${Math.round(usage.heapUsed / 1024 / 1024)}MB`,
-      heapTotal: `${Math.round(usage.heapTotal / 1024 / 1024)}MB`,
-      external: `${Math.round(usage.external / 1024 / 1024)}MB`,
-    });
-  }, 60000); // Log every minute
+	setInterval(() => {
+		const usage = process.memoryUsage();
+		console.log({
+			heapUsed: `${Math.round(usage.heapUsed / 1024 / 1024)}MB`,
+			heapTotal: `${Math.round(usage.heapTotal / 1024 / 1024)}MB`,
+			external: `${Math.round(usage.external / 1024 / 1024)}MB`,
+		});
+	}, 60000); // Log every minute
 }
 
 // Set memory limits via NODE_OPTIONS:
@@ -1471,32 +1492,36 @@ For compliance (SOC2, HIPAA), implement security event logging:
 
 ```javascript
 app.on("error", (req, res, error) => {
-  // Log security-relevant errors
-  if (error.message.includes("Path outside allowed directory")) {
-    console.error(JSON.stringify({
-      event: "PATH_TRAVERSAL_ATTEMPT",
-      ip: req.ip,
-      uri: req.parsed.pathname,
-      timestamp: new Date().toISOString(),
-    }));
-  }
+	// Log security-relevant errors
+	if (error.message.includes("Path outside allowed directory")) {
+		console.error(
+			JSON.stringify({
+				event: "PATH_TRAVERSAL_ATTEMPT",
+				ip: req.ip,
+				uri: req.parsed.pathname,
+				timestamp: new Date().toISOString(),
+			}),
+		);
+	}
 });
 
 // Log authentication failures
 app.always("/api/auth/*", (req, res, next) => {
-  const originalSend = res.send;
-  res.send = (body, ...args) => {
-    if (res.statusCode === 401 || res.statusCode === 403) {
-      console.error(JSON.stringify({
-        event: "AUTH_FAILURE",
-        ip: req.ip,
-        uri: req.parsed.pathname,
-        timestamp: new Date().toISOString(),
-      }));
-    }
-    return originalSend.call(res, body, ...args);
-  };
-  next();
+	const originalSend = res.send;
+	res.send = (body, ...args) => {
+		if (res.statusCode === 401 || res.statusCode === 403) {
+			console.error(
+				JSON.stringify({
+					event: "AUTH_FAILURE",
+					ip: req.ip,
+					uri: req.parsed.pathname,
+					timestamp: new Date().toISOString(),
+				}),
+			);
+		}
+		return originalSend.call(res, body, ...args);
+	};
+	next();
 });
 ```
 
@@ -1511,38 +1536,38 @@ import { woodland } from "woodland";
 import { createServer } from "node:http";
 
 const app = woodland({
-  origins: ["https://app.example.com", "https://admin.example.com"],
-  defaultHeaders: {
-    "Content-Security-Policy": "default-src 'self'",
-    "X-Frame-Options": "DENY",
-    "X-Content-Type-Options": "nosniff",
-  },
-  time: true,
+	origins: ["https://app.example.com", "https://admin.example.com"],
+	defaultHeaders: {
+		"Content-Security-Policy": "default-src 'self'",
+		"X-Frame-Options": "DENY",
+		"X-Content-Type-Options": "nosniff",
+	},
+	time: true,
 });
 
 // Health check endpoint for container orchestration
 app.get("/health", (req, res) => {
-  res.json({
-    status: "healthy",
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-  });
+	res.json({
+		status: "healthy",
+		timestamp: new Date().toISOString(),
+		uptime: process.uptime(),
+	});
 });
 
 // GraphQL endpoint
 app.post("/graphql", async (req, res) => {
-  try {
-    const result = await executeGraphQL(req.body);
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+	try {
+		const result = await executeGraphQL(req.body);
+		res.json(result);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
 });
 
 // Metrics endpoint for monitoring
 app.get("/metrics", (req, res) => {
-  res.set({ "Content-Type": "text/plain" });
-  res.send(generatePrometheusMetrics());
+	res.set({ "Content-Type": "text/plain" });
+	res.send(generatePrometheusMetrics());
 });
 
 createServer(app.route).listen(3000);
@@ -1555,38 +1580,38 @@ import { woodland } from "woodland";
 import { verify } from "jsonwebtoken";
 
 const app = woodland({
-  origins: process.env.ALLOWED_ORIGINS?.split(",") || [],
-  cacheSize: 5000,
-  cacheTTL: 30000,
+	origins: process.env.ALLOWED_ORIGINS?.split(",") || [],
+	cacheSize: 5000,
+	cacheTTL: 30000,
 });
 
 // JWT Authentication middleware
 app.always("/api/*", (req, res, next) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
+	const token = req.headers.authorization?.replace("Bearer ", "");
 
-  if (!token) {
-    return res.status(401).json({ error: "Missing token" });
-  }
+	if (!token) {
+		return res.status(401).json({ error: "Missing token" });
+	}
 
-  try {
-    req.user = verify(token, process.env.JWT_SECRET);
-    next();
-  } catch (error) {
-    res.status(401).json({ error: "Invalid token" });
-  }
+	try {
+		req.user = verify(token, process.env.JWT_SECRET);
+		next();
+	} catch (error) {
+		res.status(401).json({ error: "Invalid token" });
+	}
 });
 
 // User profile endpoint
 app.get("/api/user/:id", async (req, res) => {
-  const userId = req.params.id;
+	const userId = req.params.id;
 
-  // Authorization check
-  if (req.user.id !== userId && !req.user.isAdmin) {
-    return res.status(403).json({ error: "Forbidden" });
-  }
+	// Authorization check
+	if (req.user.id !== userId && !req.user.isAdmin) {
+		return res.status(403).json({ error: "Forbidden" });
+	}
 
-  const user = await getUserById(userId);
-  res.json(user);
+	const user = await getUserById(userId);
+	res.json(user);
 });
 ```
 
@@ -1597,30 +1622,30 @@ import { woodland } from "woodland";
 
 // Optimized for edge deployment
 const app = woodland({
-  cacheSize: 100,
-  cacheTTL: 60000,
-  silent: true,
-  etags: true,
+	cacheSize: 100,
+	cacheTTL: 60000,
+	silent: true,
+	etags: true,
 });
 
 // Image optimization endpoint
 app.get("/image/:id", async (req, res) => {
-  const { id } = req.params;
-  const { width, height, format = "webp" } = req.query;
+	const { id } = req.params;
+	const { width, height, format = "webp" } = req.query;
 
-  try {
-    const image = await optimizeImage(id, { width, height, format });
+	try {
+		const image = await optimizeImage(id, { width, height, format });
 
-    res.set({
-      "Content-Type": `image/${format}`,
-      "Cache-Control": "public, max-age=31536000",
-      Vary: "Accept-Encoding",
-    });
+		res.set({
+			"Content-Type": `image/${format}`,
+			"Cache-Control": "public, max-age=31536000",
+			Vary: "Accept-Encoding",
+		});
 
-    res.send(image);
-  } catch (error) {
-    res.status(404).json({ error: "Image not found" });
-  }
+		res.send(image);
+	} catch (error) {
+		res.status(404).json({ error: "Image not found" });
+	}
 });
 
 // Export for serverless deployment
@@ -1634,31 +1659,31 @@ import { woodland } from "woodland";
 import { WebSocketServer } from "ws";
 
 const app = woodland({
-  origins: ["https://chat.example.com"],
-  time: true,
+	origins: ["https://chat.example.com"],
+	time: true,
 });
 
 // WebSocket upgrade handling
 const wss = new WebSocketServer({ noServer: true });
 
 app.on("upgrade", (request, socket, head) => {
-  wss.handleUpgrade(request, socket, head, (ws) => {
-    wss.emit("connection", ws, request);
-  });
+	wss.handleUpgrade(request, socket, head, (ws) => {
+		wss.emit("connection", ws, request);
+	});
 });
 
 // Chat message endpoint
 app.post("/api/messages", async (req, res) => {
-  const message = await saveMessage(req.body);
+	const message = await saveMessage(req.body);
 
-  // Broadcast to WebSocket clients
-  wss.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify(message));
-    }
-  });
+	// Broadcast to WebSocket clients
+	wss.clients.forEach((client) => {
+		if (client.readyState === WebSocket.OPEN) {
+			client.send(JSON.stringify(message));
+		}
+	});
 
-  res.json(message);
+	res.json(message);
 });
 ```
 
@@ -1669,12 +1694,12 @@ import { woodland } from "woodland";
 import { createServer } from "node:http";
 
 const app = woodland({
-  autoIndex: process.env.NODE_ENV === "development",
-  defaultHeaders: {
-    "X-Content-Type-Options": "nosniff",
-    "X-Frame-Options": "DENY",
-    "Referrer-Policy": "strict-origin-when-cross-origin",
-  },
+	autoIndex: process.env.NODE_ENV === "development",
+	defaultHeaders: {
+		"X-Content-Type-Options": "nosniff",
+		"X-Frame-Options": "DENY",
+		"Referrer-Policy": "strict-origin-when-cross-origin",
+	},
 });
 
 // Serve static files with security headers
@@ -1682,15 +1707,15 @@ app.files("/", "./public");
 
 // SPA fallback for client-side routing
 app.get("*", (req, res) => {
-  res.sendFile("./public/index.html");
+	res.sendFile("./public/index.html");
 });
 
 // Graceful shutdown for containers
 process.on("SIGTERM", () => {
-  console.log("Received SIGTERM, shutting down gracefully");
-  server.close(() => {
-    process.exit(0);
-  });
+	console.log("Received SIGTERM, shutting down gracefully");
+	server.close(() => {
+		process.exit(0);
+	});
 });
 
 const server = createServer(app.route);
@@ -1705,19 +1730,19 @@ server.listen(process.env.PORT || 3000);
 
 ```javascript
 const app = woodland({
-  autoIndex: false, // Enable directory listing (camelCase)
-  cacheSize: 1000, // LRU cache size
-  cacheTTL: 10000, // Cache TTL in milliseconds
-  charset: "utf-8", // Default character encoding
-  corsExpose: "", // CORS headers to expose to the client
-  defaultHeaders: {}, // Default HTTP headers
-  digit: 3, // Timing precision digits
-  etags: true, // Enable ETag generation
-  indexes: ["index.htm", "index.html"], // Index file names
-  logging: {}, // Logging configuration
-  origins: [], // CORS allowed origins
-  silent: false, // Disable default headers
-  time: false, // Enable response time tracking
+	autoIndex: false, // Enable directory listing (camelCase)
+	cacheSize: 1000, // LRU cache size
+	cacheTTL: 10000, // Cache TTL in milliseconds
+	charset: "utf-8", // Default character encoding
+	corsExpose: "", // CORS headers to expose to the client
+	defaultHeaders: {}, // Default HTTP headers
+	digit: 3, // Timing precision digits
+	etags: true, // Enable ETag generation
+	indexes: ["index.htm", "index.html"], // Index file names
+	logging: {}, // Logging configuration
+	origins: [], // CORS allowed origins
+	silent: false, // Disable default headers
+	time: false, // Enable response time tracking
 });
 ```
 
@@ -1753,7 +1778,22 @@ res.set(headers);
 res.redirect(url, permanent);
 res.error(status, body);
 res.header(name, value); // Native Node.js header setter
+res.cookie(name, value, opts); // Set cookie with options
+res.clearCookie(name, opts); // Clear cookie by setting expired
 ```
+
+#### Cookie Options
+
+| Option     | Type                  | Description                                  |
+| ---------- | --------------------- | -------------------------------------------- |
+| `domain`   | `string`              | Cookie domain                                |
+| `path`     | `string`              | Cookie path (default: `'/'`)                 |
+| `maxAge`   | `number`              | Max age in milliseconds                      |
+| `expires`  | `Date`                | Expiration date                              |
+| `httpOnly` | `boolean`             | HttpOnly flag                                |
+| `secure`   | `boolean`             | Secure flag                                  |
+| `sameSite` | `string`              | SameSite attribute (`strict`, `lax`, `none`) |
+| `encode`   | `boolean \| Function` | Custom encoder or `false` to skip encoding   |
 
 ### Utility Methods
 

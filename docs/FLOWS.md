@@ -144,6 +144,8 @@ app.route(req, res)  ──← called by Node.js http.Server
         │                    #onReady(), #onDone()
         ├── res.set = createSetHandler() ─→ set()
         ├── res.status = createStatusHandler() ─→ status()
+    ├── res.cookie = createCookieHandler() ─→ serializeCookie(), getHeader()+setHeader() (array append)
+    ├── res.clearCookie = createClearCookieHandler() ─→ serializeCookie(name, "", { maxAge: 0, expires: new Date(0) }), getHeader()+setHeader()
         └── on('close') → logger.clf()
 ```
 
@@ -254,18 +256,20 @@ immediate=false → process.nextTick(() => execute(err))
         ▼
 #onDone(req, res, body, headers)
     ├── no Content-Length → set it
-    ├── writeHead(res, headers) → res.writeHead(status, code, h)
+    ├── writeHead(res, headers) → res.writeHead(status, code, { ...res.getHeaders(), ...headers })
     └── res.end(body, charset)
 ```
 
 ### Convenience response methods
 
-| Method | Flow |
-|--------|------|
-| `res.json(obj)` | `send(JSON.stringify(obj), 200, {Content-Type: json})` |
-| `res.redirect(uri, perm)` | `isSafeRedirectUri() → send("", 308/307, {Location})` |
-| `res.status(code)` | `res.statusCode = code` |
-| `res.set(headers)` | `set(res, headers) → setHeader() per entry` |
+| Method                          | Flow                                                                                                                           |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `res.json(obj)`                 | `send(JSON.stringify(obj), 200, {Content-Type: json})`                                                                         |
+| `res.redirect(uri, perm)`       | `isSafeRedirectUri() → send("", 308/307, {Location})`                                                                          |
+| `res.status(code)`              | `res.statusCode = code`                                                                                                        |
+| `res.set(headers)`              | `set(res, headers) → setHeader() per entry`                                                                                    |
+| `res.cookie(name, value, opts)` | `serializeCookie(name, value, opts) → getHeader("set-cookie")+setHeader() (array append)`                                      |
+| `res.clearCookie(name, opts)`   | `serializeCookie(name, "", { maxAge: 0, expires: new Date(0), ...opts }) → getHeader("set-cookie")+setHeader() (array append)` |
 
 ### Error response
 
@@ -440,15 +444,15 @@ createLogger(config)
 
 ### CLF Template Replacements
 
-| Token | Value |
-|-------|-------|
-| %v | host |
-| %h | IP |
-| %l | logname |
-| %u | username |
-| %t | date |
-| %r | request line |
-| %s | status |
-| %b | content-length |
-| %{Referer} | referer |
-| %{User-Agent} | user-agent |
+| Token         | Value          |
+| ------------- | -------------- |
+| %v            | host           |
+| %h            | IP             |
+| %l            | logname        |
+| %u            | username       |
+| %t            | date           |
+| %r            | request line   |
+| %s            | status         |
+| %b            | content-length |
+| %{Referer}    | referer        |
+| %{User-Agent} | user-agent     |

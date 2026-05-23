@@ -27,7 +27,6 @@ import {
 	INT_0,
 	INT_1,
 	INT_10,
-	INT_NEG_1,
 	INT_200,
 	INT_206,
 	INT_307,
@@ -37,6 +36,8 @@ import {
 	INT_405,
 	INT_416,
 	INT_500,
+	INT_1e3,
+	INT_NEG_1,
 	KEY_BYTES,
 	LAST_MODIFIED,
 	LOCATION,
@@ -44,11 +45,86 @@ import {
 	MSG_INVALID_REDIRECT_URI,
 	OPTIONS,
 	OPTIONS_BODY,
+	OBJECT,
 	RANGE,
+	SEMICOLON_SPACE,
 	SLASH_BACKSLASH,
 	STRING,
 	TO_STRING,
 } from "./constants.js";
+
+/**
+ * Serializes a cookie name/value pair with options into a Set-Cookie header string
+ * @param {string} name - Cookie name
+ * @param {string} value - Cookie value
+ * @param {Object} [opts={}] - Cookie options
+ * @param {string} [opts.domain] - Cookie domain
+ * @param {string} [opts.path] - Cookie path
+ * @param {number} [opts.maxAge] - Max age in milliseconds
+ * @param {Date} [opts.expires] - Expiration date
+ * @param {boolean} [opts.httpOnly] - HttpOnly flag
+ * @param {boolean} [opts.secure] - Secure flag
+ * @param {string} [opts.sameSite] - SameSite attribute
+ * @param {boolean|Function} [opts.encode] - Encoding function or false to skip
+ * @returns {string} Set-Cookie header value
+ */
+export function serializeCookie(name, value, opts = {}) {
+	let encodeFn;
+	if (opts.encode === false) {
+		encodeFn = (v) => v;
+	} else if (typeof opts.encode === FUNCTION) {
+		encodeFn = opts.encode;
+	} else {
+		encodeFn = encodeURIComponent;
+	}
+	let cookieString = `${name}=${encodeFn(value)}`;
+	const cookieOpts = [];
+
+	if (opts.path) {
+		cookieOpts.push(`Path=${opts.path}`);
+	} else {
+		cookieOpts.push("Path=/");
+	}
+
+	if (opts.domain) {
+		cookieOpts.push(`Domain=${opts.domain}`);
+	}
+
+	if (opts.maxAge != null) {
+		cookieOpts.push(`Max-Age=${Math.floor(opts.maxAge / INT_1e3)}`);
+		if (opts.expires) {
+			cookieOpts.push(`Expires=${opts.expires.toUTCString()}`);
+		} else {
+			cookieOpts.push(`Expires=${new Date(Date.now() + opts.maxAge).toUTCString()}`);
+		}
+	} else if (opts.expires) {
+		cookieOpts.push(`Expires=${opts.expires.toUTCString()}`);
+	}
+
+	if (opts.httpOnly) {
+		cookieOpts.push("HttpOnly");
+	}
+
+	if (opts.secure) {
+		cookieOpts.push("Secure");
+	}
+
+	if (opts.sameSite) {
+		const sameSite = opts.sameSite;
+		if (sameSite.toLowerCase() === "strict") {
+			cookieOpts.push("SameSite=Strict");
+		} else if (sameSite.toLowerCase() === "lax") {
+			cookieOpts.push("SameSite=Lax");
+		} else if (sameSite.toLowerCase() === "none") {
+			cookieOpts.push("SameSite=None");
+		} else {
+			cookieOpts.push(`SameSite=${sameSite}`);
+		}
+	}
+
+	cookieString += SEMICOLON_SPACE + cookieOpts.join(SEMICOLON_SPACE);
+	return cookieString;
+}
 
 const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[INT_1]),
 	mimeExtensions = valid.reduce((a, v) => {
@@ -171,11 +247,24 @@ export function pipeable(method, arg) {
 
 /**
  * Writes HTTP response headers using writeHead method
+ * Merges passed headers with existing response headers to preserve
+ * headers set via res.setHeader/res.header/res.set prior to writing.
+ * Only passes the third parameter when headers is explicitly defined.
  * @param {Object} res - The HTTP response object
- * @param {Object} [headers={}] - Headers object to write
+ * @param {Object} [headers] - Headers object to write (merged with existing)
  */
-export function writeHead(res, headers = {}) {
-	res.writeHead(res.statusCode, STATUS_CODES[res.statusCode], headers);
+export function writeHead(res, headers) {
+	const mergeable = headers !== null && typeof headers === OBJECT;
+	if (mergeable) {
+		const existing = res.getHeaders && typeof res.getHeaders === FUNCTION ? res.getHeaders() : {};
+		const merged =
+			existing && typeof existing === OBJECT ? { ...existing, ...headers } : { ...headers };
+		res.writeHead(res.statusCode, STATUS_CODES[res.statusCode], merged);
+	} else if (headers !== undefined) {
+		res.writeHead(res.statusCode, STATUS_CODES[res.statusCode], headers);
+	} else {
+		res.writeHead(res.statusCode);
+	}
 }
 
 /**
@@ -558,4 +647,43 @@ export function createSetHandler(res) {
  */
 export function createStatusHandler(res) {
 	return (arg = INT_200) => status(res, arg);
+}
+
+/**
+ * Creates cookie setter handler
+ * @param {Object} res - Response object
+ * @returns {Function} Cookie handler function
+ */
+export function createCookieHandler(res) {
+	return (name, value, opts = {}) => {
+		const cookieValue = serializeCookie(name, value, opts);
+		let existing = res.getHeader("set-cookie") || [];
+		if (!Array.isArray(existing)) {
+			existing = [existing];
+		}
+		existing.push(cookieValue);
+		res.setHeader("set-cookie", existing);
+	};
+}
+
+/**
+ * Creates cookie clearing handler
+ * @param {Object} res - Response object
+ * @returns {Function} Clear cookie handler function
+ */
+export function createClearCookieHandler(res) {
+	return (name, opts = {}) => {
+		const clearOpts = {
+			...opts,
+			maxAge: INT_0,
+			expires: new Date(0),
+		};
+		const cookieValue = serializeCookie(name, EMPTY, clearOpts);
+		let existing = res.getHeader("set-cookie") || [];
+		if (!Array.isArray(existing)) {
+			existing = [existing];
+		}
+		existing.push(cookieValue);
+		res.setHeader("set-cookie", existing);
+	};
 }
