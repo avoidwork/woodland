@@ -1,6 +1,6 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
-import { INT_0, INT_1 } from "../../src/constants.js";
+import { INT_0, INT_1, INT_2 } from "../../src/constants.js";
 import {
 	mime,
 	getStatusText,
@@ -1616,6 +1616,21 @@ describe("response", () => {
 			assert.ok(capturedHeaders["set-cookie"]?.includes("session=abc123"));
 			assert.strictEqual(capturedHeaders["content-type"], "text/plain");
 		});
+
+		it("should call writeHead with status only when headers is undefined", () => {
+			let capturedArgs = null;
+			const res = {
+				statusCode: 201,
+				getHeaders: () => ({ "x-custom": "ignored" }),
+				writeHead: (status, text, headers) => {
+					capturedArgs = [status, text, headers];
+				},
+			};
+
+			writeHead(res, undefined);
+
+			assert.deepStrictEqual(capturedArgs, [201, undefined, undefined]);
+		});
 	});
 
 	describe("createErrorHandler", () => {
@@ -1889,6 +1904,24 @@ describe("response", () => {
 
 			assert.ok(cookieValue[INT_0].includes("hello%20world"));
 		});
+
+		it("should handle non-array getHeader result", () => {
+			let setHeaderCalled = false;
+			let setHeaderValue = null;
+			const res = {
+				setHeader: (name, value) => {
+					setHeaderCalled = true;
+					setHeaderValue = value;
+				},
+				getHeader: () => "old-cookie=old-value",
+			};
+
+			const cookieHandler = createCookieHandler(res);
+			cookieHandler("session", "abc123");
+
+			assert.strictEqual(setHeaderCalled, true);
+			assert.deepStrictEqual(setHeaderValue, ["old-cookie=old-value", "session=abc123; Path=/"]);
+		});
 	});
 
 	describe("createClearCookieHandler", () => {
@@ -1926,6 +1959,29 @@ describe("response", () => {
 			assert.strictEqual(cookieValue.length, INT_1);
 			assert.ok(cookieValue[INT_0].includes("Domain=example.com"));
 			assert.ok(cookieValue[INT_0].includes("session="));
+		});
+
+		it("should handle non-array getHeader result", () => {
+			let setHeaderCalled = false;
+			let setHeaderValue = null;
+			const res = {
+				setHeader: (name, value) => {
+					setHeaderCalled = true;
+					setHeaderValue = value;
+				},
+				getHeader: () => "old-cookie=old-value; Path=/",
+			};
+
+			const clearHandler = createClearCookieHandler(res);
+			clearHandler("session");
+
+			assert.strictEqual(setHeaderCalled, true);
+			assert.strictEqual(setHeaderValue.length, INT_2);
+			assert.strictEqual(setHeaderValue[INT_0], "old-cookie=old-value; Path=/");
+			assert.strictEqual(
+				setHeaderValue[INT_1],
+				"session=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+			);
 		});
 	});
 });

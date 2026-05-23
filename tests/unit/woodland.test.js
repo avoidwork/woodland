@@ -221,6 +221,12 @@ describe("woodland", () => {
 
 				assert.strictEqual(result, app);
 			});
+
+			it("should throw TypeError when route has no handler", () => {
+				assert.throws(() => {
+					app.get("/nobody");
+				}, /Expected a function/);
+			});
 		});
 
 		describe("always", () => {
