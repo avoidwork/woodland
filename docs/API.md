@@ -436,4 +436,61 @@ The `route()` method decorates response objects with the following methods inclu
 | `res.send(body, status, headers)` | Send response body with security headers |
 | `res.set(arg)` | Set multiple headers with type validation |
 | `res.status(arg)` | Set HTTP status code |
+| `res.cookie(name, value, opts)` | Set a cookie with options (domain, path, maxAge, httpOnly, secure, sameSite, encode) |
+| `res.clearCookie(name, opts)` | Clear a cookie by setting it expired |
 | `res.locals` | `Object` - Local variables for the request |
+
+#### `res.cookie(name, value, opts)`
+
+Sets a cookie via the `set-cookie` response header with configurable options.
+
+| Parameter | Type | Default | Optional | Description |
+|-----------|------|---------|----------|-------------|
+| `name` | `string` | No | No | Cookie name |
+| `value` | `string` | No | No | Cookie value (URL-encoded by default) |
+| `opts` | `Object` | `{}` | Yes | Cookie options |
+
+**Options Object:**
+
+| Option | Type | Default | Optional | Description |
+|--------|------|---------|----------|-------------|
+| `domain` | `string` | - | Yes | Cookie domain |
+| `path` | `string` | `'/'` | Yes | Cookie path |
+| `maxAge` | `number` | - | Yes | Max age in milliseconds |
+| `expires` | `Date` | - | Yes | Expiration date |
+| `httpOnly` | `boolean` | `false` | Yes | HttpOnly flag |
+| `secure` | `boolean` | `false` | Yes | Secure flag |
+| `sameSite` | `string` | - | Yes | SameSite attribute (`strict`, `lax`, `none`) |
+| `encode` | `boolean \| Function` | `encodeURIComponent` | Yes | Custom encoder or `false` to skip encoding |
+
+**Example:**
+
+```javascript
+app.get("/", (req, res) => {
+  res.cookie("session", "abc123", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict",
+    maxAge: 3600000, // 1 hour
+  });
+  res.send("Hello");
+});
+```
+
+#### `res.clearCookie(name, opts)`
+
+Clears a cookie by setting it expired (`maxAge: 0`, `path=/`).
+
+| Parameter | Type | Default | Optional | Description |
+|-----------|------|---------|----------|-------------|
+| `name` | `string` | No | No | Cookie name to clear |
+| `opts` | `Object` | `{}` | Yes | Options (supports `domain`, `path`) |
+
+**Example:**
+
+```javascript
+app.get("/logout", (req, res) => {
+  res.clearCookie("session", { path: "/" });
+  res.redirect("/");
+});
+```

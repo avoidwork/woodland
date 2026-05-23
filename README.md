@@ -199,6 +199,8 @@ res.redirect("/new-url");
 res.header("x-custom", "value");
 res.status(201);
 res.error(404);
+res.cookie("session", "abc123", { httpOnly: true, maxAge: 3600000 });
+res.clearCookie("session");
 ```
 
 ## Request Properties

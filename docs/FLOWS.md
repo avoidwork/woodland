@@ -144,6 +144,8 @@ app.route(req, res)  ──← called by Node.js http.Server
         │                    #onReady(), #onDone()
         ├── res.set = createSetHandler() ─→ set()
         ├── res.status = createStatusHandler() ─→ status()
+        ├── res.cookie = createCookieHandler() ─→ serializeCookie(), setHeader("set-cookie")
+        ├── res.clearCookie = createClearCookieHandler() ─→ serializeCookie(name, "", { maxAge: -1 })
         └── on('close') → logger.clf()
 ```
 
@@ -254,7 +256,7 @@ immediate=false → process.nextTick(() => execute(err))
         ▼
 #onDone(req, res, body, headers)
     ├── no Content-Length → set it
-    ├── writeHead(res, headers) → res.writeHead(status, code, h)
+    ├── writeHead(res, headers) → res.writeHead(status, code, { ...res.getHeaders(), ...headers })
     └── res.end(body, charset)
 ```
 
@@ -266,6 +268,8 @@ immediate=false → process.nextTick(() => execute(err))
 | `res.redirect(uri, perm)` | `isSafeRedirectUri() → send("", 308/307, {Location})` |
 | `res.status(code)` | `res.statusCode = code` |
 | `res.set(headers)` | `set(res, headers) → setHeader() per entry` |
+| `res.cookie(name, value, opts)` | `serializeCookie(name, value, opts) → setHeader("set-cookie")` |
+| `res.clearCookie(name, opts)` | `serializeCookie(name, "", { maxAge: -1, ...opts }) → setHeader("set-cookie")` |
 
 ### Error response
 

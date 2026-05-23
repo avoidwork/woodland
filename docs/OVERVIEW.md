@@ -36,6 +36,7 @@ Woodland is a **security-first HTTP server framework** for Node.js that extends 
 - **Secure error handling** - No sensitive data exposure in error responses
 - **X-Content-Type-Options** - Automatic `nosniff` header
 - **Header injection prevention** - Type validation for header values
+- **Cookie handling** - `res.cookie()` with secure options (httpOnly, secure, sameSite) and `res.clearCookie()`
 - **Prototype pollution protection** - Safe ETag generation with `Object.hasOwn()`
 - **404 security header removal** - Prevents information disclosure on 404 responses
 
@@ -1753,7 +1754,22 @@ res.set(headers);
 res.redirect(url, permanent);
 res.error(status, body);
 res.header(name, value); // Native Node.js header setter
+res.cookie(name, value, opts); // Set cookie with options
+res.clearCookie(name, opts); // Clear cookie by setting expired
 ```
+
+#### Cookie Options
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `domain` | `string` | Cookie domain |
+| `path` | `string` | Cookie path (default: `'/'`) |
+| `maxAge` | `number` | Max age in milliseconds |
+| `expires` | `Date` | Expiration date |
+| `httpOnly` | `boolean` | HttpOnly flag |
+| `secure` | `boolean` | Secure flag |
+| `sameSite` | `string` | SameSite attribute (`strict`, `lax`, `none`) |
+| `encode` | `boolean \| Function` | Custom encoder or `false` to skip encoding |
 
 ### Utility Methods
 
