@@ -53,18 +53,18 @@ export interface ClearCookieOptions {
 	path?: string;
 }
 
-export interface WoodlandResponse {
-	locals: Record<string, any>;
-	error(status?: number, body?: Error | string): void;
-	header(name: string, value: string | number): void;
-	json(body: any, status?: number, headers?: Record<string, string>): void;
-	redirect(uri: string, perm?: boolean): void;
-	send(body?: string, status?: number, headers?: Record<string, string>): void;
-	set(headers: Record<string, string>): void;
-	status(code: number): void;
-	cookie(name: string, value: string, opts?: CookieOptions): void;
-	clearCookie(name: string, opts?: ClearCookieOptions): void;
-}
+	export interface WoodlandResponse {
+		locals: Record<string, any>;
+		error(status?: number, body?: Error | string): void;
+		header(name: string, value: string | number): void;
+		json(body: any, status?: number, headers?: Record<string, string>): void;
+		redirect(uri: string, perm?: boolean): void;
+		send(body?: any, status?: number, headers?: Record<string, string>): void;
+		set(headers: Record<string, string>): void;
+		status(code: number): void;
+		cookie(name: string, value: string, opts?: CookieOptions): void;
+		clearCookie(name: string, opts?: ClearCookieOptions): void;
+	}
 
 export class Woodland extends EventEmitter {
 	// Public read-only properties (getters)
