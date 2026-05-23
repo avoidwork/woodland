@@ -113,6 +113,7 @@ export const PERCENT = "%";
 export const PERIOD = ".";
 export const SLASH = "/";
 export const STRING_0 = "0";
+export const SUB_ROUTER = "sub_router";
 export const WILDCARD = "*";
 export const WOODLAND = "woodland";
 
@@ -152,6 +153,7 @@ export const NEWLINE = "\n";
 export const ROUTE_PATTERN = "(/.*)?";
 export const MSG_USE_MIDDLEWARE_REQUIRED =
 	"useMiddleware is required or config.use must be a function";
+export const MSG_SUB_APP_REQUIRED = "Expected a Woodland instance for nested routing";
 export const MSG_MIDDLEWARE_REQUIRED = "Expected a function in the parameters";
 export const EXTRACT_PATH_REPLACE = "(?<$1>[^/]+)";
 export const TPL_DIR = "tpl";

@@ -79,8 +79,10 @@ export class Woodland extends EventEmitter {
 	// Middleware methods
 	ignore(fn: Function): Woodland;
 	list(method?: string, type?: string): any | any[];
+	mount(path: string): Router;
 	use(rpath: string | Function, ...fn: Function[]): Woodland;
 	use(rpath: string, ...fn: (Function | string)[]): Woodland;
+	use(rpath: string, subApp: Woodland): Woodland;
 
 	// Utility methods
 	etag(method: string, ...args: any[]): string;
@@ -95,3 +97,25 @@ export class Woodland extends EventEmitter {
 export function woodland(arg?: WoodlandConfig): Woodland;
 
 export default woodland;
+
+export class Router {
+	parent: Woodland;
+	prefix: string;
+	routeMap: Map<string, Map<string, Function[] | Router>>;
+
+	constructor(parent: Woodland, prefix: string);
+
+	// Routing methods - with path
+	always(path: string, ...fn: Function[]): Router;
+	connect(path: string, ...fn: Function[]): Router;
+	delete(path: string, ...fn: Function[]): Router;
+	get(path: string, ...fn: Function[]): Router;
+	options(path: string, ...fn: Function[]): Router;
+	patch(path: string, ...fn: Function[]): Router;
+	post(path: string, ...fn: Function[]): Router;
+	put(path: string, ...fn: Function[]): Router;
+	trace(path: string, ...fn: Function[]): Router;
+
+	// Middleware methods
+	ignore(fn: Function): Router;
+}

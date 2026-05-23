@@ -6,12 +6,14 @@ import {
 	GET,
 	HEAD,
 	INT_0,
+	INT_1,
 	INT_NEG_1,
 	LEFT_PAREN,
 	NODE_METHODS,
 	QUANTIFIER_PATTERN,
 	SLASH,
 	STRING,
+	SUB_ROUTER,
 	WILDCARD,
 	MSG_CANNOT_SET_HEAD_ROUTE,
 	MSG_INVALID_HTTP_METHOD,
@@ -235,6 +237,53 @@ export function createMiddlewareRegistry(methods, cache) {
 }
 
 /**
+ * Checks if an object is a Router instance (duck typing)
+ * @param {*} obj - Object to check
+ * @returns {boolean} True if object is a Router instance
+ */
+export function isRouter(obj) {
+	return (
+		obj != null &&
+		((obj.constructor && obj.constructor.prototype && obj.constructor.prototype[SUB_ROUTER]) ||
+			(obj.constructor && obj.constructor[SUB_ROUTER]))
+	);
+}
+
+/**
+ * Flattens a Router's routes into the parent middleware store via callback, handling nested routers recursively
+ * @param {Object} router - Router instance to flatten
+ * @param {string} prefix - Mount prefix for this router's routes (includes leading slash)
+ * @param {Function} registerCb - Callback to register flattened route: (path, method, handlers)
+ */
+export function flattenRouterRoutes(router, prefix, registerCb) {
+	for (const [method, pathMap] of router.routeMap) {
+		for (const [path, value] of pathMap) {
+			let fullPath;
+			if (prefix === "") {
+				fullPath = path.startsWith(SLASH) ? path : `${SLASH}${path}`;
+			} else {
+				const p = path.startsWith(SLASH) || path === "" ? path.substring(INT_1) : path;
+				fullPath = `${prefix}${SLASH}${p}`;
+			}
+
+			if (Array.isArray(value)) {
+				let lrpath = fullPath;
+				if (
+					lrpath.includes(`${SLASH}${LEFT_PAREN}`) ||
+					(lrpath.includes(`${SLASH}:`) && !lrpath.includes(`${SLASH}${LEFT_PAREN}`))
+				) {
+					lrpath = extractPath(lrpath);
+				}
+				validateRoutePattern(lrpath);
+				registerCb(lrpath, method, value);
+			} else if (isRouter(value)) {
+				flattenRouterRoutes(value, fullPath, registerCb);
+			}
+		}
+	}
+}
+
+/**
  * Validates HTTP method for middleware registration
  * @param {string} method - HTTP method to validate
  * @throws {TypeError} If method is invalid or HEAD
@@ -298,6 +347,8 @@ export function registerMiddleware(middleware, ignored, methods, rpath, ...fn) {
 	if (!lrpath.includes(`${SLASH}${LEFT_PAREN}`) && lrpath.includes(`${SLASH}:`)) {
 		lparams = true;
 		lrpath = extractPath(lrpath);
+	} else if (lrpath.includes("(?<")) {
+		lparams = true;
 	}
 
 	validateRoutePattern(lrpath);

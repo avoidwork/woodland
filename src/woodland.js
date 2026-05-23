@@ -58,6 +58,7 @@ import {
 	EVT_STREAM,
 	EVT_CLOSE,
 	MSG_MIDDLEWARE_REQUIRED,
+	SUB_ROUTER,
 } from "./constants.js";
 import { createMiddlewareRegistry, next } from "./middleware.js";
 import { stream as responseStream, getStatus, writeHead } from "./response.js";
@@ -73,6 +74,7 @@ import {
 	createSetHandler,
 	createStatusHandler,
 } from "./response.js";
+import { flattenRouterRoutes, isRouter } from "./middleware.js";
 
 /**
  * Woodland HTTP server framework class extending EventEmitter
@@ -761,8 +763,17 @@ export class Woodland extends EventEmitter {
 	 * @returns {Woodland} Returns self for chaining
 	 */
 	use(rpath, ...fn) {
-		this.#middleware.register(rpath, ...fn);
-		this.#logger.logMiddleware(rpath, fn[fn.length - INT_1]);
+		if (fn.length === INT_1 && isRouter(fn[INT_0])) {
+			const router = fn[INT_0];
+			const prefix = typeof rpath === STRING ? rpath : SLASH;
+			flattenRouterRoutes(router, prefix, (path, method, handlers) => {
+				this.#middleware.register(path, ...handlers, method);
+			});
+		} else {
+			this.#middleware.register(rpath, ...fn);
+			const lastFn = fn[fn.length - INT_1];
+			this.#logger.logMiddleware(rpath, typeof lastFn === FUNCTION ? lastFn : null);
+		}
 
 		return this;
 	}
@@ -782,6 +793,164 @@ export class Woodland extends EventEmitter {
 
 	set error(fn) {
 		this.#error = typeof fn === FUNCTION ? fn : null;
+	}
+
+	/**
+	 * Creates a path-composing router helper for chaining route registrations under a shared prefix
+	 * @param {string} path - Mount prefix path
+	 * @returns {Router} Chainable router instance
+	 */
+	mount(path) {
+		return new Router(this, path);
+	}
+}
+
+/**
+ * Router class for composable route registration under path prefixes
+ * @class
+ */
+export class Router {
+	/** @type {symbol} Router instance marker */
+	static [SUB_ROUTER] = true;
+
+	/**
+	 * Creates a new Router instance
+	 * @param {Woodland} parent - Parent Woodland application
+	 * @param {string} prefix - Mount prefix for this router
+	 */
+	constructor(parent, prefix) {
+		this.parent = parent;
+		this.prefix = prefix;
+		this.routeMap = new Map();
+	}
+
+	/**
+	 * Adds a function to the ignored set
+	 * @param {Function} fn - Function to ignore
+	 * @returns {Router} Returns self for chaining
+	 */
+	ignore(fn) {
+		this.parent.ignore(fn);
+		return this;
+	}
+
+	/**
+	 * Registers GET middleware for a route path
+	 * @param {string} path - Route path
+	 * @param {...Function} fn - Handler function(s)
+	 * @returns {Router} Returns self for chaining
+	 */
+	get(path, ...fn) {
+		return this.#registerPath(GET, path, fn);
+	}
+
+	/**
+	 * Registers POST middleware for a route path
+	 * @param {string} path - Route path
+	 * @param {...Function} fn - Handler function(s)
+	 * @returns {Router} Returns self for chaining
+	 */
+	post(path, ...fn) {
+		return this.#registerPath(POST, path, fn);
+	}
+
+	/**
+	 * Registers PUT middleware for a route path
+	 * @param {string} path - Route path
+	 * @param {...Function} fn - Handler function(s)
+	 * @returns {Router} Returns self for chaining
+	 */
+	put(path, ...fn) {
+		return this.#registerPath(PUT, path, fn);
+	}
+
+	/**
+	 * Registers DELETE middleware for a route path
+	 * @param {string} path - Route path
+	 * @param {...Function} fn - Handler function(s)
+	 * @returns {Router} Returns self for chaining
+	 */
+	delete(path, ...fn) {
+		return this.#registerPath(DELETE, path, fn);
+	}
+
+	/**
+	 * Registers PATCH middleware for a route path
+	 * @param {string} path - Route path
+	 * @param {...Function} fn - Handler function(s)
+	 * @returns {Router} Returns self for chaining
+	 */
+	patch(path, ...fn) {
+		return this.#registerPath(PATCH, path, fn);
+	}
+
+	/**
+	 * Registers CONNECT middleware for a route path
+	 * @param {string} path - Route path
+	 * @param {...Function} fn - Handler function(s)
+	 * @returns {Router} Returns self for chaining
+	 */
+	connect(path, ...fn) {
+		return this.#registerPath(CONNECT, path, fn);
+	}
+
+	/**
+	 * Registers OPTIONS middleware for a route path
+	 * @param {string} path - Route path
+	 * @param {...Function} fn - Handler function(s)
+	 * @returns {Router} Returns self for chaining
+	 */
+	options(path, ...fn) {
+		return this.#registerPath(OPTIONS, path, fn);
+	}
+
+	/**
+	 * Registers TRACE middleware for a route path
+	 * @param {string} path - Route path
+	 * @param {...Function} fn - Handler function(s)
+	 * @returns {Router} Returns self for chaining
+	 */
+	trace(path, ...fn) {
+		return this.#registerPath(TRACE, path, fn);
+	}
+
+	/**
+	 * Registers middleware for all HTTP methods at a route path
+	 * @param {string} path - Route path
+	 * @param {...Function} fn - Handler function(s)
+	 * @returns {Router} Returns self for chaining
+	 */
+	always(path, ...fn) {
+		return this.#registerPath(WILDCARD, path, fn);
+	}
+
+	/**
+	 * Registers middleware for a method and path combination
+	 * @param {string} method - HTTP method
+	 * @param {string} path - Route path
+	 * @param {...Function} fn - Handler function(s)
+	 * @returns {Router} Returns self for chaining
+	 */
+	#registerPath(method, path, fn) {
+		let lrpath = path;
+		if (!lrpath.startsWith(SLASH)) {
+			lrpath = `${SLASH}${lrpath}`;
+		}
+
+		if (!this.routeMap.has(method)) {
+			this.routeMap.set(method, new Map());
+		}
+
+		const pathMap = this.routeMap.get(method);
+		const last = fn[fn.length - INT_1];
+		if (isRouter(last)) {
+			pathMap.set(lrpath, last);
+		} else {
+			const existing = pathMap.has(lrpath) ? pathMap.get(lrpath) : [];
+			pathMap.set(lrpath, [...existing, ...fn]);
+		}
+
+		return this;
 	}
 }
 
