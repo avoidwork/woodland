@@ -1103,7 +1103,7 @@ See `benchmarks/` directory for empirical performance measurements.
 
 ## Test Coverage
 
-Woodland maintains comprehensive test coverage with **335 tests passing** across 9 source modules. The framework achieves **100% line coverage** and **99.37% function coverage**.
+Woodland maintains comprehensive test coverage with **365 tests passing** across 9 source modules. The framework achieves **99.45% line coverage**, **95.30% branch coverage**, and **98.82% function coverage**.
 
 ### Coverage Metrics
 
@@ -1111,28 +1111,28 @@ Woodland maintains comprehensive test coverage with **335 tests passing** across
 File            | Line %  | Branch % | Funcs % | Status
 ----------------|---------|----------|---------|--------
  cli-utils.js    | 100.00 |  100.00 |  100.00 | 🎯 Perfect
- config.js       | 100.00 |   89.19 |  100.00 | 🎯 Perfect line/function coverage
+ config.js       | 100.00 |   89.47 |  100.00 | 🎯 Perfect line coverage
  constants.js    | 100.00 |  100.00 |  100.00 | 🎯 Perfect
- fileserver.js   | 100.00 |   89.36 |  100.00 | 🎯 Perfect line/function coverage
+ fileserver.js   | 100.00 |   89.36 |  100.00 | 🎯 Perfect line coverage
  logger.js       | 100.00 |   94.23 |   95.45 | 🎯 Perfect line coverage
  middleware.js   | 100.00 |  100.00 |  100.00 | 🎯 Perfect
  request.js      | 100.00 |  100.00 |  100.00 | 🎯 Perfect
- response.js     | 100.00 |   97.73 |  100.00 | 🎯 Perfect line/function coverage
- woodland.js     | 100.00 |   92.63 |  100.00 | 🎯 Perfect line coverage
+ response.js     |  99.12 |   95.71 |  100.00 | 🎯 near perfect
+ woodland.js     |  98.63 |   92.16 |   98.04 | 🎯 near perfect
 
-All files        | 100.00 |   95.90 |   99.37 | Overall coverage
+All files        |  99.45 |   95.30 |   98.82 | Overall coverage
 ```
 
-**Test Results:** 335 tests passing with 100% line coverage, 99.37% function coverage, and 95.90% branch coverage.
+**Test Results:** 365 tests passing with 99.45% line coverage, 95.30% branch coverage, and 98.82% function coverage.
 
 ### Coverage Status
 
 **Achieved:**
-- ✅ 335 passing tests
-- ✅ 100% line coverage across all source files
-- ✅ 99.37% function coverage across all source files
-- ✅ 95.90% branch coverage
-- ✅ CLI module: comprehensive coverage
+- ✅ 365 passing tests
+- ✅ 99.45% line coverage across all source files
+- ✅ 98.82% function coverage across all source files
+- ✅ 95.30% branch coverage
+- ✅ CLI module: 100% coverage
 - ✅ Security features: path traversal, CORS, input validation, XSS prevention
 
 **Coverage Strategy:**

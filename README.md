@@ -272,7 +272,7 @@ npx woodland --ip=0.0.0.0
 ## Testing
 
 ```bash
-npm test              # Run tests (334 tests, 100% line, 99.37% function, 95.90% branch coverage)
+npm test              # Run tests (365 tests, 99.45% line, 98.82% function coverage)
 npm run coverage      # Generate coverage report
 npm run benchmark     # Performance benchmarks
 npm run lint          # Check linting
