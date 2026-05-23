@@ -68,7 +68,14 @@ import {
  * @returns {string} Set-Cookie header value
  */
 export function serializeCookie(name, value, opts = {}) {
-	const encodeFn = opts.encode === false ? (v) => v : opts.encode || encodeURIComponent;
+	let encodeFn;
+	if (opts.encode === false) {
+		encodeFn = (v) => v;
+	} else if (typeof opts.encode === FUNCTION) {
+		encodeFn = opts.encode;
+	} else {
+		encodeFn = encodeURIComponent;
+	}
 	let cookieString = `${name}=${encodeFn(value)}`;
 	const cookieOpts = [];
 
