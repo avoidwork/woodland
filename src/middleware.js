@@ -95,14 +95,10 @@ export function next(req, res, middleware, immediate = false, _middlewareArray) 
 			}
 		} else {
 			let obj = middleware.next();
-			console.error("  iterator first obj: done=", obj.done, "len=", obj.value?.length);
 			while (!obj.done && obj.value && obj.value.length !== ERROR_HANDLER_LENGTH) {
-				console.error("  skipped handler len=", obj.value.length);
 				obj = middleware.next();
 			}
-			console.error("  after loop obj: done=", obj.done, "len=", obj.value?.length);
 			if (!obj.done && obj.value && obj.value.length === ERROR_HANDLER_LENGTH) {
-				console.error("  invoking error handler from iterator");
 				obj.value(err, req, res, nextFn);
 				return;
 			}

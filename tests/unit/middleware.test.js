@@ -738,9 +738,16 @@ describe("middleware", () => {
 
 		it("should skip 4-arg handlers during regular flow", async () => {
 			let errorSkipped = false;
+			let sendCalledWith = null;
 
 			const req = { allow: ["GET"], method: "GET" };
-			const res = { statusCode: 500, error: () => {}, send: () => {} };
+			const res = {
+				statusCode: 500,
+				error: () => {},
+				send: (v) => {
+					sendCalledWith = v;
+				},
+			};
 
 			let callCount = 0;
 			const middleware = {
@@ -764,6 +771,7 @@ describe("middleware", () => {
 
 			await new Promise((resolve) => setTimeout(resolve, 10));
 			assert.strictEqual(errorSkipped, false);
+			assert.strictEqual(sendCalledWith, null);
 		});
 
 		it("should skip 3-arg handlers when searching for error handler", async () => {

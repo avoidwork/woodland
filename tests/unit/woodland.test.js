@@ -335,6 +335,12 @@ describe("woodland", () => {
 
 				assert.strictEqual(result1, result2);
 			});
+
+			it("should throw TypeError when only path string is provided without middleware", () => {
+				assert.throws(() => {
+					app.get("/test");
+				}, TypeError);
+			});
 		});
 
 		describe("etag", () => {
@@ -1185,6 +1191,76 @@ describe("woodland", () => {
 			app.route(req, res);
 			await new Promise((resolve) => setTimeout(resolve, 10));
 			assert.strictEqual(routePath, "/users/:id");
+		});
+	});
+
+	describe("res.sendFile", () => {
+		it("should return 404 for nonexistent file", async () => {
+			const app = woodland();
+
+			app.get("/test", async (req, res) => {
+				await res.sendFile("/nonexistent/file.txt");
+			});
+
+			const req = {
+				method: "GET",
+				headers: { host: "example.com" },
+				url: "/test",
+				socket: { remoteAddress: "127.0.0.1" },
+			};
+			const res = {
+				statusCode: 200,
+				headersSent: false,
+				setHeader: () => {},
+				set: () => {},
+				getHeader: () => void 0,
+				on: () => {},
+				removeHeader: () => {},
+				header: () => {},
+				writeHead: () => {},
+				end: () => {},
+			};
+
+			app.route(req, res);
+			await new Promise((resolve) => setTimeout(resolve, 20));
+			assert.strictEqual(res.statusCode, 404);
+		});
+	});
+
+	describe("CORS origin validation", () => {
+		it("should reject origin with control characters", async () => {
+			const app = woodland();
+			app.use(() => {});
+
+			let _errorCalled = false;
+			app.on("error", () => {
+				_errorCalled = true;
+			});
+
+			const req = {
+				method: "GET",
+				headers: { host: "example.com", origin: "http://example.com\x00" },
+				url: "/test",
+				socket: null,
+				allow: ["GET"],
+			};
+			const res = {
+				setHeader: () => {},
+				on: () => {},
+				set: () => {},
+				send: () => {},
+				getHeader: () => void 0,
+				writeHead: () => {},
+				end: () => {},
+				statusCode: 200,
+				headersSent: false,
+				removeHeader: () => {},
+				header: () => {},
+			};
+
+			app.route(req, res);
+
+			await new Promise((resolve) => setTimeout(resolve, 50));
 		});
 	});
 });

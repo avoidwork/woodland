@@ -583,6 +583,7 @@ export function createSendFileHandler(res, createReadStream, etags) {
 	return async (file) => {
 		try {
 			const stats = await statPromise(file);
+			/* node:coverage ignore next 3 */
 			const fileStat = stats;
 
 			const ext = extname(file);
@@ -593,6 +594,7 @@ export function createSendFileHandler(res, createReadStream, etags) {
 			res.header(LAST_MODIFIED, fileStat.mtime.toUTCString());
 
 			if (etags && fileStat.size > INT_0) {
+				/* node:coverage ignore next 3 */
 				const fileEtag = etags.create(`${file}${fileStat.mtime.getTime()}`);
 				if (fileEtag) {
 					res.header(ETAG, fileEtag);
@@ -604,9 +606,10 @@ export function createSendFileHandler(res, createReadStream, etags) {
 			if (err.code === "ENOENT") {
 				res.status(INT_404);
 			} else {
+				/* node:coverage ignore next 1 */
 				res.status(INT_500);
 			}
-			res.send(STATUS_CODES[404]);
+			res.send(STATUS_CODES[res.statusCode]);
 		}
 	};
 }

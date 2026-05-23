@@ -21,6 +21,7 @@ import {
 	createSendHandler,
 	createSetHandler,
 	createStatusHandler,
+	createSendFileHandler,
 } from "../../src/response.js";
 
 describe("response", () => {
@@ -1692,6 +1693,18 @@ describe("response", () => {
 			statusHandler(404);
 
 			assert.strictEqual(res.statusCode, 404);
+		});
+
+		it("should create send file handler function", () => {
+			const res = {
+				statusCode: 200,
+				headers: {},
+				header: () => {},
+				send: () => {},
+			};
+
+			const handler = createSendFileHandler(res, () => "stream", { create: () => "test-etag" });
+			assert.strictEqual(typeof handler, "function");
 		});
 	});
 });
