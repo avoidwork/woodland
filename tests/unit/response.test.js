@@ -1,5 +1,6 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
+import { INT_0, INT_1 } from "../../src/constants.js";
 import {
 	mime,
 	getStatusText,
@@ -1845,13 +1846,14 @@ describe("response", () => {
 					setHeaderCalled = true;
 					cookieValue = value;
 				},
+				getHeader: () => [],
 			};
 
 			const cookieHandler = createCookieHandler(res);
 			cookieHandler("session", "abc123");
 
 			assert.ok(setHeaderCalled);
-			assert.strictEqual(cookieValue, "session=abc123; Path=/");
+			assert.deepStrictEqual(cookieValue, ["session=abc123; Path=/"]);
 		});
 
 		it("should set cookie with options", () => {
@@ -1860,15 +1862,17 @@ describe("response", () => {
 				setHeader: (name, value) => {
 					cookieValue = value;
 				},
+				getHeader: () => [],
 			};
 
 			const cookieHandler = createCookieHandler(res);
 			cookieHandler("token", "xyz", { httpOnly: true, secure: true, sameSite: "strict" });
 
-			assert.ok(cookieValue.includes("token=xyz"));
-			assert.ok(cookieValue.includes("HttpOnly"));
-			assert.ok(cookieValue.includes("Secure"));
-			assert.ok(cookieValue.includes("SameSite=Strict"));
+			assert.strictEqual(cookieValue.length, INT_1);
+			assert.ok(cookieValue[INT_0].includes("token=xyz"));
+			assert.ok(cookieValue[INT_0].includes("HttpOnly"));
+			assert.ok(cookieValue[INT_0].includes("Secure"));
+			assert.ok(cookieValue[INT_0].includes("SameSite=Strict"));
 		});
 
 		it("should encode cookie value by default", () => {
@@ -1877,12 +1881,13 @@ describe("response", () => {
 				setHeader: (name, value) => {
 					cookieValue = value;
 				},
+				getHeader: () => [],
 			};
 
 			const cookieHandler = createCookieHandler(res);
 			cookieHandler("name", "hello world");
 
-			assert.ok(cookieValue.includes("hello%20world"));
+			assert.ok(cookieValue[INT_0].includes("hello%20world"));
 		});
 	});
 
@@ -1893,14 +1898,16 @@ describe("response", () => {
 				setHeader: (name, value) => {
 					cookieValue = value;
 				},
+				getHeader: () => [],
 			};
 
 			const clearHandler = createClearCookieHandler(res);
 			clearHandler("session");
 
-			assert.ok(cookieValue.includes("session="));
-			assert.ok(cookieValue.includes("Max-Age="));
-			assert.ok(cookieValue.includes("Path=/"));
+			assert.strictEqual(cookieValue.length, INT_1);
+			assert.ok(cookieValue[INT_0].includes("session="));
+			assert.ok(cookieValue[INT_0].includes("Max-Age="));
+			assert.ok(cookieValue[INT_0].includes("Path=/"));
 		});
 
 		it("should clear cookie with domain option", () => {
@@ -1909,13 +1916,15 @@ describe("response", () => {
 				setHeader: (name, value) => {
 					cookieValue = value;
 				},
+				getHeader: () => [],
 			};
 
 			const clearHandler = createClearCookieHandler(res);
 			clearHandler("session", { domain: "example.com" });
 
-			assert.ok(cookieValue.includes("Domain=example.com"));
-			assert.ok(cookieValue.includes("session="));
+			assert.strictEqual(cookieValue.length, INT_1);
+			assert.ok(cookieValue[INT_0].includes("Domain=example.com"));
+			assert.ok(cookieValue[INT_0].includes("session="));
 		});
 	});
 });

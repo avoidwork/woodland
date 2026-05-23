@@ -868,7 +868,12 @@ function createStatusHandler(res) {
 function createCookieHandler(res) {
 	return (name, value, opts = {}) => {
 		const cookieValue = serializeCookie(name, value, opts);
-		res.setHeader("set-cookie", cookieValue);
+		let existing = res.getHeader("set-cookie") || [];
+		if (!Array.isArray(existing)) {
+			existing = [existing];
+		}
+		existing.push(cookieValue);
+		res.setHeader("set-cookie", existing);
 	};
 }
 
@@ -885,7 +890,12 @@ function createClearCookieHandler(res) {
 			expires: new Date(0),
 		};
 		const cookieValue = serializeCookie(name, EMPTY, clearOpts);
-		res.setHeader("set-cookie", cookieValue);
+		let existing = res.getHeader("set-cookie") || [];
+		if (!Array.isArray(existing)) {
+			existing = [existing];
+		}
+		existing.push(cookieValue);
+		res.setHeader("set-cookie", existing);
 	};
 }/**
  * Checks if request origin is allowed for CORS

@@ -1,7 +1,7 @@
 import assert from "node:assert";
 import { createServer } from "node:http";
 import { describe, it, afterEach } from "node:test";
-import { INT_0 } from "../../src/constants.js";
+import { INT_0, INT_1, INT_2 } from "../../src/constants.js";
 import { woodland } from "../../src/woodland.js";
 
 describe("cookie integration", () => {
@@ -44,7 +44,7 @@ describe("cookie integration", () => {
 		assert.ok(setCookie[INT_0].includes("Path=/"));
 	});
 
-	it("should preserve multiple cookies with set-header and writeHead merge", async () => {
+	it("should preserve multiple cookies with writeHead merge", async () => {
 		const app = woodland({ logging: { enabled: false }, etags: false });
 
 		app.get("/", (req, res) => {
@@ -60,6 +60,11 @@ describe("cookie integration", () => {
 
 		assert.strictEqual(response.status, 200);
 		assert.strictEqual(body, "done");
+		const setCookie = response.headers.getSetCookie();
+		assert.strictEqual(setCookie.length, INT_2);
+		assert.ok(setCookie[INT_0].includes("id=123"));
+		assert.ok(setCookie[INT_0].includes("HttpOnly"));
+		assert.ok(setCookie[INT_1].includes("token=xyz"));
 	});
 
 	it("should include set-cookie header alongside other headers from res.header", async () => {
