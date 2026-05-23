@@ -72,6 +72,8 @@ import {
 	createSendHandler,
 	createSetHandler,
 	createStatusHandler,
+	createCookieHandler,
+	createClearCookieHandler,
 } from "./response.js";
 
 /**
@@ -400,6 +402,8 @@ export class Woodland extends EventEmitter {
 		res.send = createSendHandler(req, res, this.#onReady.bind(this), this.#onDone.bind(this));
 		res.set = createSetHandler(res);
 		res.status = createStatusHandler(res);
+		res.cookie = createCookieHandler(res);
+		res.clearCookie = createClearCookieHandler(res);
 
 		res.set(headersBatch);
 		res.on(EVT_CLOSE, () => this.#logger.log(this.#logger.clf(req, res), INFO));

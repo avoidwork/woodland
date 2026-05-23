@@ -269,7 +269,70 @@ const HTML_ESCAPES = Object.freeze({
 	">": "&gt;",
 	'"': "&quot;",
 	"'": "&#39;",
-});const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[INT_1]),
+});/**
+ * Serializes a cookie name/value pair with options into a Set-Cookie header string
+ * @param {string} name - Cookie name
+ * @param {string} value - Cookie value
+ * @param {Object} [opts={}] - Cookie options
+ * @param {string} [opts.domain] - Cookie domain
+ * @param {string} [opts.path] - Cookie path
+ * @param {number} [opts.maxAge] - Max age in milliseconds
+ * @param {Date} [opts.expires] - Expiration date
+ * @param {boolean} [opts.httpOnly] - HttpOnly flag
+ * @param {boolean} [opts.secure] - Secure flag
+ * @param {string} [opts.sameSite] - SameSite attribute
+ * @param {boolean|Function} [opts.encode] - Encoding function or false to skip
+ * @returns {string} Set-Cookie header value
+ */
+function serializeCookie(name, value, opts = {}) {
+	const encodeFn = opts.encode === false ? (v) => v : opts.encode || encodeURIComponent;
+	let cookieString = `${name}=${encodeFn(value)}`;
+	const cookieOpts = [];
+
+	if (opts.path) {
+		cookieOpts.push(`Path=${opts.path}`);
+	} else {
+		cookieOpts.push("Path=/");
+	}
+
+	if (opts.domain) {
+		cookieOpts.push(`Domain=${opts.domain}`);
+	}
+
+	if (opts.maxAge != null) {
+		const expires = new Date(Date.now() + opts.maxAge);
+		cookieOpts.push(`Max-Age=${Math.floor(opts.maxAge / INT_1e3)}`);
+		cookieOpts.push(`Expires=${expires.toUTCString()}`);
+	} else if (opts.expires) {
+		cookieOpts.push(`Expires=${opts.expires.toUTCString()}`);
+	}
+
+	if (opts.httpOnly) {
+		cookieOpts.push("HttpOnly");
+	}
+
+	if (opts.secure) {
+		cookieOpts.push("Secure");
+	}
+
+	if (opts.sameSite) {
+		const sameSite = opts.sameSite;
+		if (sameSite.toLowerCase() === "strict") {
+			cookieOpts.push("SameSite=Strict");
+		} else if (sameSite.toLowerCase() === "lax") {
+			cookieOpts.push("SameSite=Lax");
+		} else if (sameSite.toLowerCase() === "none") {
+			cookieOpts.push("SameSite=None");
+		} else {
+			cookieOpts.push(`SameSite=${sameSite}`);
+		}
+	}
+
+	cookieString += SEMICOLON_SPACE + cookieOpts.join(SEMICOLON_SPACE);
+	return cookieString;
+}
+
+const valid = Object.entries(mimeDb).filter((i) => EXTENSIONS in i[INT_1]),
 	mimeExtensions = valid.reduce((a, v) => {
 		const result = Object.assign({ type: v[INT_0] }, v[INT_1]);
 		const extCount = result.extensions.length;
@@ -390,11 +453,14 @@ function pipeable(method, arg) {
 
 /**
  * Writes HTTP response headers using writeHead method
+ * Merges passed headers with existing response headers to preserve
+ * headers set via res.setHeader/res.header/res.set prior to writing.
  * @param {Object} res - The HTTP response object
- * @param {Object} [headers={}] - Headers object to write
+ * @param {Object} [headers={}] - Headers object to write (merged with existing)
  */
 function writeHead(res, headers = {}) {
-	res.writeHead(res.statusCode, STATUS_CODES[res.statusCode], headers);
+	const existing = res.getHeaders();
+	res.writeHead(res.statusCode, STATUS_CODES[res.statusCode], { ...existing, ...headers });
 }
 
 /**
@@ -777,6 +843,35 @@ function createSetHandler(res) {
  */
 function createStatusHandler(res) {
 	return (arg = INT_200) => status(res, arg);
+}
+
+/**
+ * Creates cookie setter handler
+ * @param {Object} res - Response object
+ * @returns {Function} Cookie handler function
+ */
+function createCookieHandler(res) {
+	return (name, value, opts = {}) => {
+		const cookieValue = serializeCookie(name, value, opts);
+		res.setHeader("set-cookie", cookieValue);
+	};
+}
+
+/**
+ * Creates cookie clearing handler
+ * @param {Object} res - Response object
+ * @returns {Function} Clear cookie handler function
+ */
+function createClearCookieHandler(res) {
+	return (name, opts = {}) => {
+		const clearOpts = {
+			...opts,
+			expires: new Date(0),
+			maxAge: INT_NEG_1,
+		};
+		const cookieValue = serializeCookie(name, EMPTY, clearOpts);
+		res.setHeader("set-cookie", cookieValue);
+	};
 }/**
  * Checks if request origin is allowed for CORS
  * @param {Object} req - Request object
@@ -2165,6 +2260,8 @@ class Woodland extends EventEmitter {
 		res.send = createSendHandler(req, res, this.#onReady.bind(this), this.#onDone.bind(this));
 		res.set = createSetHandler(res);
 		res.status = createStatusHandler(res);
+		res.cookie = createCookieHandler(res);
+		res.clearCookie = createClearCookieHandler(res);
 
 		res.set(headersBatch);
 		res.on(EVT_CLOSE, () => this.#logger.log(this.#logger.clf(req, res), INFO));

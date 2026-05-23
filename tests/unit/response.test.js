@@ -15,12 +15,15 @@ import {
 	partialHeaders,
 	pipeable,
 	writeHead,
+	serializeCookie,
 	createErrorHandler,
 	createJsonHandler,
 	createRedirectHandler,
 	createSendHandler,
 	createSetHandler,
 	createStatusHandler,
+	createCookieHandler,
+	createClearCookieHandler,
 } from "../../src/response.js";
 
 describe("response", () => {
@@ -474,6 +477,7 @@ describe("response", () => {
 			const res = {
 				headersSent: false,
 				statusCode: 200,
+				getHeaders: () => ({}),
 				writeHead: () => {
 					res.headersSent = true;
 				},
@@ -523,6 +527,7 @@ describe("response", () => {
 			const res = {
 				headersSent: false,
 				statusCode: 200,
+				getHeaders: () => ({}),
 				writeHead: () => {
 					res.headersSent = true;
 				},
@@ -698,9 +703,11 @@ describe("response", () => {
 			const res = {
 				headersSent: false,
 				statusCode: 200,
+				getHeaders: () => ({}),
 				header: () => {},
 				removeHeader: () => {},
 				writeHead: () => {},
+				error: () => {},
 			};
 
 			send(
@@ -709,7 +716,7 @@ describe("response", () => {
 				streamObj,
 				200,
 				{},
-				(_req, _res, body, status, headers) => [body, status, headers],
+				() => [streamObj, 200, {}],
 				() => {},
 			);
 
@@ -733,6 +740,7 @@ describe("response", () => {
 			const res = {
 				headersSent: false,
 				statusCode: 200,
+				getHeaders: () => ({}),
 				header: () => {},
 				removeHeader: () => {},
 				writeHead: () => {},
@@ -762,6 +770,7 @@ describe("response", () => {
 			const res = {
 				headersSent: false,
 				statusCode: 200,
+				getHeaders: () => ({}),
 				header: () => {},
 				removeHeader: () => {},
 				writeHead: () => {},
@@ -1537,10 +1546,11 @@ describe("response", () => {
 	});
 
 	describe("writeHead", () => {
-		it("should call writeHead with status and headers", () => {
+		it("should call writeHead with status and merged headers", () => {
 			let capturedHeaders = null;
 			const res = {
 				statusCode: 200,
+				getHeaders: () => ({ "x-custom": "value" }),
 				writeHead: (status, text, headers) => {
 					capturedHeaders = headers;
 				},
@@ -1548,13 +1558,17 @@ describe("response", () => {
 
 			writeHead(res, { "content-type": "application/json" });
 
-			assert.deepStrictEqual(capturedHeaders, { "content-type": "application/json" });
+			assert.deepStrictEqual(capturedHeaders, {
+				"x-custom": "value",
+				"content-type": "application/json",
+			});
 		});
 
 		it("should handle empty headers", () => {
 			let called = false;
 			const res = {
 				statusCode: 200,
+				getHeaders: () => ({}),
 				writeHead: () => {
 					called = true;
 				},
@@ -1563,6 +1577,43 @@ describe("response", () => {
 			writeHead(res, {});
 
 			assert.strictEqual(called, true);
+		});
+
+		it("should merge new headers over existing headers", () => {
+			let capturedHeaders = null;
+			const res = {
+				statusCode: 200,
+				getHeaders: () => ({ "content-type": "text/plain" }),
+				writeHead: (status, text, headers) => {
+					capturedHeaders = headers;
+				},
+			};
+
+			writeHead(res, { "content-type": "application/json" });
+
+			assert.strictEqual(capturedHeaders["content-type"], "application/json");
+		});
+
+		it("should preserve set-cookie headers set before writeHead", () => {
+			let capturedHeaders = null;
+			const cookieValue = "session=abc123; Path=/";
+			const storedHeaders = {};
+			const res = {
+				statusCode: 200,
+				getHeaders: () => storedHeaders,
+				setHeader: (name, value) => {
+					storedHeaders[name] = value;
+				},
+				writeHead: (status, text, headers) => {
+					capturedHeaders = headers;
+				},
+			};
+
+			res.setHeader("set-cookie", cookieValue);
+			writeHead(res, { "content-type": "text/plain" });
+
+			assert.ok(capturedHeaders["set-cookie"]?.includes("session=abc123"));
+			assert.strictEqual(capturedHeaders["content-type"], "text/plain");
 		});
 	});
 
@@ -1692,6 +1743,179 @@ describe("response", () => {
 			statusHandler(404);
 
 			assert.strictEqual(res.statusCode, 404);
+		});
+	});
+
+	describe("serializeCookie", () => {
+		it("should create basic cookie with path", () => {
+			const result = serializeCookie("session", "abc123");
+			assert.ok(result.includes("session=abc123"));
+			assert.ok(result.includes("Path=/"));
+		});
+
+		it("should encode cookie value by default", () => {
+			const result = serializeCookie("name", "a b");
+			assert.ok(result.includes("a%20b"));
+		});
+
+		it("should support custom encode function", () => {
+			const result = serializeCookie("name", "a b", { encode: (v) => v });
+			assert.ok(result.includes("a b"));
+		});
+
+		it("should skip encoding when encode is false", () => {
+			const result = serializeCookie("name", "a b", { encode: false });
+			assert.ok(result.includes("a b"));
+		});
+
+		it("should set maxAge and expires", () => {
+			const result = serializeCookie("token", "xyz", { maxAge: 3600000 });
+			assert.ok(result.includes("Max-Age=3600"));
+			assert.ok(result.includes("Expires="));
+		});
+
+		it("should include httpOnly when set", () => {
+			const result = serializeCookie("id", "val", { httpOnly: true });
+			assert.ok(result.includes("HttpOnly"));
+		});
+
+		it("should not include httpOnly by default", () => {
+			const result = serializeCookie("id", "val", {});
+			assert.ok(!result.includes("HttpOnly"));
+		});
+
+		it("should include secure when set", () => {
+			const result = serializeCookie("id", "val", { secure: true });
+			assert.ok(result.includes("Secure"));
+		});
+
+		it("should not include secure by default", () => {
+			const result = serializeCookie("id", "val", {});
+			assert.ok(!result.includes("Secure"));
+		});
+
+		it("should normalize sameSite to Strict", () => {
+			const result = serializeCookie("id", "val", { sameSite: "strict" });
+			assert.ok(result.includes("SameSite=Strict"));
+		});
+
+		it("should normalize sameSite to Lax", () => {
+			const result = serializeCookie("id", "val", { sameSite: "lax" });
+			assert.ok(result.includes("SameSite=Lax"));
+		});
+
+		it("should normalize sameSite to None", () => {
+			const result = serializeCookie("id", "val", { sameSite: "none" });
+			assert.ok(result.includes("SameSite=None"));
+		});
+
+		it("should pass through custom sameSite value", () => {
+			const result = serializeCookie("id", "val", { sameSite: "custom" });
+			assert.ok(result.includes("SameSite=custom"));
+		});
+
+		it("should set custom domain", () => {
+			const result = serializeCookie("id", "val", { domain: "example.com" });
+			assert.ok(result.includes("Domain=example.com"));
+		});
+
+		it("should set custom path", () => {
+			const result = serializeCookie("id", "val", { path: "/app" });
+			assert.ok(result.includes("Path=/app"));
+		});
+
+		it("should default path to /", () => {
+			const result = serializeCookie("id", "val");
+			assert.ok(result.includes("Path=/"));
+		});
+
+		it("should set expires explicitly", () => {
+			const expires = new Date("2025-01-01T00:00:00Z");
+			const result = serializeCookie("id", "val", { expires });
+			assert.ok(result.includes("Expires=Wed, 01 Jan 2025"));
+		});
+	});
+
+	describe("createCookieHandler", () => {
+		it("should set cookie via setHeader", () => {
+			let setHeaderCalled = false;
+			let cookieValue = null;
+			const res = {
+				setHeader: (name, value) => {
+					setHeaderCalled = true;
+					cookieValue = value;
+				},
+			};
+
+			const cookieHandler = createCookieHandler(res);
+			cookieHandler("session", "abc123");
+
+			assert.ok(setHeaderCalled);
+			assert.strictEqual(cookieValue, "session=abc123; Path=/");
+		});
+
+		it("should set cookie with options", () => {
+			let cookieValue = null;
+			const res = {
+				setHeader: (name, value) => {
+					cookieValue = value;
+				},
+			};
+
+			const cookieHandler = createCookieHandler(res);
+			cookieHandler("token", "xyz", { httpOnly: true, secure: true, sameSite: "strict" });
+
+			assert.ok(cookieValue.includes("token=xyz"));
+			assert.ok(cookieValue.includes("HttpOnly"));
+			assert.ok(cookieValue.includes("Secure"));
+			assert.ok(cookieValue.includes("SameSite=Strict"));
+		});
+
+		it("should encode cookie value by default", () => {
+			let cookieValue = null;
+			const res = {
+				setHeader: (name, value) => {
+					cookieValue = value;
+				},
+			};
+
+			const cookieHandler = createCookieHandler(res);
+			cookieHandler("name", "hello world");
+
+			assert.ok(cookieValue.includes("hello%20world"));
+		});
+	});
+
+	describe("createClearCookieHandler", () => {
+		it("should clear cookie with expired date", () => {
+			let cookieValue = null;
+			const res = {
+				setHeader: (name, value) => {
+					cookieValue = value;
+				},
+			};
+
+			const clearHandler = createClearCookieHandler(res);
+			clearHandler("session");
+
+			assert.ok(cookieValue.includes("session="));
+			assert.ok(cookieValue.includes("Max-Age="));
+			assert.ok(cookieValue.includes("Path=/"));
+		});
+
+		it("should clear cookie with domain option", () => {
+			let cookieValue = null;
+			const res = {
+				setHeader: (name, value) => {
+					cookieValue = value;
+				},
+			};
+
+			const clearHandler = createClearCookieHandler(res);
+			clearHandler("session", { domain: "example.com" });
+
+			assert.ok(cookieValue.includes("Domain=example.com"));
+			assert.ok(cookieValue.includes("session="));
 		});
 	});
 });

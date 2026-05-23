@@ -37,6 +37,35 @@ export interface RouteInfo {
 	visible: number;
 }
 
+export interface CookieOptions {
+	domain?: string;
+	path?: string;
+	maxAge?: number;
+	expires?: Date;
+	httpOnly?: boolean;
+	secure?: boolean;
+	sameSite?: "strict" | "lax" | "none" | string;
+	encode?: boolean | ((value: string) => string);
+}
+
+export interface ClearCookieOptions {
+	domain?: string;
+	path?: string;
+}
+
+export interface WoodlandResponse {
+	locals: Record<string, any>;
+	error(status?: number, body?: Error | string): void;
+	header(name: string, value: string | number): void;
+	json(body: any, status?: number, headers?: Record<string, string>): void;
+	redirect(uri: string, perm?: boolean): void;
+	send(body?: string, status?: number, headers?: Record<string, string>): void;
+	set(headers: Record<string, string>): void;
+	status(code: number): void;
+	cookie(name: string, value: string, opts?: CookieOptions): void;
+	clearCookie(name: string, opts?: ClearCookieOptions): void;
+}
+
 export class Woodland extends EventEmitter {
 	// Public read-only properties (getters)
 	readonly logger: Readonly<{
