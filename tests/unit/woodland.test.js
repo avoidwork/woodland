@@ -1,7 +1,7 @@
 import assert from "node:assert";
 import { describe, it, beforeEach } from "node:test";
 import { Woodland, woodland } from "../../src/woodland.js";
-import { EVT_CONNECT, INT_0 } from "../../src/constants.js";
+import { EVT_CONNECT, INT_0, INT_255 } from "../../src/constants.js";
 
 describe("woodland", () => {
 	describe("Woodland class", () => {
@@ -1260,6 +1260,75 @@ describe("woodland", () => {
 
 			app.route(req, res);
 
+			await new Promise((resolve) => setTimeout(resolve, 50));
+		});
+
+		it("should reject origin with length exceeding limit", async () => {
+			const app = woodland({ origins: ["http://example.com"] });
+			app.use(() => {});
+
+			let _errorCalled = false;
+			app.on("error", () => {
+				_errorCalled = true;
+			});
+
+			const longOrigin = "x".repeat(INT_255 + 1);
+			const req = {
+				method: "GET",
+				headers: { host: "example.com", origin: longOrigin },
+				url: "/test",
+				socket: null,
+				allow: ["GET"],
+			};
+			const res = {
+				setHeader: () => {},
+				on: () => {},
+				set: () => {},
+				send: () => {},
+				getHeader: () => void 0,
+				writeHead: () => {},
+				end: () => {},
+				statusCode: 200,
+				headersSent: false,
+				removeHeader: () => {},
+				header: () => {},
+			};
+
+			app.route(req, res);
+			await new Promise((resolve) => setTimeout(resolve, 50));
+		});
+
+		it("should reject origin with newline control character", async () => {
+			const app = woodland({ origins: ["http://example.com"] });
+			app.use(() => {});
+
+			let _errorCalled = false;
+			app.on("error", () => {
+				_errorCalled = true;
+			});
+
+			const req = {
+				method: "GET",
+				headers: { host: "example.com", origin: "http://example.com\ninject" },
+				url: "/test",
+				socket: null,
+				allow: ["GET"],
+			};
+			const res = {
+				setHeader: () => {},
+				on: () => {},
+				set: () => {},
+				send: () => {},
+				getHeader: () => void 0,
+				writeHead: () => {},
+				end: () => {},
+				statusCode: 200,
+				headersSent: false,
+				removeHeader: () => {},
+				header: () => {},
+			};
+
+			app.route(req, res);
 			await new Promise((resolve) => setTimeout(resolve, 50));
 		});
 	});

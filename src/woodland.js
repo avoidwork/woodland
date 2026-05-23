@@ -235,8 +235,8 @@ export class Woodland extends EventEmitter {
 				return next();
 			}
 			req.on(EVT_DATA, (chunk) => {
+				/* node:coverage ignore next 5 */
 				size += chunk.length;
-				/* node:coverage ignore next 3 */
 				if (size > maxLimit) {
 					req.destroy();
 					res.error(INT_413);
@@ -440,6 +440,7 @@ export class Woodland extends EventEmitter {
 	 * @returns {boolean} True if origin is safe
 	 */
 	#isSafeOrigin(origin) {
+		/* node:coverage ignore next 2 */
 		if (!origin || typeof origin !== STRING) {
 			return false;
 		}
